@@ -4,7 +4,7 @@
   },
   "build": {
     "production": {
-      "releaseChannel": "production",
+      "releaseChannel": "prod",
       "developmentClient": false,
       "distribution": "internal"
     }
