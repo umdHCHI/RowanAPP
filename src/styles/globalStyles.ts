@@ -56,4 +56,29 @@ export const createGlobalStyles = (theme: ThemeColors) => StyleSheet.create({
     color: theme.text,
     marginVertical: 8,
   },
+  progressBar: {
+    height: 6,
+    backgroundColor: theme.border,
+    borderRadius: 3,
+    width: '100%',
+    marginBottom: 16,
+  },
+  progressBarFill: {
+    height: 6,
+    backgroundColor: theme.primary,
+    borderRadius: 3,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: theme.card,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    maxWidth: 350,
+  },
 }); 

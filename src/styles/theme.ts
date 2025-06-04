@@ -11,6 +11,7 @@ export type ThemeColors = {
   tabBarInactive: string;
 };
 
+// Light Theme
 export const lightTheme: ThemeColors = {
   primary: '#007AFF',
   background: '#F2F2F7',
@@ -22,6 +23,7 @@ export const lightTheme: ThemeColors = {
   tabBarInactive: '#8E8E93',
 };
 
+// Dark Theme
 export const darkTheme: ThemeColors = {
   primary: '#0A84FF',
   background: '#000000',
