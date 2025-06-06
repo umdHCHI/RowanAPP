@@ -1,95 +1,22 @@
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  clothesOptionsF,
+  clothesOptionsM,
+  eyesOptionsF,
+  eyesOptionsM,
+  glassesOptionsF,
+  glassesOptionsM,
+  hairOptionsF,
+  hairOptionsM,
+  mouthOptionsF,
+  mouthOptionsM,
+  skinOptionsF,
+  skinOptionsM,
+} from '../assets/characterOptions';
+import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
-
-const skinOptionsF = [
-  require('../../assets/character-creator/body_1.png'),
-  require('../../assets/character-creator/body_2.png'),
-  require('../../assets/character-creator/body_3.png'),
-  require('../../assets/character-creator/body_4.png'),
-  require('../../assets/character-creator/body_5.png'),
-  require('../../assets/character-creator/body_6.png'),
-  require('../../assets/character-creator/body_7.png'),
-  require('../../assets/character-creator/body_8.png'),
-];
-const hairOptionsF = [
-  require('../../assets/character-creator/hair_1.png'),
-  require('../../assets/character-creator/hair_2.png'),
-  require('../../assets/character-creator/hair_3.png'),
-  require('../../assets/character-creator/hair_4.png'),
-  require('../../assets/character-creator/hair_5.png'),
-  require('../../assets/character-creator/hair_6.png'),
-  require('../../assets/character-creator/hair_7.png'),
-];
-const clothesOptionsF = [
-  require('../../assets/character-creator/clothes_1.png'),
-  require('../../assets/character-creator/clothes_2.png'),
-  require('../../assets/character-creator/clothes_3.png'),
-  require('../../assets/character-creator/clothes_4.png'),
-  require('../../assets/character-creator/clothes_5.png'),
-  require('../../assets/character-creator/clothes_6.png'),
-];
-const glassesOptionsF = [
-  require('../../assets/character-creator/glasses_1.png'),
-  require('../../assets/character-creator/glasses_2.png'),
-  require('../../assets/character-creator/glasses_3.png'),
-  require('../../assets/character-creator/glasses_4.png'),
-  require('../../assets/character-creator/glasses_5.png'),
-];
-const eyesOptionsF = [
-  require('../../assets/character-creator/eyes_open.png'),
-  require('../../assets/character-creator/eyes_closed.png'),
-];
-const mouthOptionsF = [
-  require('../../assets/character-creator/mouth_smile.png'),
-  require('../../assets/character-creator/mouth_neutral.png'),
-  require('../../assets/character-creator/mouth_open.png'),
-];
-
-const skinOptionsM = [
-  require('../../assets/character-creator/baseB_1.png'),
-  require('../../assets/character-creator/baseB_2.png'),
-  require('../../assets/character-creator/baseB_3.png'),
-  require('../../assets/character-creator/baseB_4.png'),
-  require('../../assets/character-creator/baseB_5.png'),
-  require('../../assets/character-creator/baseB_6.png'),
-  require('../../assets/character-creator/baseB_7.png'),
-  require('../../assets/character-creator/baseB_8.png'),
-];
-const hairOptionsM = [
-  require('../../assets/character-creator/hairB_1.png'),
-  require('../../assets/character-creator/hairB_2.png'),
-  require('../../assets/character-creator/hairB_3.png'),
-  require('../../assets/character-creator/hairB_4.png'),
-  require('../../assets/character-creator/hairB_5.png'),
-  require('../../assets/character-creator/hairB_6.png'),
-  require('../../assets/character-creator/hairB_7.png'),
-  require('../../assets/character-creator/hairB_8.png'),
-];
-const clothesOptionsM = [
-  require('../../assets/character-creator/clothesB_1.png'),
-  require('../../assets/character-creator/clothesB_2.png'),
-  require('../../assets/character-creator/clothesB_3.png'),
-  require('../../assets/character-creator/clothesB_4.png'),
-  require('../../assets/character-creator/clothesB_5.png'),
-  require('../../assets/character-creator/clothesB_6.png'),
-];
-const glassesOptionsM = [
-  require('../../assets/character-creator/glassesB_1.png'),
-  require('../../assets/character-creator/glassesB_2.png'),
-  require('../../assets/character-creator/glassesB_3.png'),
-  require('../../assets/character-creator/glassesB_4.png'),
-  require('../../assets/character-creator/glassesB_5.png'),
-];
-const eyesOptionsM = [
-  require('../../assets/character-creator/eyesB_open.png'),
-  require('../../assets/character-creator/eyesB_closed.png'),
-];
-const mouthOptionsM = [
-  require('../../assets/character-creator/mouthB_smirk.png'),
-  require('../../assets/character-creator/mouthB_neutral.png'),
-  require('../../assets/character-creator/mouthB_open.png'),
-];
 
 const optionLabels = [
   'Skin',
@@ -102,6 +29,7 @@ const optionLabels = [
 
 export default function CharacterCreatorScreen() {
   const { styles: globalStyles } = useTheme();
+  const { completeCharacter, setCharacterAppearance } = useOnboarding();
   const [isMasc, setIsMasc] = useState(false); // false = feminine, true = masculine
   const [skin, setSkin] = useState(0);
   const [hair, setHair] = useState(0);
@@ -130,6 +58,20 @@ export default function CharacterCreatorScreen() {
     { label: 'Mouth', idx: mouth, setIdx: setMouth, arr: mouthOptions },
   ];
 
+  const handleComplete = () => {
+    setCharacterAppearance({
+      isMasc,
+      skin,
+      hair,
+      clothes,
+      glasses,
+      eyes,
+      mouth,
+    });
+    completeCharacter();
+    router.replace('/');
+  };
+
   return (
     <View style={[globalStyles.screenContainer, { alignItems: 'center', justifyContent: 'center', flex: 1 }]}> 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
@@ -147,7 +89,7 @@ export default function CharacterCreatorScreen() {
         </TouchableOpacity>
       </View>
       <Text style={[globalStyles.title, { marginBottom: 12 }]}>Create your character</Text>
-      <View style={localStyles.creatorRow}>
+      <View style={globalStyles.creatorRow}>
         <View style={localStyles.characterPreview}>
           <Image source={skinOptions[skin]} style={localStyles.layer} />
           <Image source={hairOptions[hair]} style={localStyles.layer} />
@@ -176,19 +118,18 @@ export default function CharacterCreatorScreen() {
           ))}
         </View>
       </View>
+      <TouchableOpacity
+        style={[globalStyles.button, { marginTop: 20 }]}
+        onPress={handleComplete}
+      >
+        <Text style={globalStyles.buttonText}>Complete Character</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const localStyles = StyleSheet.create({
-  creatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    maxWidth: 500,
-    marginTop: 8,
-  },
+
   characterPreview: {
     width: 180,
     height: 320,

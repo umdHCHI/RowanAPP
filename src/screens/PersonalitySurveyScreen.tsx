@@ -1,5 +1,7 @@
+import { router } from 'expo-router';
 import * as React from 'react';
 import { Modal, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
+import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
 
 const QUESTIONS = [
@@ -25,6 +27,7 @@ const QUESTIONS = [
 
 export default function PersonalitySurveyScreen() {
   const { styles: globalStyles, theme } = useTheme();
+  const { completeSurvey } = useOnboarding();
   const [modalVisible, setModalVisible] = React.useState(true);
   const [currentQuestion, setCurrentQuestion] = React.useState(0);
   const [answers, setAnswers] = React.useState<(string | null)[]>(Array(QUESTIONS.length).fill(null));
@@ -39,12 +42,13 @@ export default function PersonalitySurveyScreen() {
     if (currentQuestion < QUESTIONS.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      setModalVisible(true);
+      completeSurvey();
+      router.replace('/');
     }
   };
 
   const handleSkip = () => {
-    setModalVisible(false);
+    router.replace('/');
   };
 
   return (

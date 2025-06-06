@@ -81,4 +81,24 @@ export const createGlobalStyles = (theme: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     maxWidth: 350,
   },
+
+
+  // Character Creator Styles
+    creatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 500,
+    marginTop: 8,
+  },
+    characterPreview: {
+    width: 180,
+    height: 320,
+    marginBottom: 8,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 24,
+  },
 }); 
