@@ -1,29 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import {
-    clothesOptionsF,
-    clothesOptionsM,
-    eyesOptionsF,
-    eyesOptionsM,
-    glassesOptionsF,
-    glassesOptionsM,
-    hairOptionsF,
-    hairOptionsM,
-    mouthOptionsF,
-    mouthOptionsM,
-    skinOptionsF,
-    skinOptionsM,
+  clothesOptionsF,
+  clothesOptionsM,
+  eyesOptionsF,
+  eyesOptionsM,
+  glassesOptionsF,
+  glassesOptionsM,
+  hairOptionsF,
+  hairOptionsM,
+  mouthOptionsF,
+  mouthOptionsM,
+  skinOptionsF,
+  skinOptionsM,
 } from '../assets/characterOptions';
+import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
+import { getAppearance } from '../services/appearanceService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,15 +58,25 @@ const bottomNav = [
 
 const GameHomeScreen = () => {
   const { onboardingState } = useOnboarding();
-  const appearance = onboardingState.characterAppearance;
+  const [appearance, setAppearance] = useState(onboardingState.characterAppearance);
+  const { authToken, characterId } = useAuth();
 
   // Choose correct options based on gender
-  const skinOptions = appearance?.isMasc ? skinOptionsM : skinOptionsF;
-  const hairOptions = appearance?.isMasc ? hairOptionsM : hairOptionsF;
-  const clothesOptions = appearance?.isMasc ? clothesOptionsM : clothesOptionsF;
-  const glassesOptions = appearance?.isMasc ? glassesOptionsM : glassesOptionsF;
-  const eyesOptions = appearance?.isMasc ? eyesOptionsM : eyesOptionsF;
-  const mouthOptions = appearance?.isMasc ? mouthOptionsM : mouthOptionsF;
+  let skinOptions = skinOptionsF;
+  let hairOptions = hairOptionsF;
+  let clothesOptions = clothesOptionsF;
+  let glassesOptions = glassesOptionsF;
+  let eyesOptions = eyesOptionsF;
+  let mouthOptions = mouthOptionsF;
+  if (appearance?.gender === 'masculine') {
+    skinOptions = skinOptionsM;
+    hairOptions = hairOptionsM;
+    clothesOptions = clothesOptionsM;
+    glassesOptions = glassesOptionsM;
+    eyesOptions = eyesOptionsM;
+    mouthOptions = mouthOptionsM;
+  }
+  // For 'nonbinary', use feminine assets for now (or add custom logic/assets later)
 
   const characterStats = [
     { label: 'Level', value: '12', color: '#FFD700' },
@@ -72,6 +84,35 @@ const GameHomeScreen = () => {
     { label: 'Mana', value: '180/200', color: '#4488FF' },
     { label: 'Experience', value: '2,847/3,200', color: '#00FF88' },
   ];
+
+  useEffect(() => {
+    const loadAppearance = async () => {
+      try {
+        if (authToken && characterId) {
+          console.log('Loading appearance for character:', characterId);
+          const data = await getAppearance(authToken, characterId);
+          console.log('Loaded appearance data:', data);
+          setAppearance(data);
+        } else {
+          console.log('No auth token or character ID available');
+          // If we have appearance data in onboarding state, use that
+          if (onboardingState.characterAppearance) {
+            console.log('Using appearance from onboarding state');
+            setAppearance(onboardingState.characterAppearance);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load appearance:', error);
+        // If loading fails, try to use onboarding state
+        if (onboardingState.characterAppearance) {
+          console.log('Using appearance from onboarding state after error');
+          setAppearance(onboardingState.characterAppearance);
+        }
+      }
+    };
+
+    loadAppearance();
+  }, [authToken, characterId, onboardingState.characterAppearance]);
 
   return (
     <View style={styles.container}>

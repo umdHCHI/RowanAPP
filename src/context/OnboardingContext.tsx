@@ -5,7 +5,7 @@ import React, { createContext, ReactNode, useContext, useEffect, useState } from
 type OnboardingPath = 'survey' | 'character' | null;
 
 export interface CharacterAppearance {
-  isMasc: boolean;
+  gender: 'masculine' | 'feminine' | 'nonbinary';
   skin: number;
   hair: number;
   clothes: number;
@@ -37,7 +37,7 @@ interface OnboardingContextType {
 const defaultState: OnboardingState = {
   hasCompletedSurvey: false,
   hasCompletedCharacter: false,
-  assignedPath: "character",
+  assignedPath: null,
   characterAppearance: null,
 };
 

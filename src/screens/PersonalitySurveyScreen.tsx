@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
 import * as React from 'react';
 import { Modal, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
+import { completeOnboarding } from '../services/onboardingService';
 
 const QUESTIONS = [
   {
@@ -28,6 +30,7 @@ const QUESTIONS = [
 export default function PersonalitySurveyScreen() {
   const { styles: globalStyles, theme } = useTheme();
   const { completeSurvey } = useOnboarding();
+  const { authToken } = useAuth();
   const [modalVisible, setModalVisible] = React.useState(true);
   const [currentQuestion, setCurrentQuestion] = React.useState(0);
   const [answers, setAnswers] = React.useState<(string | null)[]>(Array(QUESTIONS.length).fill(null));
@@ -38,12 +41,23 @@ export default function PersonalitySurveyScreen() {
     setAnswers(updated);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentQuestion < QUESTIONS.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      completeSurvey();
-      router.replace('/');
+      try {
+        // Complete onboarding
+        if (authToken) {
+          await completeOnboarding(authToken);
+        }
+        
+        // Update local state
+        completeSurvey();
+        router.replace('/');
+      } catch (error) {
+        console.error('Failed to complete onboarding:', error);
+        // Add error handling UI here
+      }
     }
   };
 

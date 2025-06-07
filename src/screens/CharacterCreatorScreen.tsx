@@ -15,8 +15,11 @@ import {
   skinOptionsF,
   skinOptionsM,
 } from '../assets/characterOptions';
+import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
+import { createCharacter } from '../services/appearanceService';
+import { completeOnboarding } from '../services/onboardingService';
 
 const optionLabels = [
   'Skin',
@@ -30,21 +33,24 @@ const optionLabels = [
 export default function CharacterCreatorScreen() {
   const { styles: globalStyles } = useTheme();
   const { completeCharacter, setCharacterAppearance } = useOnboarding();
-  const [isMasc, setIsMasc] = useState(false); // false = feminine, true = masculine
+  const { authToken } = useAuth();
+  const [gender, setGender] = useState<'masculine' | 'feminine' | 'nonbinary'>('feminine');
   const [skin, setSkin] = useState(0);
   const [hair, setHair] = useState(0);
   const [clothes, setClothes] = useState(0);
   const [glasses, setGlasses] = useState(0);
   const [eyes, setEyes] = useState(0);
   const [mouth, setMouth] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Choose correct options based on gender
-  const skinOptions = isMasc ? skinOptionsM : skinOptionsF;
-  const hairOptions = isMasc ? hairOptionsM : hairOptionsF;
-  const clothesOptions = isMasc ? clothesOptionsM : clothesOptionsF;
-  const glassesOptions = isMasc ? glassesOptionsM : glassesOptionsF;
-  const eyesOptions = isMasc ? eyesOptionsM : eyesOptionsF;
-  const mouthOptions = isMasc ? mouthOptionsM : mouthOptionsF;
+  const skinOptions = gender === 'masculine' ? skinOptionsM : skinOptionsF;
+  const hairOptions = gender === 'masculine' ? hairOptionsM : hairOptionsF;
+  const clothesOptions = gender === 'masculine' ? clothesOptionsM : clothesOptionsF;
+  const glassesOptions = gender === 'masculine' ? glassesOptionsM : glassesOptionsF;
+  const eyesOptions = gender === 'masculine' ? eyesOptionsM : eyesOptionsF;
+  const mouthOptions = gender === 'masculine' ? mouthOptionsM : mouthOptionsF;
 
   const cycle = (arr: any[], idx: number, dir: number) => (idx + dir + arr.length) % arr.length;
 
@@ -58,34 +64,86 @@ export default function CharacterCreatorScreen() {
     { label: 'Mouth', idx: mouth, setIdx: setMouth, arr: mouthOptions },
   ];
 
-  const handleComplete = () => {
-    setCharacterAppearance({
-      isMasc,
-      skin,
-      hair,
-      clothes,
-      glasses,
-      eyes,
-      mouth,
-    });
-    completeCharacter();
-    router.replace('/');
+  const handleComplete = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    const appearanceData = {
+      gender,
+      skin: String(skin),
+      hair: String(hair),
+      clothes: String(clothes),
+      glasses: String(glasses),
+      eyes: String(eyes),
+      mouth: String(mouth),
+    };
+    
+    try {
+      if (authToken) {
+        // Create character with appearance data
+        const character = await createCharacter(authToken, appearanceData);
+        console.log('Character created:', character);
+        
+        // Update local state
+        setCharacterAppearance({
+          gender,
+          skin,
+          hair,
+          clothes,
+          glasses,
+          eyes,
+          mouth,
+        });
+        
+        try {
+          // Complete onboarding with character path
+          await completeOnboarding(authToken, 'character');
+          console.log('Onboarding completed successfully');
+          
+          // Complete character creation
+          completeCharacter();
+          
+          // Navigate to main screen
+          router.replace('/');
+        } catch (onboardingError) {
+          console.error('Failed to complete onboarding:', onboardingError);
+          // Still proceed with navigation since character was created
+          completeCharacter();
+          router.replace('/');
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to create character/appearance:', error);
+      if (error.response?.data) {
+        setError(error.response.data.detail || 'Failed to create character. Please try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <View style={[globalStyles.screenContainer, { alignItems: 'center', justifyContent: 'center', flex: 1 }]}> 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
         <TouchableOpacity
-          style={[localStyles.genderBtn, !isMasc && localStyles.genderBtnActive]}
-          onPress={() => setIsMasc(false)}
+          style={[localStyles.genderBtn, gender === 'feminine' && localStyles.genderBtnActive]}
+          onPress={() => setGender('feminine')}
         >
           <Text style={localStyles.genderBtnText}>Feminine</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[localStyles.genderBtn, isMasc && localStyles.genderBtnActive]}
-          onPress={() => setIsMasc(true)}
+          style={[localStyles.genderBtn, gender === 'masculine' && localStyles.genderBtnActive]}
+          onPress={() => setGender('masculine')}
         >
           <Text style={localStyles.genderBtnText}>Masculine</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[localStyles.genderBtn, gender === 'nonbinary' && localStyles.genderBtnActive]}
+          onPress={() => setGender('nonbinary')}
+        >
+          <Text style={localStyles.genderBtnText}>Nonbinary</Text>
         </TouchableOpacity>
       </View>
       <Text style={[globalStyles.title, { marginBottom: 12 }]}>Create your character</Text>
@@ -118,11 +176,19 @@ export default function CharacterCreatorScreen() {
           ))}
         </View>
       </View>
+      {error && (
+        <Text style={[globalStyles.text, { color: '#ff4444', marginTop: 10, textAlign: 'center' }]}>
+          {error}
+        </Text>
+      )}
       <TouchableOpacity
-        style={[globalStyles.button, { marginTop: 20 }]}
+        style={[globalStyles.button, { marginTop: 20, opacity: isLoading ? 0.7 : 1 }]}
         onPress={handleComplete}
+        disabled={isLoading}
       >
-        <Text style={globalStyles.buttonText}>Complete Character</Text>
+        <Text style={globalStyles.buttonText}>
+          {isLoading ? 'Creating Character...' : 'Complete Character'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
