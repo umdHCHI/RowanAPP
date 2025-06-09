@@ -1,251 +1,102 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-    Dimensions,
     Modal,
-    SafeAreaView,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
-
-const { width, height } = Dimensions.get('window');
 
 export type ArchiveArea = {
   id: string;
   name: string;
   description: string;
-  unlocked: boolean;
-  position: {
-    x: number;
-    y: number;
-  };
-  connections: string[];
   requiredEntries: number;
-  currentEntries: number;
-  theme: string;
-  skillCategories: string[];
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  focus: 'awareness' | 'resilience' | 'connection' | 'balance';
+  entries: CodexEntry[];
 };
 
-// Sample map data
-const archiveAreas: ArchiveArea[] = [
-  {
-    id: 'entrance',
-    name: 'The Entrance',
-    description: 'Where your journey begins. A place of reflection and preparation.',
-    unlocked: true,
-    position: { x: 0.5, y: 0.1 },
-    connections: ['garden', 'library'],
-    requiredEntries: 0,
-    currentEntries: 0,
-    theme: 'reflection',
-    skillCategories: ['Emotional Awareness'],
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'garden',
-    name: 'The Garden of Growth',
-    description: 'A space for nurturing new ideas and personal development.',
-    unlocked: false,
-    position: { x: 0.3, y: 0.3 },
-    connections: ['entrance', 'library', 'sanctuary'],
-    requiredEntries: 5,
-    currentEntries: 0,
-    theme: 'growth',
-    skillCategories: ['Stress Management', 'Emotional Awareness'],
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'library',
-    name: 'The Library of Memories',
-    description: 'Where your experiences and insights are preserved.',
-    unlocked: false,
-    position: { x: 0.7, y: 0.3 },
-    connections: ['entrance', 'garden', 'sanctuary', 'archive'],
-    requiredEntries: 5,
-    currentEntries: 0,
-    theme: 'memory',
-    skillCategories: ['Social Connection', 'Personal Growth'],
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'sanctuary',
-    name: 'The Inner Sanctuary',
-    description: 'A peaceful space for deep reflection and healing.',
-    unlocked: false,
-    position: { x: 0.5, y: 0.5 },
-    connections: ['garden', 'library', 'archive', 'summit'],
-    requiredEntries: 10,
-    currentEntries: 0,
-    theme: 'healing',
-    skillCategories: ['Self-Compassion', 'Stress Management'],
-    difficulty: 'Intermediate',
-  },
-  {
-    id: 'archive',
-    name: 'The Deep Archive',
-    description: 'Where profound insights and wisdom are stored.',
-    unlocked: false,
-    position: { x: 0.7, y: 0.7 },
-    connections: ['library', 'sanctuary', 'summit'],
-    requiredEntries: 15,
-    currentEntries: 0,
-    theme: 'wisdom',
-    skillCategories: ['Personal Growth', 'Emotional Awareness'],
-    difficulty: 'Intermediate',
-  },
-  {
-    id: 'summit',
-    name: 'The Summit of Understanding',
-    description: 'The highest point of personal insight and growth.',
-    unlocked: false,
-    position: { x: 0.5, y: 0.9 },
-    connections: ['sanctuary', 'archive'],
-    requiredEntries: 20,
-    currentEntries: 0,
-    theme: 'enlightenment',
-    skillCategories: ['Self-Compassion', 'Social Connection', 'Personal Growth'],
-    difficulty: 'Advanced',
-  },
-];
+type CodexEntry = {
+  id: string;
+  type: string;
+  content: string;
+  prompt: string;
+  skillCategory: string;
+  mapArea: string;
+  difficulty: string;
+  timestamp: number;
+};
 
-type ArchiveMapModalProps = {
+interface ArchiveMapModalProps {
   visible: boolean;
   onClose: () => void;
   onAreaSelect: (area: ArchiveArea) => void;
   completedEntries: number;
-  entries: Array<{
-    type: string;
-    content: string;
-    prompt: string;
-    skillCategory: string;
-    mapArea: string;
-    difficulty: string;
-  }>;
-};
+  entries: CodexEntry[];
+}
 
-const ArchiveMapModal = ({
+const areas: ArchiveArea[] = [
+  {
+    id: 'garden',
+    name: 'Garden of Awareness',
+    description: 'A peaceful space for mindfulness and self-reflection. Here you\'ll develop your awareness of thoughts, feelings, and patterns.',
+    requiredEntries: 3,
+    focus: 'awareness',
+    entries: []
+  },
+  {
+    id: 'sanctuary',
+    name: 'Sanctuary of Resilience',
+    description: 'A safe haven where you\'ll learn to bounce back from challenges and build emotional strength.',
+    requiredEntries: 3,
+    focus: 'resilience',
+    entries: []
+  },
+  {
+    id: 'grove',
+    name: 'Grove of Connection',
+    description: 'A welcoming space to explore relationships and social support systems.',
+    requiredEntries: 3,
+    focus: 'connection',
+    entries: []
+  },
+  {
+    id: 'summit',
+    name: 'Summit of Balance',
+    description: 'A place of harmony where you\'ll learn to maintain equilibrium in life\'s various aspects.',
+    requiredEntries: 3,
+    focus: 'balance',
+    entries: []
+  }
+];
+
+const ArchiveMapModal: React.FC<ArchiveMapModalProps> = ({
   visible,
   onClose,
   onAreaSelect,
   completedEntries,
-  entries,
-}: ArchiveMapModalProps) => {
+  entries
+}) => {
   const [selectedArea, setSelectedArea] = useState<ArchiveArea | null>(null);
-  const [areas, setAreas] = useState<ArchiveArea[]>(archiveAreas);
 
-  // Update area progress and unlock status based on entries
-  useEffect(() => {
-    const updatedAreas = areas.map(area => {
-      const areaEntries = entries.filter(entry => entry.mapArea === area.id);
-      const newCurrentEntries = areaEntries.length;
-      const unlocked = newCurrentEntries >= area.requiredEntries;
+  // Organize entries by area
+  const areasWithEntries = areas.map(area => ({
+    ...area,
+    entries: entries.filter(entry => entry.mapArea === area.id)
+  }));
 
-      return {
-        ...area,
-        currentEntries: newCurrentEntries,
-        unlocked: unlocked || area.id === 'entrance',
-      };
-    });
-
-    setAreas(updatedAreas);
-  }, [entries]);
-
-  useEffect(() => {
-    console.log('Modal visibility:', visible);
-    if (!visible) {
-      setSelectedArea(null);
-    }
-  }, [visible]);
-
-  if (!visible) return null;
-
-  const getAreaColor = (area: ArchiveArea) => {
-    if (!area.unlocked) return '#333';
-    switch (area.theme) {
-      case 'reflection':
-        return '#4ee6e6';
-      case 'growth':
-        return '#ffe066';
-      case 'memory':
-        return '#ff6b6b';
-      case 'healing':
-        return '#a29bfe';
-      case 'wisdom':
-        return '#6c5ce7';
-      case 'enlightenment':
-        return '#00b894';
-      default:
-        return '#4ee6e6';
-    }
+  const isAreaUnlocked = (area: ArchiveArea) => {
+    return area.entries.length >= area.requiredEntries;
   };
 
-  const renderConnections = () => {
-    return archiveAreas.map((area) =>
-      area.connections.map((connectedId) => {
-        const connectedArea = archiveAreas.find((a) => a.id === connectedId);
-        if (!connectedArea) return null;
-
-        return (
-          <View
-            key={`${area.id}-${connectedId}`}
-            style={[
-              styles.connection,
-              {
-                left: area.position.x * width,
-                top: area.position.y * height,
-                width: Math.abs(
-                  (connectedArea.position.x - area.position.x) * width
-                ),
-                height: Math.abs(
-                  (connectedArea.position.y - area.position.y) * height
-                ),
-                transform: [
-                  {
-                    rotate:
-                      Math.atan2(
-                        connectedArea.position.y - area.position.y,
-                        connectedArea.position.x - area.position.x
-                      ) + 'rad',
-                  },
-                ],
-              },
-            ]}
-          />
-        );
-      })
-    );
+  const getAreaProgress = (area: ArchiveArea) => {
+    return Math.min(100, (area.entries.length / area.requiredEntries) * 100);
   };
 
-  const renderAreas = () => {
-    return areas.map((area) => (
-      <TouchableOpacity
-        key={area.id}
-        style={[
-          styles.area,
-          {
-            left: area.position.x * width - 30,
-            top: area.position.y * height - 30,
-            backgroundColor: getAreaColor(area),
-            opacity: area.unlocked ? 1 : 0.5,
-          },
-        ]}
-        onPress={() => {
-          if (area.unlocked) {
-            setSelectedArea(area);
-            onAreaSelect(area);
-          }
-        }}
-      >
-        <Ionicons
-          name={area.unlocked ? 'location' : 'lock-closed'}
-          size={24}
-          color="#fff"
-        />
-      </TouchableOpacity>
-    ));
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString();
   };
 
   return (
@@ -255,169 +106,180 @@ const ArchiveMapModal = ({
       transparent={true}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.modalContainer}>
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
           <View style={styles.header}>
-            <Text style={styles.title}>The Archive</Text>
-            <TouchableOpacity 
-              style={styles.closeButton} 
-              onPress={onClose}
-            >
+            <Text style={styles.title}>Memory Archive</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.mapContainer}>
-            {renderConnections()}
-            {renderAreas()}
-          </View>
-
-          {selectedArea && (
-            <View style={styles.areaInfo}>
-              <Text style={styles.areaName}>{selectedArea.name}</Text>
-              <Text style={styles.areaDescription}>
-                {selectedArea.description}
-              </Text>
-              <View style={styles.skillCategories}>
-                {selectedArea.skillCategories.map((skill, index) => (
-                  <Text key={index} style={styles.skillCategory}>
-                    {skill}
-                  </Text>
-                ))}
-              </View>
-              <View style={styles.progressContainer}>
-                <Text style={styles.progressText}>
-                  Progress: {selectedArea.currentEntries}/{selectedArea.requiredEntries} entries
-                </Text>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${(selectedArea.currentEntries / selectedArea.requiredEntries) * 100}%`,
-                      },
-                    ]}
-                  />
+          <ScrollView style={styles.areasContainer}>
+            {areasWithEntries.map(area => (
+              <TouchableOpacity
+                key={area.id}
+                style={[
+                  styles.areaCard,
+                  !isAreaUnlocked(area) && styles.lockedArea
+                ]}
+                onPress={() => {
+                  setSelectedArea(area);
+                  onAreaSelect(area);
+                }}
+                disabled={!isAreaUnlocked(area)}
+              >
+                <View style={styles.areaHeader}>
+                  <Text style={styles.areaName}>{area.name}</Text>
+                  <Text style={styles.areaFocus}>Focus: {area.focus}</Text>
                 </View>
-              </View>
-            </View>
-          )}
 
-          <View style={styles.stats}>
-            <Text style={styles.statsText}>
-              Total Entries: {completedEntries}
-            </Text>
-          </View>
+                <Text style={styles.areaDescription}>{area.description}</Text>
+
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View 
+                      style={[
+                        styles.progressFill,
+                        { width: `${getAreaProgress(area)}%` }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {area.entries.length}/{area.requiredEntries} Entries
+                  </Text>
+                </View>
+
+                {area.entries.length > 0 && (
+                  <View style={styles.entriesContainer}>
+                    <Text style={styles.entriesTitle}>Recent Reflections:</Text>
+                    {area.entries.slice(-3).map(entry => (
+                      <View key={entry.id} style={styles.entryItem}>
+                        <Text style={styles.entryDate}>
+                          {formatDate(entry.timestamp)}
+                        </Text>
+                        <Text style={styles.entryPrompt} numberOfLines={2}>
+                          {entry.prompt}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#181A20',
-  },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#181A20',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    height: '80%',
+    backgroundColor: '#23242b',
+    borderRadius: 20,
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    marginBottom: 20,
   },
   title: {
-    color: '#ffe066',
+    color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
   },
   closeButton: {
-    padding: 8,
+    padding: 5,
   },
-  mapContainer: {
+  areasContainer: {
     flex: 1,
-    position: 'relative',
   },
-  connection: {
-    position: 'absolute',
-    height: 2,
-    backgroundColor: '#333',
-    transformOrigin: 'left center',
+  areaCard: {
+    backgroundColor: '#1a1b1f',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  area: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
+  lockedArea: {
+    opacity: 0.6,
+  },
+  areaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  areaInfo: {
-    padding: 20,
-    backgroundColor: '#23242b',
-    borderTopWidth: 1,
-    borderTopColor: '#333',
+    marginBottom: 10,
   },
   areaName: {
-    color: '#fff',
-    fontSize: 20,
+    color: '#ffe066',
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+  },
+  areaFocus: {
+    color: '#4ee6e6',
+    fontSize: 14,
+    fontStyle: 'italic',
   },
   areaDescription: {
     color: '#ccc',
-    fontSize: 16,
-    marginBottom: 16,
+    fontSize: 14,
+    marginBottom: 15,
+    lineHeight: 20,
   },
   progressContainer: {
-    marginTop: 8,
-  },
-  progressText: {
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 4,
+    marginBottom: 15,
   },
   progressBar: {
-    height: 4,
+    height: 6,
     backgroundColor: '#333',
-    borderRadius: 2,
+    borderRadius: 3,
+    marginBottom: 5,
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#4ee6e6',
-    borderRadius: 2,
+    borderRadius: 3,
   },
-  stats: {
-    padding: 20,
+  progressText: {
+    color: '#999',
+    fontSize: 12,
+    textAlign: 'right',
+  },
+  entriesContainer: {
     borderTopWidth: 1,
     borderTopColor: '#333',
+    paddingTop: 10,
   },
-  statsText: {
+  entriesTitle: {
     color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  skillCategories: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
-    gap: 8,
-  },
-  skillCategory: {
-    backgroundColor: '#4ee6e6',
-    color: '#000',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  entryItem: {
+    marginBottom: 8,
+  },
+  entryDate: {
+    color: '#4ee6e6',
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  entryPrompt: {
+    color: '#ccc',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 });
 

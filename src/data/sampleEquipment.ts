@@ -2,55 +2,55 @@ import { EquipmentItem } from '../types/equipment';
 
 export const sampleInventory: EquipmentItem[] = [
   {
-    id: '1',
-    name: 'Steel Sword',
-    type: 'weapons',
-    subtype: 'sword',
-    rarity: 'rare',
-    stats: {
-      attack: 15,
+    id: 'focus_meditation',
+    name: 'Mindful Moment',
+    type: 'focus',
+    subtype: 'meditation',
+    description: 'A simple meditation practice that helps you stay present and aware.',
+    unlockCondition: 'Complete your first reflection on mindfulness',
+    wellnessStats: {
+      awareness: 2,
+      balance: 1
     },
+    effect: 'Increases awareness of thoughts and feelings'
   },
   {
-    id: '2',
-    name: 'Leather Armor',
-    type: 'armor',
-    subtype: 'leather',
-    rarity: 'common',
-    stats: {
-      defense: 5,
-      health: 10,
+    id: 'comfort_social',
+    name: 'Connection Circle',
+    type: 'comfort',
+    subtype: 'social',
+    description: 'A reminder of your support network and social connections.',
+    unlockCondition: 'Reflect on a meaningful social interaction',
+    wellnessStats: {
+      connection: 2,
+      resilience: 1
     },
+    effect: 'Strengthens social support awareness'
   },
   {
-    id: '3',
-    name: 'Plate Armor',
-    type: 'armor',
-    subtype: 'plate',
-    rarity: 'epic',
-    stats: {
-      defense: 20,
-      health: 30,
+    id: 'shield_boundary',
+    name: 'Personal Space',
+    type: 'shield',
+    subtype: 'boundary',
+    description: 'Tools for setting and maintaining healthy boundaries.',
+    unlockCondition: 'Write about a time you successfully set boundaries',
+    wellnessStats: {
+      resilience: 2,
+      balance: 1
     },
+    effect: 'Helps maintain emotional boundaries'
   },
   {
-    id: '4',
-    name: 'Plate Helmet',
-    type: 'helmets',
-    subtype: 'plate_helm',
-    rarity: 'rare',
-    stats: {
-      defense: 10,
+    id: 'ground_exercise',
+    name: 'Movement Anchor',
+    type: 'ground',
+    subtype: 'exercise',
+    description: 'Physical activity routines to stay grounded and energized.',
+    unlockCondition: 'Reflect on how physical activity affects your mood',
+    wellnessStats: {
+      balance: 2,
+      awareness: 1
     },
-  },
-  {
-    id: '5',
-    name: 'Plate Boots',
-    type: 'boots',
-    subtype: 'plate_boots',
-    rarity: 'rare',
-    stats: {
-      defense: 8,
-    },
-  },
+    effect: 'Improves physical and mental balance'
+  }
 ]; 

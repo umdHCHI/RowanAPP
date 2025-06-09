@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Dimensions,
   Image,
   ScrollView,
@@ -10,7 +11,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { equipmentIcons } from '../../assets/equipment';
 import {
   clothesOptionsF,
   clothesOptionsM,
@@ -25,12 +25,14 @@ import {
   skinOptionsF,
   skinOptionsM,
 } from '../assets/characterOptions';
+import { equipmentIcons } from '../assets/equipment';
 import ArchiveMapModal, { ArchiveArea } from '../components/ArchiveMapModal';
 import CodexModal from '../components/CodexModal';
 import EquipmentModal from '../components/EquipmentModal';
 import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { sampleInventory } from '../data/sampleEquipment';
+import { STARTING_WELLNESS_STATS, STAT_MEANINGS, analyzeReflection, createGearItem } from '../data/wellnessSystem';
 import { getAppearance } from '../services/appearanceService';
 import { EquipmentItem, EquippedItems } from '../types/equipment';
 import type { Story } from './StoryCatalogScreen';
@@ -40,18 +42,10 @@ import StoryScreen from './StoryScreen';
 const { width, height } = Dimensions.get('window');
 
 const gearSlots = [
-  { type: 'weapons', label: 'Focus Item' }, // Personal grounding object
-  { type: 'armor', label: 'Comfort Layer' }, // Coping strategy/comfort item
-  { type: 'helmets', label: 'Mind Shield' }, // Mental protection/boundary tool
-  { type: 'boots', label: 'Ground Stone' }, // Grounding/stability tool
-];
-
-// Wellness attributes that affect story navigation and coping skill effectiveness
-const wellnessStats = [
-  { icon: '🧘', label: 'AWR', value: '14', color: '#4A90E2' }, // Awareness (mindfulness, self-reflection)
-  { icon: '💚', label: 'RES', value: '12', color: '#2ECC71' }, // Resilience (stress management, bounce-back)
-  { icon: '🤝', label: 'CON', value: '10', color: '#E74C3C' }, // Connection (social support, relationships)
-  { icon: '⚖️', label: 'BAL', value: '8', color: '#F39C12' },  // Balance (work-life, self-care)
+  { type: 'focus', label: 'Focus Item' },    // Personal grounding object
+  { type: 'comfort', label: 'Comfort Layer' }, // Coping strategy/comfort item
+  { type: 'shield', label: 'Mind Shield' },   // Mental protection/boundary tool
+  { type: 'ground', label: 'Ground Stone' },  // Grounding/stability tool
 ];
 
 // Archive exploration and skill development metrics
@@ -73,28 +67,31 @@ const sampleStories = [
     id: '1',
     title: 'The Overwhelmed Mind',
     image: require('../../assets/images/story1.jpg'),
-    description: 'Navigate through a memory of exam stress and discover breathing techniques hidden in an enchanted forest.',
-    progress: 65,
-    difficulty: 'Stress Management',
-    skillCategory: 'Anxiety & Stress'
+    description: 'Explore different approaches to academic stress - which feels right for YOUR personality and situation?',
+    progress: 0,
+    difficulty: 'Personal Discovery',
+    skillCategory: 'Stress & Overwhelm',
+    reflection_focus: 'What approaches resonated with you? What felt wrong for your style?'
   },
   {
     id: '2',
     title: 'The Lonely Desert', 
     image: require('../../assets/images/story2.jpg'),
-    description: 'Explore feelings of isolation and learn connection strategies while crossing vast, symbolic landscapes.',
+    description: 'Navigate isolation and discover that meaningful connection looks different for everyone.',
     progress: 0,
-    difficulty: 'Social Connection',
-    skillCategory: 'Relationships'
+    difficulty: 'Social Exploration',
+    skillCategory: 'Connection & Support',
+    reflection_focus: 'How do YOU naturally seek and offer support?'
   },
   {
     id: '3',
     title: 'The Perfect Storm',
     image: require('../../assets/images/story3.jpg'),
-    description: 'Confront perfectionism and imposter syndrome in a city where every smile hides self-doubt.',
-    progress: 100,
-    difficulty: 'Self-Compassion',
-    skillCategory: 'Self-Esteem'
+    description: 'Face perfectionism while learning that self-compassion has many forms - find yours.',
+    progress: 0,
+    difficulty: 'Self-Understanding',
+    skillCategory: 'Self-Relationship',
+    reflection_focus: 'What does being kind to yourself look like in YOUR voice?'
   },
 ];
 
@@ -109,60 +106,15 @@ type CodexEntry = {
   timestamp: number;
 };
 
-// Add skill level thresholds
-const SKILL_LEVEL_THRESHOLDS = {
-  'Novice': 1,
-  'Apprentice': 3,
-  'Practitioner': 5,
-  'Master': 8,
-  'Grandmaster': 12
+// Add type definitions for stat gains and descriptions
+type StatGains = {
+  [key: string]: number;
 };
 
-type AreaRequirements = {
-  totalEntries: number;
-  skillRequirements: Record<string, number>;
-};
-
-const AREA_UNLOCK_REQUIREMENTS: Record<string, AreaRequirements> = {
-  'entrance': { totalEntries: 0, skillRequirements: {} },
-  'garden': { 
-    totalEntries: 2, 
-    skillRequirements: { 
-      'Stress Management': 1, 
-      'Emotional Awareness': 1 
-    } 
-  },
-  'library': { 
-    totalEntries: 3, 
-    skillRequirements: { 
-      'Social Connection': 1, 
-      'Personal Growth': 1 
-    } 
-  },
-  'sanctuary': { 
-    totalEntries: 5, 
-    skillRequirements: { 
-      'Self-Compassion': 2, 
-      'Stress Management': 1 
-    } 
-  },
-  'archive': { 
-    totalEntries: 8, 
-    skillRequirements: { 
-      'Personal Growth': 2, 
-      'Self-Compassion': 1, 
-      'Social Connection': 1 
-    } 
-  },
-  'summit': { 
-    totalEntries: 12, 
-    skillRequirements: { 
-      'Personal Growth': 3, 
-      'Self-Compassion': 2, 
-      'Social Connection': 2, 
-      'Stress Management': 2 
-    } 
-  },
+type StatDescriptions = {
+  [key: string]: {
+    [key: number]: string;
+  };
 };
 
 const GameHomeScreen = () => {
@@ -181,6 +133,14 @@ const GameHomeScreen = () => {
   const [codexEntries, setCodexEntries] = useState<CodexEntry[]>([]);
   const [selectedArea, setSelectedArea] = useState<ArchiveArea | null>(null);
 
+  // Initialize wellness stats with starting values
+  const [wellnessStats, setWellnessStats] = useState([
+    { icon: '🧘', label: 'AWR', value: STARTING_WELLNESS_STATS.awareness, color: '#4A90E2' },
+    { icon: '💚', label: 'RES', value: STARTING_WELLNESS_STATS.resilience, color: '#2ECC71' },
+    { icon: '🤝', label: 'CON', value: STARTING_WELLNESS_STATS.connection, color: '#E74C3C' },
+    { icon: '⚖️', label: 'BAL', value: STARTING_WELLNESS_STATS.balance, color: '#F39C12' },
+  ]);
+
   // Choose correct options based on gender
   let skinOptions = skinOptionsF;
   let hairOptions = hairOptionsF;
@@ -196,7 +156,6 @@ const GameHomeScreen = () => {
     eyesOptions = eyesOptionsM;
     mouthOptions = mouthOptionsM;
   }
-  // For 'nonbinary', use feminine assets for now (or add custom logic/assets later)
 
   const characterStats = [
     { label: 'Level', value: '12', color: '#FFD700' },
@@ -215,7 +174,6 @@ const GameHomeScreen = () => {
           setAppearance(data);
         } else {
           console.log('No auth token or character ID available');
-          // If we have appearance data in onboarding state, use that
           if (onboardingState.characterAppearance) {
             console.log('Using appearance from onboarding state');
             setAppearance(onboardingState.characterAppearance);
@@ -223,7 +181,6 @@ const GameHomeScreen = () => {
         }
       } catch (error) {
         console.error('Failed to load appearance:', error);
-        // If loading fails, try to use onboarding state
         if (onboardingState.characterAppearance) {
           console.log('Using appearance from onboarding state after error');
           setAppearance(onboardingState.characterAppearance);
@@ -234,28 +191,10 @@ const GameHomeScreen = () => {
     loadAppearance();
   }, [authToken, characterId, onboardingState.characterAppearance]);
 
-  // useEffect(() => {
-  //   const loadEquipment = async () => {
-  //     if (authToken && characterId) {
-  //       try {
-  //         const [inventoryData, equippedData] = await Promise.all([
-  //           getInventory(authToken, characterId),
-  //           getEquippedItems(authToken, characterId)
-  //         ]);
-  //         setInventory(inventoryData);
-  //         setEquippedItems(equippedData);
-  //       } catch (error) {
-  //         console.error('Error loading equipment:', error);
-  //       }
-  //     }
-  //   };
-  //   loadEquipment();
-  // }, [authToken, characterId]);
-
   const handleEquip = (item: EquipmentItem) => {
     setEquippedItems(prev => ({
       ...prev,
-      [item.type.slice(0, -1)]: item // Remove 's' from the end of type
+      [item.type.slice(0, -1)]: item
     }));
     setInventory(prev => prev.filter(i => i.id !== item.id));
   };
@@ -271,14 +210,14 @@ const GameHomeScreen = () => {
 
   const getItemIcon = (item: EquipmentItem) => {
     switch (item.type) {
-      case 'weapons':
-        return equipmentIcons.weapons[item.subtype as 'sword'];
-      case 'armor':
-        return equipmentIcons.armor[item.subtype as 'leather' | 'plate'];
-      case 'helmets':
-        return equipmentIcons.helmets[item.subtype as 'plate_helm'];
-      case 'boots':
-        return equipmentIcons.boots[item.subtype as 'plate_boots'];
+      case 'focus':
+        return equipmentIcons.focus[item.subtype as 'meditation' | 'breathing' | 'journaling'];
+      case 'comfort':
+        return equipmentIcons.comfort[item.subtype as 'social' | 'physical' | 'emotional'];
+      case 'shield':
+        return equipmentIcons.shield[item.subtype as 'boundary' | 'filter' | 'space'];
+      case 'ground':
+        return equipmentIcons.ground[item.subtype as 'movement' | 'sensory' | 'breath'];
       default:
         return undefined;
     }
@@ -291,6 +230,7 @@ const GameHomeScreen = () => {
     return '#F39C12';
   };
 
+  // Enhanced Codex save handler with reflection analysis
   const handleCodexSave = (entry: {
     type: string;
     content: string;
@@ -304,6 +244,43 @@ const GameHomeScreen = () => {
       ...entry,
       timestamp: Date.now(),
     };
+    
+    // Analyze the reflection for personal insights
+    const analysis = analyzeReflection(entry.content, entry.prompt);
+    
+    // Update wellness stats based on analysis
+    if (Object.keys(analysis.stat_gains).length > 0) {
+      setWellnessStats(prev => prev.map(stat => {
+        const statKey = stat.label.toLowerCase().substring(0, 3);
+        const gain = (analysis.stat_gains as StatGains)[statKey] || 0;
+        return {
+          ...stat,
+          value: Math.min(20, stat.value + gain) // Cap at 20
+        };
+      }));
+    }
+
+    // Check for gear unlocks
+    if (analysis.gear_unlocks.length > 0) {
+      // Add new gear to inventory
+      const newGear = analysis.gear_unlocks.map(gearName => createGearItem(gearName));
+      setInventory(prev => [...prev, ...newGear]);
+      
+      // Show unlock notification
+      Alert.alert(
+        'New Coping Tool Unlocked!',
+        `Your self-discovery has unlocked: ${analysis.gear_unlocks.join(', ')}\n\n${analysis.recognition_message}`,
+        [{ text: 'Amazing!', style: 'default' }]
+      );
+    } else if (analysis.recognition_message) {
+      // Show recognition without gear unlock
+      Alert.alert(
+        'Growth Recognized',
+        analysis.recognition_message,
+        [{ text: 'Continue Exploring', style: 'default' }]
+      );
+    }
+
     setCodexEntries(prev => [...prev, newEntry]);
     setIsCodexVisible(false);
   };
@@ -321,70 +298,24 @@ const GameHomeScreen = () => {
     setSelectedArea(area);
   };
 
-  // Calculate unlocked areas based on skill requirements
-  const getUnlockedAreas = () => {
-    const skillCounts = codexEntries.reduce((acc, entry) => {
-      acc[entry.skillCategory] = (acc[entry.skillCategory] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+  // Get stat description based on current value
+  const getStatDescription = (statLabel: string, value: number) => {
+    const statKey = statLabel.toLowerCase().substring(0, 3);
+    const descriptions = (STAT_MEANINGS as StatDescriptions)[statKey];
+    if (!descriptions) return 'Developing...';
 
-    const unlockedAreas = ['entrance']; // Always start with entrance
-
-    Object.entries(AREA_UNLOCK_REQUIREMENTS).forEach(([areaId, requirements]) => {
-      if (areaId === 'entrance') return; // Skip entrance as it's always unlocked
-
-      // Check if total entries requirement is met
-      const totalEntriesMet = codexEntries.length >= requirements.totalEntries;
-
-      // Check if skill requirements are met
-      const skillRequirementsMet = Object.entries(requirements.skillRequirements).every(
-        ([skill, required]) => (skillCounts[skill] || 0) >= required
-      );
-
-      if (totalEntriesMet && skillRequirementsMet) {
-        unlockedAreas.push(areaId);
-      }
-    });
-
-    return unlockedAreas;
+    const relevantKey = Math.floor(value / 3) * 3;
+    return descriptions[relevantKey] || descriptions[18] || 'Developing...';
   };
 
-  // Add to existing getSkillMetrics function
-  const getSkillMetrics = () => {
-    const skillCounts = codexEntries.reduce((acc, entry) => {
-      acc[entry.skillCategory] = (acc[entry.skillCategory] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Calculate skill levels
-    const skillLevels = Object.entries(skillCounts).map(([skill, count]) => {
-      let level = 'Novice';
-      for (const [levelName, threshold] of Object.entries(SKILL_LEVEL_THRESHOLDS)) {
-        if (count >= threshold) {
-          level = levelName;
-        }
-      }
-      return { skill, count, level };
-    });
-
-    return [
-      { 
-        icon: '📜', 
-        label: 'Areas Unlocked', 
-        value: `${getUnlockedAreas().length}/6` 
-      },
-      { 
-        icon: '🛠️', 
-        label: 'Skills Mastered', 
-        value: skillLevels.filter(s => s.level === 'Master' || s.level === 'Grandmaster').length.toString() 
-      },
-      { 
-        icon: '🔍', 
-        label: 'Total Reflections', 
-        value: codexEntries.length.toString() 
-      },
-    ];
-  };
+  // Wellness tooltip component
+  const WellnessTooltip = ({ stat, value }: { stat: string; value: number }) => (
+    <View style={styles.tooltipContainer}>
+      <Text style={styles.tooltipText}>
+        {getStatDescription(stat, value)}
+      </Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -408,7 +339,7 @@ const GameHomeScreen = () => {
                 onPress={() => setIsEquipmentModalVisible(true)}
               >
                 {equippedItems[slot.type.slice(0, -1) as keyof EquippedItems] ? (
-                  <Image 
+                  <Image
                     source={getItemIcon(equippedItems[slot.type.slice(0, -1) as keyof EquippedItems]!)}
                     style={styles.gearIcon}
                   />
@@ -442,7 +373,7 @@ const GameHomeScreen = () => {
                 onPress={() => setIsEquipmentModalVisible(true)}
               >
                 {equippedItems[slot.type.slice(0, -1) as keyof EquippedItems] ? (
-                  <Image 
+                  <Image
                     source={getItemIcon(equippedItems[slot.type.slice(0, -1) as keyof EquippedItems]!)}
                     style={styles.gearIcon}
                   />
@@ -466,11 +397,18 @@ const GameHomeScreen = () => {
           <Text style={styles.sectionTitle}>Wellness Attributes</Text>
           <View style={styles.attributesRow}>
             {wellnessStats.map((stat, i) => (
-              <View key={i} style={[styles.attributeBox, { borderColor: stat.color }]}>
+              <TouchableOpacity 
+                key={i} 
+                style={[styles.attributeBox, { borderColor: stat.color }]}
+                onPress={() => Alert.alert(
+                  `${stat.label} - ${stat.value}`,
+                  getStatDescription(stat.label, stat.value)
+                )}
+              >
                 <Text style={styles.attributeIcon}>{stat.icon}</Text>
                 <Text style={[styles.attributeValue, { color: stat.color }]}>{stat.value}</Text>
                 <Text style={styles.attributeLabel}>{stat.label}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -556,36 +494,6 @@ const GameHomeScreen = () => {
           >
             <Text style={styles.quickActionText}>🎒 Manage Coping Tools</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Skill Breakdown */}
-        <View style={styles.skillBreakdown}>
-          <Text style={styles.skillBreakdownTitle}>🎯 Skills Developed</Text>
-          {Object.entries(
-            codexEntries.reduce((acc, entry) => {
-              acc[entry.skillCategory] = (acc[entry.skillCategory] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>)
-          ).map(([skill, count]) => {
-            let level = 'Novice';
-            for (const [levelName, threshold] of Object.entries(SKILL_LEVEL_THRESHOLDS)) {
-              if (count >= threshold) {
-                level = levelName;
-              }
-            }
-            return (
-              <View key={skill} style={styles.skillProgressItem}>
-                <View style={styles.skillInfo}>
-                  <Text style={styles.skillName}>{skill}</Text>
-                  <Text style={styles.skillLevel}>{level}</Text>
-                </View>
-                <Text style={styles.skillCount}>{count} entries</Text>
-              </View>
-            );
-          })}
-          {codexEntries.length === 0 && (
-            <Text style={styles.noSkillsText}>Complete Codex entries to develop skills</Text>
-          )}
         </View>
 
         {/* Spacer for bottom nav */}
@@ -980,42 +888,14 @@ const styles = StyleSheet.create({
     height: 220,
     resizeMode: 'contain',
   },
-  skillBreakdown: {
-    width: '90%',
-    marginVertical: 15,
+  tooltipContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 10,
+    borderRadius: 8,
+    maxWidth: 200,
   },
-  skillBreakdownTitle: {
+  tooltipText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  skillProgressItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  skillInfo: {
-    flex: 1,
-  },
-  skillName: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  skillLevel: {
-    color: '#4ee6e6',
-    fontSize: 10,
-    fontStyle: 'italic',
-  },
-  skillCount: {
-    color: '#fff',
-    fontSize: 12,
-  },
-  noSkillsText: {
-    color: '#ccc',
     fontSize: 12,
     textAlign: 'center',
   },

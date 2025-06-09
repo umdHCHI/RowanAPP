@@ -1,19 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-    Dimensions,
-    Image,
     Modal,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
-import { equipmentIcons, equipmentTypeLabels, rarityColors } from '../../assets/equipment';
-import { useTheme } from '../context/ThemeContext';
-import { ArmorType, BootsType, EquipmentItem, EquippedItems, HelmetType, WeaponType } from '../types/equipment';
-
-const { width } = Dimensions.get('window');
+import { EquipmentItem, EquippedItems } from '../types/equipment';
 
 interface EquipmentModalProps {
   visible: boolean;
@@ -24,218 +19,229 @@ interface EquipmentModalProps {
   equippedItems: EquippedItems;
 }
 
-export default function EquipmentModal({
+const EquipmentModal: React.FC<EquipmentModalProps> = ({
   visible,
   onClose,
   onEquip,
   onUnequip,
   inventory,
-  equippedItems,
-}: EquipmentModalProps) {
-  const { styles: globalStyles } = useTheme();
-
-  const getItemIcon = (item: EquipmentItem) => {
-    switch (item.type) {
-      case 'weapons':
-        return equipmentIcons.weapons[item.subtype as WeaponType];
-      case 'armor':
-        return equipmentIcons.armor[item.subtype as ArmorType];
-      case 'helmets':
-        return equipmentIcons.helmets[item.subtype as HelmetType];
-      case 'boots':
-        return equipmentIcons.boots[item.subtype as BootsType];
+  equippedItems
+}) => {
+  const getSlotLabel = (type: string) => {
+    switch (type) {
+      case 'focus':
+        return 'Focus Item';
+      case 'comfort':
+        return 'Comfort Layer';
+      case 'shield':
+        return 'Mind Shield';
+      case 'ground':
+        return 'Ground Stone';
       default:
-        return null;
+        return type;
     }
   };
 
-  const renderItem = (item: EquipmentItem, isEquipped: boolean = false) => (
-    <TouchableOpacity
-      key={item.id}
-      style={[styles.itemCard, { borderColor: rarityColors[item.rarity] }]}
-      onPress={() => isEquipped ? onUnequip(item) : onEquip(item)}
-    >
-      <Image source={getItemIcon(item)} style={styles.itemIcon} />
-      <Text style={[styles.itemName, { color: rarityColors[item.rarity] }]}>
-        {item.name}
+  const getStatColor = (stat: string) => {
+    switch (stat) {
+      case 'awareness':
+        return '#4A90E2';
+      case 'resilience':
+        return '#2ECC71';
+      case 'connection':
+        return '#E74C3C';
+      case 'balance':
+        return '#F39C12';
+      default:
+        return '#fff';
+    }
+  };
+
+  const renderStat = (stat: string, value: number) => (
+    <View style={styles.statRow}>
+      <Text style={[styles.statLabel, { color: getStatColor(stat) }]}>
+        {stat.charAt(0).toUpperCase() + stat.slice(1)}
       </Text>
+      <Text style={[styles.statValue, { color: getStatColor(stat) }]}>
+        {value > 0 ? `+${value}` : value}
+      </Text>
+    </View>
+  );
+
+  const renderItem = (item: EquipmentItem, isEquipped: boolean) => (
+    <View key={item.id} style={styles.itemCard}>
+      <View style={styles.itemHeader}>
+        <Text style={styles.itemName}>{item.name}</Text>
+        <Text style={styles.itemType}>{getSlotLabel(item.type)}</Text>
+      </View>
+
+      <Text style={styles.itemDescription}>{item.description}</Text>
+      
       <View style={styles.statsContainer}>
-        {item.stats.attack && (
-          <Text style={styles.statText}>⚔️ {item.stats.attack}</Text>
-        )}
-        {item.stats.defense && (
-          <Text style={styles.statText}>🛡️ {item.stats.defense}</Text>
-        )}
-        {item.stats.health && (
-          <Text style={styles.statText}>❤️ {item.stats.health}</Text>
+        {Object.entries(item.wellnessStats).map(([stat, value]) => 
+          value ? renderStat(stat, value) : null
         )}
       </View>
-      <Text style={styles.equipText}>
-        {isEquipped ? 'Unequip' : 'Equip'}
-      </Text>
-    </TouchableOpacity>
+
+      <Text style={styles.effectText}>Effect: {item.effect}</Text>
+
+      <TouchableOpacity
+        style={[styles.actionButton, isEquipped ? styles.unequipButton : styles.equipButton]}
+        onPress={() => isEquipped ? onUnequip(item) : onEquip(item)}
+      >
+        <Text style={styles.actionButtonText}>
+          {isEquipped ? 'Unequip' : 'Equip'}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
+      animationType="slide"
+      transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: globalStyles.card.backgroundColor }]}>
-          <Text style={[styles.title, { color: globalStyles.text.color }]}>
-            Equipment
-          </Text>
-          
-          {/* Equipped Items Section */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: globalStyles.text.color }]}>
-              Equipped
-            </Text>
-            <View style={styles.equippedGrid}>
-              {Object.entries(equippedItems).map(([slot, item]) => (
-                <View key={slot} style={styles.equippedSlot}>
-                  {item ? (
-                    renderItem(item, true)
-                  ) : (
-                    <View style={styles.emptySlot}>
-                      <Text style={styles.emptySlotText}>
-                        {equipmentTypeLabels[slot as keyof typeof equipmentTypeLabels]}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              ))}
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Coping Tools</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.content}>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Equipped</Text>
+              {Object.values(equippedItems).map(item => 
+                renderItem(item, true)
+              )}
             </View>
-          </View>
 
-          {/* Inventory Section */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: globalStyles.text.color }]}>
-              Inventory
-            </Text>
-            <ScrollView style={styles.inventoryScroll}>
-              <View style={styles.inventoryGrid}>
-                {inventory.map((item) => renderItem(item))}
-              </View>
-            </ScrollView>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.closeButton, { backgroundColor: globalStyles.button.backgroundColor }]}
-            onPress={onClose}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Inventory</Text>
+              {inventory.map(item => 
+                renderItem(item, false)
+              )}
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    width: width * 0.9,
-    maxHeight: '80%',
+    width: '90%',
+    height: '80%',
+    backgroundColor: '#23242b',
     borderRadius: 20,
     padding: 20,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   title: {
+    color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  content: {
+    flex: 1,
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
+    color: '#ffe066',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginBottom: 10,
   },
-  equippedGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  equippedSlot: {
-    width: (width * 0.8) / 2 - 10,
-  },
-  inventoryScroll: {
-    maxHeight: 300,
-  },
-  inventoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
   itemCard: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#1a1b1f',
     borderRadius: 12,
-    padding: 12,
-    borderWidth: 2,
-    alignItems: 'center',
+    padding: 15,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  itemIcon: {
-    width: 32,
-    height: 32,
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
-    resizeMode: 'contain',
   },
   itemName: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
+  },
+  itemType: {
+    color: '#4ee6e6',
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  itemDescription: {
+    color: '#ccc',
+    fontSize: 14,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   statsContainer: {
+    marginBottom: 12,
+  },
+  statRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  statText: {
-    color: '#fff',
+  statLabel: {
     fontSize: 14,
+    fontWeight: '500',
   },
-  equipText: {
-    color: '#4ee6e6',
+  statValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
-  emptySlot: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 2,
-    borderColor: '#333',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 100,
-  },
-  emptySlotText: {
-    color: '#666',
+  effectText: {
+    color: '#ffe066',
     fontSize: 14,
+    fontStyle: 'italic',
+    marginBottom: 12,
   },
-  closeButton: {
-    padding: 12,
+  actionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 10,
   },
-  closeButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  equipButton: {
+    backgroundColor: '#4ee6e6',
   },
-}); 
+  unequipButton: {
+    backgroundColor: '#ff6b6b',
+  },
+  actionButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+});
+
+export default EquipmentModal; 

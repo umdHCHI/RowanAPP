@@ -1,65 +1,53 @@
-import { ArmorType, BootsType, HelmetType, WeaponType } from '../../types/equipment';
 
-// Weapons
-export const weapons: Record<WeaponType, any> = {
-  sword: require('./weapons/sword.png'),
-  axe: require('./weapons/axe.png'),
-  bow: require('./weapons/bow.png'),
-  staff: require('./weapons/staff.png'),
-  dagger: require('./weapons/dagger.png'),
-  mace: require('./weapons/mace.png'),
-  spear: require('./weapons/spear.png'),
-  wand: require('./weapons/wand.png'),
+// Focus Items - using staff/wand icons for meditation and focus tools
+export const focus: Record<string, any> = {
+  meditation: require('./weapons/fb1455.png'),  // Using staff/wand icon
+  breathing: require('./weapons/fb1455.png'),   // Using staff/wand icon
+  journaling: require('./weapons/fb1455.png'),  // Using staff/wand icon
 };
 
-// Armor
-export const armor: Record<ArmorType, any> = {
-  leather: require('./armor/leather.png'),
-  chainmail: require('./armor/chainmail.png'),
-  plate: require('./armor/plate.png'),
-  robe: require('./armor/robe.png'),
-  scale: require('./armor/scale.png'),
+// Comfort Layers - using armor icons for comfort and protection
+export const comfort: Record<string, any> = {
+  social: require('./armor/fb1867.png'),    // Using robe/comforting armor
+  physical: require('./armor/fb1857.png'),  // Using protective armor
+  emotional: require('./armor/fb1867.png'), // Using robe/comforting armor
 };
 
-// Helmets
-export const helmets: Record<HelmetType, any> = {
-  leather_cap: require('./helmets/leather_cap.png'),
-  chain_coif: require('./helmets/chain_coif.png'),
-  plate_helm: require('./helmets/plate_helm.png'),
-  wizard_hat: require('./helmets/wizard_hat.png'),
-  crown: require('./helmets/crown.png'),
+// Mind Shields - using helmet icons for mental protection
+export const shield: Record<string, any> = {
+  boundary: require('./helmets/fb1842.png'), // Using helmet for mental protection
+  filter: require('./helmets/fb1842.png'),   // Using helmet for mental protection
+  space: require('./helmets/fb1842.png'),    // Using helmet for mental protection
 };
 
-// Boots
-export const boots: Record<BootsType, any> = {
-  leather_boots: require('./boots/leather_boots.png'),
-  chain_boots: require('./boots/chain_boots.png'),
-  plate_boots: require('./boots/plate_boots.png'),
-  wizard_boots: require('./boots/wizard_boots.png'),
-  winged_boots: require('./boots/winged_boots.png'),
+// Ground Stones - using boot icons for grounding and stability
+export const ground: Record<string, any> = {
+  movement: require('./boots/fb1854.png'),   // Using boots for movement
+  sensory: require('./boots/fb1854.png'),    // Using boots for physical awareness
+  breath: require('./boots/fb1854.png'),     // Using boots for grounding
 };
 
 // Equipment type to icon mapping
 export const equipmentIcons = {
-  weapons,
-  armor,
-  helmets,
-  boots,
+  focus,
+  comfort,
+  shield,
+  ground,
 } as const;
 
-// Equipment rarity colors
+// Equipment rarity colors - these represent the quality/effectiveness of coping skills
 export const rarityColors = {
-  common: '#9d9d9d',
-  uncommon: '#1eff00',
-  rare: '#0070dd',
-  epic: '#a335ee',
-  legendary: '#ff8000',
+  common: '#9d9d9d',    // Basic coping skills
+  uncommon: '#1eff00',  // Improved coping skills
+  rare: '#0070dd',      // Advanced coping skills
+  epic: '#a335ee',      // Mastered coping skills
+  legendary: '#ff8000', // Exceptional coping skills
 } as const;
 
 // Equipment type labels
 export const equipmentTypeLabels = {
-  weapons: 'Weapon',
-  armor: 'Armor',
-  helmets: 'Helmet',
-  boots: 'Boots',
+  focus: 'Focus Item',     // Personal grounding object
+  comfort: 'Comfort Layer', // Coping strategy/comfort item
+  shield: 'Mind Shield',    // Mental protection/boundary tool
+  ground: 'Ground Stone',   // Grounding/stability tool
 } as const; 
