@@ -1,4 +1,4 @@
-// Shared character asset arrays for both masculine and feminine options
+// TODO: change character options to now character
 
 export const skinOptionsF = [
   require('../../assets/character-creator/body_1.png'),

@@ -36,7 +36,7 @@ export default function LoginScreen() {
 
       console.log('Login response:', response.data);
       
-      const { token, user, character_id, research_group, needs_onboarding, onboarding_type } = response.data;
+      const { token, user, character_id, research_group, needs_onboarding } = response.data;
       
       // Store the token and character ID
       await setAuthToken(token);
@@ -44,26 +44,10 @@ export default function LoginScreen() {
         await setCharacterId(character_id);
       }
 
-      // If user needs onboarding and has no research group, send them to welcome screen
-      if (needs_onboarding && !research_group) {
-        console.log('User needs onboarding and has no research group, navigating to welcome screen');
+      // If user has completed onboarding, go to home screen
+      if (!needs_onboarding) {
+        console.log('User has completed onboarding, navigating to home');
         router.replace('/');
-        return;
-      }
-
-      // If user has a research group but needs onboarding, set the path based on their group
-      if (needs_onboarding && research_group) {
-        const assignedPath = research_group.condition === 'A' ? 'character' : 'survey';
-        console.log('Setting assigned path based on research group:', assignedPath);
-        await setAssignedPath(assignedPath);
-        
-        if (assignedPath === 'character') {
-          console.log('Navigating to character creator');
-          router.replace('/character-creator');
-        } else {
-          console.log('Navigating to personality test');
-          router.replace('/personality-test');
-        }
         return;
       }
 
@@ -82,8 +66,8 @@ export default function LoginScreen() {
         return;
       }
 
-      // If no onboarding needed, go to main screen
-      console.log('No onboarding needed, navigating to home');
+      // For all other cases, go to welcome screen to choose path
+      console.log('Navigating to welcome screen to choose path');
       router.replace('/');
     } catch (error: any) {
       console.error('Login error:', error);

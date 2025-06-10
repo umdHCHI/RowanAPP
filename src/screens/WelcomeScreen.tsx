@@ -71,13 +71,60 @@ export default function WelcomeScreen() {
   const handleSurveyChoice = async () => {
     try {
       console.log('Setting survey path');
-      // Research group ID 2 is for Group B (Survey)
-      await createUserProfile(2);
-      await setAssignedPath('survey');
-      router.push({
-        pathname: '/login',
-        params: { path: 'survey' }
+      
+      // First get available research groups
+      const groupsResponse = await axios.get(`${API_BASE_URL}research-groups/available/`, {
+        headers: {
+          'Authorization': `Token ${authToken}`,
+          'Content-Type': 'application/json'
+        }
       });
+      
+      console.log('Available research groups:', groupsResponse.data);
+      
+      // Find Group B (Survey group)
+      const surveyGroup = groupsResponse.data.find((group: any) => group.condition === 'B');
+      if (!surveyGroup) {
+        throw new Error('Survey research group not found');
+      }
+      
+      console.log('Found survey group:', surveyGroup);
+      
+      // Assign user to research group B
+      const response = await axios.post(
+        `${API_BASE_URL}users/assign_research_group/`,
+        {
+          research_group_id: surveyGroup.id
+        },
+        {
+          headers: {
+            'Authorization': `Token ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log('Research group assignment response:', response.data);
+      
+      // Verify the profile was updated correctly
+      const verifyResponse = await axios.get(`${API_BASE_URL}users/me/`, {
+        headers: {
+          'Authorization': `Token ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Verification response:', verifyResponse.data);
+      
+      const profile = verifyResponse.data.profile;
+      if (!profile?.research_group || profile.research_group.condition !== 'B') {
+        throw new Error('Failed to set research group - verification failed');
+      }
+      
+      // If we get here, everything is set correctly
+      await setAssignedPath('survey');
+      router.replace('/personality-test');
+      
     } catch (error) {
       console.error('Error in handleSurveyChoice:', error);
       // Handle error appropriately

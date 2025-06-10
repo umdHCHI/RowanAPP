@@ -1,13 +1,16 @@
-export type FocusType = 'meditation' | 'breathing' | 'journaling';
+export type FocusType = 'meditation' | 'breathing' | 'journaling';// TODO: Add meditation1, meditation2, meditation3
 export type ComfortType = 'social' | 'hobby' | 'nature';
 export type ShieldType = 'boundary' | 'affirmation' | 'routine';
 export type GroundType = 'exercise' | 'sleep' | 'nutrition';
 
+
+// TODO: Add equipment icons need to be added to the assets folder and then imported here
 export const equipmentIcons = {
   focus: {
     meditation: require('../../assets/equipment/weapons/fb1455.png'),
     breathing: require('../../assets/equipment/weapons/fb1455.png'),
     journaling: require('../../assets/equipment/weapons/fb1455.png'),
+    // TODO: Add meditation1, meditation2, meditation3
   },
   comfort: {
     social: require('../../assets/equipment/armor/fb1867.png'),

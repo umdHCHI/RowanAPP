@@ -1,10 +1,11 @@
-import { router } from 'expo-router';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
 import * as React from 'react';
 import { Modal, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
-import { completeOnboarding } from '../services/onboardingService';
+import { API_BASE_URL } from '../services/apiConfig';
 
 const QUESTIONS = [
   {
@@ -27,42 +28,127 @@ const QUESTIONS = [
   }
 ];
 
+interface SurveyAnswer {
+  question_id: number;
+  selected_trait: string;
+}
+
 export default function PersonalitySurveyScreen() {
   const { styles: globalStyles, theme } = useTheme();
   const { completeSurvey } = useOnboarding();
   const { authToken } = useAuth();
+  const router = useRouter();
   const [modalVisible, setModalVisible] = React.useState(true);
   const [currentQuestion, setCurrentQuestion] = React.useState(0);
-  const [answers, setAnswers] = React.useState<(string | null)[]>(Array(QUESTIONS.length).fill(null));
+  const [answers, setAnswers] = React.useState<SurveyAnswer[]>([]);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const handleOptionSelect = (optionIdx: number) => {
     const updated = [...answers];
-    updated[currentQuestion] = QUESTIONS[currentQuestion].options[optionIdx].trait;
+    updated[currentQuestion] = {
+      question_id: currentQuestion + 1,
+      selected_trait: QUESTIONS[currentQuestion].options[optionIdx].trait
+    };
     setAnswers(updated);
   };
 
-  const handleNext = async () => {
+  const submitSurvey = async () => {
+    try {
+      if (!authToken) {
+        throw new Error('Not authenticated');
+      }
+
+      setIsSubmitting(true);
+      setError(null);
+
+      // Format answers as a dictionary with question_id as key and selected_trait as value
+      const formattedAnswers = answers.reduce((acc, answer) => {
+        acc[answer.question_id] = answer.selected_trait;
+        return acc;
+      }, {} as Record<number, string>);
+
+      console.log('Submitting survey with data:', {
+        survey_type: 'big_five',
+        answers: formattedAnswers
+      });
+
+      // First check if user is in the correct research group
+      const profileResponse = await axios.get(`${API_BASE_URL}users/me/`, {
+        headers: {
+          'Authorization': `Token ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('User profile data:', profileResponse.data);
+      const profile = profileResponse.data.profile;
+      console.log('Research group:', profile.research_group);
+
+      if (!profile.research_group) {
+        throw new Error('No research group assigned');
+      }
+
+      if (profile.research_group.condition !== 'B') {
+        throw new Error('You must be in the survey research group to submit the survey');
+      }
+
+      // Submit the survey
+      const response = await axios.post(
+        `${API_BASE_URL}surveys/submit/`,
+        {
+          survey_type: 'big_five',
+          answers: formattedAnswers
+        },
+        {
+          headers: {
+            'Authorization': `Token ${authToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      console.log('Survey submission response:', response.data);
+
+      // Update onboarding state
+      await completeSurvey();
+      
+      // Navigate to home screen
+      router.replace('/');
+      
+    } catch (error: any) {
+      console.error('Failed to submit survey:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+      console.error('Request headers:', error.config?.headers);
+      console.error('Request data:', error.config?.data);
+      setError(error.response?.data?.detail || 'Failed to submit survey. Please try again.');
+    }
+  };
+
+  const handleNext = () => {
     if (currentQuestion < QUESTIONS.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      try {
-        // Complete onboarding
-        if (authToken) {
-          await completeOnboarding(authToken);
-        }
-        
-        // Update local state
-        completeSurvey();
-        router.replace('/');
-      } catch (error) {
-        console.error('Failed to complete onboarding:', error);
-        // Add error handling UI here
-      }
+      submitSurvey();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
     }
   };
 
   const handleSkip = () => {
     router.replace('/');
+  };
+
+  const isOptionSelected = (optionIdx: number) => {
+    const currentAnswer = answers[currentQuestion];
+    return currentAnswer?.selected_trait === QUESTIONS[currentQuestion].options[optionIdx].trait;
   };
 
   return (
@@ -83,7 +169,7 @@ export default function PersonalitySurveyScreen() {
       </Modal>
 
       {/* Question Card */}
-      <View style={[globalStyles.screenContainer, { alignItems: 'center', justifyContent: 'center' }] }>
+      <View style={globalStyles.container}>
         <Text style={[globalStyles.text, { marginBottom: 8 }]}>Question {currentQuestion + 1} of {QUESTIONS.length}</Text>
         <View style={globalStyles.progressBar}>
           <View style={[globalStyles.progressBarFill, { width: `${((currentQuestion + 1) / QUESTIONS.length) * 100}%` }]} />
@@ -95,26 +181,48 @@ export default function PersonalitySurveyScreen() {
               key={idx}
               style={[
                 globalStyles.button,
-                { alignItems: 'flex-start', backgroundColor: answers[currentQuestion] === option.trait ? theme.primary : theme.card, borderColor: theme.border, borderWidth: 1, marginVertical: 4 },
+                { 
+                  alignItems: 'flex-start', 
+                  backgroundColor: isOptionSelected(idx) ? theme.primary : theme.card, 
+                  borderColor: theme.border, 
+                  borderWidth: 1, 
+                  marginVertical: 4,
+                  opacity: isSubmitting ? 0.5 : 1
+                },
               ]}
               onPress={() => handleOptionSelect(idx)}
+              disabled={isSubmitting}
             >
-              <Text style={[globalStyles.text, { color: answers[currentQuestion] === option.trait ? '#fff' : theme.text }]}>{option.text}</Text>
+              <Text style={[globalStyles.text, { color: isOptionSelected(idx) ? '#fff' : theme.text }]}>{option.text}</Text>
             </TouchableOpacity>
           ))}
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', maxWidth: 400, marginTop: 16 }}>
-          <TouchableOpacity onPress={handleSkip}>
+          <TouchableOpacity onPress={handleSkip} disabled={isSubmitting}>
             <Text style={[globalStyles.text, { color: theme.tabBarInactive, textDecorationLine: 'underline' }]}>Skip for now</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[globalStyles.button, { opacity: !answers[currentQuestion] ? 0.5 : 1, marginLeft: 16, backgroundColor: theme.primary }]}
+            style={[
+              globalStyles.button, 
+              { 
+                opacity: (!isOptionSelected(0) || isSubmitting) ? 0.5 : 1, 
+                marginLeft: 16, 
+                backgroundColor: theme.primary 
+              }
+            ]}
             onPress={handleNext}
-            disabled={!answers[currentQuestion]}
+            disabled={!isOptionSelected(0) || isSubmitting}
           >
-            <Text style={globalStyles.buttonText}>Next</Text>
+            <Text style={globalStyles.buttonText}>
+              {currentQuestion === QUESTIONS.length - 1 ? 'Submit' : 'Next'}
+            </Text>
           </TouchableOpacity>
         </View>
+        {error && (
+          <Text style={[globalStyles.text, { color: theme.notification, marginTop: 16 }]}>
+            {error}
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   );
