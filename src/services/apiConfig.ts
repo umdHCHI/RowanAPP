@@ -1,8 +1,33 @@
+import Constants from 'expo-constants';
 
-// Use local development server
-export const API_BASE_URL = 'http://127.0.0.1:8000/api/';
+export const apiBaseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
 
-// Fallback to production if needed
-// export const API_BASE_URL = 'https://rowanapi.fly.dev/api/';
 
-console.log('API_BASE_URL:', API_BASE_URL);
+// All API endpoints in one place
+export const API_ENDPOINTS = {
+    // Authentication
+    login: 'auth/login/',
+    logout: 'auth/logout/',
+    tokenVerify: 'auth/token/verify/',
+    
+    // User endpoints
+    users: 'users/',
+    userProfile: 'users/me/',
+    updateProfile: 'users/update_profile/',
+    assignResearchGroup: 'users/assign_research_group/',
+    
+    // Content endpoints
+    characters: 'characters/',
+    appearances: 'appearances/',
+    gear: 'gear/',
+    surveys: 'surveys/',
+    storyProgress: 'story-progress/',
+    researchGroups: 'research-groups/',
+    availableResearchGroups: 'research-groups/available/',
+    personality: 'personality/'
+} as const;
+
+// Helper to get full URL
+export const getApiUrl = (endpoint: keyof typeof API_ENDPOINTS): string => {
+    return `${apiBaseUrl}${API_ENDPOINTS[endpoint]}`;
+};

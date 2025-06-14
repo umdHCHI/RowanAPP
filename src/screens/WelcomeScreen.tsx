@@ -5,7 +5,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
-import { API_BASE_URL } from '../services/apiConfig';
+import { apiBaseUrl } from '../services/apiConfig';
+import { researchGroupService } from '../services/researchGroupService';
+import { userService } from '../services/userService';
+import * as onboardingService from '../services/onboardingService';
 
 export default function WelcomeScreen() {
   const { styles } = useTheme();
@@ -16,138 +19,57 @@ export default function WelcomeScreen() {
     // If user is authenticated and has an assigned path, navigate directly
     if (authToken && onboardingState.assignedPath) {
       if (onboardingState.assignedPath === 'character') {
-        router.replace('/character-creator');
+        router.replace('/(character)');
       } else if (onboardingState.assignedPath === 'survey') {
-        router.replace('/personality-test');
+        router.replace('/(personality)');
       }
     }
   }, [authToken, onboardingState.assignedPath]);
 
-  const createUserProfile = async (researchGroupId: number) => {
-    try {
-      console.log('Creating user profile with research group:', researchGroupId);
-      const requestData = {
-        profile: {
-          research_group: researchGroupId,
-          has_completed_onboarding: false
-        }
-      };
-      console.log('Request data:', JSON.stringify(requestData, null, 2));
-      console.log('Request URL:', `${API_BASE_URL}users/update_profile/`);
-      console.log('Request headers:', {
-        'Authorization': `Token ${authToken}`,
-        'Content-Type': 'application/json'
-      });
-      
-      const response = await axios.patch(
-        `${API_BASE_URL}users/update_profile/`,
-        requestData,
-        {
-          headers: {
-            'Authorization': `Token ${authToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      console.log('Profile created:', response.data);
-      
-      // Check if profile was updated successfully
-      if (!response.data.profile?.research_group) {
-        throw new Error('Failed to update research group');
-      }
-      
-      return response.data;
-    } catch (error: any) {
-      console.error('Error creating profile:', error);
-      if (error.response) {
-        console.error('Error response data:', error.response.data);
-        console.error('Error response status:', error.response.status);
-        console.error('Error response headers:', error.response.headers);
-      }
-      throw error;
-    }
-  };
 
   const handleSurveyChoice = async () => {
     try {
-      console.log('Setting survey path');
-      
-      // First get available research groups
-      const groupsResponse = await axios.get(`${API_BASE_URL}research-groups/available/`, {
-        headers: {
-          'Authorization': `Token ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Available research groups:', groupsResponse.data);
-      
-      // Find Group B (Survey group)
-      const surveyGroup = groupsResponse.data.find((group: any) => group.condition === 'B');
-      if (!surveyGroup) {
-        throw new Error('Survey research group not found');
-      }
-      
-      console.log('Found survey group:', surveyGroup);
-      
+      // Get available research groups
+      const groupsResponse = await researchGroupService.getAvailableGroups();
+      const surveyGroup = groupsResponse.find((group) => group.condition === 'B');
+      if (!surveyGroup) throw new Error('Survey research group not found');
+
       // Assign user to research group B
-      const response = await axios.post(
-        `${API_BASE_URL}users/assign_research_group/`,
-        {
-          research_group_id: surveyGroup.id
-        },
-        {
-          headers: {
-            'Authorization': `Token ${authToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      console.log('Research group assignment response:', response.data);
-      
+      await researchGroupService.assignGroup(surveyGroup.id);
+
       // Verify the profile was updated correctly
-      const verifyResponse = await axios.get(`${API_BASE_URL}users/me/`, {
-        headers: {
-          'Authorization': `Token ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Verification response:', verifyResponse.data);
-      
-      const profile = verifyResponse.data.profile;
-      if (!profile?.research_group || profile.research_group.condition !== 'B') {
+      const profile = await onboardingService.getProfile();
+      if (!profile.profile?.research_group || profile.profile.research_group.condition !== 'B') {
         throw new Error('Failed to set research group - verification failed');
       }
-      
-      // If we get here, everything is set correctly
+
       await setAssignedPath('survey');
-      router.replace('/personality-test');
-      
+      router.replace('/(onboarding)/personality-test');
     } catch (error) {
       console.error('Error in handleSurveyChoice:', error);
-      // Handle error appropriately
     }
   };
+      
+
 
   const handleCharacterChoice = async () => {
     try {
-      console.log('Setting character path');
-      // Research group ID 1 is for Group A (Character)
-      const response = await createUserProfile(1);
-      console.log('Profile update response:', response);
-      
+      // Update user profile for Group A (Character)
+      const response = await onboardingService.updateProfile({
+        research_group: 1,
+        has_completed_onboarding: false,
+      });
+
       // Only proceed if we have a valid profile with research group
-      if (response.profile?.research_group) {
+      const profile = await onboardingService.getProfile();
+      if (profile.profile?.research_group) {
         await setAssignedPath('character');
-        router.replace('/character-creator');
+        router.replace('/(onboarding)/character-creator');
       } else {
         throw new Error('Failed to set research group');
       }
     } catch (error) {
       console.error('Error in handleCharacterChoice:', error);
-      // Handle error appropriately
     }
   };
 

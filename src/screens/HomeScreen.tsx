@@ -1,3 +1,4 @@
+import { useAuth } from "../context/AuthContext";
 import { useOnboarding } from "../context/OnboardingContext";
 import { useTheme } from "../context/ThemeContext";
 import CharacterCreatorScreen from "./CharacterCreatorScreen";
@@ -9,28 +10,30 @@ import WelcomeScreen from "./WelcomeScreen";
 export default function HomeScreen() {
   const { styles } = useTheme();
   const { onboardingState } = useOnboarding();
+  const { isTestUser } = useAuth();
 
   // Debug information
   console.log('Current onboarding state:', onboardingState);
+  console.log('Is test user:', isTestUser);
 
-  // If user has completed onboarding, show appropriate home screen
-  if (onboardingState.hasCompletedSurvey) {
-    return <PersonalityHomeScreen />;
+  // For test user, always show the welcome screen
+  if (isTestUser) {
+    return <WelcomeScreen />;
   }
 
-  if (onboardingState.hasCompletedCharacter) {
-    return <CharacterHomeScreen />;
-  }
-
-  // If user has an assigned path but hasn't completed it, show the appropriate screen
-  if (onboardingState.assignedPath) {
-    if (onboardingState.assignedPath === 'character') {
-      return <CharacterCreatorScreen />;
-    } else if (onboardingState.assignedPath === 'survey') {
-      return <PersonalitySurveyScreen />;
+  // For regular users, follow their assigned research group
+  if (onboardingState.isComplete) {
+    if (onboardingState.researchGroup === 'A') {
+      return <CharacterHomeScreen />;
+    } else {
+      return <PersonalityHomeScreen />;
     }
   }
 
-  // If no path is assigned and onboarding is not completed, show welcome screen
-  return <WelcomeScreen />;
+  // If onboarding is not complete, show the appropriate screen based on research group
+  if (onboardingState.researchGroup === 'A') {
+    return <CharacterCreatorScreen />;
+  } else {
+    return <PersonalitySurveyScreen />;
+  }
 } 

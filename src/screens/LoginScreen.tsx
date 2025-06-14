@@ -1,102 +1,66 @@
-import axios from 'axios';
-import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../context/AuthContext';
-import { useOnboarding } from '../context/OnboardingContext';
-import { useTheme } from '../context/ThemeContext';
-import { API_BASE_URL } from '../services/apiConfig';
+import { View, TextInput, Button, Text } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../../src/context/AuthContext';
+import { userService } from '../../src/services/userService';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useLocalSearchParams } from 'expo-router';
+import { useOnboarding } from '../../src/context/OnboardingContext';
+import { StyleSheet, TouchableOpacity } from 'react-native';
+import { apiBaseUrl } from '../../src/services/apiConfig';
+import { createGlobalStyles } from '../../src/styles/globalStyles';
+import { useThemeColor } from '@/app-example/hooks/useThemeColor';
 
 export default function LoginScreen() {
-  const { styles } = useTheme();
-  const { setAuthToken, setCharacterId } = useAuth();
-  const { onboardingState, setAssignedPath } = useOnboarding();
-  const { path } = useLocalSearchParams<{ path: string }>();
+  const router = useRouter();
+  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { styles } = useTheme();
+  const { onboardingState, setOnboardingState } = useOnboarding();
 
-  const handleLogin = async () => {
-    if (!username || !password) {
-      setError('Please enter both username and password');
-      return;
+
+
+const handleLogin = async () => {
+  setError(null);
+  setIsLoading(true);
+  try {
+    // 1. Login and get token
+    const loginResponse = await userService.login(username, password);
+    const token = loginResponse.token;
+
+    // 2. Store token in context/storage
+    await login(token, String(loginResponse.user.id));
+
+    // 3. For admin/test, reset onboarding on backend and locally
+    if (username === 'admin' || username === 'test') {
+      try {
+
+        await userService.updateProfile({ has_completed_onboarding: false });
+      } catch (e) {
+
+        console.warn('Could not reset onboarding on backend:', e);
+      }
     }
 
-    setIsLoading(true);
-    setError('');
-
-    try {
-      console.log('Attempting login to:', `${API_BASE_URL}auth/login/`);
+    // 4. Always fetch the latest profile and update onboarding context
+    const updatedProfile = await userService.getProfile();
+    setOnboardingState(prev => ({
+      ...prev,
+      isComplete: updatedProfile.profile?.has_completed_onboarding ?? false,
       
-      const response = await axios.post(`${API_BASE_URL}auth/login/`, {
-        username,
-        password,
-      });
+    }));
 
-      console.log('Login response:', response.data);
-      
-      const { token, user, character_id, research_group, needs_onboarding } = response.data;
-      
-      // Store the token and character ID
-      await setAuthToken(token);
-      if (character_id) {
-        await setCharacterId(character_id);
-      }
-
-      // If user has completed onboarding, go to home screen
-      if (!needs_onboarding) {
-        console.log('User has completed onboarding, navigating to home');
-        router.replace('/');
-        return;
-      }
-
-      // If user has a path from welcome screen, use that
-      if (path === 'survey' || path === 'character') {
-        console.log('Setting assigned path from welcome screen:', path);
-        await setAssignedPath(path);
-        
-        if (path === 'character') {
-          console.log('Navigating to character creator');
-          router.replace('/character-creator');
-        } else {
-          console.log('Navigating to personality test');
-          router.replace('/personality-test');
-        }
-        return;
-      }
-
-      // For all other cases, go to welcome screen to choose path
-      console.log('Navigating to welcome screen to choose path');
-      router.replace('/');
-    } catch (error: any) {
-      console.error('Login error:', error);
-      
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-        
-        if (error.response.status === 500) {
-          setError('Server error. Please try again later or contact support.');
-        } else if (error.response.status === 401) {
-          setError('Invalid username or password');
-        } else if (error.response.data?.detail) {
-          setError(error.response.data.detail);
-        } else {
-          setError('Failed to login. Please try again.');
-        }
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-        setError('No response from server. Please check your internet connection.');
-      } else {
-        console.error('Error setting up request:', error.message);
-        setError('An unexpected error occurred. Please try again.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+    // 5. Navigate to onboarding
+    router.replace('/(onboarding)/onboarding');
+  } catch (err: any) {
+    setError('Login failed. Please check your credentials.');
+  } finally {
+    setIsLoading(false);
+  }
+};
   return (
     <View style={[styles.screenContainer, localStyles.container]}>
       <Text style={styles.title}>Welcome Back!</Text>
@@ -135,7 +99,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.text, { marginTop: 16, textAlign: 'center', fontSize: 12 }]}>
-          Test Account: username: test, password: test
+          Test Account: username: admin, password: admin
         </Text>
       </View>
     </View>

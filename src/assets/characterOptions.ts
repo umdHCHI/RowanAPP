@@ -1,90 +1,51 @@
 // TODO: change character options to now character
 
-export const skinOptionsF = [
-  require('../../assets/character-creator/body_1.png'),
-  require('../../assets/character-creator/body_2.png'),
-  require('../../assets/character-creator/body_3.png'),
-  require('../../assets/character-creator/body_4.png'),
-  require('../../assets/character-creator/body_5.png'),
-  require('../../assets/character-creator/body_6.png'),
-  require('../../assets/character-creator/body_7.png'),
-  require('../../assets/character-creator/body_8.png'),
-];
-export const hairOptionsF = [
-  require('../../assets/character-creator/hair_1.png'),
-  require('../../assets/character-creator/hair_2.png'),
-  require('../../assets/character-creator/hair_3.png'),
-  require('../../assets/character-creator/hair_4.png'),
-  require('../../assets/character-creator/hair_5.png'),
-  require('../../assets/character-creator/hair_6.png'),
-  require('../../assets/character-creator/hair_7.png'),
-];
-export const clothesOptionsF = [
-  require('../../assets/character-creator/clothes_1.png'),
-  require('../../assets/character-creator/clothes_2.png'),
-  require('../../assets/character-creator/clothes_3.png'),
-  require('../../assets/character-creator/clothes_4.png'),
-  require('../../assets/character-creator/clothes_5.png'),
-  require('../../assets/character-creator/clothes_6.png'),
-];
-export const glassesOptionsF = [
-  require('../../assets/character-creator/glasses_1.png'),
-  require('../../assets/character-creator/glasses_2.png'),
-  require('../../assets/character-creator/glasses_3.png'),
-  require('../../assets/character-creator/glasses_4.png'),
-  require('../../assets/character-creator/glasses_5.png'),
-];
-export const eyesOptionsF = [
-  require('../../assets/character-creator/eyes_open.png'),
-  require('../../assets/character-creator/eyes_closed.png'),
-];
-export const mouthOptionsF = [
-  require('../../assets/character-creator/mouth_smile.png'),
-  require('../../assets/character-creator/mouth_neutral.png'),
-  require('../../assets/character-creator/mouth_open.png'),
+// Hex Character Pack assets (sprite sheets)
+export const baseOptions = [
+  require('../../assets/character-creator/Bases/base_main/base_one.png'),
+  require('../../assets/character-creator/Bases/base_main/base_two.png'),
+  require('../../assets/character-creator/Bases/base_main/base_three.png'),
+  require('../../assets/character-creator/Bases/base_main/base_four.png'),
+  require('../../assets/character-creator/Bases/base_main/base_five.png'),
+  require('../../assets/character-creator/Bases/base_main/base_six.png'),
+  require('../../assets/character-creator/Bases/base_main/base_seven.png'),
+  require('../../assets/character-creator/Bases/base_main/base_eight.png'),
+  require('../../assets/character-creator/Bases/base_main/base_nine.png'),
 ];
 
-export const skinOptionsM = [
-  require('../../assets/character-creator/baseB_1.png'),
-  require('../../assets/character-creator/baseB_2.png'),
-  require('../../assets/character-creator/baseB_3.png'),
-  require('../../assets/character-creator/baseB_4.png'),
-  require('../../assets/character-creator/baseB_5.png'),
-  require('../../assets/character-creator/baseB_6.png'),
-  require('../../assets/character-creator/baseB_7.png'),
-  require('../../assets/character-creator/baseB_8.png'),
+export const hairOptionsF = [
+  require('../../assets/character-creator/Hairs/Hair Sheet Black.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Brown 1.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Brown 2.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Brown 3.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Blonde.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Orange.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Red.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Pink.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Magent.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Lilac.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Dark Blue.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Blue.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Blue-Green.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Light Green.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Green.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet White.png'),
 ];
-export const hairOptionsM = [
-  require('../../assets/character-creator/hairB_1.png'),
-  require('../../assets/character-creator/hairB_2.png'),
-  require('../../assets/character-creator/hairB_3.png'),
-  require('../../assets/character-creator/hairB_4.png'),
-  require('../../assets/character-creator/hairB_5.png'),
-  require('../../assets/character-creator/hairB_6.png'),
-  require('../../assets/character-creator/hairB_7.png'),
-  require('../../assets/character-creator/hairB_8.png'),
+
+export const clothesOptionsF = [
+  require('../../assets/character-creator/Clothes/Blonde.png'),
 ];
-export const clothesOptionsM = [
-  require('../../assets/character-creator/clothesB_1.png'),
-  require('../../assets/character-creator/clothesB_2.png'),
-  require('../../assets/character-creator/clothesB_3.png'),
-  require('../../assets/character-creator/clothesB_4.png'),
-  require('../../assets/character-creator/clothesB_5.png'),
-  require('../../assets/character-creator/clothesB_6.png'),
+
+export const eyesOptionsF = [
+  require('../../assets/character-creator/Eyes/Blonde.png'),
 ];
-export const glassesOptionsM = [
-  require('../../assets/character-creator/glassesB_1.png'),
-  require('../../assets/character-creator/glassesB_2.png'),
-  require('../../assets/character-creator/glassesB_3.png'),
-  require('../../assets/character-creator/glassesB_4.png'),
-  require('../../assets/character-creator/glassesB_5.png'),
+
+export const mouthOptionsF = [
+  require('../../assets/character-creator/Mouths/Mouth 1.png'),
 ];
-export const eyesOptionsM = [
-  require('../../assets/character-creator/eyesB_open.png'),
-  require('../../assets/character-creator/eyesB_closed.png'),
-];
-export const mouthOptionsM = [
-  require('../../assets/character-creator/mouthB_smirk.png'),
-  require('../../assets/character-creator/mouthB_neutral.png'),
-  require('../../assets/character-creator/mouthB_open.png'),
-]; 
+
+// Use the same options for all genders
+export const hairOptionsM = hairOptionsF;
+export const clothesOptionsM = clothesOptionsF;
+export const eyesOptionsM = eyesOptionsF;
+export const mouthOptionsM = mouthOptionsF; 

@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -12,32 +11,28 @@ import {
   View
 } from 'react-native';
 import {
+  baseOptions,
   clothesOptionsF,
-  clothesOptionsM,
   eyesOptionsF,
-  eyesOptionsM,
-  glassesOptionsF,
-  glassesOptionsM,
   hairOptionsF,
-  hairOptionsM,
   mouthOptionsF,
-  mouthOptionsM,
-  skinOptionsF,
-  skinOptionsM,
 } from '../assets/characterOptions';
 import { equipmentIcons } from '../assets/equipment';
 import ArchiveMapModal, { ArchiveArea } from '../components/ArchiveMapModal';
+import Button from '../components/Button';
 import CodexModal from '../components/CodexModal';
 import EquipmentModal from '../components/EquipmentModal';
+import PixelButton from '../components/PixelButton';
 import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { sampleInventory } from '../data/sampleEquipment';
 import { STARTING_WELLNESS_STATS, STAT_MEANINGS, analyzeReflection, createGearItem } from '../data/wellnessSystem';
-import { getAppearance } from '../services/appearanceService';
+import { appearanceService } from '../services/appearanceService';
 import { EquipmentItem, EquippedItems } from '../types/equipment';
 import type { Story } from './StoryCatalogScreen';
 import StoryCatalogModal from './StoryCatalogScreen';
 import StoryScreen from './StoryScreen';
+import { Appearance } from '../types/appearance';
 
 const { width, height } = Dimensions.get('window');
 
@@ -119,7 +114,7 @@ type StatDescriptions = {
 
 const GameHomeScreen = () => {
   const { onboardingState } = useOnboarding();
-  const [appearance, setAppearance] = useState(onboardingState.characterAppearance);
+  const [appearance, setAppearance] = useState<Appearance | null>();
   const { authToken, characterId } = useAuth();
   const [isEquipmentModalVisible, setIsEquipmentModalVisible] = useState(false);
   const [inventory, setInventory] = useState<EquipmentItem[]>(sampleInventory);
@@ -142,20 +137,31 @@ const GameHomeScreen = () => {
   ]);
 
   // Choose correct options based on gender
-  let skinOptions = skinOptionsF;
+  let baseOptionsVar = baseOptions;
   let hairOptions = hairOptionsF;
   let clothesOptions = clothesOptionsF;
-  let glassesOptions = glassesOptionsF;
   let eyesOptions = eyesOptionsF;
   let mouthOptions = mouthOptionsF;
-  if (appearance?.gender === 'masculine') {
-    skinOptions = skinOptionsM;
-    hairOptions = hairOptionsM;
-    clothesOptions = clothesOptionsM;
-    glassesOptions = glassesOptionsM;
-    eyesOptions = eyesOptionsM;
-    mouthOptions = mouthOptionsM;
-  }
+
+  // Background options
+  const bgOptions = [
+    require('../../assets/character-creator/BGs/Dark.png'),
+    require('../../assets/character-creator/BGs/Light Brown.png'),
+    require('../../assets/character-creator/BGs/Brown.png'),
+    require('../../assets/character-creator/BGs/Dark Brown.png'),
+    require('../../assets/character-creator/BGs/Blonde.png'),
+    require('../../assets/character-creator/BGs/Orange.png'),
+    require('../../assets/character-creator/BGs/Red.png'),
+    require('../../assets/character-creator/BGs/Magent.png'),
+    require('../../assets/character-creator/BGs/Pink.png'),
+    require('../../assets/character-creator/BGs/Lilac.png'),
+    require('../../assets/character-creator/BGs/Blue.png'),
+    require('../../assets/character-creator/BGs/Dark Blue.png'),
+    require('../../assets/character-creator/BGs/Green.png'),
+    require('../../assets/character-creator/BGs/Light Green.png'),
+    require('../../assets/character-creator/BGs/Blue-Green.png'),
+    require('../../assets/character-creator/BGs/White.png'),
+  ];
 
   const characterStats = [
     { label: 'Level', value: '12', color: '#FFD700' },
@@ -169,27 +175,27 @@ const GameHomeScreen = () => {
       try {
         if (authToken && characterId) {
           console.log('Loading appearance for character:', characterId);
-          const data = await getAppearance(authToken, characterId);
+          const data = await appearanceService.getAppearance(Number(characterId));
           console.log('Loaded appearance data:', data);
           setAppearance(data);
         } else {
           console.log('No auth token or character ID available');
-          if (onboardingState.characterAppearance) {
+          if (onboardingState.appearance) {
             console.log('Using appearance from onboarding state');
-            setAppearance(onboardingState.characterAppearance);
+            setAppearance(onboardingState.appearance);
           }
         }
       } catch (error) {
         console.error('Failed to load appearance:', error);
-        if (onboardingState.characterAppearance) {
+        if (onboardingState.appearance) {
           console.log('Using appearance from onboarding state after error');
-          setAppearance(onboardingState.characterAppearance);
+          setAppearance(onboardingState.appearance);
         }
       }
     };
 
     loadAppearance();
-  }, [authToken, characterId, onboardingState.characterAppearance]);
+  }, [authToken, characterId, onboardingState.appearance]);
 
   const handleEquip = (item: EquipmentItem) => {
     setEquippedItems(prev => ({
@@ -213,11 +219,11 @@ const GameHomeScreen = () => {
       case 'focus':
         return equipmentIcons.focus[item.subtype as 'meditation' | 'breathing' | 'journaling'];
       case 'comfort':
-        return equipmentIcons.comfort[item.subtype as 'social' | 'physical' | 'emotional'];
+        return equipmentIcons.comfort[item.subtype as 'social' | 'hobby' | 'nature'];
       case 'shield':
-        return equipmentIcons.shield[item.subtype as 'boundary' | 'filter' | 'space'];
+        return equipmentIcons.shield[item.subtype as 'boundary' | 'affirmation' | 'routine'];
       case 'ground':
-        return equipmentIcons.ground[item.subtype as 'movement' | 'sensory' | 'breath'];
+        return equipmentIcons.ground[item.subtype as 'exercise' | 'sleep' | 'nutrition'];
       default:
         return undefined;
     }
@@ -318,6 +324,7 @@ const GameHomeScreen = () => {
   );
 
   return (
+    
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <ScrollView style={styles.content} contentContainerStyle={{ alignItems: 'center', paddingTop: 20 }}>
@@ -355,10 +362,10 @@ const GameHomeScreen = () => {
           <View style={styles.characterCard}>
             {appearance && (
               <View style={styles.characterPreview}>
-                <Image source={skinOptions[appearance.skin]} style={styles.layer} />
+                <Image source={bgOptions[appearance.background]} style={[styles.layer, styles.background]} />
+                <Image source={baseOptionsVar[appearance.skin]} style={styles.layer} />
                 <Image source={hairOptions[appearance.hair]} style={styles.layer} />
                 <Image source={clothesOptions[appearance.clothes]} style={styles.layer} />
-                <Image source={glassesOptions[appearance.glasses]} style={styles.layer} />
                 <Image source={eyesOptions[appearance.eyes]} style={styles.layer} />
                 <Image source={mouthOptions[appearance.mouth]} style={styles.layer} />
               </View>
@@ -431,12 +438,14 @@ const GameHomeScreen = () => {
         <View style={styles.storiesSection}>
           <View style={styles.storiesHeader}>
             <Text style={styles.sectionTitle}>Memory Vault</Text>
-            <TouchableOpacity 
-              style={styles.viewAllButton}
-              onPress={() => setIsStoryCatalogVisible(true)}
-            >
-              <Text style={styles.viewAllText}>Browse All</Text>
-            </TouchableOpacity>
+            <PixelButton>
+              <Button 
+                title="Browse All"
+                variant="lightGreen"
+                onPress={() => setIsStoryCatalogVisible(true)}
+                style={{ width: 120 }}
+              />
+            </PixelButton>
           </View>
           
           <ScrollView
@@ -488,12 +497,14 @@ const GameHomeScreen = () => {
 
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => setIsEquipmentModalVisible(true)}
-          >
-            <Text style={styles.quickActionText}>🎒 Manage Coping Tools</Text>
-          </TouchableOpacity>
+          <PixelButton>
+            <Button 
+              title="🎒 Manage Coping Tools"
+              variant="darkBrown"
+              onPress={() => setIsEquipmentModalVisible(true)}
+              style={{ width: 180 }}
+            />
+          </PixelButton>
         </View>
 
         {/* Spacer for bottom nav */}
@@ -509,28 +520,6 @@ const GameHomeScreen = () => {
         inventory={inventory}
         equippedItems={equippedItems}
       />
-
-      {/* Simplified Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={styles.navButton}
-          onPress={() => setIsCodexVisible(true)}
-        >
-          <Ionicons name="book" size={24} color="#fff" />
-          <Text style={styles.navText}>Codex</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navButton}
-          onPress={handleMapPress}
-        >
-          <Ionicons name="map" size={24} color="#fff" />
-          <Text style={styles.navText}>Memory Map</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton}>
-          <Ionicons name="trophy" size={24} color="#fff" />
-          <Text style={styles.navText}>Milestones</Text>
-        </TouchableOpacity>
-      </View>
 
       <StoryCatalogModal
         visible={isStoryCatalogVisible}
@@ -724,17 +713,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 15,
   },
-  viewAllButton: {
-    backgroundColor: '#4ee6e6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  viewAllText: {
-    color: '#000',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
   sectionTitle: {
     color: '#fff',
     fontWeight: 'bold',
@@ -826,43 +804,6 @@ const styles = StyleSheet.create({
     width: '90%',
     marginVertical: 10,
   },
-  quickActionButton: {
-    backgroundColor: '#23242b',
-    borderRadius: 10,
-    paddingVertical: 15,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  quickActionText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#23242b',
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#333',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  navButton: {
-    alignItems: 'center',
-    flex: 1,
-    paddingVertical: 8,
-  },
-  navText: {
-    color: '#fff',
-    fontSize: 12,
-    marginTop: 4,
-  },
   characterCard: {
     width: 140,
     height: 250,
@@ -887,6 +828,9 @@ const styles = StyleSheet.create({
     width: 120,
     height: 220,
     resizeMode: 'contain',
+  },
+  background: {
+    zIndex: -1,
   },
   tooltipContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',

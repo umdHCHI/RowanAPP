@@ -4,7 +4,7 @@ import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'rea
 import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
-import { API_BASE_URL } from '../services/apiConfig';
+import { apiBaseUrl } from '../services/apiConfig';
 
 interface PersonalityTrait {
   name: string;
@@ -68,7 +68,7 @@ export default function PersonalityHomeScreen() {
         setError(null);
 
         // First try to get the personality profile
-        const response = await axios.get(`${API_BASE_URL}users/me/`, {
+        const response = await axios.get(`${apiBaseUrl}users/me/`, {
           headers: { Authorization: `Token ${authToken}` }
         });
 
@@ -86,7 +86,7 @@ export default function PersonalityHomeScreen() {
           });
         } else {
           // If no personality profile exists, try to get survey results
-          const surveyResponse = await axios.get(`${API_BASE_URL}surveys/my_survey/`, {
+          const surveyResponse = await axios.get(`${apiBaseUrl}surveys/my_survey/`, {
             headers: { Authorization: `Token ${authToken}` }
           });
 

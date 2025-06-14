@@ -1,115 +1,143 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ImageStyle, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import {
+  baseOptions,
   clothesOptionsF,
-  clothesOptionsM,
   eyesOptionsF,
-  eyesOptionsM,
-  glassesOptionsF,
-  glassesOptionsM,
   hairOptionsF,
-  hairOptionsM,
   mouthOptionsF,
-  mouthOptionsM,
-  skinOptionsF,
-  skinOptionsM,
 } from '../assets/characterOptions';
+import { sampleHeadBar } from '../assets/frameAssets';
+import CharacterFrame from '../components/CharacterFrame';
+import CharacterPreview from '../components/CharacterPreview';
 import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
-import { createCharacter } from '../services/appearanceService';
+import { apiBaseUrl } from '../services/apiConfig';
+import { appearanceService }  from '../services/appearanceService';
 import { completeOnboarding } from '../services/onboardingService';
+const travelBookPopup = require('../../assets/UI/character-creator-ui/UI_TravelBook_Popup01a.png');
+const skinColorsSheet = require('../../assets/character-creator/sample_hud_heads/skin_colors/skin_one.png');
+const sampleHeadBase = require('../../assets/character-creator/sample_hud_heads/head_base.png');
 
 const optionLabels = [
   'Skin',
   'Hair',
   'Clothes',
-  'Glasses',
   'Eyes',
   'Mouth',
 ];
 
+// Background options
+const bgOptions = [
+  require('../../assets/character-creator/BGs/brown/brown_one.png'),
+  require('../../assets/character-creator/BGs/brown/brown_two.png'),
+  require('../../assets/character-creator/BGs/brown/brown_three.png'),
+  require('../../assets/character-creator/BGs/brown/brown_four.png'),
+];
+
+const BASE_FRAME_WIDTH = 80;
+const BASE_FRAME_HEIGHT = 45;
+const BASE_COLUMNS = 6;
+const BASE_ROWS = 2;
+const BASE_TOTAL = 12;
+
+function getBaseFrameStyle(index: number): ImageStyle {
+  const x = (index % BASE_COLUMNS) * BASE_FRAME_WIDTH;
+  const y = Math.floor(index / BASE_COLUMNS) * BASE_FRAME_HEIGHT;
+  return {
+    width: BASE_FRAME_WIDTH * BASE_COLUMNS, // 240
+    height: BASE_FRAME_HEIGHT * BASE_ROWS,  // 180
+    position: 'absolute',
+    left: -x,
+    top: -y,
+  };
+}
+
 export default function CharacterCreatorScreen() {
   const { styles: globalStyles } = useTheme();
   const { completeCharacter, setCharacterAppearance } = useOnboarding();
-  const { authToken } = useAuth();
-  const [gender, setGender] = useState<'masculine' | 'feminine' | 'nonbinary'>('feminine');
+  const { authToken, logout } = useAuth();
   const [skin, setSkin] = useState(0);
   const [hair, setHair] = useState(0);
   const [clothes, setClothes] = useState(0);
-  const [glasses, setGlasses] = useState(0);
   const [eyes, setEyes] = useState(0);
   const [mouth, setMouth] = useState(0);
+  const [background, setBackground] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Choose correct options based on gender
-  const skinOptions = gender === 'masculine' ? skinOptionsM : skinOptionsF;
-  const hairOptions = gender === 'masculine' ? hairOptionsM : hairOptionsF;
-  const clothesOptions = gender === 'masculine' ? clothesOptionsM : clothesOptionsF;
-  const glassesOptions = gender === 'masculine' ? glassesOptionsM : glassesOptionsF;
-  const eyesOptions = gender === 'masculine' ? eyesOptionsM : eyesOptionsF;
-  const mouthOptions = gender === 'masculine' ? mouthOptionsM : mouthOptionsF;
 
   const cycle = (arr: any[], idx: number, dir: number) => (idx + dir + arr.length) % arr.length;
 
   // For easier mapping
   const optionStates = [
-    { label: 'Skin', idx: skin, setIdx: setSkin, arr: skinOptions },
-    { label: 'Hair', idx: hair, setIdx: setHair, arr: hairOptions },
-    { label: 'Clothes', idx: clothes, setIdx: setClothes, arr: clothesOptions },
-    { label: 'Glasses', idx: glasses, setIdx: setGlasses, arr: glassesOptions },
-    { label: 'Eyes', idx: eyes, setIdx: setEyes, arr: eyesOptions },
-    { label: 'Mouth', idx: mouth, setIdx: setMouth, arr: mouthOptions },
+    { label: 'Base', idx: skin, setIdx: setSkin, arr: baseOptions },
+    { label: 'Hair', idx: hair, setIdx: setHair, arr: hairOptionsF },
+    { label: 'Clothes', idx: clothes, setIdx: setClothes, arr: clothesOptionsF },
+    { label: 'Eyes', idx: eyes, setIdx: setEyes, arr: eyesOptionsF },
+    { label: 'Mouth', idx: mouth, setIdx: setMouth, arr: mouthOptionsF },
   ];
+
+  // Sample bar: 12 skin bases
+  const skinSamples = Array.from({ length: BASE_TOTAL }, (_, i) => i);
 
   const handleComplete = async () => {
     setError(null);
     setIsLoading(true);
 
     const appearanceData = {
-      gender,
+      gender: 'nonbinary',
       skin: String(skin),
       hair: String(hair),
       clothes: String(clothes),
-      glasses: String(glasses),
       eyes: String(eyes),
       mouth: String(mouth),
+      background: String(background),
     };
     
     try {
       if (authToken) {
+        console.log('Current auth token:', authToken);
+        console.log('Making character creation request with token:', authToken);
+        console.log('Request URL:', `${apiBaseUrl}characters/`);
+        console.log('Request headers:', {
+          'Authorization': `Token ${authToken}`,
+          'Content-Type': 'application/json'
+        });
+        
         // Create character with appearance data
-        const character = await createCharacter(authToken, appearanceData);
+        const character = await appearanceService.createAppearance;
         console.log('Character created:', character);
         
         // Update local state
         setCharacterAppearance({
-          gender,
+          gender: 'nonbinary',
           skin,
           hair,
           clothes,
-          glasses,
           eyes,
           mouth,
+          background,
+          glasses: 0,
+          isComplete: true,
         });
         
         try {
           // Complete onboarding with character path
-          await completeOnboarding(authToken, 'character');
+          await completeOnboarding( 'character');
           console.log('Onboarding completed successfully');
           
           // Complete character creation
           completeCharacter();
           
           // Navigate to main screen
-          router.replace('/');
+          router.replace('/(character)');
         } catch (onboardingError) {
           console.error('Failed to complete onboarding:', onboardingError);
           // Still proceed with navigation since character was created
           completeCharacter();
-          router.replace('/');
+          router.replace('/(character)');
         }
       }
     } catch (error: any) {
@@ -125,57 +153,64 @@ export default function CharacterCreatorScreen() {
   };
 
   return (
-    <View style={[globalStyles.screenContainer, { alignItems: 'center', justifyContent: 'center', flex: 1 }]}> 
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-        <TouchableOpacity
-          style={[localStyles.genderBtn, gender === 'feminine' && localStyles.genderBtnActive]}
-          onPress={() => setGender('feminine')}
-        >
-          <Text style={localStyles.genderBtnText}>Feminine</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[localStyles.genderBtn, gender === 'masculine' && localStyles.genderBtnActive]}
-          onPress={() => setGender('masculine')}
-        >
-          <Text style={localStyles.genderBtnText}>Masculine</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[localStyles.genderBtn, gender === 'nonbinary' && localStyles.genderBtnActive]}
-          onPress={() => setGender('nonbinary')}
-        >
-          <Text style={localStyles.genderBtnText}>Nonbinary</Text>
-        </TouchableOpacity>
-      </View>
-      <Text style={[globalStyles.title, { marginBottom: 12 }]}>Create your character</Text>
-      <View style={globalStyles.creatorRow}>
-        <View style={localStyles.characterPreview}>
-          <Image source={skinOptions[skin]} style={localStyles.layer} />
-          <Image source={hairOptions[hair]} style={localStyles.layer} />
-          <Image source={clothesOptions[clothes]} style={localStyles.layer} />
-          <Image source={glassesOptions[glasses]} style={localStyles.layer} />
-          <Image source={eyesOptions[eyes]} style={localStyles.layer} />
-          <Image source={mouthOptions[mouth]} style={localStyles.layer} />
-        </View>
-        <View style={localStyles.optionsCol}>
-          {optionStates.map((opt, i) => (
-            <View key={opt.label} style={localStyles.optionRow}>
-              <TouchableOpacity
-                style={localStyles.arrowBtn}
-                onPress={() => opt.setIdx(cycle(opt.arr, opt.idx, -1))}
-              >
-                <Text style={localStyles.arrow}>{'<'}</Text>
-              </TouchableOpacity>
-              <Text style={localStyles.label}>{opt.label}</Text>
-              <TouchableOpacity
-                style={localStyles.arrowBtn}
-                onPress={() => opt.setIdx(cycle(opt.arr, opt.idx, 1))}
-              >
-                <Text style={localStyles.arrow}>{'>'}</Text>
-              </TouchableOpacity>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#222' }}>
+      <TextInput style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 12 }} placeholder='Character Name' />
+      <Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 12 }}>Create your character</Text>
+      
+      {/* Add logout button */}
+      <TouchableOpacity
+        style={[globalStyles.button, { marginBottom: 20, backgroundColor: '#ff4444' }]}
+        onPress={async () => {
+          await logout();
+          router.replace('/(auth)/login');
+        }}
+      >
+        <Text style={globalStyles.buttonText}>Logout and Login Again</Text>
+      </TouchableOpacity>
+
+      {/* Avatar Preview with Frame */}
+      <CharacterFrame frame={bgOptions[background]} size={200}>
+        <CharacterPreview
+          background={bgOptions[background]}
+          skinIndex={skin}
+          hairSheet={hairOptionsF[0]}
+          clothesSheet={clothesOptionsF[0]}
+          eyesSheet={eyesOptionsF[0]}
+          mouthSheet={mouthOptionsF[0]}
+          hairIndex={hair}
+          clothesIndex={clothes}
+          eyesIndex={eyes}
+          mouthIndex={mouth}
+        />
+      </CharacterFrame>
+      {/* Sample Selection Bar for Base */}
+      <View style={{ width: BASE_FRAME_WIDTH * BASE_COLUMNS + 16, height: BASE_FRAME_HEIGHT * BASE_ROWS, justifyContent: 'center', alignItems: 'center', marginBottom: 24, position: 'relative' }}>
+        <Image source={travelBookPopup} style={{ position: 'absolute', width: '100%', height: '100%', resizeMode: 'stretch', zIndex: 0 }} />
+        <View style={{ flexDirection: 'row', flexWrap: 'nowrap', width: BASE_FRAME_WIDTH * BASE_COLUMNS, justifyContent: 'center', alignItems: 'center', zIndex: 1 }}>
+          {Array.from({ length: BASE_COLUMNS }).map((_, colIdx) => (
+            <View key={colIdx} style={{ flexDirection: 'column' }}>
+              {Array.from({ length: BASE_ROWS }).map((_, rowIdx) => {
+                const idx = rowIdx * BASE_COLUMNS + colIdx;
+                if (idx >= BASE_TOTAL) return null;
+                return (
+                  <TouchableOpacity key={idx} onPress={() => setSkin(idx)} style={{ margin: 2 }}>
+                    <View style={{ width: BASE_FRAME_WIDTH, height: BASE_FRAME_HEIGHT, position: 'relative', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                      {/* Cropped skin color sample */}
+                      <Image
+                        source={skinColorsSheet}
+                        style={[getBaseFrameStyle(idx), { position: 'absolute', top: 0, left: 0, zIndex: 1 }]}
+                      />
+                      {/* Sample head frame overlay */}
+                      <Image source={sampleHeadBar} style={{ width: BASE_FRAME_WIDTH, height: BASE_FRAME_HEIGHT, position: 'absolute', top: 0, left: 0, zIndex: 2 }} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           ))}
         </View>
       </View>
+
       {error && (
         <Text style={[globalStyles.text, { color: '#ff4444', marginTop: 10, textAlign: 'center' }]}>
           {error}
@@ -194,72 +229,3 @@ export default function CharacterCreatorScreen() {
   );
 }
 
-const localStyles = StyleSheet.create({
-
-  characterPreview: {
-    width: 180,
-    height: 320,
-    marginBottom: 8,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 24,
-  },
-  layer: {
-    position: 'absolute',
-    width: 180,
-    height: 320,
-    resizeMode: 'contain',
-  },
-  optionsCol: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  label: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    marginHorizontal: 12,
-    minWidth: 80,
-    textAlign: 'center',
-  },
-  arrowBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#3338',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 2,
-  },
-  arrow: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  genderBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#2228',
-    marginHorizontal: 6,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  genderBtnActive: {
-    borderColor: '#fff',
-    backgroundColor: '#444b',
-  },
-  genderBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-}); 

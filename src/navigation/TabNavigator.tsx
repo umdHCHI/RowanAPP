@@ -13,10 +13,7 @@ export default function TabNavigator() {
         tabBarStyle: {
           backgroundColor: theme.tabBar,
         },
-        headerStyle: {
-          backgroundColor: theme.background,
-        },
-        headerTintColor: theme.text,
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"

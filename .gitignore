@@ -75,3 +75,6 @@ ios/
 
 expo-env.d.ts
 # @end expo-cli
+run_deply.sh
+.expo/
+/.expo-shared/

@@ -47,12 +47,11 @@ export default {
     },
     extra: {
       API_BASE_URL: process.env.API_BASE_URL || "https://rowanapi.fly.dev/api/",
+   
       API_LOCAL_URL: process.env.API_LOCAL_URL,
+      TEST_USER_TOKEN: process.env.TEST_USER_TOKEN,
+
       router: {},
-      eas: {
-        projectId: "5ffee148-6440-4876-bb7d-7fed0cc5346b"
-      }
-    },
-    owner: "roesorcerer"
+    }
   }
 }; 

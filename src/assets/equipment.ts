@@ -1,4 +1,4 @@
-export type FocusType = 'meditation' | 'breathing' | 'journaling';// TODO: Add meditation1, meditation2, meditation3
+export type FocusType = 'meditation' | 'breathing' | 'journaling' | 'journaltwo';// TODO: Add meditation1, meditation2, meditation3
 export type ComfortType = 'social' | 'hobby' | 'nature';
 export type ShieldType = 'boundary' | 'affirmation' | 'routine';
 export type GroundType = 'exercise' | 'sleep' | 'nutrition';

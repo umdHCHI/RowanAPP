@@ -1,43 +1,23 @@
-import axios from 'axios';
-import { API_BASE_URL } from './apiConfig';
+import { apiService } from './apiService';
+import { UserProfile } from '../types/user';
 
-export async function completeOnboarding(token: string, path: 'character' | 'survey') {
-  try {
-    // First, get available research groups
-    const groupsRes = await axios.get(`${API_BASE_URL}research-groups/available/`, {
-      headers: {
-        'Authorization': `Token ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+// Get the current user's profile
+export async function getProfile(): Promise<UserProfile> {
+  return apiService.getProfile();
+}
 
-    // Find the appropriate research group based on the path
-    const researchGroup = groupsRes.data.find((group: any) => 
-      (path === 'character' && group.condition === 'A') || 
-      (path === 'survey' && group.condition === 'B')
-    );
+// Create a new user profile (if your backend supports this)
+export async function createProfile(profileData: any): Promise<UserProfile> {
+  // If your backend requires POST to 'users/' to create a profile:
+  return apiService.post<UserProfile>('users', profileData);
+}
 
-    if (!researchGroup) {
-      throw new Error('No suitable research group found');
-    }
+// Update the current user's profile
+export async function updateProfile(profileData: any): Promise<UserProfile> {
+  return apiService.updateProfile(profileData);
+}
 
-    // Update the user's profile with research group and completion status
-    const res = await axios.patch(`${API_BASE_URL}users/update_profile/`, {
-      profile: {
-        has_completed_onboarding: true,
-        completion_type: path,
-        research_group: researchGroup.id
-      }
-    }, {
-      headers: {
-        'Authorization': `Token ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    console.log('Onboarding completed:', res.data);
-    return res.data;
-  } catch (error) {
-    console.error('Error completing onboarding:', error);
-    throw error;
-  }
-} 
+// Complete onboarding (updates profile with onboarding info)
+export async function completeOnboarding(path: 'character' | 'survey') {
+  return apiService.completeOnboarding(path);
+}

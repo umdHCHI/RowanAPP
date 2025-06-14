@@ -5,7 +5,7 @@ import { Modal, SafeAreaView, Text, TouchableOpacity, View } from 'react-native'
 import { useAuth } from '../context/AuthContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useTheme } from '../context/ThemeContext';
-import { API_BASE_URL } from '../services/apiConfig';
+import { apiBaseUrl } from '../services/apiConfig';
 
 const QUESTIONS = [
   {
@@ -74,7 +74,7 @@ export default function PersonalitySurveyScreen() {
       });
 
       // First check if user is in the correct research group
-      const profileResponse = await axios.get(`${API_BASE_URL}users/me/`, {
+      const profileResponse = await axios.get(`${apiBaseUrl}users/me/`, {
         headers: {
           'Authorization': `Token ${authToken}`,
           'Content-Type': 'application/json'
@@ -95,7 +95,7 @@ export default function PersonalitySurveyScreen() {
 
       // Submit the survey
       const response = await axios.post(
-        `${API_BASE_URL}surveys/submit/`,
+        `${apiBaseUrl}surveys/submit/`,
         {
           survey_type: 'big_five',
           answers: formattedAnswers
@@ -114,8 +114,8 @@ export default function PersonalitySurveyScreen() {
       // Update onboarding state
       await completeSurvey();
       
-      // Navigate to home screen
-      router.replace('/');
+      // Navigate to personality home screen
+      router.replace('/(personality)');
       
     } catch (error: any) {
       console.error('Failed to submit survey:', error);

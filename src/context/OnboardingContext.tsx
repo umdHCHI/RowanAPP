@@ -1,28 +1,22 @@
 //contexts for onboarding if the users is allocated for survey or character creator
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-
+import { CharacterAppearance, Appearance } from '../types/appearance';
 type OnboardingPath = 'survey' | 'character' | null;
 
-export interface CharacterAppearance {
-  gender: 'masculine' | 'feminine' | 'nonbinary';
-  skin: number;
-  hair: number;
-  clothes: number;
-  glasses: number;
-  eyes: number;
-  mouth: number;
-}
 
-interface OnboardingState {
-  hasCompletedSurvey: boolean;
-  hasCompletedCharacter: boolean;
+
+export type OnboardingState = {
+    isComplete: boolean;
   assignedPath: OnboardingPath;
-  characterAppearance: CharacterAppearance | null;
-}
+  researchGroup: 'A' | 'B' | null; // 'A' for character, 'B' for survey, null for loading
+  characterAppearance?: CharacterAppearance;
+  appearance?: Appearance; 
+};
 
 interface OnboardingContextType {
   onboardingState: OnboardingState;
+  setOnboardingState: (updater: (prev: OnboardingState) => OnboardingState) => void;
   completeSurvey: () => void;
   completeCharacter: () => void;
   setAssignedPath: (path: OnboardingPath) => void;
@@ -35,11 +29,13 @@ interface OnboardingContextType {
 // - For survey path: set assignedPath to 'survey'
 // - For character path: set assignedPath to 'character'
 const defaultState: OnboardingState = {
-  hasCompletedSurvey: false,
-  hasCompletedCharacter: false,
-  assignedPath: null,
-  characterAppearance: null,
+  isComplete: false,
+  assignedPath: null, // initially null, can be set to 'survey' or 'character'
+  researchGroup: 'A',
+  characterAppearance: undefined,
 };
+
+
 
 const CHARACTER_APPEARANCE_KEY = 'characterAppearance';
 
@@ -65,23 +61,29 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const completeSurvey = () => {
     setOnboardingState(prev => ({
       ...prev,
-      hasCompletedSurvey: true,
+      isComplete: true,
     }));
   };
 
   const completeCharacter = () => {
     setOnboardingState(prev => ({
       ...prev,
-      hasCompletedCharacter: true,
+      isComplete: true,
     }));
   };
 
-  const setAssignedPath = (path: OnboardingPath) => {
-    setOnboardingState(prev => ({
-      ...prev,
-      assignedPath: path,
-    }));
-  };
+const setAssignedPath = (path: OnboardingPath) => {
+  setOnboardingState(prev => ({
+    ...prev,
+    assignedPath: path,
+    researchGroup:
+      path === 'survey'
+        ? 'B'
+        : path === 'character'
+        ? 'A'
+        : prev.researchGroup,
+  }));
+};
 
   const setCharacterAppearance = (appearance: CharacterAppearance) => {
     setOnboardingState(prev => ({
@@ -102,6 +104,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     <OnboardingContext.Provider
       value={{
         onboardingState,
+        setOnboardingState,
         completeSurvey,
         completeCharacter,
         setAssignedPath,
