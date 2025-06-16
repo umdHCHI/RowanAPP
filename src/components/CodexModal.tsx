@@ -1,290 +1,100 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  ImageBackground,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from 'react-native';
+import { apiService } from '../services/apiService';
+import { CodexModalProps, Prompt } from '../types/journal';
 import DrawingCanvas from './DrawingCanvas';
 
 const { width, height } = Dimensions.get('window');
 
-type Prompt = {
-  id: string;
-  text: string;
-  category: 'journal' | 'draw' | 'voice';
-  skillCategory: 'Self-Compassion' | 'Social Connection' | 'Stress Management' | 'Emotional Awareness' | 'Personal Growth';
-  mapArea: string; // ID of the map area this prompt is associated with
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-};
-
-const samplePrompts: Prompt[] = [
-  // Entrance Area Prompts (Always Available)
-  {
-    id: 'entrance-1',
-    text: 'Write about a time when you felt overwhelmed and how you handled it.',
-    category: 'journal',
-    skillCategory: 'Emotional Awareness',
-    mapArea: 'entrance',
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'entrance-2',
-    text: 'Draw a symbol that represents your current emotional state.',
-    category: 'draw',
-    skillCategory: 'Emotional Awareness',
-    mapArea: 'entrance',
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'entrance-3',
-    text: 'Record a voice memo about what brings you comfort during difficult times.',
-    category: 'voice',
-    skillCategory: 'Stress Management',
-    mapArea: 'entrance',
-    difficulty: 'Beginner',
-  },
-
-  // Garden Area Prompts
-  {
-    id: 'garden-1',
-    text: 'Write about a coping strategy that has helped you manage stress.',
-    category: 'journal',
-    skillCategory: 'Stress Management',
-    mapArea: 'garden',
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'garden-2',
-    text: 'Draw your "safe space" - a place where you feel calm and protected.',
-    category: 'draw',
-    skillCategory: 'Emotional Awareness',
-    mapArea: 'garden',
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'garden-3',
-    text: 'Record a voice memo about a time when you successfully managed a difficult emotion.',
-    category: 'voice',
-    skillCategory: 'Stress Management',
-    mapArea: 'garden',
-    difficulty: 'Beginner',
-  },
-
-  // Library Area Prompts
-  {
-    id: 'library-1',
-    text: 'Write about a meaningful connection you have with someone in your life.',
-    category: 'journal',
-    skillCategory: 'Social Connection',
-    mapArea: 'library',
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'library-2',
-    text: 'Draw a memory that brings you joy and connection.',
-    category: 'draw',
-    skillCategory: 'Personal Growth',
-    mapArea: 'library',
-    difficulty: 'Beginner',
-  },
-  {
-    id: 'library-3',
-    text: 'Record a voice memo about a lesson you learned from a challenging experience.',
-    category: 'voice',
-    skillCategory: 'Personal Growth',
-    mapArea: 'library',
-    difficulty: 'Intermediate',
-  },
-
-  // Sanctuary Area Prompts
-  {
-    id: 'sanctuary-1',
-    text: 'Write a letter of compassion to yourself about a recent challenge.',
-    category: 'journal',
-    skillCategory: 'Self-Compassion',
-    mapArea: 'sanctuary',
-    difficulty: 'Intermediate',
-  },
-  {
-    id: 'sanctuary-2',
-    text: 'Draw a representation of your inner strength and resilience.',
-    category: 'draw',
-    skillCategory: 'Stress Management',
-    mapArea: 'sanctuary',
-    difficulty: 'Intermediate',
-  },
-  {
-    id: 'sanctuary-3',
-    text: 'Record a voice memo about a moment when you showed kindness to yourself.',
-    category: 'voice',
-    skillCategory: 'Self-Compassion',
-    mapArea: 'sanctuary',
-    difficulty: 'Intermediate',
-  },
-
-  // Archive Area Prompts
-  {
-    id: 'archive-1',
-    text: 'Write about how you have grown from a past challenge.',
-    category: 'journal',
-    skillCategory: 'Personal Growth',
-    mapArea: 'archive',
-    difficulty: 'Intermediate',
-  },
-  {
-    id: 'archive-2',
-    text: 'Draw a symbol that represents your journey of personal growth.',
-    category: 'draw',
-    skillCategory: 'Emotional Awareness',
-    mapArea: 'archive',
-    difficulty: 'Intermediate',
-  },
-  {
-    id: 'archive-3',
-    text: 'Record a voice memo about a relationship that has helped you grow.',
-    category: 'voice',
-    skillCategory: 'Social Connection',
-    mapArea: 'archive',
-    difficulty: 'Intermediate',
-  },
-
-  // Summit Area Prompts
-  {
-    id: 'summit-1',
-    text: 'Write about how you have integrated different coping strategies into your life.',
-    category: 'journal',
-    skillCategory: 'Personal Growth',
-    mapArea: 'summit',
-    difficulty: 'Advanced',
-  },
-  {
-    id: 'summit-2',
-    text: 'Draw a representation of your highest self - who you aspire to be.',
-    category: 'draw',
-    skillCategory: 'Self-Compassion',
-    mapArea: 'summit',
-    difficulty: 'Advanced',
-  },
-  {
-    id: 'summit-3',
-    text: 'Record a voice memo about your journey of self-discovery and growth.',
-    category: 'voice',
-    skillCategory: 'Social Connection',
-    mapArea: 'summit',
-    difficulty: 'Advanced',
-  },
-];
-
-type CodexModalProps = {
-  visible: boolean;
-  onClose: () => void;
-  onSave: (entry: {
-    type: string;
-    content: string;
-    prompt: string;
-    skillCategory: string;
-    mapArea: string;
-    difficulty: string;
-  }) => void;
-  unlockedAreas: string[]; // IDs of unlocked map areas
-};
-
 const CodexModal = ({ visible, onClose, onSave, unlockedAreas }: CodexModalProps) => {
+  const colorScheme = useColorScheme();
+  const parchmentSource =
+    colorScheme === 'dark'
+      ? require('../../assets/textures/journal_page-dark.png')
+      : require('../../assets/textures/journal_page-light.png');
+
+  // Dynamic text color for contrast
+  const textColor = colorScheme === 'dark' ? '#F5E6D3' : '#5C4033';
+  const borderColor = colorScheme === 'dark' ? '#F5E6D3' : '#8B4513';
+
   const [selectedType, setSelectedType] = useState<'journal' | 'draw' | 'voice'>('journal');
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [content, setContent] = useState('');
   const [drawingPaths, setDrawingPaths] = useState<any[]>([]);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [completedPrompts, setCompletedPrompts] = useState<string[]>([]);
 
-  const handleSave = () => {
-    if (selectedPrompt && content) {
-      onSave({
-        type: selectedType,
-        content,
-        prompt: selectedPrompt.text,
-        skillCategory: selectedPrompt.skillCategory,
-        mapArea: selectedPrompt.mapArea,
-        difficulty: selectedPrompt.difficulty,
-      });
-      setContent('');
-      setSelectedPrompt(null);
-      onClose();
-    }
-  };
-
-  const renderPromptList = () => {
-    // Filter prompts based on selected type and unlocked areas
-    const filteredPrompts = samplePrompts.filter(p => 
-      p.category === selectedType && 
-      (unlockedAreas.includes(p.mapArea) || p.mapArea === 'entrance')
-    );
+  useEffect(() => {
+    if (!visible) return;
+    setLoading(true);
     
-    return (
-      <ScrollView style={styles.promptList}>
-        {filteredPrompts.map(prompt => (
-          <TouchableOpacity
-            key={prompt.id}
-            style={[
-              styles.promptItem,
-              selectedPrompt?.id === prompt.id && styles.selectedPrompt,
-            ]}
-            onPress={() => setSelectedPrompt(prompt)}
-          >
-            <Text style={styles.promptText}>{prompt.text}</Text>
-            <View style={styles.promptMeta}>
-              <Text style={styles.skillCategory}>{prompt.skillCategory}</Text>
-              <Text style={styles.difficulty}>{prompt.difficulty}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    );
-  };
+    // Load prompts
+    apiService.getJournalPrompts()
+      .then(promptsData => {
+        setPrompts(promptsData.filter(p => p.is_active));
+      })
+      .catch(() => {
+        setPrompts([]);
+      })
+      .finally(() => setLoading(false));
+  }, [visible]);
 
-  const renderContentInput = () => {
-    if (!selectedPrompt) return null;
+  const handleSave = async () => {
+    if (selectedPrompt && content) {
+      try {
+        // Show success alert
+        Alert.alert(
+          "Entry Saved",
+          "Your journal entry has been saved to your Codex.",
+          [{ text: "OK" }]
+        );
 
-    switch (selectedType) {
-      case 'journal':
-        return (
-          <TextInput
-            style={styles.journalInput}
-            multiline
-            placeholder="Write your thoughts here..."
-            placeholderTextColor="#666"
-            value={content}
-            onChangeText={setContent}
-          />
+        // Call the original onSave
+        onSave({
+          type: selectedType,
+          content,
+          prompt: selectedPrompt.text,
+          skillCategory: selectedPrompt.skill_category,
+          mapArea: selectedPrompt.map_area,
+          difficulty: selectedPrompt.difficulty,
+        });
+
+        // Clear the form
+        setContent('');
+        setSelectedPrompt(null);
+        setCompletedPrompts(prev => [...prev, selectedPrompt.prompt_id]);
+        onClose();
+      } catch (error) {
+        console.error('Error saving journal entry:', error);
+        Alert.alert(
+          "Error",
+          "There was an error saving your entry. Please try again.",
+          [{ text: "OK" }]
         );
-      case 'draw':
-        return (
-          <DrawingCanvas
-            onSave={(paths) => {
-              setDrawingPaths(paths);
-              setContent(JSON.stringify(paths)); // Store paths as string for now
-            }}
-            onCancel={() => {
-              setDrawingPaths([]);
-              setContent('');
-            }}
-          />
-        );
-      case 'voice':
-        return (
-          <View style={styles.voicePlaceholder}>
-            <Ionicons name="mic" size={48} color="#4ee6e6" />
-            <Text style={styles.voiceText}>Voice recording coming soon...</Text>
-          </View>
-        );
-      default:
-        return null;
+      }
     }
   };
+
+  // Filter prompts based on completion status
+  const filteredPrompts = prompts.filter(p => 
+    p.category === selectedType && 
+    (unlockedAreas.includes(p.map_area) || p.map_area === 'entrance') &&
+    (!completedPrompts.includes(p.prompt_id))
+  );
 
   return (
     <Modal
@@ -295,56 +105,106 @@ const CodexModal = ({ visible, onClose, onSave, unlockedAreas }: CodexModalProps
     >
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text style={styles.title}>The Codex</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.typeSelector}>
-            <TouchableOpacity
-              style={[styles.typeButton, selectedType === 'journal' && styles.selectedType]}
-              onPress={() => setSelectedType('journal')}
-            >
-              <Ionicons name="book" size={24} color="#fff" />
-              <Text style={styles.typeText}>Journal</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.typeButton, selectedType === 'draw' && styles.selectedType]}
-              onPress={() => setSelectedType('draw')}
-            >
-              <Ionicons name="brush" size={24} color="#fff" />
-              <Text style={styles.typeText}>Draw</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.typeButton, selectedType === 'voice' && styles.selectedType]}
-              onPress={() => setSelectedType('voice')}
-            >
-              <Ionicons name="mic" size={24} color="#fff" />
-              <Text style={styles.typeText}>Voice</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.contentContainer}>
-            <View style={styles.promptSection}>
-              <Text style={styles.sectionTitle}>Choose a Prompt</Text>
-              {renderPromptList()}
-            </View>
-
-            <View style={styles.inputSection}>
-              <Text style={styles.sectionTitle}>Your Response</Text>
-              {renderContentInput()}
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.saveButton, (!selectedPrompt || !content) && styles.disabledButton]}
-            onPress={handleSave}
-            disabled={!selectedPrompt || !content}
+          <ImageBackground
+            source={parchmentSource}
+            style={styles.pixelBorder}
+            imageStyle={styles.textureOverlay}
           >
-            <Text style={styles.saveButtonText}>Save Entry</Text>
-          </TouchableOpacity>
+            <View style={styles.innerContent}>
+              <View style={[styles.header, { borderBottomColor: borderColor }]}>
+                <Text style={[styles.title, { color: textColor }]}>📖 The Codex</Text>
+                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color={textColor} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.typeSelector}>
+                <TouchableOpacity
+                  style={[styles.typeButton, selectedType === 'journal' && styles.selectedType]}
+                  onPress={() => setSelectedType('journal')}
+                >
+                  <Text style={[styles.typeText, { color: textColor }]}>📝 Journal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.typeButton, selectedType === 'draw' && styles.selectedType]}
+                  onPress={() => setSelectedType('draw')}
+                >
+                  <Text style={[styles.typeText, { color: textColor }]}>🎨 Draw</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.typeButton, selectedType === 'voice' && styles.selectedType]}
+                  onPress={() => setSelectedType('voice')}
+                >
+                  <Text style={[styles.typeText, { color: textColor }]}>🎤 Voice</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.contentContainer}>
+                <View style={styles.promptSection}>
+                  <Text style={[styles.sectionTitle, { color: textColor }]}>Choose Your Quest</Text>
+                  <ScrollView style={styles.promptList}>
+                    {filteredPrompts.map(prompt => (
+                      <TouchableOpacity
+                        key={prompt.prompt_id}
+                        style={[
+                          styles.promptItem,
+                          selectedPrompt?.prompt_id === prompt.prompt_id && styles.selectedPrompt,
+                          completedPrompts.includes(prompt.prompt_id) && styles.completedPrompt
+                        ]}
+                        onPress={() => setSelectedPrompt(prompt)}
+                      >
+                        <Text style={[styles.promptText, { color: textColor }]}>{prompt.text}</Text>
+                        <View style={styles.promptMeta}>
+                          <Text style={[styles.skillCategory, { color: textColor }]}>{prompt.skill_category}</Text>
+                          <Text style={[styles.difficulty, { color: textColor }]}>{prompt.difficulty}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.inputSection}>
+                  <Text style={[styles.sectionTitle, { color: textColor }]}>Your Chronicle</Text>
+                  {selectedPrompt && selectedType === 'journal' && (
+                    <TextInput
+                      style={[styles.journalInput, { color: textColor }]}
+                      multiline
+                      placeholder="Write your thoughts here..."
+                      placeholderTextColor={colorScheme === 'dark' ? '#e0d6c3' : '#7a5c2e'}
+                      value={content}
+                      onChangeText={setContent}
+                    />
+                  )}
+                  {selectedPrompt && selectedType === 'draw' && (
+                    <DrawingCanvas
+                      onSave={(paths) => {
+                        setDrawingPaths(paths);
+                        setContent(JSON.stringify(paths));
+                      }}
+                      onCancel={() => {
+                        setDrawingPaths([]);
+                        setContent('');
+                      }}
+                    />
+                  )}
+                  {selectedPrompt && selectedType === 'voice' && (
+                    <View style={styles.voicePlaceholder}>
+                      <Ionicons name="mic" size={48} color={textColor} />
+                      <Text style={[styles.voiceText, { color: textColor }]}>Voice recording coming soon...</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.saveButton, (!selectedPrompt || !content) && styles.disabledButton, { borderColor, backgroundColor: 'rgba(0,0,0,0.1)' }]}
+                onPress={handleSave}
+                disabled={!selectedPrompt || !content}
+              >
+                <Text style={[styles.saveButtonText, { color: textColor }]}>Save to Codex</Text>
+              </TouchableOpacity>
+            </View>
+          </ImageBackground>
         </View>
       </View>
     </Modal>
@@ -354,27 +214,67 @@ const CodexModal = ({ visible, onClose, onSave, unlockedAreas }: CodexModalProps
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     width: width * 0.9,
     height: height * 0.8,
-    backgroundColor: '#181A20',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: 'transparent',
+    borderRadius: 4,
+    padding: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  pixelBorder: {
+    flex: 1,
+    borderWidth: 4,
+    borderColor: '#D2B48C',
+    backgroundColor: '#F5E6D3',
+    padding: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textureOverlay: {
+    opacity: 1,
+    resizeMode: 'cover',
+    alignSelf: 'center',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  innerContent: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    padding: 32,
+    justifyContent: 'flex-start',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: '#8B4513',
+    paddingBottom: 10,
   },
   title: {
-    color: '#ffe066',
-    fontSize: 24,
+    color: '#5C4033',
+    fontSize: 32,
+    fontFamily: 'serif',
     fontWeight: 'bold',
+    textShadowColor: '#D2B48C',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
+    letterSpacing: 1,
   },
   closeButton: {
     padding: 8,
@@ -387,17 +287,19 @@ const styles = StyleSheet.create({
   typeButton: {
     alignItems: 'center',
     padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#23242b',
+    borderWidth: 0,
+    backgroundColor: 'transparent',
     width: '30%',
   },
   selectedType: {
-    backgroundColor: '#4ee6e6',
+    backgroundColor: 'rgba(0,0,0,0.1)',
   },
   typeText: {
-    color: '#fff',
-    marginTop: 8,
+    color: '#5C4033',
+    fontFamily: 'serif',
+    fontSize: 18,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   contentContainer: {
     flex: 1,
@@ -406,41 +308,57 @@ const styles = StyleSheet.create({
   promptSection: {
     flex: 1,
     marginRight: 10,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    padding: 10,
   },
   inputSection: {
     flex: 1,
     marginLeft: 10,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    padding: 10,
   },
   sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
+    color: '#5C4033',
+    fontSize: 22,
+    fontFamily: 'serif',
     fontWeight: 'bold',
     marginBottom: 10,
+    textShadowColor: '#D2B48C',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
+    letterSpacing: 0.5,
   },
   promptList: {
     flex: 1,
   },
   promptItem: {
-    backgroundColor: '#23242b',
+    backgroundColor: 'transparent',
     padding: 15,
-    borderRadius: 10,
+    borderWidth: 0,
     marginBottom: 10,
   },
   selectedPrompt: {
-    borderWidth: 2,
-    borderColor: '#4ee6e6',
+    backgroundColor: 'rgba(0,0,0,0.1)',
   },
   promptText: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#5C4033',
+    fontSize: 16,
+    fontFamily: 'serif',
+    lineHeight: 24,
+    letterSpacing: 0.3,
   },
   journalInput: {
     flex: 1,
-    backgroundColor: '#23242b',
-    borderRadius: 10,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
     padding: 15,
-    color: '#fff',
     textAlignVertical: 'top',
+    fontFamily: 'serif',
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: 0.3,
   },
   drawContainer: {
     flex: 1,
@@ -469,9 +387,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   saveButton: {
-    backgroundColor: '#4ee6e6',
+    backgroundColor: '#8B4513',
     padding: 15,
-    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#5C4033',
     alignItems: 'center',
     marginTop: 20,
   },
@@ -479,19 +398,25 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   saveButtonText: {
-    color: '#000',
+    color: '#F5E6D3',
+    fontFamily: 'serif',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
+    letterSpacing: 1,
   },
   voicePlaceholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   voiceText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#5C4033',
+    fontSize: 18,
+    fontFamily: 'serif',
     marginTop: 10,
+    letterSpacing: 0.5,
   },
   promptMeta: {
     flexDirection: 'row',
@@ -499,13 +424,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   skillCategory: {
-    color: '#4ee6e6',
-    fontSize: 12,
+    color: '#8B4513',
+    fontSize: 14,
+    fontFamily: 'serif',
     fontWeight: 'bold',
+    letterSpacing: 0.3,
   },
   difficulty: {
-    color: '#ffe066',
-    fontSize: 12,
+    color: '#5C4033',
+    fontSize: 14,
+    fontFamily: 'serif',
+    letterSpacing: 0.3,
+  },
+  completedPrompt: {
+    opacity: 0.5,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
 });
 

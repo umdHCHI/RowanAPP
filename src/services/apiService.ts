@@ -1,33 +1,11 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProfile, LoginResponse, ResearchGroup } from '../types/user';  
-import { apiBaseUrl } from './apiConfig';
-import { EquipmentItem, EquippedItems } from '../types/equipment'; 
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
+import { EquipmentItem, EquippedItems } from '../types/equipment';
+import { Prompt } from '../types/journal';
+import { LoginResponse, ResearchGroup, UserProfile } from '../types/user';
+import { API_ENDPOINTS, apiBaseUrl } from './apiConfig';
 const testToken = Constants.expoConfig?.extra?.TEST_USER_TOKEN as string;
-
-export const API_ENDPOINTS = {
-    // Authentication
-    login: 'auth/login/',
-    logout: 'auth/logout/',
-    tokenVerify: 'auth/token/verify/',
-    
-    // User endpoints
-    users: 'users/',
-    userProfile: 'users/me/',
-    updateProfile: 'users/update_profile/',
-    assignResearchGroup: 'users/assign_research_group/',
-    
-    // Content endpoints
-    characters: 'characters/',
-    appearances: 'appearances/',
-    gear: 'gear/',
-    surveys: 'surveys/',
-    storyProgress: 'story-progress/',
-    researchGroups: 'research-groups/',
-    availableResearchGroups: 'research-groups/available/',
-    personality: 'personality/'
-} as const;
 
 // ===== Axios Setup =====
 const apiClient: AxiosInstance = axios.create({
@@ -63,9 +41,6 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
     }
 );
-
-
-
 
 // ===== Main API Service Class =====
 class ApiService {
@@ -246,31 +221,30 @@ class ApiService {
             throw error;
         }
     }
+
     // ===== Character Methods =====
     async getInventory(characterId: string): Promise<EquipmentItem[]> {
-    return this.get<EquipmentItem[]>('characters', { urlSuffix: `${characterId}/inventory` });
-}
+        return this.get<EquipmentItem[]>('characters', { urlSuffix: `${characterId}/inventory` });
+    }
 
     async getEquippedItems(characterId: string): Promise<EquippedItems> {
-    return this.get<EquippedItems>('characters', { urlSuffix: `${characterId}/equipment` });
-}
+        return this.get<EquippedItems>('characters', { urlSuffix: `${characterId}/equipment` });
+    }
 
     async equipItem(characterId: string, itemId: string): Promise<void> {
-    await this.post('characters', null, { urlSuffix: `${characterId}/equipment/${itemId}` });
-}
+        await this.post('characters', null, { urlSuffix: `${characterId}/equipment/${itemId}` });
+    }
 
     async unequipItem(characterId: string, itemId: string): Promise<void> {
-    await this.delete('characters', { urlSuffix: `${characterId}/equipment/${itemId}` });
+        await this.delete('characters', { urlSuffix: `${characterId}/equipment/${itemId}` });
+    }
+
+    // ===== Journal Methods =====
+    async getJournalPrompts(): Promise<Prompt[]> {
+        return this.get<Prompt[]>('journalPrompts');
+    }
+
 }
-
-
-}
-
-
-    
-
-
-
 
 // Export a singleton instance
 export const apiService = new ApiService();

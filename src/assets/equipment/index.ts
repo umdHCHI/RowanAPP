@@ -4,6 +4,7 @@ export const focus: Record<string, any> = {
   meditation: require('./weapons/fb1455.png'),  // Using staff/wand icon
   breathing: require('./weapons/fb1455.png'),   // Using staff/wand icon
   journaling: require('./weapons/fb1455.png'),  // Using staff/wand icon
+  journaltwo: require('./weapons/fb1455.png'),  // Using staff/wand icon
 };
 
 // Comfort Layers - using armor icons for comfort and protection

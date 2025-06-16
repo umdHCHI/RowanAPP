@@ -1,7 +1,7 @@
 // TODO: change character options to now character
 
 // Hex Character Pack assets (sprite sheets)
-export const baseOptions = [
+export const baseOptions = [//DONE
   require('../../assets/character-creator/Bases/base_main/base_one.png'),
   require('../../assets/character-creator/Bases/base_main/base_two.png'),
   require('../../assets/character-creator/Bases/base_main/base_three.png'),
@@ -14,7 +14,7 @@ export const baseOptions = [
 ];
 
 export const hairOptionsF = [
-  require('../../assets/character-creator/Hairs/Hair Sheet Black.png'),
+  require('../../assets/character-creator/Hairs/Hair Sheet Black.png'),//REPLACE
   require('../../assets/character-creator/Hairs/Hair Sheet Brown 1.png'),
   require('../../assets/character-creator/Hairs/Hair Sheet Brown 2.png'),
   require('../../assets/character-creator/Hairs/Hair Sheet Brown 3.png'),

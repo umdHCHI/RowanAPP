@@ -1,38 +1,39 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Dimensions,
-  Image,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    Image,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import {
-  baseOptions,
-  clothesOptionsF,
-  eyesOptionsF,
-  hairOptionsF,
-  mouthOptionsF,
-} from '../assets/characterOptions';
-import { equipmentIcons } from '../assets/equipment';
-import ArchiveMapModal, { ArchiveArea } from '../components/ArchiveMapModal';
-import Button from '../components/Button';
-import CodexModal from '../components/CodexModal';
-import EquipmentModal from '../components/EquipmentModal';
-import PixelButton from '../components/PixelButton';
-import { useAuth } from '../context/AuthContext';
-import { useOnboarding } from '../context/OnboardingContext';
-import { sampleInventory } from '../data/sampleEquipment';
-import { STARTING_WELLNESS_STATS, STAT_MEANINGS, analyzeReflection, createGearItem } from '../data/wellnessSystem';
-import { appearanceService } from '../services/appearanceService';
-import { EquipmentItem, EquippedItems } from '../types/equipment';
+    baseOptions,
+    clothesOptionsF,
+    eyesOptionsF,
+    hairOptionsF,
+    mouthOptionsF,
+} from '../../assets/characterOptions';
+import { equipmentIcons } from '../../assets/equipment';
+import ArchiveMapModal, { ArchiveArea } from '../../components/ArchiveMapModal';
+import Button from '../../components/Button';
+import CodexModal from '../../components/CodexModal';
+import EquipmentModal from '../../components/EquipmentModal';
+import PixelButton from '../../components/PixelButton';
+import ThoughtDefenderModal from '../../components/ThoughtDefenderModal';
+import { useAuth } from '../../context/AuthContext';
+import { useOnboarding } from '../../context/OnboardingContext';
+import { sampleInventory } from '../../data/sampleEquipment';
+import { STARTING_WELLNESS_STATS, STAT_MEANINGS, analyzeReflection, createGearItem } from '../../data/wellnessSystem';
+import { appearanceService } from '../../services/appearanceService';
+import { Appearance } from '../../types/appearance';
+import { EquipmentItem, EquippedItems } from '../../types/equipment';
 import type { Story } from './StoryCatalogScreen';
 import StoryCatalogModal from './StoryCatalogScreen';
 import StoryScreen from './StoryScreen';
-import { Appearance } from '../types/appearance';
 
 const { width, height } = Dimensions.get('window');
 
@@ -54,6 +55,7 @@ const archiveMetrics = [
 const bottomNav = [
   { icon: '📚', label: 'Codex' },       // Personal growth journal, skill tracker
   { icon: '🗺️', label: 'Memory Map' },  // Progress through memory categories
+  { icon: '🎮', label: 'Thought Defender' }, // Mental wellness mini-game
   { icon: '⭐', label: 'Milestones' },  // Achievements in coping skill development
 ];
 
@@ -61,7 +63,7 @@ const sampleStories = [
   {
     id: '1',
     title: 'The Overwhelmed Mind',
-    image: require('../../assets/images/story1.jpg'),
+    image: require('../../../assets/images/story1.jpg'),
     description: 'Explore different approaches to academic stress - which feels right for YOUR personality and situation?',
     progress: 0,
     difficulty: 'Personal Discovery',
@@ -71,7 +73,7 @@ const sampleStories = [
   {
     id: '2',
     title: 'The Lonely Desert', 
-    image: require('../../assets/images/story2.jpg'),
+    image: require('../../../assets/images/story2.jpg'),
     description: 'Navigate isolation and discover that meaningful connection looks different for everyone.',
     progress: 0,
     difficulty: 'Social Exploration',
@@ -81,7 +83,7 @@ const sampleStories = [
   {
     id: '3',
     title: 'The Perfect Storm',
-    image: require('../../assets/images/story3.jpg'),
+    image: require('../../../assets/images/story3.jpg'),
     description: 'Face perfectionism while learning that self-compassion has many forms - find yours.',
     progress: 0,
     difficulty: 'Self-Understanding',
@@ -124,6 +126,7 @@ const GameHomeScreen = () => {
   const [isStoryScreenVisible, setIsStoryScreenVisible] = useState(false);
   const [isCodexVisible, setIsCodexVisible] = useState(false);
   const [isMapVisible, setIsMapVisible] = useState(false);
+  const [isThoughtDefenderVisible, setIsThoughtDefenderVisible] = useState(false);
   const [completedEntries, setCompletedEntries] = useState(0);
   const [codexEntries, setCodexEntries] = useState<CodexEntry[]>([]);
   const [selectedArea, setSelectedArea] = useState<ArchiveArea | null>(null);
@@ -145,22 +148,22 @@ const GameHomeScreen = () => {
 
   // Background options
   const bgOptions = [
-    require('../../assets/character-creator/BGs/Dark.png'),
-    require('../../assets/character-creator/BGs/Light Brown.png'),
-    require('../../assets/character-creator/BGs/Brown.png'),
-    require('../../assets/character-creator/BGs/Dark Brown.png'),
-    require('../../assets/character-creator/BGs/Blonde.png'),
-    require('../../assets/character-creator/BGs/Orange.png'),
-    require('../../assets/character-creator/BGs/Red.png'),
-    require('../../assets/character-creator/BGs/Magent.png'),
-    require('../../assets/character-creator/BGs/Pink.png'),
-    require('../../assets/character-creator/BGs/Lilac.png'),
-    require('../../assets/character-creator/BGs/Blue.png'),
-    require('../../assets/character-creator/BGs/Dark Blue.png'),
-    require('../../assets/character-creator/BGs/Green.png'),
-    require('../../assets/character-creator/BGs/Light Green.png'),
-    require('../../assets/character-creator/BGs/Blue-Green.png'),
-    require('../../assets/character-creator/BGs/White.png'),
+    require('../../../assets/character-creator/BGs/Dark.png'),
+    require('../../../assets/character-creator/BGs/Light Brown.png'),
+    require('../../../assets/character-creator/BGs/Brown.png'),
+    require('../../../assets/character-creator/BGs/Dark Brown.png'),
+    require('../../../assets/character-creator/BGs/Blonde.png'),
+    require('../../../assets/character-creator/BGs/Orange.png'),
+    require('../../../assets/character-creator/BGs/Red.png'),
+    require('../../../assets/character-creator/BGs/Magent.png'),
+    require('../../../assets/character-creator/BGs/Pink.png'),
+    require('../../../assets/character-creator/BGs/Lilac.png'),
+    require('../../../assets/character-creator/BGs/Blue.png'),
+    require('../../../assets/character-creator/BGs/Dark Blue.png'),
+    require('../../../assets/character-creator/BGs/Green.png'),
+    require('../../../assets/character-creator/BGs/Light Green.png'),
+    require('../../../assets/character-creator/BGs/Blue-Green.png'),
+    require('../../../assets/character-creator/BGs/White.png'),
   ];
 
   const characterStats = [
@@ -546,11 +549,60 @@ const GameHomeScreen = () => {
 
       <ArchiveMapModal
         visible={isMapVisible}
+        currentRoomId={ selectedArea?.id ?? ''}
         onClose={handleMapClose}
         onAreaSelect={handleAreaSelect}
         completedEntries={codexEntries.length}
         entries={codexEntries}
       />
+
+      <ThoughtDefenderModal
+        visible={isThoughtDefenderVisible}
+        onClose={() => setIsThoughtDefenderVisible(false)}
+        onScoreUpdate={(score) => {
+          // Update wellness stats based on game score
+          setWellnessStats(prev => prev.map(stat => ({
+            ...stat,
+            value: Math.min(20, stat.value + Math.floor(score / 100))
+          })));
+        }}
+      />
+
+      {/* Bottom Navigation Bar */}
+      <View style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 70,
+        backgroundColor: '#23242b',
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderColor: '#333',
+        zIndex: 100,
+      }}>
+        {bottomNav.map((item, idx) => (
+          <TouchableOpacity
+            key={item.label}
+            onPress={() => {
+              if (item.label === 'Codex') setIsCodexVisible(true);
+              if (item.label === 'Memory Map') setIsMapVisible(true);
+              if (item.label === 'Thought Defender') {
+                setIsThoughtDefenderVisible(true);
+              }
+              if (item.label === 'Milestones') {
+                Alert.alert('Milestones', 'Coming soon! Track your achievements in coping skills.');
+              }
+            }}
+            style={{ alignItems: 'center' }}
+          >
+            <Text style={{ fontSize: 22 }}>{item.icon}</Text>
+            <Text style={{ color: '#fff', fontSize: 12 }}>{item.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 };

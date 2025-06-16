@@ -18,19 +18,19 @@ const sampleStories: Story[] = [
   {
     id: '1',
     title: 'The Forest Awakens',
-    image: require('../../assets/images/story1.jpg'),
+    image: require('../../../assets/images/story1.jpg'),
     description: 'A mysterious power stirs in the ancient woods...'
   },
   {
     id: '2',
     title: 'Desert of Echoes',
-    image: require('../../assets/images/story2.jpg'),
+    image: require('../../../assets/images/story2.jpg'),
     description: 'Lost voices call out across the endless sands.'
   },
   {
     id: '3',
     title: 'City of Masks',
-    image: require('../../assets/images/story3.jpg'),
+    image: require('../../../assets/images/story3.jpg'),
     description: 'Secrets hide behind every smile in the city.'
   },
 ];

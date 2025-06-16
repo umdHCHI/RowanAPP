@@ -2,8 +2,8 @@ import { useAuth } from "../context/AuthContext";
 import { useOnboarding } from "../context/OnboardingContext";
 import { useTheme } from "../context/ThemeContext";
 import CharacterCreatorScreen from "./CharacterCreatorScreen";
-import CharacterHomeScreen from "./CharacterHomeScreen";
-import PersonalityHomeScreen from "./PersonalityHomeScreen";
+import CharacterHomeScreen from "./characterStory/CharacterHomeScreen";
+import PersonalityHomeScreen from "./personalityStory/PersonalityHomeScreen";
 import PersonalitySurveyScreen from "./PersonalitySurveyScreen";
 import WelcomeScreen from "./WelcomeScreen";
 

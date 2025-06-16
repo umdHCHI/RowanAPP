@@ -1,4 +1,4 @@
-import PersonalityHomeScreen from '../../src/screens/PersonalityHomeScreen';
+import PersonalityHomeScreen from '../../src/screens/personalityStory/PersonalityHomeScreen';
 
 export default function PersonalityIndex() {
   return <PersonalityHomeScreen />;
