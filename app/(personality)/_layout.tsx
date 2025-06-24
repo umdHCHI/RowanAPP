@@ -23,7 +23,7 @@ export default function PersonalityLayout() {
       }}
     >
       <Stack.Screen
-        name="index"
+        name="personality"
         options={{
           title: 'Personality',
         }}

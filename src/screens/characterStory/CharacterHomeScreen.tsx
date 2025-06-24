@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  Dimensions,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import {
-    baseOptions,
-    clothesOptionsF,
-    eyesOptionsF,
-    hairOptionsF,
-    mouthOptionsF,
+  baseOptions,
+  bgOptions,
+  clothesOptions,
+  eyesOptions,
+  hairOptions,
+  mouthOptions,
 } from '../../assets/characterOptions';
 import { equipmentIcons } from '../../assets/equipment';
 import ArchiveMapModal, { ArchiveArea } from '../../components/ArchiveMapModal';
@@ -141,37 +142,14 @@ const GameHomeScreen = () => {
 
   // Choose correct options based on gender
   let baseOptionsVar = baseOptions;
-  let hairOptions = hairOptionsF;
-  let clothesOptions = clothesOptionsF;
-  let eyesOptions = eyesOptionsF;
-  let mouthOptions = mouthOptionsF;
+  let hairOptionsVar = hairOptions;
+  let clothesOptionsVar = clothesOptions;
+  let eyesOptionsVar = eyesOptions;
+  let mouthOptionsVar = mouthOptions;
 
-  // Background options
-  const bgOptions = [
-    require('../../../assets/character-creator/BGs/Dark.png'),
-    require('../../../assets/character-creator/BGs/Light Brown.png'),
-    require('../../../assets/character-creator/BGs/Brown.png'),
-    require('../../../assets/character-creator/BGs/Dark Brown.png'),
-    require('../../../assets/character-creator/BGs/Blonde.png'),
-    require('../../../assets/character-creator/BGs/Orange.png'),
-    require('../../../assets/character-creator/BGs/Red.png'),
-    require('../../../assets/character-creator/BGs/Magent.png'),
-    require('../../../assets/character-creator/BGs/Pink.png'),
-    require('../../../assets/character-creator/BGs/Lilac.png'),
-    require('../../../assets/character-creator/BGs/Blue.png'),
-    require('../../../assets/character-creator/BGs/Dark Blue.png'),
-    require('../../../assets/character-creator/BGs/Green.png'),
-    require('../../../assets/character-creator/BGs/Light Green.png'),
-    require('../../../assets/character-creator/BGs/Blue-Green.png'),
-    require('../../../assets/character-creator/BGs/White.png'),
-  ];
 
-  const characterStats = [
-    { label: 'Level', value: '12', color: '#FFD700' },
-    { label: 'Health', value: '285/320', color: '#FF4444' },
-    { label: 'Mana', value: '180/200', color: '#4488FF' },
-    { label: 'Experience', value: '2,847/3,200', color: '#00FF88' },
-  ];
+
+
 
   useEffect(() => {
     const loadAppearance = async () => {

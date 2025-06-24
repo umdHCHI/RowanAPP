@@ -97,7 +97,7 @@ const NEGATIVE_THOUGHTS = [
 interface ThoughtDefenderModalProps {
   visible: boolean;
   onClose: () => void;
-  onScoreUpdate?: (score: number) => void;
+  onScoreUpdate?: (data: { score: number; level: number; won: boolean }) => void;
 }
 
 const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
@@ -468,7 +468,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         if (gameLoopRef.current) clearInterval(gameLoopRef.current);
         if (spawnLoopRef.current) clearInterval(spawnLoopRef.current);
         
-        if (onScoreUpdate) onScoreUpdate(score);
+        if (onScoreUpdate) onScoreUpdate({ score, level, won: true });
         
         Alert.alert(
           '🏆 VICTORY! 🏆',
@@ -507,7 +507,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     if (spawnLoopRef.current) clearInterval(spawnLoopRef.current);
     
-    if (onScoreUpdate) onScoreUpdate(score);
+    if (onScoreUpdate) onScoreUpdate({ score, level, won: false });
     
     Alert.alert(
       '⚡ GAME OVER ⚡',

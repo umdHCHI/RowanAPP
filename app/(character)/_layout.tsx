@@ -25,7 +25,7 @@ export default function CharacterLayout() {
       }}
     >
       <Stack.Screen
-        name="index"
+        name="character"
         options={{
           title: 'Character',
         }}

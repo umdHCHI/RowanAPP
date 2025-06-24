@@ -1,5 +1,7 @@
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { ThemeColors } from './theme';
+
+const { width, height } = Dimensions.get('window');
 
 export const createGlobalStyles = (theme: ThemeColors) => {
   return StyleSheet.create({
@@ -83,9 +85,8 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       maxWidth: 350,
     },
 
-
     // Character Creator Styles
-      creatorRow: {
+    creatorRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -93,7 +94,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       maxWidth: 500,
       marginTop: 8,
     },
-      characterPreview: {
+    characterPreview: {
       width: 180,
       height: 320,
       marginBottom: 8,
@@ -101,6 +102,2021 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 24,
+    },
+
+    // ===== ARCHIVE SPECIFIC STYLES =====
+    
+    // Archive Layout
+    archiveContainer: {
+      flex: 1,
+      backgroundColor: theme.archiveBackground,
+    },
+    archiveContent: {
+      flex: 1,
+      paddingTop: 40,
+    },
+    archiveTabContentContainer: {
+      flex: 1,
+      paddingHorizontal: 16,
+    },
+    archiveTabContentArea: {
+      paddingBottom: 32,
+    },
+
+    // Archive Header
+    archiveHeader: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+    },
+    archiveHeaderGradient: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    archiveHeaderContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+    },
+    archiveHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    archiveHeaderIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+      position: 'relative',
+    },
+    archiveHeaderIconOverlay: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    archiveHeaderTextContainer: {
+      flex: 1,
+    },
+    archiveHeaderTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.archiveAccentSecondary,
+      marginBottom: 4,
+    },
+    archiveHeaderSubtitle: {
+      fontSize: 14,
+      color: theme.archiveSubtext,
+      fontStyle: 'italic',
+      marginBottom: 8,
+    },
+    archiveStatusIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    archiveStatusDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.statusSuccess,
+      marginRight: 6,
+    },
+    archiveStatusText: {
+      fontSize: 12,
+      color: theme.statusSuccess,
+    },
+
+    // Archive Tab Navigation
+    archiveTabContainer: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+    },
+    archiveTabGradient: {
+      borderRadius: 12,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    archiveTabContent: {
+      borderRadius: 12,
+    },
+    archiveTabScrollContent: {
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+    },
+    archiveTabButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      marginHorizontal: 4,
+      borderRadius: 8,
+      overflow: 'hidden',
+      minWidth: 120,
+    },
+    archiveActiveTab: {
+      backgroundColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    archiveTabText: {
+      color: theme.archiveSubtext,
+      fontSize: 13,
+      fontWeight: '500',
+      marginLeft: 8,
+    },
+    archiveActiveTabText: {
+      color: theme.archiveAccentSecondary,
+    },
+
+    // Archive Cards and Sections
+    archiveCard: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      marginBottom: 20,
+    },
+    archiveCardGradient: {
+      padding: 20,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    archiveSection: {
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    archiveSectionGradient: {
+      padding: 20,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    archiveSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    archiveSectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.archiveAccent,
+      marginHorizontal: 12,
+      textAlign: 'center',
+    },
+    archiveSectionSubtitle: {
+      fontSize: 14,
+      color: theme.archiveSubtext,
+      textAlign: 'center',
+      fontStyle: 'italic',
+      marginBottom: 20,
+    },
+
+    // Archive Buttons
+    archivePrimaryButton: {
+      borderRadius: 12,
+      overflow: 'hidden',
+      minWidth: 200,
+    },
+    archivePrimaryButtonGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+    },
+    archivePrimaryButtonText: {
+      color: theme.archiveText,
+      fontSize: 16,
+      fontWeight: '600',
+      marginLeft: 10,
+    },
+    archiveSecondaryButton: {
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    archiveSecondaryButtonGradient: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    archiveSecondaryButtonText: {
+      color: theme.archiveSubtext,
+      fontSize: 12,
+      fontWeight: '600',
+      marginLeft: 6,
+    },
+
+    // Archive Foundation Cards
+    archiveFoundationCard: {
+      width: '48%',
+      marginBottom: 16,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    archiveFoundationCardGradient: {
+      padding: 16,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+      minHeight: 180,
+    },
+    archiveFoundationIconContainer: {
+      position: 'relative',
+      marginBottom: 8,
+    },
+    archiveFoundationIcon: {
+      fontSize: 24,
+      marginBottom: 0,
+    },
+    archiveFoundationValueContainer: {
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    archiveFoundationValue: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.archiveText,
+      marginBottom: 2,
+    },
+    archiveFoundationMaxValue: {
+      fontSize: 14,
+      color: theme.archiveAccentSecondary,
+    },
+    archiveFoundationLevel: {
+      fontSize: 10,
+      color: theme.statusInfo,
+      fontWeight: '600',
+    },
+    archiveFoundationLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.archiveSubtext,
+      marginBottom: 6,
+      textAlign: 'center',
+    },
+    archiveFoundationDescription: {
+      fontSize: 9,
+      color: theme.archiveAccentSecondary,
+      textAlign: 'center',
+      fontStyle: 'italic',
+      lineHeight: 13,
+      marginBottom: 8,
+    },
+
+    // Archive Progress Bars
+    archiveProgressBar: {
+      width: '100%',
+      height: 8,
+      backgroundColor: 'rgba(55, 65, 81, 0.5)',
+      borderRadius: 4,
+      marginBottom: 4,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    archiveProgressFill: {
+      height: '100%',
+      borderRadius: 4,
+    },
+
+    // Archive Grid Layouts
+    archiveGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    archiveTwoColumnLayout: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 24,
+    },
+    archiveColumnCard: {
+      flex: 1,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+
+    // Archive Text Styles
+    archiveText: {
+      color: theme.archiveText,
+      fontSize: 14,
+    },
+    archiveSubtext: {
+      color: theme.archiveSubtext,
+      fontSize: 12,
+      fontStyle: 'italic',
+    },
+    archiveAccentText: {
+      color: theme.archiveAccent,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    archiveAccentSecondaryText: {
+      color: theme.archiveAccentSecondary,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+
+    // Archive Badges
+    archiveBadge: {
+      backgroundColor: 'rgba(139, 92, 246, 0.3)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    archiveBadgeText: {
+      color: theme.archiveAccent,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    archiveStatusBadge: {
+      backgroundColor: 'rgba(75, 85, 99, 0.8)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    archiveStatusBadgeText: {
+      color: theme.archiveSubtext,
+      fontSize: 9,
+    },
+
+    // Archive Centered Messages
+    archiveCenteredMessageContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+      minHeight: 300,
+      backgroundColor: 'rgba(30, 41, 59, 0.5)',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    archiveCenteredMessageTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: theme.archiveAccentSecondary,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    archiveCenteredMessageText: {
+      fontSize: 14,
+      color: theme.archiveSubtext,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginBottom: 24,
+      fontStyle: 'italic',
+    },
+
+    // Archive Character Display
+    archiveCharacterFrame: {
+      width: 180,
+      height: 240,
+      borderRadius: 20,
+      padding: 3,
+      marginBottom: 12,
+    },
+    archiveCharacterFrameInner: {
+      flex: 1,
+      borderRadius: 17,
+      backgroundColor: 'rgba(30, 41, 59, 0.9)',
+      overflow: 'hidden',
+      position: 'relative',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    archiveCharacterPreview: {
+      width: 170,
+      height: 230,
+      position: 'relative',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    archiveCharacterLayer: {
+      position: 'absolute',
+      width: 170,
+      height: 230,
+      resizeMode: 'contain',
+    },
+
+    // Archive Restoration Metrics
+    archiveRestorationGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      marginBottom: 20,
+    },
+    archiveRestorationCard: {
+      width: '48%',
+      marginBottom: 16,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    archiveRestorationCardGradient: {
+      padding: 16,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    archiveRestorationIcon: {
+      fontSize: 20,
+      marginBottom: 8,
+    },
+    archiveRestorationLabel: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: theme.archiveAccentSecondary,
+      textAlign: 'center',
+      marginBottom: 4,
+    },
+    archiveRestorationValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.statusInfo,
+      marginBottom: 4,
+    },
+    archiveRestorationDescription: {
+      fontSize: 8,
+      color: theme.archiveSubtext,
+      textAlign: 'center',
+    },
+
+    // Archive Progress Tracking
+    archiveProgressTrackingSection: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      marginTop: 20,
+    },
+    archiveProgressTrackingGradient: {
+      padding: 20,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    archiveProgressTrackingHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    archiveProgressTrackingTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.statusSuccess,
+      marginLeft: 8,
+    },
+    archiveProgressTrackingContent: {
+      gap: 12,
+    },
+    archiveProgressTrackingItem: {
+      padding: 12,
+      backgroundColor: 'rgba(51, 65, 85, 0.5)',
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    archiveProgressTrackingItemHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    archiveProgressTrackingItemTitle: {
+      color: theme.archiveAccentSecondary,
+      fontSize: 12,
+      fontWeight: '600',
+      flex: 1,
+      marginLeft: 8,
+    },
+    archiveProgressTrackingItemValue: {
+      color: theme.statusInfo,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    archiveProgressTrackingItemDescription: {
+      color: theme.archiveSubtext,
+      fontSize: 10,
+      fontStyle: 'italic',
+      marginLeft: 24,
+    },
+
+    // Additional styles needed for CharacterHomeNew.tsx
+    atmosphericOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      opacity: 0.1,
+      backgroundColor: '#000',
+    },
+    tabButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      marginHorizontal: 4,
+      borderRadius: 8,
+      overflow: 'hidden',
+      minWidth: 120,
+    },
+    activeTab: {
+      backgroundColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    tabText: {
+      color: theme.archiveSubtext,
+      fontSize: 13,
+      fontWeight: '500',
+      marginLeft: 8,
+    },
+    activeTabText: {
+      color: theme.archiveAccentSecondary,
+    },
+    tabContentArea: {
+      paddingBottom: 32,
+    },
+    avatarShowcaseSection: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      marginBottom: 20,
+    },
+    avatarShowcaseGradient: {
+      padding: 20,
+      borderWidth: 2,
+      borderColor: 'rgba(217, 119, 6, 0.4)',
+    },
+    avatarShowcaseHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    avatarShowcaseTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.archiveAccent,
+      marginHorizontal: 12,
+      textAlign: 'center',
+    },
+    characterInfoBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    characterDetails: {
+      flex: 1,
+    },
+    characterRarity: {
+      color: '#4ECDC4',
+      fontWeight: 'bold',
+      fontSize: 14,
+      marginBottom: 2,
+    },
+    characterClass: {
+      color: theme.archiveAccentSecondary,
+      fontWeight: 'bold',
+      fontSize: 13,
+      marginBottom: 2,
+    },
+    characterName: {
+      color: theme.archiveText,
+      fontWeight: 'bold',
+      fontSize: 18,
+    },
+    researchConditionBadge: {
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    researchConditionGradient: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    researchConditionText: {
+      color: '#DDD6FE',
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    characterDisplaySection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    gearColumn: {
+      justifyContent: 'space-between',
+      height: 200,
+      marginHorizontal: 8,
+    },
+    gearSlot: {
+      width: 60,
+      height: 60,
+      borderRadius: 12,
+      overflow: 'hidden',
+      marginVertical: 8,
+    },
+    gearSlotGradient: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    gearIcon: {
+      width: 36,
+      height: 36,
+    },
+    emptyGearSlot: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+    },
+    gearSlotIcon: {
+      fontSize: 18,
+      marginBottom: 2,
+    },
+    gearSlotLabel: {
+      color: '#9CA3AF',
+      fontSize: 8,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+    centralCharacterDisplay: {
+      alignItems: 'center',
+      marginHorizontal: 16,
+    },
+    characterFrame: {
+      width: 180,
+      height: 240,
+      borderRadius: 20,
+      padding: 3,
+      marginBottom: 12,
+    },
+    characterFrameInner: {
+      flex: 1,
+      borderRadius: 17,
+      backgroundColor: 'rgba(30, 41, 59, 0.9)',
+      overflow: 'hidden',
+      position: 'relative',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    fullCharacterPreview: {
+      width: 170,
+      height: 230,
+      position: 'relative',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    fullCharacterLayer: {
+      position: 'absolute',
+      width: 170,
+      height: 230,
+      resizeMode: 'contain',
+    },
+    characterLevelBadge: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    levelBadgeGradient: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    levelBadgeText: {
+      color: '#92400E',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    essenceResonanceIndicator: {
+      position: 'absolute',
+      bottom: 8,
+      left: 8,
+      right: 8,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    essenceResonanceGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+    },
+    essenceResonanceText: {
+      color: theme.archiveAccentSecondary,
+      fontSize: 10,
+      fontWeight: '600',
+      marginLeft: 4,
+    },
+    characterMoodBubble: {
+      borderRadius: 12,
+      overflow: 'hidden',
+      maxWidth: 200,
+    },
+    moodBubbleGradient: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderWidth: 2,
+      borderColor: '#D97706',
+    },
+    moodBubbleText: {
+      color: '#92400E',
+      fontSize: 12,
+      fontStyle: 'italic',
+      textAlign: 'center',
+    },
+    researchConditionInfo: {
+      borderRadius: 12,
+      overflow: 'hidden',
+      marginTop: 16,
+    },
+    researchConditionInfoGradient: {
+      padding: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(139, 92, 246, 0.3)',
+    },
+    researchConditionInfoTitle: {
+      color: theme.archiveAccentSecondary,
+      fontSize: 12,
+      fontWeight: '600',
+      marginVertical: 4,
+    },
+    researchConditionInfoText: {
+      color: '#DDD6FE',
+      fontSize: 10,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+    quickActionsRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 20,
+    },
+    quickActionButton: {
+      flex: 1,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    quickActionGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+    },
+    quickActionText: {
+      color: '#E0E7FF',
+      fontSize: 14,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    quickActionSecondaryGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    quickActionSecondaryText: {
+      color: '#06B6D4',
+      fontSize: 14,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    twoColumnLayout: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 24,
+    },
+    columnCard: {
+      flex: 1,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    cardGradient: {
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+      borderRadius: 12,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      paddingBottom: 12,
+    },
+    cardTitle: {
+      color: theme.archiveAccentSecondary,
+      fontSize: 14,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    resonanceContent: {
+      padding: 16,
+      paddingTop: 0,
+    },
+    speechBubble: {
+      borderRadius: 8,
+      overflow: 'hidden',
+      marginBottom: 16,
+    },
+    speechBubbleGradient: {
+      padding: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(6, 182, 212, 0.2)',
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    speechText: {
+      color: '#06B6D4',
+      fontSize: 11,
+      fontStyle: 'italic',
+      lineHeight: 16,
+      marginLeft: 8,
+      flex: 1,
+    },
+    statusList: {
+      gap: 8,
+    },
+    statusItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statusItemText: {
+      color: theme.archiveSubtext,
+      fontSize: 11,
+      marginLeft: 8,
+    },
+    mapContent: {
+      padding: 16,
+      paddingTop: 0,
+      gap: 8,
+    },
+    mapButton: {
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    mapButtonGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    mapButtonText: {
+      color: theme.archiveSubtext,
+      fontSize: 11,
+      fontWeight: '500',
+      marginLeft: 8,
+    },
+    foundationsSection: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      marginBottom: 24,
+    },
+    foundationsSectionGradient: {
+      padding: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    foundationsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    foundationsTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#10B981',
+      marginHorizontal: 12,
+      textAlign: 'center',
+    },
+    foundationsSubtitle: {
+      fontSize: 14,
+      color: theme.archiveSubtext,
+      textAlign: 'center',
+      fontStyle: 'italic',
+      marginBottom: 20,
+    },
+    foundationsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    foundationCard: {
+      width: '48%',
+      marginBottom: 16,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    foundationCardGradient: {
+      padding: 16,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.2)',
+      minHeight: 180,
+    },
+    foundationIconContainer: {
+      position: 'relative',
+      marginBottom: 8,
+    },
+    foundationIcon: {
+      fontSize: 24,
+      marginBottom: 0,
+    },
+    recentGainBadge: {
+      position: 'absolute',
+      top: -8,
+      right: -12,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    recentGainGradient: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    recentGainText: {
+      color: '#065F46',
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    foundationValueContainer: {
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    foundationValue: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.archiveText,
+      marginBottom: 2,
+    },
+    foundationMaxValue: {
+      fontSize: 14,
+      color: theme.archiveAccentSecondary,
+    },
+    foundationLevel: {
+      fontSize: 10,
+      color: '#06B6D4',
+      fontWeight: '600',
+    },
+    foundationProgressContainer: {
+      width: '100%',
+      marginBottom: 8,
+    },
+    foundationProgressBar: {
+      width: '100%',
+      height: 8,
+      backgroundColor: 'rgba(55, 65, 81, 0.5)',
+      borderRadius: 4,
+      marginBottom: 4,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    foundationProgressFill: {
+      height: '100%',
+      borderRadius: 4,
+    },
+    xpSegment: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      width: 1,
+      backgroundColor: 'rgba(55, 65, 81, 0.8)',
+    },
+    xpSegmentActive: {
+      backgroundColor: 'rgba(252, 211, 77, 0.6)',
+    },
+    xpToNext: {
+      fontSize: 8,
+      color: '#9CA3AF',
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+    foundationLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.archiveSubtext,
+      marginBottom: 6,
+      textAlign: 'center',
+    },
+    foundationDescription: {
+      fontSize: 9,
+      color: theme.archiveAccentSecondary,
+      textAlign: 'center',
+      fontStyle: 'italic',
+      lineHeight: 13,
+      marginBottom: 8,
+    },
+    nextUnlockContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      backgroundColor: 'rgba(217, 119, 6, 0.2)',
+      borderRadius: 6,
+      marginTop: 4,
+    },
+    nextUnlockText: {
+      fontSize: 8,
+      color: theme.archiveAccentSecondary,
+      marginLeft: 4,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    chronicleCard: {
+      marginBottom: 16,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    chronicleGradient: {
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    chronicleTopBorder: {
+      height: 3,
+      backgroundColor: '#A855F7',
+    },
+    chronicleHeader: {
+      padding: 16,
+      paddingBottom: 8,
+    },
+    chronicleInfo: {
+      marginBottom: 8,
+    },
+    chronicleTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#06B6D4',
+      marginBottom: 8,
+    },
+    chronicleBadges: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    categoryBadge: {
+      backgroundColor: 'rgba(67, 56, 202, 0.6)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    categoryBadgeText: {
+      color: '#C7D2FE',
+      fontSize: 10,
+    },
+    difficultyBadge: {
+      backgroundColor: 'rgba(139, 92, 246, 0.6)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    difficultyBadgeText: {
+      color: '#DDD6FE',
+      fontSize: 10,
+    },
+    chronicleDescriptionContainer: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+      padding: 12,
+      backgroundColor: 'rgba(30, 41, 59, 0.5)',
+      borderRadius: 8,
+    },
+    chronicleDescription: {
+      color: theme.archiveSubtext,
+      fontSize: 12,
+      fontStyle: 'italic',
+      lineHeight: 18,
+      marginBottom: 6,
+    },
+    chronicleAtmosphere: {
+      color: '#DDD6FE',
+      fontSize: 10,
+      textAlign: 'center',
+    },
+    explorationContainer: {
+      marginHorizontal: 16,
+      marginBottom: 16,
+    },
+    explorationHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    explorationLabel: {
+      color: theme.archiveSubtext,
+      fontSize: 12,
+      marginLeft: 8,
+      flex: 1,
+    },
+    explorationValue: {
+      color: '#06B6D4',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    explorationBar: {
+      height: 6,
+      backgroundColor: 'rgba(55, 65, 81, 0.5)',
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    explorationFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    chronicleStats: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginHorizontal: 16,
+      marginBottom: 16,
+    },
+    chronicleStat: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    chronicleStatText: {
+      color: theme.archiveAccentSecondary,
+      fontSize: 10,
+      marginLeft: 6,
+    },
+    chronicleButton: {
+      margin: 16,
+      marginTop: 0,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    chronicleButtonGradient: {
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chronicleButtonText: {
+      color: '#E0E7FF',
+      fontSize: 14,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    artifactsSection: {
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    artifactsSectionGradient: {
+      padding: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    artifactsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    artifactsTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#A855F7',
+      marginHorizontal: 12,
+      textAlign: 'center',
+    },
+    artifactsSubtitle: {
+      fontSize: 14,
+      color: theme.archiveSubtext,
+      textAlign: 'center',
+      fontStyle: 'italic',
+      marginBottom: 20,
+    },
+    artifactsGrid: {
+      gap: 16,
+    },
+    artifactCard: {
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    artifactCardGradient: {
+      padding: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.2)',
+    },
+    artifactHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    artifactInfo: {
+      flex: 1,
+    },
+    artifactName: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.archiveText,
+      marginBottom: 6,
+    },
+    artifactBadges: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    typeBadge: {
+      backgroundColor: 'rgba(139, 92, 246, 0.3)',
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      borderRadius: 3,
+    },
+    typeBadgeText: {
+      color: '#DDD6FE',
+      fontSize: 9,
+    },
+    rarityBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      borderRadius: 3,
+    },
+    rarityBadgeText: {
+      color: '#1F2937',
+      fontSize: 9,
+      fontWeight: 'bold',
+    },
+    statusBadge: {
+      backgroundColor: 'rgba(75, 85, 99, 0.8)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    equippedBadge: {
+      backgroundColor: 'rgba(6, 182, 212, 0.8)',
+    },
+    equippedText: {
+      color: '#CFFAFE',
+      fontSize: 9,
+    },
+    artifactDescriptionContainer: {
+      marginBottom: 12,
+      padding: 8,
+      backgroundColor: 'rgba(30, 41, 59, 0.5)',
+      borderRadius: 6,
+    },
+    artifactDescription: {
+      color: theme.archiveSubtext,
+      fontSize: 10,
+      fontStyle: 'italic',
+      lineHeight: 15,
+    },
+    resonanceContainer: {
+      marginBottom: 12,
+    },
+    resonanceHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    resonanceLabel: {
+      color: theme.archiveSubtext,
+      fontSize: 11,
+      marginLeft: 6,
+      flex: 1,
+    },
+    resonanceValue: {
+      color: theme.archiveAccentSecondary,
+      fontSize: 11,
+      fontWeight: 'bold',
+    },
+    resonanceBar: {
+      height: 4,
+      backgroundColor: 'rgba(55, 65, 81, 0.5)',
+      borderRadius: 2,
+      overflow: 'hidden',
+    },
+    resonanceFill: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    artifactButton: {
+      borderRadius: 6,
+      overflow: 'hidden',
+    },
+    artifactButtonGradient: {
+      paddingVertical: 8,
+      alignItems: 'center',
+    },
+    artifactButtonText: {
+      color: '#E0E7FF',
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    wisdomSection: {
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    wisdomSectionGradient: {
+      padding: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    wisdomHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    wisdomTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#A855F7',
+      marginLeft: 8,
+      textAlign: 'center',
+    },
+    wisdomSubtitle: {
+      fontSize: 12,
+      color: theme.archiveSubtext,
+      textAlign: 'center',
+      fontStyle: 'italic',
+      marginBottom: 20,
+    },
+    wisdomContent: {
+      gap: 12,
+    },
+    insightCard: {
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    insightCardGradient: {
+      padding: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(139, 92, 246, 0.2)',
+    },
+    insightHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    insightTrait: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#06B6D4',
+    },
+    clarityBadge: {
+      backgroundColor: 'rgba(139, 92, 246, 0.3)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    clarityBadgeText: {
+      color: '#DDD6FE',
+      fontSize: 10,
+    },
+    insightProgressBar: {
+      height: 4,
+      backgroundColor: 'rgba(55, 65, 81, 0.5)',
+      borderRadius: 2,
+      marginBottom: 8,
+      overflow: 'hidden',
+    },
+    insightProgressFill: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    insightGuidance: {
+      color: theme.archiveSubtext,
+      fontSize: 11,
+      fontStyle: 'italic',
+    },
+    insightTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.archiveAccentSecondary,
+      marginBottom: 8,
+    },
+    insightText: {
+      color: theme.archiveSubtext,
+      fontSize: 11,
+      lineHeight: 16,
+    },
+    restorationStatus: {
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    restorationStatusGradient: {
+      padding: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+    },
+    restorationStatusHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    restorationStatusTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#A855F7',
+      marginLeft: 8,
+    },
+    restorationStatusGrid: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    restorationStatusCard: {
+      flex: 1,
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: 'rgba(51, 65, 85, 0.5)',
+      borderRadius: 8,
+    },
+    restorationStatusLabel: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: theme.archiveAccentSecondary,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    restorationStatusValue: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#10B981',
+      marginBottom: 4,
+    },
+    restorationStatusSubtext: {
+      fontSize: 9,
+      color: '#9CA3AF',
+      textAlign: 'center',
+    },
+    skillsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    skillBadge: {
+      backgroundColor: 'rgba(139, 92, 246, 0.3)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      marginHorizontal: 4,
+      marginBottom: 4,
+    },
+    skillBadgeText: {
+      color: '#DDD6FE',
+      fontSize: 10,
+    },
+    centeredMessageContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+      minHeight: 300,
+      backgroundColor: 'rgba(30, 41, 59, 0.5)',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    centeredMessageTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: theme.archiveAccentSecondary,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    centeredMessageText: {
+      fontSize: 14,
+      color: theme.archiveSubtext,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginBottom: 24,
+      fontStyle: 'italic',
+    },
+    backgroundLayer: {
+      zIndex: -1,
+    },
+    primaryButton: {
+      borderRadius: 12,
+      overflow: 'hidden',
+      minWidth: 200,
+    },
+    primaryButtonGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+    },
+    primaryButtonText: {
+      color: '#E0E7FF',
+      fontSize: 16,
+      fontWeight: '600',
+      marginLeft: 10,
+    },
+
+    // ===== GRIMOIRE/STORY SCREEN STYLES =====
+    grimoireModalOverlay: {
+      flex: 1,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(0, 0, 0, 0.95)' : 'rgba(255,255,255,0.95)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    grimoireModalContent: {
+      flex: 1,
+      width: '100%',
+      backgroundColor: theme.archiveCard,
+      borderRadius: 16,
+      padding: 16,
+      maxHeight: '95%',
+      borderWidth: 2,
+      borderColor: theme.archiveBorder,
+    },
+    grimoireHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.archiveBorder,
+    },
+    grimoireHeaderLeft: {
+      flex: 1,
+    },
+    grimoireTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    grimoireTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.archiveAccent,
+      flex: 1,
+    },
+    grimoireRarityBadge: {
+      backgroundColor: theme.rarityEpic,
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      borderRadius: 4,
+      marginLeft: 8,
+    },
+    grimoireRarityText: {
+      color: '#1F2937',
+      fontSize: 9,
+      fontWeight: 'bold',
+    },
+    grimoireSubtitle: {
+      fontSize: 12,
+      color: theme.statusInfo,
+      fontStyle: 'italic',
+      marginBottom: 4,
+    },
+    grimoireDifficultyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    grimoireDifficultyText: {
+      fontSize: 10,
+      color: theme.rarityEpic,
+      marginLeft: 3,
+      fontWeight: '600',
+    },
+    grimoireAtmosphereRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    grimoireAtmosphereText: {
+      fontSize: 10,
+      color: theme.archiveSubtext,
+      fontStyle: 'italic',
+      marginLeft: 4,
+    },
+    grimoireCloseButton: {
+      backgroundColor: theme.notification,
+      padding: 8,
+      borderRadius: 6,
+    },
+    grimoireCloseIcon: {
+      color: '#FECACA',
+    },
+    grimoireMainContent: {
+      flex: 1,
+    },
+    grimoireCurrentAtmosphere: {
+      marginBottom: 12,
+      borderRadius: 6,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(6, 182, 212, 0.1)',
+      padding: 8,
+      borderWidth: 1,
+      borderColor: theme.archiveMode === 'dark' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(6, 182, 212, 0.2)',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    grimoirePassageContainer: {
+      flex: 1,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255,255,255,0.9)',
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+      justifyContent: 'center',
+    },
+    grimoirePassageText: {
+      fontSize: 14,
+      color: theme.archiveText,
+      lineHeight: 20,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+    grimoireChoicesContainer: {
+      gap: 8,
+    },
+    grimoireChoiceButton: {
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    grimoireChoiceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    grimoireChoiceIcon: {
+      fontSize: 16,
+      marginRight: 8,
+    },
+    grimoireChoiceText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.archiveText,
+      lineHeight: 18,
+    },
+
+    // Grimoire/Story Screen - Notifications & Artifact Unlock
+    grimoireStatGainNotification: {
+      position: 'absolute',
+      top: 120,
+      left: 20,
+      right: 20,
+      borderRadius: 12,
+      overflow: 'hidden',
+      zIndex: 1000,
+    },
+    grimoireStatGainGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.5)',
+    },
+    grimoireStatGainContent: {
+      marginLeft: 12,
+    },
+    grimoireStatGainTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#065F46',
+      marginBottom: 4,
+    },
+    grimoireStatGainText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#065F46',
+    },
+    grimoireArtifactUnlockNotification: {
+      position: 'absolute',
+      top: 200,
+      left: 20,
+      right: 20,
+      borderRadius: 16,
+      overflow: 'hidden',
+      zIndex: 1001,
+    },
+    grimoireArtifactUnlockGradient: {
+      padding: 20,
+      borderWidth: 2,
+      borderColor: 'rgba(168, 85, 247, 0.7)',
+    },
+    grimoireArtifactUnlockContent: {
+      marginLeft: 12,
+    },
+    grimoireArtifactUnlockTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.archiveAccent,
+      marginBottom: 6,
+      textAlign: 'center',
+    },
+    grimoireArtifactUnlockName: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.archiveText,
+      marginBottom: 4,
+    },
+    grimoireArtifactUnlockDescription: {
+      fontSize: 12,
+      color: theme.archiveSubtext,
+      marginBottom: 8,
+      lineHeight: 16,
+    },
+    grimoireArtifactPowers: {
+      marginTop: 4,
+    },
+    grimoireArtifactPowerText: {
+      fontSize: 10,
+      color: '#C4B5FD',
+      fontStyle: 'italic',
+    },
+
+    // ===== CODEX MODAL STYLES =====
+    codexModalOverlay: {
+      flex: 1,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    codexModalContent: {
+      width: width * 0.9,
+      height: height * 0.8,
+      backgroundColor: 'transparent',
+      borderRadius: 16,
+      padding: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.5,
+      shadowRadius: 8,
+      elevation: 10,
+      overflow: 'hidden',
+    },
+    codexPixelBorder: {
+      flex: 1,
+      borderWidth: 2,
+      borderColor: theme.archiveBorder,
+      backgroundColor: theme.archiveMode === 'dark' ? '#1A2332' : '#F5E6D3',
+      padding: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    codexTextureOverlay: {
+      opacity: theme.archiveMode === 'dark' ? 0.3 : 0.8,
+      resizeMode: 'stretch',
+      width: '100%',
+      height: '100%',
+    },
+    codexInnerContent: {
+      flex: 1,
+      width: '100%',
+      height: '100%',
+      padding: 24,
+      justifyContent: 'flex-start',
+    },
+    codexHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.archiveBorder,
+      paddingBottom: 12,
+    },
+    codexTitle: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      letterSpacing: 1,
+      textShadowColor: theme.archiveMode === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)',
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 2,
+    },
+    codexCloseButton: {
+      padding: 8,
+      borderRadius: 6,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(220, 38, 38, 0.3)' : 'rgba(220, 38, 38, 0.2)',
+    },
+    codexTypeSelector: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: 20,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(30, 41, 59, 0.5)' : 'rgba(255, 255, 255, 0.1)',
+      borderRadius: 12,
+      padding: 8,
+    },
+    codexTypeButton: {
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 8,
+      backgroundColor: 'transparent',
+      width: '30%',
+    },
+    codexSelectedType: {
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(139, 92, 246, 0.2)',
+    },
+    codexTypeText: {
+      fontSize: 16,
+      fontWeight: '600',
+      letterSpacing: 0.5,
+    },
+    codexContentContainer: {
+      flex: 1,
+      flexDirection: 'column',
+      gap: 16,
+    },
+    codexPromptSection: {
+      flex: 0.4,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(30, 41, 59, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+      borderRadius: 12,
+      padding: 12,
+    },
+    codexInputSection: {
+      flex: 0.6,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(30, 41, 59, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+      borderRadius: 12,
+      padding: 12,
+    },
+    codexSectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 12,
+      letterSpacing: 0.5,
+      textShadowColor: theme.archiveMode === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.3)',
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 1,
+    },
+    codexPromptList: {
+      flex: 1,
+    },
+    codexPromptItem: {
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.5)' : 'rgba(243, 244, 246, 0.5)',
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.archiveMode === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(209, 213, 219, 0.3)',
+    },
+    codexSelectedPrompt: {
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(139, 92, 246, 0.2)',
+      borderColor: theme.archiveAccent,
+    },
+    codexCompletedPrompt: {
+      opacity: 0.5,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(209, 213, 219, 0.2)',
+    },
+    codexPromptText: {
+      fontSize: 14,
+      lineHeight: 20,
+      letterSpacing: 0.3,
+      marginBottom: 8,
+    },
+    codexPromptMeta: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    codexSkillCategory: {
+      fontSize: 12,
+      fontWeight: '600',
+      letterSpacing: 0.3,
+    },
+    codexDifficulty: {
+      fontSize: 12,
+      letterSpacing: 0.3,
+    },
+    codexJournalInput: {
+      flex: 1,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      padding: 12,
+      textAlignVertical: 'top',
+      fontSize: 14,
+      lineHeight: 20,
+      letterSpacing: 0.3,
+    },
+    codexVoicePlaceholder: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.3)' : 'rgba(243, 244, 246, 0.3)',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.archiveMode === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(209, 213, 219, 0.3)',
+    },
+    codexVoiceText: {
+      fontSize: 16,
+      marginTop: 12,
+      letterSpacing: 0.5,
+      textAlign: 'center',
+    },
+    codexSaveButton: {
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(139, 92, 246, 0.8)' : 'rgba(139, 92, 246, 0.6)',
+      padding: 16,
+      borderWidth: 2,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    codexDisabledButton: {
+      opacity: 0.5,
+    },
+    codexSaveButtonText: {
+      fontWeight: 'bold',
+      fontSize: 16,
+      letterSpacing: 1,
+    },
+
+    // ===== DRAWING CANVAS STYLES =====
+    drawingCanvasContainer: {
+      flex: 1,
+      backgroundColor: theme.archiveMode === 'dark' ? '#1A2332' : '#F8FAFC',
+    },
+    drawingCanvasToolbar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.archiveBorder,
+    },
+    drawingCanvasColorPicker: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    drawingCanvasColorOption: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: theme.archiveMode === 'dark' ? '#4B5563' : '#D1D5DB',
+    },
+    drawingCanvasSelectedColor: {
+      borderColor: theme.archiveText,
+      borderWidth: 3,
+    },
+    drawingCanvasWidthPicker: {
+      flexDirection: 'row',
+      gap: 10,
+      alignItems: 'center',
+    },
+    drawingCanvasWidthOption: {
+      backgroundColor: theme.archiveText,
+      borderRadius: 50,
+    },
+    drawingCanvasSelectedWidth: {
+      borderWidth: 2,
+      borderColor: theme.archiveAccent,
+    },
+    drawingCanvasActions: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    drawingCanvasActionButton: {
+      padding: 8,
+      borderRadius: 6,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)',
+    },
+    drawingCanvasCanvas: {
+      flex: 1,
+      backgroundColor: theme.archiveMode === 'dark' ? '#0F172A' : '#FFFFFF',
+    },
+    drawingCanvasBottomBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      padding: 16,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
+      borderTopWidth: 1,
+      borderTopColor: theme.archiveBorder,
+    },
+    drawingCanvasCancelButton: {
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(75, 85, 99, 0.8)' : 'rgba(209, 213, 219, 0.8)',
+    },
+    drawingCanvasSaveButton: {
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+      backgroundColor: theme.archiveAccent,
+    },
+    drawingCanvasButtonText: {
+      color: theme.archiveText,
+      fontWeight: 'bold',
+      fontSize: 16,
     },
   });
 }; 

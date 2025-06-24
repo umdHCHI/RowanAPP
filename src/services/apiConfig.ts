@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
     
     // Content endpoints
     characters: 'characters/',
+    myCharacter: 'characters/my_character/',
     appearances: 'appearances/',
     gear: 'gear/',
     surveys: 'surveys/',

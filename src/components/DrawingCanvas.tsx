@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useRef, useState } from 'react';
 import {
-    Dimensions,
-    PanResponder,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  PanResponder,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useTheme } from '../context/ThemeContext';
+import { createGlobalStyles } from '../styles/globalStyles';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +31,9 @@ type DrawingCanvasProps = {
 };
 
 const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
+  const { theme } = useTheme();
+  const globalStyles = createGlobalStyles(theme);
+  
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
   const [selectedColor, setSelectedColor] = useState('#4ee6e6');
@@ -90,46 +95,46 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.toolbar}>
-        <View style={styles.colorPicker}>
+    <View style={globalStyles.drawingCanvasContainer}>
+      <View style={globalStyles.drawingCanvasToolbar}>
+        <View style={globalStyles.drawingCanvasColorPicker}>
           {colors.map((color) => (
             <TouchableOpacity
               key={color}
               style={[
-                styles.colorOption,
+                globalStyles.drawingCanvasColorOption,
                 { backgroundColor: color },
-                selectedColor === color && styles.selectedColor,
+                selectedColor === color && globalStyles.drawingCanvasSelectedColor,
               ]}
               onPress={() => setSelectedColor(color)}
             />
           ))}
         </View>
-        <View style={styles.widthPicker}>
+        <View style={globalStyles.drawingCanvasWidthPicker}>
           {widths.map((width) => (
             <TouchableOpacity
               key={width}
               style={[
-                styles.widthOption,
+                globalStyles.drawingCanvasWidthOption,
                 { width: width * 2, height: width * 2 },
-                selectedWidth === width && styles.selectedWidth,
+                selectedWidth === width && globalStyles.drawingCanvasSelectedWidth,
               ]}
               onPress={() => setSelectedWidth(width)}
             />
           ))}
         </View>
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleUndo}>
-            <Ionicons name="arrow-undo" size={24} color="#fff" />
+        <View style={globalStyles.drawingCanvasActions}>
+          <TouchableOpacity style={globalStyles.drawingCanvasActionButton} onPress={handleUndo}>
+            <Ionicons name="arrow-undo" size={24} color={theme.archiveText} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleClear}>
-            <Ionicons name="trash" size={24} color="#fff" />
+          <TouchableOpacity style={globalStyles.drawingCanvasActionButton} onPress={handleClear}>
+            <Ionicons name="trash" size={24} color={theme.archiveText} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View
-        style={styles.canvas}
+        style={globalStyles.drawingCanvasCanvas}
         {...panResponder.panHandlers}
       >
         <Svg style={StyleSheet.absoluteFill}>
@@ -153,98 +158,19 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
         </Svg>
       </View>
 
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.buttonText}>Cancel</Text>
+      <View style={globalStyles.drawingCanvasBottomBar}>
+        <TouchableOpacity style={globalStyles.drawingCanvasCancelButton} onPress={onCancel}>
+          <Text style={globalStyles.drawingCanvasButtonText}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.saveButton}
+          style={globalStyles.drawingCanvasSaveButton}
           onPress={() => onSave(strokes)}
         >
-          <Text style={styles.buttonText}>Save Drawing</Text>
+          <Text style={globalStyles.drawingCanvasButtonText}>Save Drawing</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#181A20',
-  },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 10,
-    backgroundColor: '#23242b',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  colorPicker: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  colorOption: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#333',
-  },
-  selectedColor: {
-    borderColor: '#fff',
-  },
-  widthPicker: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-  },
-  widthOption: {
-    backgroundColor: '#fff',
-    borderRadius: 50,
-  },
-  selectedWidth: {
-    borderWidth: 2,
-    borderColor: '#4ee6e6',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionButton: {
-    padding: 8,
-  },
-  canvas: {
-    flex: 1,
-    backgroundColor: '#1a1b1f',
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 15,
-    backgroundColor: '#23242b',
-    borderTopWidth: 1,
-    borderTopColor: '#333',
-  },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#333',
-  },
-  saveButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#4ee6e6',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-});
 
 export default DrawingCanvas; 

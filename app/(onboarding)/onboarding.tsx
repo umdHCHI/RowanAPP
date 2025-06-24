@@ -1,5 +1,4 @@
-
-import Onboarding from '../../src/screens/WelcomeScreen';
+import Onboarding from '../../src/screens/onboarding/WelcomeScreen';
 
 export default function OnboardingIndex() {
   return <Onboarding />;

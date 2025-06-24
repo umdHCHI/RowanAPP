@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { userService } from '../services/userService';
-import Constants from 'expo-constants';
 import { AuthContextType } from '../types/user';
 
 
