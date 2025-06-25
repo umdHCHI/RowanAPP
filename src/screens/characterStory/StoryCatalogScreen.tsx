@@ -1,18 +1,18 @@
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
 import {
+  BlurView,
+  createGlobalStyles,
   Dimensions,
+  Icon,
+  LinearGradient,
   Modal,
+  React,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
-import { useTheme } from '../../context/ThemeContext';
-import { createGlobalStyles } from '../../styles/globalStyles';
+  useTheme,
+  View,
+} from '../../imports';
 
 const { width } = Dimensions.get('window');
 

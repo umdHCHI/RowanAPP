@@ -1,15 +1,10 @@
-import React, { useState } from 'react';
-import { View, TextInput, Button, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
-import { userService } from '../../src/services/userService';
-import { useTheme } from '../../src/context/ThemeContext';
-import { useLocalSearchParams } from 'expo-router';
 import { useOnboarding } from '../../src/context/OnboardingContext';
-import { StyleSheet, TouchableOpacity } from 'react-native';
-import { apiBaseUrl } from '../../src/services/apiConfig';
-import { createGlobalStyles } from '../../src/styles/globalStyles';
-import { useThemeColor } from '@/app-example/hooks/useThemeColor';
+import { useTheme } from '../../src/context/ThemeContext';
+import { apiService } from '../../src/services/apiService';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -28,34 +23,71 @@ const handleLogin = async () => {
   setIsLoading(true);
   try {
     // 1. Login and get token
-    const loginResponse = await userService.login(username, password);
+    const loginResponse = await apiService.login(username, password);
     const token = loginResponse.token;
 
     // 2. Store token in context/storage
     await login(token, String(loginResponse.user.id));
 
-    // 3. For admin/test, reset onboarding on backend and locally
-    if (username === 'admin' || username === 'test') {
-      try {
-
-        await userService.updateProfile({ has_completed_onboarding: false });
-      } catch (e) {
-
-        console.warn('Could not reset onboarding on backend:', e);
+    // 3. For admin user, always go to onboarding regardless of backend state
+    if (username.toLowerCase() === 'admin') {
+      // Reset onboarding state to ensure fresh start
+      setOnboardingState(prev => ({
+        ...prev,
+        isComplete: false,
+        assignedPath: null // Clear any previous path assignment
+      }));
+      
+      // Always navigate to onboarding welcome screen
+      router.replace('/(onboarding)/onboarding');
+    } else {
+      // For non-admin users, use the original smart navigation logic
+      const userProfile = loginResponse.user;
+      const needsOnboarding = loginResponse.needs_onboarding || !userProfile.profile?.has_completed_onboarding;
+      
+      if (needsOnboarding) {
+        // User needs to complete onboarding
+        if (userProfile.profile?.completion_type === 'character') {
+          // User has already chosen character path, go to character creator
+          setOnboardingState(prev => ({
+            ...prev,
+            assignedPath: 'character',
+            isComplete: false
+          }));
+          router.replace('/(onboarding)/character-creator');
+        } else if (userProfile.profile?.completion_type === 'survey') {
+          // User has already chosen survey path, go to personality test
+          setOnboardingState(prev => ({
+            ...prev,
+            assignedPath: 'survey',
+            isComplete: false
+          }));
+          router.replace('/(onboarding)/personality-test');
+        } else {
+          // User hasn't chosen a path yet, go to welcome screen
+          setOnboardingState(prev => ({
+            ...prev,
+            isComplete: false
+          }));
+          router.replace('/(onboarding)/onboarding');
+        }
+      } else {
+        // User has completed onboarding, go to main app
+        setOnboardingState(prev => ({
+          ...prev,
+          isComplete: true,
+          assignedPath: userProfile.profile?.completion_type as 'character' | 'survey' | null
+        }));
+        
+        if (userProfile.profile?.completion_type === 'character') {
+          router.replace('/(character)/character');
+        } else {
+          router.replace('/(personality)/personality');
+        }
       }
     }
-
-    // 4. Always fetch the latest profile and update onboarding context
-    const updatedProfile = await userService.getProfile();
-    setOnboardingState(prev => ({
-      ...prev,
-      isComplete: updatedProfile.profile?.has_completed_onboarding ?? false,
-      
-    }));
-
-    // 5. Navigate to onboarding
-    router.replace('/(onboarding)/onboarding');
   } catch (err: any) {
+    console.error('Login error:', err);
     setError('Login failed. Please check your credentials.');
   } finally {
     setIsLoading(false);

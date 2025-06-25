@@ -1,3 +1,5 @@
+
+// Equipment type mappings for the wellness system
 export type FocusType = 'meditation' | 'breathing' | 'journaling' | 'journaltwo';// TODO: Add meditation1, meditation2, meditation3
 export type ComfortType = 'social' | 'hobby' | 'nature';
 export type ShieldType = 'boundary' | 'affirmation' | 'routine';
@@ -10,6 +12,7 @@ export const equipmentIcons = {
     meditation: require('../../assets/equipment/weapons/fb1455.png'),
     breathing: require('../../assets/equipment/weapons/fb1455.png'),
     journaling: require('../../assets/equipment/weapons/fb1455.png'),
+    journaltwo: require('../../assets/equipment/weapons/fb1455.png'),
     // TODO: Add meditation1, meditation2, meditation3
   },
   comfort: {

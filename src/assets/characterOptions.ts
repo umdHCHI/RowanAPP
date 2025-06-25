@@ -1132,3 +1132,7 @@ export const mouthOptions = [
     require('../../assets/character-creator/BGs/Blue-Green.png'),
     require('../../assets/character-creator/BGs/White.png'),
   ];
+
+  export const baseHUD = [
+    require('../../assets/character-creator/sample_hud_heads/head_base.png')
+  ];

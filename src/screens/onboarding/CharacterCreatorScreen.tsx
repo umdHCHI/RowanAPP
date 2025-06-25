@@ -1,21 +1,18 @@
-import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, ImageStyle, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import {
   baseOptions,
   bgOptions,
   clothesOptions,
+  eyebrowsOptions,
   eyesOptions,
   hairOptions,
-  mouthOptions,
+  mouthOptions
 } from '../../assets/characterOptions';
 import { sampleHeadBar } from '../../assets/frameAssets';
 import CharacterFrame from '../../components/CharacterFrame';
 import CharacterPreview from '../../components/CharacterPreview';
-import { useAuth } from '../../context/AuthContext';
-import { useOnboarding } from '../../context/OnboardingContext';
-import { useTheme } from '../../context/ThemeContext';
-import { apiService } from '../../services/apiService';
+import { useMasterState } from '../../context/MasterStateContext';
 
 const travelBookPopup = require('../../../assets/UI/character-creator-ui/UI_TravelBook_Popup01a.png');
 const skinColorsSheet = require('../../../assets/character-creator/sample_hud_heads/skin_colors/skin_one.png');
@@ -56,188 +53,42 @@ function getBaseFrameStyle(index: number): ImageStyle {
 }
 
 export default function CharacterCreatorScreen() {
-  const { styles: globalStyles } = useTheme();
-  const { completeCharacter, setCharacterAppearance } = useOnboarding();
-  const { authToken, logout } = useAuth();
+  // Use the master state context instead of individual contexts
+  const { 
+    theme, 
+    character, 
+    loading, 
+    onboarding,
+    auth
+  } = useMasterState();
   
-  // Character states - matching backend Character model fields
-  const [characterName, setCharacterName] = useState('');
-  const [selectedBaseModel, setSelectedBaseModel] = useState(0);
-  const [selectedSkinColor, setSelectedSkinColor] = useState(0);
-  const [selectedHairStyle, setSelectedHairStyle] = useState(0);
-  const [selectedHairColor, setSelectedHairColor] = useState(0);
-  const [selectedEyeType, setSelectedEyeType] = useState(0);
-  const [selectedEyeColor, setSelectedEyeColor] = useState(0);
-  const [selectedMouthType, setSelectedMouthType] = useState(0);
-  const [selectedShirtType, setSelectedShirtType] = useState(0);
-  const [selectedBackgroundType, setSelectedBackgroundType] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(0);
 
   const cycle = (arr: any[], idx: number, dir: number) => (idx + dir + arr.length) % arr.length;
 
-  // Helper function to get the correct hair index based on style and color
-  const getHairIndex = () => {
-    // Hair array is organized as: 32 styles × 16 colors = 512 total
-    // Each hair style has 32 variations (different colors)
-    return selectedHairStyle + (selectedHairColor * 32);
-  };
-
-  // Helper function to get clothes index based on style and color
-  const getClothesIndex = () => {
-    // Clothes array is organized as: 12 styles × 16 colors = 192 total
-    return selectedShirtType + (selectedSkinColor * 12); // Using skin color for clothes color variation
-  };
-
-  // Helper function to get eyes index
-  const getEyesIndex = () => {
-    // Eyes array is organized as: 12 styles × 16 colors = 192 total
-    return selectedEyeType + (selectedEyeColor * 12);
-  };
-
   // Category definitions with proper limits based on backend model
   const categories = [
-    { label: 'Base', options: Math.min(baseOptions.length, 12), current: selectedBaseModel, setter: setSelectedBaseModel },
-    { label: 'Skin', options: 16, current: selectedSkinColor, setter: setSelectedSkinColor },
-    { label: 'Hair Style', options: 32, current: selectedHairStyle, setter: setSelectedHairStyle },
-    { label: 'Hair Color', options: 16, current: selectedHairColor, setter: setSelectedHairColor },
-    { label: 'Eyes', options: 12, current: selectedEyeType, setter: setSelectedEyeType },
-    { label: 'Eye Color', options: 16, current: selectedEyeColor, setter: setSelectedEyeColor },
-    { label: 'Mouth', options: Math.min(mouthOptions.length, 12), current: selectedMouthType, setter: setSelectedMouthType },
-    { label: 'Clothes', options: 12, current: selectedShirtType, setter: setSelectedShirtType },
-    { label: 'Background', options: Math.min(bgOptions.length, 12), current: selectedBackgroundType, setter: setSelectedBackgroundType },
+    { label: 'Base', options: Math.min(baseOptions.length, 12), current: character.selectedBaseModel, setter: character.setSelectedBaseModel },
+    { label: 'Skin', options: 16, current: character.selectedSkinColor, setter: character.setSelectedSkinColor },
+    { label: 'Hair Style', options: 12, current: character.selectedHairStyle, setter: character.setSelectedHairStyle },
+    { label: 'Hair Color', options: 16, current: character.selectedHairColor, setter: character.setSelectedHairColor },
+    { label: 'Eyes', options: 12, current: character.selectedEyeType, setter: character.setSelectedEyeType },
+    { label: 'Eye Color', options: 16, current: character.selectedEyeColor, setter: character.setSelectedEyeColor },
+    { label: 'Eyebrow Style', options: 12, current: character.selectedEyebrowStyle, setter: character.setSelectedEyebrowStyle },
+    { label: 'Eyebrow Color', options: 16, current: character.selectedEyebrowColor, setter: character.setSelectedEyebrowColor },
+    { label: 'Mouth', options: Math.min(mouthOptions.length, 12), current: character.selectedMouthType, setter: character.setSelectedMouthType },
+    { label: 'Clothes', options: 12, current: character.selectedShirtType, setter: character.setSelectedShirtType },
+    { label: 'Background', options: Math.min(bgOptions.length, 12), current: character.selectedBackgroundType, setter: character.setSelectedBackgroundType },
   ];
 
   const handleCharacterCreation = async () => {
-    if (!characterName.trim()) {
-      setError('Please enter a character name');
-      return;
-    }
+    // Use the centralized character creation function
+    await character.createCharacter();
+  };
 
-    setError(null);
-    setIsLoading(true);
-    
-    try {
-      if (authToken) {
-        console.log('Starting character creation process...');
-        console.log('Character name:', characterName);
-        console.log('Current selections:', {
-          selectedBaseModel,
-          selectedSkinColor,
-          selectedHairStyle,
-          selectedHairColor,
-          selectedEyeType,
-          selectedEyeColor,
-          selectedMouthType,
-          selectedShirtType,
-          selectedBackgroundType
-        });
-        
-        // Step 1: Create the character
-        const characterCreateData = {
-          name: characterName.trim()
-        };
-        
-        console.log('Creating character with data:', characterCreateData);
-        const character = await apiService.post('characters', characterCreateData);
-        
-        console.log('Character created successfully:', character);
-        
-        // Step 2: Update character customization using exact backend field names
-        const customizationData = {
-          selected_base_model: selectedBaseModel,
-          selected_skin_color: selectedSkinColor,
-          selected_hair_style: selectedHairStyle,
-          selected_hair_color: selectedHairColor,
-          selected_eye_type: selectedEyeType,
-          selected_eye_color: selectedEyeColor,
-          selected_mouth_type: selectedMouthType,
-          selected_shirt_type: selectedShirtType,
-          selected_background_type: selectedBackgroundType,
-        };
-        
-        console.log('Updating character customization with data:', customizationData);
-        
-        try {
-          const updatedCharacter = await apiService.patch('characters', customizationData, {
-            urlSuffix: `${(character as {id: string}).id}/update_customization/`
-          });
-          
-          console.log('Character customization updated successfully:', updatedCharacter);
-        } catch (customizationError) {
-          console.warn('Customization update failed, but character was created:', customizationError);
-          // Continue with the process even if customization fails
-        }
-        
-        // Update local onboarding state with computed indices for frontend rendering
-        setCharacterAppearance({
-          gender: 'nonbinary',
-          skin: selectedBaseModel, // Use base model as skin index for preview
-          hair: getHairIndex(),
-          clothes: getClothesIndex(),
-          eyes: getEyesIndex(),
-          mouth: selectedMouthType,
-          background: selectedBackgroundType,
-          glasses: 0,
-          isComplete: true,
-        });
-        
-        try {
-          // Complete onboarding with character path
-          console.log('Completing onboarding...');
-          await apiService.completeOnboarding('character');
-          console.log('Onboarding completed successfully');
-        } catch (onboardingError) {
-          console.error('Failed to complete onboarding:', onboardingError);
-          // Don't fail the entire process if onboarding completion fails
-        }
-        
-        // Mark character creation as complete
-        completeCharacter();
-        
-        // Navigate to main screen
-        console.log('Navigating to character screen...');
-        router.replace('/(character)/character');
-        
-      } else {
-        setError('Authentication required. Please log in again.');
-      }
-    } catch (error: any) {
-      console.error('Character creation failed:', error);
-      
-      // Handle different types of errors
-      if (error.response?.data) {
-        if (typeof error.response.data === 'object') {
-          // Handle field-specific validation errors
-          const errorMessages = [];
-          
-          // Extract error messages from nested object
-          for (const [field, messages] of Object.entries(error.response.data)) {
-            if (Array.isArray(messages)) {
-              errorMessages.push(...messages);
-            } else if (typeof messages === 'string') {
-              errorMessages.push(messages);
-            }
-          }
-          
-          setError(errorMessages.length > 0 
-            ? errorMessages.join('. ') 
-            : 'Failed to create character. Please check your input.'
-          );
-        } else if (typeof error.response.data === 'string') {
-          setError(error.response.data);
-        } else {
-          setError('Failed to create character. Please try again.');
-        }
-      } else if (error.message) {
-        setError(error.message);
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLogout = async () => {
+    // Use the centralized logout function
+    await auth.logout();
   };
 
   const renderCategoryButtons = () => {
@@ -284,12 +135,12 @@ export default function CharacterCreatorScreen() {
                     <TouchableOpacity 
                       key={idx} 
                       onPress={() => {
-                        setSelectedSkinColor(idx);
-                        setSelectedBaseModel(idx);
+                        character.setSelectedSkinColor(idx);
+                        character.setSelectedBaseModel(idx);
                       }}
                       style={[
                         styles.skinOption,
-                        selectedSkinColor === idx && styles.selectedSkinOption
+                        character.selectedSkinColor === idx && styles.selectedSkinOption
                       ]}
                     >
                       <View style={styles.skinFrame}>
@@ -345,36 +196,35 @@ export default function CharacterCreatorScreen() {
         style={styles.nameInput} 
         placeholder='Character Name'
         placeholderTextColor='#999'
-        value={characterName}
-        onChangeText={setCharacterName}
+        value={character.characterName}
+        onChangeText={character.setCharacterName}
       />
       
       <Text style={styles.title}>Create your character</Text>
       
       {/* Add logout button */}
       <TouchableOpacity
-        style={[globalStyles.button, styles.logoutButton]}
-        onPress={async () => {
-          await logout();
-          router.replace('/(auth)/login');
-        }}
+        style={[theme.styles.button, styles.logoutButton]}
+        onPress={handleLogout}
       >
-        <Text style={globalStyles.buttonText}>Logout and Login Again</Text>
+        <Text style={theme.styles.buttonText}>Logout and Login Again</Text>
       </TouchableOpacity>
 
       {/* Avatar Preview with Frame */}
-      <CharacterFrame frame={bgOptions[selectedBackgroundType]} size={200}>
+      <CharacterFrame frame={bgOptions[character.selectedBackgroundType]} size={200}>
         <CharacterPreview
-          background={bgOptions[selectedBackgroundType]}
-          skinIndex={baseOptions[selectedBaseModel]}
-          hairSheet={hairOptions[getHairIndex()]}
-          clothesSheet={clothesOptions[getClothesIndex()]}
-          eyesSheet={eyesOptions[getEyesIndex()]}
-          mouthSheet={mouthOptions[selectedMouthType]}
-          hairIndex={getHairIndex()}
-          clothesIndex={getClothesIndex()}
-          eyesIndex={getEyesIndex()}
-          mouthIndex={selectedMouthType}
+          background={bgOptions[character.selectedBackgroundType]}
+          skinIndex={baseOptions[character.selectedBaseModel]}
+          hairSheet={hairOptions[character.getHairIndex()]}
+          clothesSheet={clothesOptions[character.getClothesIndex()]}
+          eyesSheet={eyesOptions[character.getEyesIndex()]}
+          eyebrowsSheet={eyebrowsOptions[character.getEyebrowsIndex()]}
+          mouthSheet={mouthOptions[character.selectedMouthType]}
+          hairIndex={character.getHairIndex()}
+          clothesIndex={character.getClothesIndex()}
+          eyesIndex={character.getEyesIndex()}
+          eyebrowsIndex={character.getEyebrowsIndex()}
+          mouthIndex={character.selectedMouthType}
         />
       </CharacterFrame>
 
@@ -384,25 +234,20 @@ export default function CharacterCreatorScreen() {
       {/* Customization Controls */}
       {renderCustomizationControls()}
 
-      {error && (
-        <Text style={[globalStyles.text, styles.errorText]}>
-          {error}
-        </Text>
-      )}
-      
       <TouchableOpacity
-        style={[globalStyles.button, styles.completeButton, { opacity: isLoading ? 0.7 : 1 }]}
+        style={[theme.styles.button, styles.completeButton, { opacity: loading.isLoading ? 0.7 : 1 }]}
         onPress={handleCharacterCreation}
-        disabled={isLoading}
+        disabled={loading.isLoading}
       >
-        <Text style={globalStyles.buttonText}>
-          {isLoading ? 'Creating Character...' : 'Complete Character'}
+        <Text style={theme.styles.buttonText}>
+          {loading.isLoading ? 'Creating Character...' : 'Complete Character'}
         </Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
+//needs to be changed as this is getting in the way of some of the styles for the character creator
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -540,11 +385,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     minWidth: 80,
-    textAlign: 'center',
-  },
-  errorText: {
-    color: '#ff4444',
-    marginTop: 10,
     textAlign: 'center',
   },
   completeButton: {

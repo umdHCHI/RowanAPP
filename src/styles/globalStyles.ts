@@ -1843,6 +1843,254 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       color: '#C4B5FD',
       fontStyle: 'italic',
     },
+    grimoireProgressSection: {
+      width: '90%',
+      marginVertical: 10,
+    },
+
+    // ===== GRIMOIRE CATALOG STYLES =====
+    grimoireCard: {
+      backgroundColor: theme.archiveCard,
+      borderRadius: 16,
+      marginBottom: 16,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    grimoireCardGradient: {
+      padding: 20,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+    },
+    grimoireCardBlur: {
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    grimoireRarityBorder: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 3,
+      zIndex: 1,
+    },
+    grimoireLockOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 10,
+      borderRadius: 16,
+    },
+    grimoireLockGradient: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 16,
+    },
+    grimoireLockText: {
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 8,
+    },
+    grimoireCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    grimoireTitleSection: {
+      flex: 1,
+      marginRight: 12,
+    },
+    grimoireCardTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 4,
+      lineHeight: 20,
+    },
+    grimoireCardCategory: {
+      fontSize: 12,
+      fontStyle: 'italic',
+      lineHeight: 16,
+    },
+    grimoireRarityBadgeGradient: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    grimoireRarityBadgeText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: '#1F2937',
+    },
+    grimoireProgressHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    grimoireProgressLabel: {
+      fontSize: 11,
+      marginLeft: 6,
+      flex: 1,
+    },
+    grimoireProgressBar: {
+      height: 4,
+      backgroundColor: 'rgba(55, 65, 81, 0.3)',
+      borderRadius: 2,
+      overflow: 'hidden',
+      marginTop: 4,
+    },
+    grimoireProgressFill: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    grimoireDescription: {
+      fontSize: 12,
+      lineHeight: 16,
+      marginBottom: 12,
+      fontStyle: 'italic',
+    },
+    grimoireAtmosphereContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+      paddingVertical: 6,
+      backgroundColor: 'rgba(30, 41, 59, 0.3)',
+      borderRadius: 6,
+    },
+    grimoireSkillFocusContainer: {
+      marginBottom: 12,
+    },
+    grimoireSkillFocusLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      marginBottom: 6,
+    },
+    grimoireSkillTags: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    grimoireSkillTag: {
+      backgroundColor: 'rgba(139, 92, 246, 0.3)',
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      borderRadius: 4,
+    },
+    grimoireSkillTagText: {
+      fontSize: 9,
+      color: '#DDD6FE',
+      fontWeight: '500',
+    },
+    grimoireStatBoostsContainer: {
+      marginBottom: 12,
+    },
+    grimoireStatBoostsLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      marginBottom: 6,
+    },
+    grimoireStatBoostTags: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    grimoireStatBoostTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(16, 185, 129, 0.3)',
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      borderRadius: 4,
+    },
+    grimoireStatBoostText: {
+      fontSize: 9,
+      marginLeft: 4,
+      fontWeight: '500',
+    },
+    grimoireFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(75, 85, 99, 0.3)',
+    },
+    grimoireFooterStat: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    grimoireFooterStatText: {
+      fontSize: 10,
+      marginLeft: 4,
+    },
+    grimoireActionButton: {
+      marginTop: 12,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    grimoireActionButtonGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+    },
+    grimoireActionButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      marginLeft: 6,
+      color: '#E0E7FF',
+    },
+
+    // ===== GRIMOIRE MODAL STYLES =====
+    grimoireModalGradient: {
+      flex: 1,
+      borderRadius: 16,
+      borderWidth: 1,
+    },
+    grimoireModalBlur: {
+      flex: 1,
+      borderRadius: 16,
+      padding: 20,
+    },
+    grimoireModalHeader: {
+      marginBottom: 20,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+    },
+    grimoireHeaderContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    grimoireModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      flex: 1,
+      textAlign: 'center',
+    },
+    grimoireCloseButtonGradient: {
+      padding: 8,
+      borderRadius: 6,
+    },
+    grimoireModalSubtitle: {
+      fontSize: 14,
+      lineHeight: 20,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+    grimoireScrollView: {
+      flex: 1,
+    },
+    grimoireGrid: {
+      paddingBottom: 20,
+    },
 
     // ===== CODEX MODAL STYLES =====
     codexModalOverlay: {

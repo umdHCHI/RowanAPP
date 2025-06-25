@@ -1,7 +1,57 @@
 import { EquipmentItem } from '../types/equipment';
 
+// Define types for the wellness system
+export interface WellnessStats {
+  awareness: number;
+  resilience: number;
+  connection: number;
+  balance: number;
+}
+
+export interface StatGains {
+  [key: string]: number;
+}
+
+export interface StoryGains {
+  base_gain: Partial<WellnessStats>;
+  reflection_bonus: Partial<WellnessStats>;
+}
+
+export interface StoryProgression {
+  [storyName: string]: StoryGains;
+}
+
+export interface ReflectionPattern {
+  keywords: string[];
+  stat_gain: Partial<WellnessStats>;
+}
+
+export interface ReflectionPatterns {
+  [patternName: string]: ReflectionPattern;
+}
+
+export interface GearItem {
+  unlock_condition: string;
+  keywords: string[];
+  effect: string;
+  description: string;
+}
+
+export interface GearUnlockSystem {
+  [category: string]: {
+    [itemName: string]: GearItem;
+  };
+}
+
+export interface ReflectionAnalysis {
+  stat_gains: StatGains;
+  gear_unlocks: string[];
+  recognition_message: string;
+  personal_insights: string[];
+}
+
 // Starting wellness stats for college students
-export const STARTING_WELLNESS_STATS = {
+export const STARTING_WELLNESS_STATS: WellnessStats = {
   awareness: 6,    // Can notice some emotions, but not deeply self-aware yet
   resilience: 4,   // Struggles with stress (common for college students)
   connection: 8,   // Has some relationships but could be deeper
@@ -23,7 +73,7 @@ export const STAT_PROGRESSION = {
       base_gain: { resilience: 2, balance: 1 },
       reflection_bonus: { resilience: 1, balance: 2 },
     },
-  },
+  } as StoryProgression,
 
   reflection_patterns: {
     personal_discovery: {
@@ -42,11 +92,11 @@ export const STAT_PROGRESSION = {
       keywords: ['helped', 'shared with', 'taught', 'supported'],
       stat_gain: { connection: 2, resilience: 1 }
     }
-  }
+  } as ReflectionPatterns
 };
 
 // Gear unlock system
-export const GEAR_UNLOCK_SYSTEM = {
+export const GEAR_UNLOCK_SYSTEM: GearUnlockSystem = {
   focus_items: {
     'Explorer\'s Notebook': {
       unlock_condition: 'Shows pattern of self-reflection and experimentation',
@@ -170,7 +220,13 @@ export const STAT_MEANINGS = {
 
 // Helper function to create gear items
 export const createGearItem = (gearName: string): EquipmentItem => {
-  const gearData = {
+  const gearData: Record<string, {
+    type: string;
+    subtype: string;
+    name: string;
+    description: string;
+    effect: string;
+  }> = {
     "Explorer's Notebook": {
       type: 'weapons',
       subtype: 'journal',
@@ -202,21 +258,25 @@ export const createGearItem = (gearName: string): EquipmentItem => {
   };
 
   const gear = gearData[gearName];
+  if (!gear) {
+    throw new Error(`Unknown gear item: ${gearName}`);
+  }
+
   return {
     id: Date.now().toString() + Math.random(),
     name: gear.name,
-    type: gear.type,
-    subtype: gear.subtype,
-    rarity: 'rare',
-    level: 1,
+    type: gear.type as any, // Cast to EquipmentType
+    subtype: gear.subtype as any, // Cast to EquipmentSubtype
     description: gear.description,
+    unlockCondition: 'Unlocked through reflection',
+    wellnessStats: {},
     effect: gear.effect
   };
 };
 
 // Reflection analysis function
-export const analyzeReflection = (text: string, completedStory: string) => {
-  const analysis = {
+export const analyzeReflection = (text: string, completedStory: string): ReflectionAnalysis => {
+  const analysis: ReflectionAnalysis = {
     stat_gains: {},
     gear_unlocks: [],
     recognition_message: '',

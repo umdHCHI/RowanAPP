@@ -34,48 +34,7 @@ export interface Appearance {
   isComplete: boolean;
 }
 
-export interface Character {
-  id: number;
-  user: number;
-  name: string;
-  
-  // RPG progression
-  level: number;
-  experience: number;
-  
-  // Wellness Attributes (0-20 scale)
-  awareness: number;
-  resilience: number;
-  connection: number;
-  balance: number;
-  
-  // Resources
-  coins: number;
-  crystals: number;
-  
-  // Archive Progress
-  memories_explored: number;
-  coping_skills_learned: number;
-  insights_discovered: number;
-  
-  // Character customization (backend indices)
-  selected_base_model: number;        // 0-11
-  selected_skin_color: number;        // 0-15
-  selected_hair_style: number;        // 0-31
-  selected_hair_color: number;        // 0-15
-  selected_eye_type: number;          // 0-11
-  selected_eye_color: number;         // 0-15
-  selected_eyebrow_style?: number;    // 0-11 (optional)
-  selected_eyebrow_color?: number;    // 0-15 (optional)
-  selected_mouth_type: number;        // 0-11
-  selected_shirt_type: number;        // 0-11
-  selected_background_type: number;   // 0-11
-  
-  // Timestamps
-  created_at: string;
-  updated_at: string;
-}
-
+// Consolidated Appearance types - single source of truth
 export interface Appearance {
   id: number;
   character: number;
@@ -100,7 +59,7 @@ export interface Appearance {
   updated_at: string;
 }
 
-// Frontend character appearance for onboarding context (legacy format)
+// Frontend character appearance for onboarding context
 export interface CharacterAppearance {
   gender: 'masculine' | 'feminine' | 'nonbinary';
   skin: number;      // Frontend asset index
@@ -158,3 +117,7 @@ export interface ExperienceGainResponse {
   new_experience: number;
   wellness_updates?: Record<string, number>;
 }
+
+// Import Character type from user.ts to avoid duplication
+import { Character } from './user';
+

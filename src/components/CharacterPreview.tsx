@@ -26,6 +26,11 @@ const EYES_HEIGHT = PREVIEW_HEIGHT;
 const EYES_TOP_OFFSET = 0;
 const EYES_LEFT_OFFSET = 0;
 
+const EYEBROWS_WIDTH = PREVIEW_WIDTH;
+const EYEBROWS_HEIGHT = PREVIEW_HEIGHT;
+const EYEBROWS_TOP_OFFSET = 0;
+const EYEBROWS_LEFT_OFFSET = 0;
+
 const MOUTH_WIDTH = PREVIEW_WIDTH;
 const MOUTH_HEIGHT = PREVIEW_HEIGHT;
 const MOUTH_TOP_OFFSET = 0;
@@ -39,10 +44,12 @@ type CharacterPreviewProps = {
   hairSheet: ImageSourcePropType;
   clothesSheet: ImageSourcePropType;
   eyesSheet: ImageSourcePropType;
+  eyebrowsSheet: ImageSourcePropType;
   mouthSheet: ImageSourcePropType;
   hairIndex: number;
   clothesIndex: number;
   eyesIndex: number;
+  eyebrowsIndex: number;
   mouthIndex: number;
 };
 
@@ -52,10 +59,12 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
   hairSheet,
   clothesSheet,
   eyesSheet,
+  eyebrowsSheet,
   mouthSheet,
   hairIndex,
   clothesIndex,
   eyesIndex,
+  eyebrowsIndex,
   mouthIndex,
 }) => {
   return (
@@ -65,6 +74,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
       <Image source={hairSheet} style={styles.hairLayer} />
       <Image source={clothesSheet} style={styles.clothesLayer} />
       <Image source={eyesSheet} style={styles.eyesLayer} />
+      <Image source={eyebrowsSheet} style={styles.eyebrowsLayer} />
       <Image source={mouthSheet} style={styles.mouthLayer} />
     </View>
   );
@@ -109,6 +119,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: EYES_TOP_OFFSET,
     left: EYES_LEFT_OFFSET,
+    resizeMode: 'contain',
+  },
+  eyebrowsLayer: {
+    width: EYEBROWS_WIDTH,
+    height: EYEBROWS_HEIGHT,
+    position: 'absolute',
+    top: EYEBROWS_TOP_OFFSET,
+    left: EYEBROWS_LEFT_OFFSET,
     resizeMode: 'contain',
   },
   mouthLayer: {

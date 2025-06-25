@@ -20,6 +20,8 @@ export interface EquipmentItem {
     balance?: number;
   };
   effect: string;
+  rarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  level?: number;
 }
 
 export interface EquippedItems {
@@ -27,4 +29,21 @@ export interface EquippedItems {
   comfort?: EquipmentItem;
   shield?: EquipmentItem;
   ground?: EquipmentItem;
-} 
+}
+
+// Equipment categories for organization
+export const EQUIPMENT_CATEGORIES = {
+  focus: 'Focus Items',
+  comfort: 'Comfort Layers', 
+  shield: 'Mind Shields',
+  ground: 'Ground Stones'
+} as const;
+
+// Rarity colors for UI
+export const RARITY_COLORS = {
+  common: '#6B7280',
+  uncommon: '#10B981', 
+  rare: '#3B82F6',
+  epic: '#A855F7',
+  legendary: '#F97316'
+} as const; 

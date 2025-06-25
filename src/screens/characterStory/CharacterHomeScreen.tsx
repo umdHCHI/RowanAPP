@@ -1,224 +1,91 @@
-import React, { useEffect, useState } from 'react';
+import { useMasterState } from '../../context/MasterStateContext';
 import {
   Alert,
+  ArchiveArea,
+  ArchiveMapModal,
+  BlurView,
+  CodexModal,
   Dimensions,
+  Icon,
   Image,
+  LinearGradient,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  ThoughtDefenderModal,
   TouchableOpacity,
-  View
-} from 'react-native';
-import {
+  View,
   baseOptions,
   bgOptions,
   clothesOptions,
   eyesOptions,
   hairOptions,
-  mouthOptions,
-} from '../../assets/characterOptions';
-import { equipmentIcons } from '../../assets/equipment';
-import ArchiveMapModal, { ArchiveArea } from '../../components/ArchiveMapModal';
-import Button from '../../components/Button';
-import CodexModal from '../../components/CodexModal';
-import EquipmentModal from '../../components/EquipmentModal';
-import PixelButton from '../../components/PixelButton';
-import ThoughtDefenderModal from '../../components/ThoughtDefenderModal';
-import { useAuth } from '../../context/AuthContext';
-import { useOnboarding } from '../../context/OnboardingContext';
-import { sampleInventory } from '../../data/sampleEquipment';
-import { STARTING_WELLNESS_STATS, STAT_MEANINGS, analyzeReflection, createGearItem } from '../../data/wellnessSystem';
-import { appearanceService } from '../../services/appearanceService';
-import { Appearance } from '../../types/appearance';
-import { EquipmentItem, EquippedItems } from '../../types/equipment';
-import type { Story } from './StoryCatalogScreen';
-import StoryCatalogModal from './StoryCatalogScreen';
-import StoryScreen from './StoryScreen';
+  mouthOptions
+} from '../../imports';
+
+import GrimoireScreen from './StoryScreen';
 
 const { width, height } = Dimensions.get('window');
 
-const gearSlots = [
-  { type: 'focus', label: 'Focus Item' },    // Personal grounding object
-  { type: 'comfort', label: 'Comfort Layer' }, // Coping strategy/comfort item
-  { type: 'shield', label: 'Mind Shield' },   // Mental protection/boundary tool
-  { type: 'ground', label: 'Ground Stone' },  // Grounding/stability tool
-];
-
-// Archive exploration and skill development metrics
-const archiveMetrics = [
-  { icon: '📜', label: 'Memories Explored', value: '3/12' },
-  { icon: '🛠️', label: 'Coping Skills Learned', value: '7' },
-  { icon: '🔍', label: 'Insights Discovered', value: '15/23' },
-];
-
-// Archive-themed navigation
-const bottomNav = [
-  { icon: '📚', label: 'Codex' },       // Personal growth journal, skill tracker
-  { icon: '🗺️', label: 'Memory Map' },  // Progress through memory categories
-  { icon: '🎮', label: 'Thought Defender' }, // Mental wellness mini-game
-  { icon: '⭐', label: 'Milestones' },  // Achievements in coping skill development
-];
-
-const sampleStories = [
-  {
-    id: '1',
-    title: 'The Overwhelmed Mind',
-    image: require('../../../assets/images/story1.jpg'),
-    description: 'Explore different approaches to academic stress - which feels right for YOUR personality and situation?',
-    progress: 0,
-    difficulty: 'Personal Discovery',
-    skillCategory: 'Stress & Overwhelm',
-    reflection_focus: 'What approaches resonated with you? What felt wrong for your style?'
-  },
-  {
-    id: '2',
-    title: 'The Lonely Desert', 
-    image: require('../../../assets/images/story2.jpg'),
-    description: 'Navigate isolation and discover that meaningful connection looks different for everyone.',
-    progress: 0,
-    difficulty: 'Social Exploration',
-    skillCategory: 'Connection & Support',
-    reflection_focus: 'How do YOU naturally seek and offer support?'
-  },
-  {
-    id: '3',
-    title: 'The Perfect Storm',
-    image: require('../../../assets/images/story3.jpg'),
-    description: 'Face perfectionism while learning that self-compassion has many forms - find yours.',
-    progress: 0,
-    difficulty: 'Self-Understanding',
-    skillCategory: 'Self-Relationship',
-    reflection_focus: 'What does being kind to yourself look like in YOUR voice?'
-  },
-];
-
-type CodexEntry = {
-  id: string;
-  type: string;
-  content: string;
-  prompt: string;
-  skillCategory: string;
-  mapArea: string;
-  difficulty: string;
-  timestamp: number;
-};
-
-// Add type definitions for stat gains and descriptions
-type StatGains = {
-  [key: string]: number;
-};
-
-type StatDescriptions = {
-  [key: string]: {
-    [key: number]: string;
+const ArchiveInterface: React.FC = () => {
+  // Use MasterStateContext instead of individual contexts
+  const { 
+    theme, 
+    auth, 
+    onboarding, 
+    character, 
+    equipment, 
+    archive, 
+    ui, 
+    loading 
+  } = useMasterState();
+  
+  // Story handlers
+  const handleOpenGrimoire = (grimoire: any) => {
+    ui.openGrimoire(grimoire);
   };
-};
 
-const GameHomeScreen = () => {
-  const { onboardingState } = useOnboarding();
-  const [appearance, setAppearance] = useState<Appearance | null>();
-  const { authToken, characterId } = useAuth();
-  const [isEquipmentModalVisible, setIsEquipmentModalVisible] = useState(false);
-  const [inventory, setInventory] = useState<EquipmentItem[]>(sampleInventory);
-  const [equippedItems, setEquippedItems] = useState<EquippedItems>({});
-  const [isStoryCatalogVisible, setIsStoryCatalogVisible] = useState(false);
-  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
-  const [isStoryScreenVisible, setIsStoryScreenVisible] = useState(false);
-  const [isCodexVisible, setIsCodexVisible] = useState(false);
-  const [isMapVisible, setIsMapVisible] = useState(false);
-  const [isThoughtDefenderVisible, setIsThoughtDefenderVisible] = useState(false);
-  const [completedEntries, setCompletedEntries] = useState(0);
-  const [codexEntries, setCodexEntries] = useState<CodexEntry[]>([]);
-  const [selectedArea, setSelectedArea] = useState<ArchiveArea | null>(null);
+  const handleCloseStory = () => {
+    ui.closeStory();
+  };
 
-  // Initialize wellness stats with starting values
-  const [wellnessStats, setWellnessStats] = useState([
-    { icon: '🧘', label: 'AWR', value: STARTING_WELLNESS_STATS.awareness, color: '#4A90E2' },
-    { icon: '💚', label: 'RES', value: STARTING_WELLNESS_STATS.resilience, color: '#2ECC71' },
-    { icon: '🤝', label: 'CON', value: STARTING_WELLNESS_STATS.connection, color: '#E74C3C' },
-    { icon: '⚖️', label: 'BAL', value: STARTING_WELLNESS_STATS.balance, color: '#F39C12' },
-  ]);
+  const handleStoryCompleteLocal = (completionData: {
+    grimoireId: string;
+    finalRewards: string[];
+    skillsLearned: string[];
+    totalStatGains: {[key: string]: number};
+  }) => {
+    // Close modal
+    ui.closeStory();
 
-  // Choose correct options based on gender
-  let baseOptionsVar = baseOptions;
-  let hairOptionsVar = hairOptions;
-  let clothesOptionsVar = clothesOptions;
-  let eyesOptionsVar = eyesOptions;
-  let mouthOptionsVar = mouthOptions;
+    // Update progress using the master state
+    archive.handleStoryComplete(completionData.grimoireId);
 
-
-
-
-
-  useEffect(() => {
-    const loadAppearance = async () => {
-      try {
-        if (authToken && characterId) {
-          console.log('Loading appearance for character:', characterId);
-          const data = await appearanceService.getAppearance(Number(characterId));
-          console.log('Loaded appearance data:', data);
-          setAppearance(data);
-        } else {
-          console.log('No auth token or character ID available');
-          if (onboardingState.appearance) {
-            console.log('Using appearance from onboarding state');
-            setAppearance(onboardingState.appearance);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load appearance:', error);
-        if (onboardingState.appearance) {
-          console.log('Using appearance from onboarding state after error');
-          setAppearance(onboardingState.appearance);
-        }
-      }
-    };
-
-    loadAppearance();
-  }, [authToken, characterId, onboardingState.appearance]);
-
-  const handleEquip = (item: EquipmentItem) => {
-    setEquippedItems(prev => ({
-      ...prev,
-      [item.type.slice(0, -1)]: item
+    // Add final rewards as artifacts
+    const newArtifacts = completionData.finalRewards.map((reward, index) => ({
+      name: reward,
+      type: 'Completion Reward',
+      equipped: false,
+      resonance: 85 + (index * 5),
+      description: `Awarded for completing the grimoire journey`,
+      rarity: 'Epic' as const,
     }));
-    setInventory(prev => prev.filter(i => i.id !== item.id));
+    archive.setFinalRewardsArtifacts([...archive.finalRewardsArtifacts, ...newArtifacts]);
+
+    // Add learned skills
+    archive.handleSkillLearned(completionData.skillsLearned);
+
+    // Show completion alert
+    Alert.alert(
+      '📚 Grimoire Mastered! ✨',
+      `Your journey through the ${ui.selectedStory?.title} has transformed your understanding.`,
+      [{ text: 'Continue Exploring', style: 'default' }]
+    );
   };
 
-  const handleUnequip = (item: EquipmentItem) => {
-    setEquippedItems(prev => {
-      const newEquipped = { ...prev };
-      delete newEquipped[item.type.slice(0, -1) as keyof EquippedItems];
-      return newEquipped;
-    });
-    setInventory(prev => [...prev, item]);
-  };
-
-  const getItemIcon = (item: EquipmentItem) => {
-    switch (item.type) {
-      case 'focus':
-        return equipmentIcons.focus[item.subtype as 'meditation' | 'breathing' | 'journaling'];
-      case 'comfort':
-        return equipmentIcons.comfort[item.subtype as 'social' | 'hobby' | 'nature'];
-      case 'shield':
-        return equipmentIcons.shield[item.subtype as 'boundary' | 'affirmation' | 'routine'];
-      case 'ground':
-        return equipmentIcons.ground[item.subtype as 'exercise' | 'sleep' | 'nutrition'];
-      default:
-        return undefined;
-    }
-  };
-
-  // Function to get story progress color
-  const getProgressColor = (progress: number) => {
-    if (progress === 0) return '#666';
-    if (progress === 100) return '#2ECC71';
-    return '#F39C12';
-  };
-
-  // Enhanced Codex save handler with reflection analysis
-  const handleCodexSave = (entry: {
+  // Codex handlers
+  const handleCodexEntrySubmit = (entry: {
     type: string;
     content: string;
     prompt: string;
@@ -226,653 +93,626 @@ const GameHomeScreen = () => {
     mapArea: string;
     difficulty: string;
   }) => {
-    const newEntry: CodexEntry = {
-      id: Date.now().toString(),
-      ...entry,
-      timestamp: Date.now(),
-    };
+    archive.handleCodexEntry(entry);
     
-    // Analyze the reflection for personal insights
-    const analysis = analyzeReflection(entry.content, entry.prompt);
-    
-    // Update wellness stats based on analysis
-    if (Object.keys(analysis.stat_gains).length > 0) {
-      setWellnessStats(prev => prev.map(stat => {
-        const statKey = stat.label.toLowerCase().substring(0, 3);
-        const gain = (analysis.stat_gains as StatGains)[statKey] || 0;
-        return {
-          ...stat,
-          value: Math.min(20, stat.value + gain) // Cap at 20
-        };
-      }));
-    }
+    Alert.alert(
+      '📝 Reflection Recorded',
+      `Your ${entry.skillCategory} reflection has been added to the Archive.`,
+      [{ text: 'Continue Exploring', style: 'default' }]
+    );
+  };
 
-    // Check for gear unlocks
-    if (analysis.gear_unlocks.length > 0) {
-      // Add new gear to inventory
-      const newGear = analysis.gear_unlocks.map(gearName => createGearItem(gearName));
-      setInventory(prev => [...prev, ...newGear]);
-      
-      // Show unlock notification
+  // Mini-game handlers
+  const handleMiniGameCompleteSubmit = (gameType: 'thoughtDefender' | 'drawing', data: any) => {
+    archive.handleMiniGameComplete(gameType, data);
+    
+    if (gameType === 'thoughtDefender' && data.won) {
       Alert.alert(
-        'New Coping Tool Unlocked!',
-        `Your self-discovery has unlocked: ${analysis.gear_unlocks.join(', ')}\n\n${analysis.recognition_message}`,
-        [{ text: 'Amazing!', style: 'default' }]
+        '🏆 Mind Defense Victory!',
+        `You've successfully defended your mind!\n\nLevel: ${data.level}\nScore: ${data.score}`,
+        [{ text: 'Excellent!', style: 'default' }]
       );
-    } else if (analysis.recognition_message) {
-      // Show recognition without gear unlock
+    } else if (gameType === 'drawing') {
       Alert.alert(
-        'Growth Recognized',
-        analysis.recognition_message,
-        [{ text: 'Continue Exploring', style: 'default' }]
+        '🎨 Creative Expression Recorded',
+        'Your drawing has been added to the Archive.',
+        [{ text: 'Continue Creating', style: 'default' }]
       );
     }
-
-    setCodexEntries(prev => [...prev, newEntry]);
-    setIsCodexVisible(false);
   };
 
-  const handleMapPress = () => {
-    setIsMapVisible(true);
-  };
-
-  const handleMapClose = () => {
-    setIsMapVisible(false);
-    setSelectedArea(null);
-  };
-
-  const handleAreaSelect = (area: ArchiveArea) => {
-    setSelectedArea(area);
-  };
-
-  // Get stat description based on current value
-  const getStatDescription = (statLabel: string, value: number) => {
-    const statKey = statLabel.toLowerCase().substring(0, 3);
-    const descriptions = (STAT_MEANINGS as StatDescriptions)[statKey];
-    if (!descriptions) return 'Developing...';
-
-    const relevantKey = Math.floor(value / 3) * 3;
-    return descriptions[relevantKey] || descriptions[18] || 'Developing...';
-  };
-
-  // Wellness tooltip component
-  const WellnessTooltip = ({ stat, value }: { stat: string; value: number }) => (
-    <View style={styles.tooltipContainer}>
-      <Text style={styles.tooltipText}>
-        {getStatDescription(stat, value)}
+  // Tab button component
+  const TabButton: React.FC<{
+    title: string;
+    icon: string;
+    isActive: boolean;
+    onPress: () => void;
+  }> = ({ title, icon, isActive, onPress }) => (
+    <TouchableOpacity
+      style={[theme.styles.tabButton, isActive && theme.styles.activeTab]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      {isActive && (
+        <LinearGradient
+          colors={['rgba(217, 119, 6, 0.4)', 'rgba(251, 146, 60, 0.4)']}
+          style={StyleSheet.absoluteFillObject}
+        />
+      )}
+      <Icon name={icon} size={18} color={isActive ? '#FCD34D' : '#9CA3AF'} />
+      <Text style={[theme.styles.tabText, isActive && theme.styles.activeTabText]}>
+        {title}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
-    
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <ScrollView style={styles.content} contentContainerStyle={{ alignItems: 'center', paddingTop: 20 }}>
-        
-        {/* Top: Rarity, Class, Name */}
-        <View style={styles.topInfo}>
-          <Text style={styles.rarity}>Archivist</Text>
-          <Text style={styles.class}>Memory Keeper</Text>
-          <Text style={styles.heroName}>Ira</Text>
-        </View>
+    <View style={theme.styles.archiveContainer}>
+      <StatusBar barStyle={theme.themeMode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme.theme.archiveBackground} />
+      
+      {/* Gothic Background */}
+      <LinearGradient
+        colors={[theme.theme.archiveGradientStart, theme.theme.archiveGradientMiddle, theme.theme.archiveGradientEnd]}
+        style={StyleSheet.absoluteFillObject}
+      />
+      
+      {/* Atmospheric Overlay */}
+      <View style={theme.styles.atmosphericOverlay} />
 
-        {/* Character and Gear */}
-        <View style={styles.gearRow}>
-          <View style={styles.gearCol}>
-            {gearSlots.slice(0, 2).map((slot, i) => (
-              <TouchableOpacity 
-                key={i} 
-                style={styles.gearSlot}
-                onPress={() => setIsEquipmentModalVisible(true)}
-              >
-                {equippedItems[slot.type.slice(0, -1) as keyof EquippedItems] ? (
-                  <Image
-                    source={getItemIcon(equippedItems[slot.type.slice(0, -1) as keyof EquippedItems]!)}
-                    style={styles.gearIcon}
-                  />
-                ) : (
-                  <View style={styles.emptySlot}>
-                    <Text style={styles.slotLabel}>{slot.label}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.characterCard}>
-            {appearance && (
-              <View style={styles.characterPreview}>
-                <Image source={bgOptions[appearance.background]} style={[styles.layer, styles.background]} />
-                <Image source={baseOptionsVar[appearance.skin]} style={styles.layer} />
-                <Image source={hairOptions[appearance.hair]} style={styles.layer} />
-                <Image source={clothesOptions[appearance.clothes]} style={styles.layer} />
-                <Image source={eyesOptions[appearance.eyes]} style={styles.layer} />
-                <Image source={mouthOptions[appearance.mouth]} style={styles.layer} />
-              </View>
-            )}
-          </View>
-
-          <View style={styles.gearCol}>
-            {gearSlots.slice(2).map((slot, i) => (
-              <TouchableOpacity 
-                key={i} 
-                style={styles.gearSlot}
-                onPress={() => setIsEquipmentModalVisible(true)}
-              >
-                {equippedItems[slot.type.slice(0, -1) as keyof EquippedItems] ? (
-                  <Image
-                    source={getItemIcon(equippedItems[slot.type.slice(0, -1) as keyof EquippedItems]!)}
-                    style={styles.gearIcon}
-                  />
-                ) : (
-                  <View style={styles.emptySlot}>
-                    <Text style={styles.slotLabel}>{slot.label}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Current Mood/State */}
-        <View style={styles.speechBubble}>
-          <Text style={styles.speechText}>Ready to explore the depths of memory...</Text>
-        </View>
-
-        {/* Wellness Attributes */}
-        <View style={styles.attributesSection}>
-          <Text style={styles.sectionTitle}>Wellness Attributes</Text>
-          <View style={styles.attributesRow}>
-            {wellnessStats.map((stat, i) => (
-              <TouchableOpacity 
-                key={i} 
-                style={[styles.attributeBox, { borderColor: stat.color }]}
-                onPress={() => Alert.alert(
-                  `${stat.label} - ${stat.value}`,
-                  getStatDescription(stat.label, stat.value)
-                )}
-              >
-                <Text style={styles.attributeIcon}>{stat.icon}</Text>
-                <Text style={[styles.attributeValue, { color: stat.color }]}>{stat.value}</Text>
-                <Text style={styles.attributeLabel}>{stat.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Archive Progress */}
-        <View style={styles.progressSection}>
-          <Text style={styles.sectionTitle}>Archive Progress</Text>
-          <View style={styles.progressRow}>
-            {archiveMetrics.map((metric, i) => (
-              <View key={i} style={styles.progressBox}>
-                <Text style={styles.progressIcon}>{metric.icon}</Text>
-                <Text style={styles.progressValue}>{metric.value}</Text>
-                <Text style={styles.progressLabel}>{metric.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Memory Collection */}
-        <View style={styles.storiesSection}>
-          <View style={styles.storiesHeader}>
-            <Text style={styles.sectionTitle}>Memory Vault</Text>
-            <PixelButton>
-              <Button 
-                title="Browse All"
-                variant="lightGreen"
-                onPress={() => setIsStoryCatalogVisible(true)}
-                style={{ width: 120 }}
-              />
-            </PixelButton>
-          </View>
-          
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 10 }}
-            style={{ width: '100%' }}
+      <View style={theme.styles.archiveContent}>
+        {/* Archive Header */}
+        <View style={theme.styles.archiveHeader}>
+          <LinearGradient
+            colors={['rgba(30, 41, 59, 0.6)', 'rgba(51, 65, 85, 0.4)', 'rgba(30, 41, 59, 0.6)']}
+            style={theme.styles.archiveHeaderGradient}
           >
-            {sampleStories.map(story => (
-              <TouchableOpacity
-                key={story.id}
-                style={styles.storyCard}
-                onPress={() => {
-                  setSelectedStory(story);
-                  setIsStoryScreenVisible(true);
-                }}
-                activeOpacity={0.8}
-              >
-                <Image source={story.image} style={styles.storyImage} />
-                
-                {/* Progress indicator */}
-                {story.progress > 0 && (
-                  <View style={styles.progressIndicator}>
-                    <View style={[styles.progressBar, { backgroundColor: getProgressColor(story.progress) }]}>
-                      <View style={[styles.progressFill, { width: `${story.progress}%` }]} />
-                    </View>
-                    <Text style={styles.progressText}>{story.progress}%</Text>
+            <BlurView intensity={15} style={theme.styles.archiveHeaderContent}>
+              <View style={theme.styles.archiveHeaderLeft}>
+                <LinearGradient
+                  colors={['#D97706', '#F97316', '#DC2626']}
+                  style={theme.styles.archiveHeaderIcon}
+                >
+                  <Icon name="book" size={20} color="white" />
+                  <View style={theme.styles.archiveHeaderIconOverlay}>
+                    <Icon name="zap" size={12} color="#FCD34D" />
                   </View>
-                )}
-                
-                <View style={styles.storyContent}>
-                  <View style={styles.storyHeader}>
-                    <Text style={styles.storyTitle}>{story.title}</Text>
-                    <Text style={styles.storyDifficulty}>{story.difficulty}</Text>
-                    <Text style={styles.skillCategory}>{story.skillCategory}</Text>
-                  </View>
-                  <Text style={styles.storyDesc}>{story.description}</Text>
-                  
-                  <View style={styles.storyAction}>
-                    <Text style={styles.actionText}>
-                      {story.progress === 0 ? 'Begin' : story.progress === 100 ? 'Revisit' : 'Continue'}
-                    </Text>
+                </LinearGradient>
+                <View style={theme.styles.archiveHeaderTextContainer}>
+                  <Text style={theme.styles.archiveHeaderTitle}>The Archive</Text>
+                  <Text style={theme.styles.archiveHeaderSubtitle}>Keeper of Memory • Curator of Hidden Knowledge</Text>
+                  <View style={theme.styles.archiveStatusIndicator}>
+                    <View style={theme.styles.archiveStatusDot} />
+                    <Text style={theme.styles.archiveStatusText}>Archive systems active</Text>
                   </View>
                 </View>
+              </View>
+              
+              <TouchableOpacity
+                style={theme.styles.archiveSecondaryButton}
+                onPress={() => ui.setResearchCondition(ui.researchCondition === 'character' ? 'personality' : 'character')}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={ui.researchCondition === 'character' 
+                    ? ['rgba(139, 92, 246, 0.8)', 'rgba(79, 70, 229, 0.8)']
+                    : ['rgba(55, 65, 81, 0.8)', 'rgba(75, 85, 99, 0.8)']
+                  }
+                  style={theme.styles.archiveSecondaryButtonGradient}
+                >
+                  <Icon name="shuffle" size={14} color="#FCD34D" />
+                  <Text style={theme.styles.archiveSecondaryButtonText}>Switch Paradigm</Text>
+                </LinearGradient>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            </BlurView>
+          </LinearGradient>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsSection}>
-          <PixelButton>
-            <Button 
-              title="🎒 Manage Coping Tools"
-              variant="darkBrown"
-              onPress={() => setIsEquipmentModalVisible(true)}
-              style={{ width: 180 }}
-            />
-          </PixelButton>
+        {/* Tab Navigation */}
+        <View style={theme.styles.archiveTabContainer}>
+          <LinearGradient
+            colors={['rgba(30, 41, 59, 0.8)', 'rgba(51, 65, 85, 0.9)', 'rgba(30, 41, 59, 0.8)']}
+            style={theme.styles.archiveTabGradient}
+          >
+            <BlurView intensity={20} style={theme.styles.archiveTabContent}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={theme.styles.archiveTabScrollContent}
+              >
+                <TabButton title="Entrance Hall" icon="home" isActive={ui.activeTab === 'entrance'} onPress={() => ui.setActiveTab('entrance')} />
+                <TabButton title="Ancient Grimoires" icon="book-open" isActive={ui.activeTab === 'tomes'} onPress={() => ui.setActiveTab('tomes')} />
+                <TabButton title="Codex" icon="edit-3" isActive={ui.activeTab === 'codex'} onPress={() => ui.setActiveTab('codex')} />
+                <TabButton title="Mind Defender" icon="zap" isActive={ui.activeTab === 'defender'} onPress={() => ui.setActiveTab('defender')} />
+                <TabButton title="Memory Map" icon="map" isActive={ui.activeTab === 'map'} onPress={() => ui.setActiveTab('map')} />
+                <TabButton title="Restoration" icon="award" isActive={ui.activeTab === 'restoration'} onPress={() => ui.setActiveTab('restoration')} />
+              </ScrollView>
+            </BlurView>
+          </LinearGradient>
         </View>
 
-        {/* Spacer for bottom nav */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+        {/* Tab Content */}
+        <ScrollView style={theme.styles.archiveTabContentContainer} showsVerticalScrollIndicator={false}>
+          
+          {/* Entrance Hall Tab */}
+          {ui.activeTab === 'entrance' && (
+            <View style={theme.styles.tabContentArea}>
+              {/* Avatar Showcase Section */}
+              <View style={theme.styles.avatarShowcaseSection}>
+                <LinearGradient
+                  colors={['rgba(30, 41, 59, 0.95)', 'rgba(51, 65, 85, 0.8)', 'rgba(30, 41, 59, 0.95)']}
+                  style={theme.styles.avatarShowcaseGradient}
+                >
+                  {/* Header */}
+                  <View style={theme.styles.avatarShowcaseHeader}>
+                    <Icon name="user" size={20} color="#A855F7" />
+                    <Text style={theme.styles.avatarShowcaseTitle}>Avatar Manifestation</Text>
+                    <Icon name="user" size={20} color="#A855F7" />
+                  </View>
+                  
+                  {/* Character Info Bar */}
+                  <View style={theme.styles.characterInfoBar}>
+                    <View style={theme.styles.characterDetails}>
+                      <Text style={theme.styles.characterRarity}>Memory Archivist</Text>
+                      <Text style={theme.styles.characterClass}>Keeper of Hidden Knowledge</Text>
+                      <Text style={theme.styles.characterName}>Ira, the Seeker</Text>
+                    </View>
+                    
+                    <TouchableOpacity
+                      style={theme.styles.researchConditionBadge}
+                      onPress={() => ui.setResearchCondition(ui.researchCondition === 'character' ? 'personality' : 'character')}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={ui.researchCondition === 'character' 
+                          ? ['rgba(139, 92, 246, 0.8)', 'rgba(79, 70, 229, 0.8)']
+                          : ['rgba(55, 65, 81, 0.8)', 'rgba(75, 85, 99, 0.8)']
+                        }
+                        style={theme.styles.researchConditionGradient}
+                      >
+                        <Text style={theme.styles.researchConditionText}>
+                          {ui.researchCondition === 'character' ? '✦ Avatar Path ✦' : '⧫ Essence Path ⧫'}
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
 
-      {/* Equipment Modal */}
-      <EquipmentModal
-        visible={isEquipmentModalVisible}
-        onClose={() => setIsEquipmentModalVisible(false)}
-        onEquip={handleEquip}
-        onUnequip={handleUnequip}
-        inventory={inventory}
-        equippedItems={equippedItems}
-      />
+                  {/* Main Character Display with Gear */}
+                  <View style={theme.styles.characterDisplaySection}>
+                    {/* Left Gear Column */}
+                    <View style={theme.styles.gearColumn}>
+                      {[
+                        { type: 'focus' as keyof typeof equipment.equippedItems, label: 'Clarity Relic', icon: '🔮' },
+                        { type: 'comfort' as keyof typeof equipment.equippedItems, label: 'Sanctuary Codex', icon: '📜' }
+                      ].map((slot, i) => (
+                        <TouchableOpacity 
+                          key={i}
+                          style={theme.styles.gearSlot}
+                          onPress={() => {/* Open equipment modal */}}
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={['rgba(51, 65, 85, 0.9)', 'rgba(30, 41, 59, 0.7)']}
+                            style={theme.styles.gearSlotGradient}
+                          >
+                            {equipment.equippedItems[slot.type] ? (
+                              <Image
+                                source={equipment.getItemIcon(equipment.equippedItems[slot.type]!)}
+                                style={theme.styles.gearIcon}
+                                resizeMode="contain"
+                              />
+                            ) : (
+                              <View style={theme.styles.emptyGearSlot}>
+                                <Text style={theme.styles.gearSlotIcon}>{slot.icon}</Text>
+                                <Text style={theme.styles.gearSlotLabel}>{slot.label}</Text>
+                              </View>
+                            )}
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
 
-      <StoryCatalogModal
-        visible={isStoryCatalogVisible}
-        onClose={() => setIsStoryCatalogVisible(false)}
-        onSelectStory={story => {
-          setSelectedStory(story);
-          setIsStoryCatalogVisible(false);
-          setIsStoryScreenVisible(true);
-        }}
-      />
+                    {/* Central Character Display */}
+                    <View style={theme.styles.centralCharacterDisplay}>
+                      <LinearGradient
+                        colors={['rgba(139, 92, 246, 0.3)', 'rgba(79, 70, 229, 0.2)', 'rgba(6, 182, 212, 0.3)']}
+                        style={theme.styles.characterFrame}
+                      >
+                        <View style={theme.styles.characterFrameInner}>
+                          {character.appearance && (
+                            <View style={theme.styles.fullCharacterPreview}>
+                              <Image source={bgOptions[character.appearance.background]} style={[theme.styles.fullCharacterLayer, theme.styles.backgroundLayer]} />
+                              <Image source={baseOptions[character.appearance.skin]} style={theme.styles.fullCharacterLayer} />
+                              <Image source={hairOptions[character.appearance.hair]} style={theme.styles.fullCharacterLayer} />
+                              <Image source={clothesOptions[character.appearance.clothes]} style={theme.styles.fullCharacterLayer} />
+                              <Image source={eyesOptions[character.appearance.eyes]} style={theme.styles.fullCharacterLayer} />
+                              <Image source={mouthOptions[character.appearance.mouth]} style={theme.styles.fullCharacterLayer} />
+                            </View>
+                          )}
+                          
+                          {/* Character Level and Status */}
+                          <View style={theme.styles.characterLevelBadge}>
+                            <LinearGradient colors={['#FCD34D', '#F59E0B']} style={theme.styles.levelBadgeGradient}>
+                              <Text style={theme.styles.levelBadgeText}>Lv.3</Text>
+                            </LinearGradient>
+                          </View>
+                          
+                          {/* Essence Resonance Indicator */}
+                          <View style={theme.styles.essenceResonanceIndicator}>
+                            <LinearGradient
+                              colors={['rgba(139, 92, 246, 0.8)', 'rgba(79, 70, 229, 0.8)']}
+                              style={theme.styles.essenceResonanceGradient}
+                            >
+                              <Icon name="zap" size={12} color="#FCD34D" />
+                              <Text style={theme.styles.essenceResonanceText}>87% Resonance</Text>
+                            </LinearGradient>
+                          </View>
+                        </View>
+                      </LinearGradient>
+                      
+                      {/* Character Mood Bubble */}
+                      <View style={theme.styles.characterMoodBubble}>
+                        <LinearGradient
+                          colors={['#FEF3C7', '#FDE68A']}
+                          style={theme.styles.moodBubbleGradient}
+                        >
+                          <Text style={theme.styles.moodBubbleText}>
+                            "Ready to explore the depths of memory..."
+                          </Text>
+                        </LinearGradient>
+                      </View>
+                    </View>
 
-      <StoryScreen
-        visible={isStoryScreenVisible}
-        onClose={() => setIsStoryScreenVisible(false)}
-        story={selectedStory ?? undefined}
+                    {/* Right Gear Column */}
+                    <View style={theme.styles.gearColumn}>
+                      {[
+                        { type: 'shield' as keyof typeof equipment.equippedItems, label: 'Guardian Ward', icon: '🛡️' },
+                        { type: 'ground' as keyof typeof equipment.equippedItems, label: 'Foundation Stone', icon: '⚓' }
+                      ].map((slot, i) => (
+                        <TouchableOpacity 
+                          key={i}
+                          style={theme.styles.gearSlot}
+                          onPress={() => {/* Open equipment modal */}}
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={['rgba(51, 65, 85, 0.9)', 'rgba(30, 41, 59, 0.7)']}
+                            style={theme.styles.gearSlotGradient}
+                          >
+                            {equipment.equippedItems[slot.type] ? (
+                              <Image
+                                source={equipment.getItemIcon(equipment.equippedItems[slot.type]!)}
+                                style={theme.styles.gearIcon}
+                                resizeMode="contain"
+                              />
+                            ) : (
+                              <View style={theme.styles.emptyGearSlot}>
+                                <Text style={theme.styles.gearSlotIcon}>{slot.icon}</Text>
+                                <Text style={theme.styles.gearSlotLabel}>{slot.label}</Text>
+                              </View>
+                            )}
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Research Condition Info */}
+                  {ui.researchCondition === 'personality' && (
+                    <View style={theme.styles.researchConditionInfo}>
+                      <LinearGradient
+                        colors={['rgba(139, 92, 246, 0.3)', 'rgba(79, 70, 229, 0.3)']}
+                        style={theme.styles.researchConditionInfoGradient}
+                      >
+                        <Icon name="zap" size={16} color="#FCD34D" />
+                        <Text style={theme.styles.researchConditionInfoTitle}>Essence-Calibrated Avatar</Text>
+                        <Text style={theme.styles.researchConditionInfoText}>
+                          Your avatar's manifestation has been shaped by the deepest readings of your psychological essence patterns
+                        </Text>
+                      </LinearGradient>
+                    </View>
+                  )}
+                </LinearGradient>
+              </View>
+
+              {/* Archive Foundations Section */}
+              <View style={theme.styles.foundationsSection}>
+                <LinearGradient
+                  colors={['rgba(30, 41, 59, 0.9)', 'rgba(51, 65, 85, 0.7)', 'rgba(30, 41, 59, 0.9)']}
+                  style={theme.styles.foundationsSectionGradient}
+                >
+                  <View style={theme.styles.foundationsHeader}>
+                    <Icon name="anchor" size={20} color="#10B981" />
+                    <Text style={theme.styles.foundationsTitle}>Archive Foundations</Text>
+                    <Icon name="anchor" size={20} color="#10B981" />
+                  </View>
+                  <Text style={theme.styles.foundationsSubtitle}>
+                    The ethereal pillars that support your mental architecture
+                  </Text>
+                  
+                  <View style={theme.styles.foundationsGrid}>
+                    {archive.archiveFoundations.map((foundation, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={theme.styles.foundationCard}
+                        onPress={() => Alert.alert(
+                          `${foundation.label} - Level ${Math.floor(foundation.value / 2) + 1}`,
+                          `${foundation.description}\n\n🎯 Next Unlock: ${foundation.nextUnlock}`
+                        )}
+                        activeOpacity={0.8}
+                      >
+                        <LinearGradient
+                          colors={['rgba(51, 65, 85, 0.8)', 'rgba(30, 41, 59, 0.6)', 'rgba(51, 65, 85, 0.8)']}
+                          style={theme.styles.foundationCardGradient}
+                        >
+                          <View style={theme.styles.foundationIconContainer}>
+                            <Text style={theme.styles.foundationIcon}>{foundation.icon}</Text>
+                            {foundation.recentGain > 0 && (
+                              <View style={theme.styles.recentGainBadge}>
+                                <LinearGradient
+                                  colors={['#10B981', '#34D399']}
+                                  style={theme.styles.recentGainGradient}
+                                >
+                                  <Text style={theme.styles.recentGainText}>+{foundation.recentGain}</Text>
+                                </LinearGradient>
+                              </View>
+                            )}
+                          </View>
+                          
+                          <View style={theme.styles.foundationValueContainer}>
+                            <Text style={theme.styles.foundationValue}>
+                              {foundation.value}<Text style={theme.styles.foundationMaxValue}>/{foundation.maxValue}</Text>
+                            </Text>
+                            <Text style={theme.styles.foundationLevel}>
+                              Level {Math.floor(foundation.value / 5) + 1}
+                            </Text>
+                          </View>
+                          
+                          <View style={theme.styles.foundationProgressContainer}>
+                            <View style={theme.styles.foundationProgressBar}>
+                              <LinearGradient
+                                colors={foundation.colors as any}
+                                style={[theme.styles.foundationProgressFill, { width: `${(foundation.value / foundation.maxValue) * 100}%` }]}
+                              />
+                            </View>
+                            <Text style={theme.styles.xpToNext}>
+                              {5 - (foundation.value % 5)} XP to next unlock
+                            </Text>
+                          </View>
+                          
+                          <Text style={theme.styles.foundationLabel}>{foundation.label}</Text>
+                          <Text style={theme.styles.foundationDescription}>{foundation.description}</Text>
+                          
+                          <View style={theme.styles.nextUnlockContainer}>
+                            <Icon name="lock" size={10} color="#FCD34D" />
+                            <Text style={theme.styles.nextUnlockText}>{foundation.nextUnlock}</Text>
+                          </View>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </LinearGradient>
+              </View>
+            </View>
+          )}
+
+          {/* Ancient Grimoires Tab - Show grimoire list directly */}
+          {ui.activeTab === 'tomes' && (
+            <View style={theme.styles.tabContentArea}>
+              {ui.memoryGrimoires.map((grimoire, index) => (
+                <TouchableOpacity
+                  key={index} 
+                  style={theme.styles.chronicleCard}
+                  onPress={() => handleOpenGrimoire(grimoire)}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['rgba(30, 41, 59, 0.95)', 'rgba(51, 65, 85, 0.8)', 'rgba(30, 41, 59, 0.95)'] as const}
+                    style={theme.styles.chronicleGradient}
+                  >
+                    <View style={theme.styles.chronicleTopBorder} />
+                    
+                    <View style={theme.styles.chronicleHeader}>
+                      <View style={theme.styles.chronicleInfo}>
+                        <Text style={theme.styles.chronicleTitle}>{grimoire.title}</Text>
+                        <View style={theme.styles.chronicleBadges}>
+                          <View style={theme.styles.categoryBadge}>
+                            <Text style={theme.styles.categoryBadgeText}>{grimoire.category}</Text>
+                          </View>
+                          <View style={theme.styles.difficultyBadge}>
+                            <Text style={theme.styles.difficultyBadgeText}>{grimoire.difficulty}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    <View style={theme.styles.chronicleDescriptionContainer}>
+                      <Text style={theme.styles.chronicleDescription}>{grimoire.description}</Text>
+                      <Text style={theme.styles.chronicleAtmosphere}>✦ {grimoire.atmosphere} ✦</Text>
+                    </View>
+                    
+                    <View style={theme.styles.explorationContainer}>
+                      <View style={theme.styles.explorationHeader}>
+                        <Icon name="compass" size={16} color="#06B6D4" />
+                        <Text style={theme.styles.explorationLabel}>Exploration Progress</Text>
+                        <Text style={theme.styles.explorationValue}>{grimoire.exploration}%</Text>
+                      </View>
+                      <View style={theme.styles.explorationBar}>
+                        <LinearGradient
+                          colors={['#06B6D4', '#A855F7', '#4F46E5'] as const}
+                          style={[theme.styles.explorationFill, { width: `${grimoire.exploration}%` }]}
+                        />
+                      </View>
+                    </View>
+                    
+                    <View style={theme.styles.chronicleStats}>
+                      <View style={theme.styles.chronicleStat}>
+                        <Icon name="key" size={16} color="#FCD34D" />
+                        <Text style={theme.styles.chronicleStatText}>{grimoire.revelations} revelations</Text>
+                      </View>
+                      <View style={theme.styles.chronicleStat}>
+                        <Icon name="clock" size={16} color="#FB923C" />
+                        <Text style={theme.styles.chronicleStatText}>{grimoire.timeToComplete}</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={theme.styles.chronicleButton}>
+                      <LinearGradient
+                        colors={['#7C3AED', '#4F46E5', '#7C3AED'] as const}
+                        style={theme.styles.chronicleButtonGradient}
+                      >
+                        <Icon name="book-open" size={18} color="#E0E7FF" />
+                        <Text style={theme.styles.chronicleButtonText}>
+                          {archive.completedStories.has(grimoire.id) 
+                            ? 'Restart Exploration' 
+                            : grimoire.exploration > 0 
+                              ? 'Resume Exploration' 
+                              : 'Enter Ancient Grimoire'
+                          }
+                        </Text>
+                      </LinearGradient>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Codex Tab */}
+          {ui.activeTab === 'codex' && (
+            <View style={theme.styles.tabContentArea}>
+              <View style={theme.styles.centeredMessageContainer}>
+                <Icon name="edit-3" size={40} color="#A855F7" style={{ marginBottom: 16 }} />
+                <Text style={theme.styles.centeredMessageTitle}>The Codex</Text>
+                <Text style={theme.styles.centeredMessageText}>
+                  Your personal journal for reflections, insights, and tracking your journey of self-discovery.
+                </Text>
+                <TouchableOpacity style={theme.styles.primaryButton} onPress={() => ui.setIsCodexVisible(true)}>
+                  <LinearGradient colors={['#7C3AED', '#4F46E5']} style={theme.styles.primaryButtonGradient}>
+                    <Icon name="book-open" size={18} color="#E0E7FF" />
+                    <Text style={theme.styles.primaryButtonText}>Open Your Journal</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Mind Defender Tab */}
+          {ui.activeTab === 'defender' && (
+            <View style={theme.styles.tabContentArea}>
+              <View style={theme.styles.centeredMessageContainer}>
+                <Icon name="zap" size={40} color="#FCD34D" style={{ marginBottom: 16 }} />
+                <Text style={theme.styles.centeredMessageTitle}>Mind Defender</Text>
+                <Text style={theme.styles.centeredMessageText}>
+                  A mini-game to train your focus and resilience against intrusive thoughts.
+                </Text>
+                <TouchableOpacity style={theme.styles.primaryButton} onPress={() => ui.setIsThoughtDefenderVisible(true)}>
+                  <LinearGradient colors={['#F97316', '#F59E0B']} style={theme.styles.primaryButtonGradient}>
+                    <Icon name="zap" size={18} color="#FEF3C7" />
+                    <Text style={theme.styles.primaryButtonText}>Play Now</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Memory Map Tab */}
+          {ui.activeTab === 'map' && (
+            <View style={theme.styles.tabContentArea}>
+              <View style={theme.styles.centeredMessageContainer}>
+                <Icon name="map" size={40} color="#06B6D4" style={{ marginBottom: 16 }} />
+                <Text style={theme.styles.centeredMessageTitle}>Memory Map</Text>
+                <Text style={theme.styles.centeredMessageText}>
+                  Explore the vast archive of your mind, unlock new areas, and discover hidden wisdom.
+                </Text>
+                <TouchableOpacity style={theme.styles.primaryButton} onPress={() => ui.setIsMapVisible(true)}>
+                  <LinearGradient colors={['#06B6D4', '#3B82F6']} style={theme.styles.primaryButtonGradient}>
+                    <Icon name="map" size={18} color="#E0E7FF" />
+                    <Text style={theme.styles.primaryButtonText}>Explore the Map</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Restoration Tab */}
+          {ui.activeTab === 'restoration' && (
+            <View style={theme.styles.archiveTabContentArea}>
+              {/* Restoration metrics */}
+              <View style={theme.styles.archiveRestorationGrid}>
+                {[
+                  { 
+                    icon: '📜', 
+                    label: 'Chronicles Explored', 
+                    value: `${archive.restorationMetrics.chroniclesExplored}/12`, 
+                    description: 'Memory fragments fully integrated' 
+                  },
+                  { 
+                    icon: '💎', 
+                    label: 'Artifacts Discovered', 
+                    value: `${archive.restorationMetrics.artifactsDiscovered}`, 
+                    description: 'Coping mechanisms crystallized into tools' 
+                  },
+                  { 
+                    icon: '🗝️', 
+                    label: 'Revelations Unlocked', 
+                    value: `${archive.restorationMetrics.revelationsUnlocked}`, 
+                    description: 'Hidden chambers of self-knowledge opened' 
+                  },
+                ].map((metric, index) => (
+                  <View key={index} style={theme.styles.archiveRestorationCard}>
+                    <LinearGradient
+                      colors={['rgba(30, 41, 59, 0.9)', 'rgba(51, 65, 85, 0.7)', 'rgba(30, 41, 59, 0.9)']}
+                      style={theme.styles.archiveRestorationCardGradient}
+                    >
+                      <Text style={theme.styles.archiveRestorationIcon}>{metric.icon}</Text>
+                      <Text style={theme.styles.archiveRestorationLabel}>{metric.label}</Text>
+                      <Text style={theme.styles.archiveRestorationValue}>{metric.value}</Text>
+                      <Text style={theme.styles.archiveRestorationDescription}>{metric.description}</Text>
+                    </LinearGradient>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+      
+      {/* Modals */}
+      <GrimoireScreen
+        visible={ui.isStoryVisible}
+        onClose={handleCloseStory}
+        grimoire={ui.selectedStory}
+        onStatGain={() => {}} // This would be handled by the master state
+        onArtifactUnlock={archive.handleArtifactUnlock}
+        onSkillLearned={archive.handleSkillLearned}
+        onStoryComplete={handleStoryCompleteLocal}
       />
 
       <CodexModal
-        visible={isCodexVisible}
-        onClose={() => setIsCodexVisible(false)}
-        onSave={handleCodexSave}
-        unlockedAreas={codexEntries.map(entry => entry.mapArea)}
-      />
-
-      <ArchiveMapModal
-        visible={isMapVisible}
-        currentRoomId={ selectedArea?.id ?? ''}
-        onClose={handleMapClose}
-        onAreaSelect={handleAreaSelect}
-        completedEntries={codexEntries.length}
-        entries={codexEntries}
+        visible={ui.isCodexVisible}
+        onClose={() => ui.setIsCodexVisible(false)}
+        onSave={handleCodexEntrySubmit}
+        unlockedAreas={archive.codexEntries.map(entry => entry.mapArea)}
       />
 
       <ThoughtDefenderModal
-        visible={isThoughtDefenderVisible}
-        onClose={() => setIsThoughtDefenderVisible(false)}
-        onScoreUpdate={(score) => {
-          // Update wellness stats based on game score
-          setWellnessStats(prev => prev.map(stat => ({
-            ...stat,
-            value: Math.min(20, stat.value + Math.floor(score / 100))
-          })));
-        }}
+        visible={ui.isThoughtDefenderVisible}
+        onClose={() => ui.setIsThoughtDefenderVisible(false)}
+        onScoreUpdate={(data: { score: number; level: number; won: boolean }) => 
+          handleMiniGameCompleteSubmit('thoughtDefender', data)
+        }
       />
 
-      {/* Bottom Navigation Bar */}
-      <View style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        height: 70,
-        backgroundColor: '#23242b',
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderColor: '#333',
-        zIndex: 100,
-      }}>
-        {bottomNav.map((item, idx) => (
-          <TouchableOpacity
-            key={item.label}
-            onPress={() => {
-              if (item.label === 'Codex') setIsCodexVisible(true);
-              if (item.label === 'Memory Map') setIsMapVisible(true);
-              if (item.label === 'Thought Defender') {
-                setIsThoughtDefenderVisible(true);
-              }
-              if (item.label === 'Milestones') {
-                Alert.alert('Milestones', 'Coming soon! Track your achievements in coping skills.');
-              }
-            }}
-            style={{ alignItems: 'center' }}
-          >
-            <Text style={{ fontSize: 22 }}>{item.icon}</Text>
-            <Text style={{ color: '#fff', fontSize: 12 }}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <ArchiveMapModal
+        visible={ui.isMapVisible}
+        onClose={() => ui.setIsMapVisible(false)}
+        onAreaSelect={(area: ArchiveArea) => ui.setCurrentMapRoomId(area.id)}
+        completedEntries={archive.codexEntries.length}
+        entries={archive.codexEntries}
+        currentRoomId={ui.currentMapRoomId}
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#181A20',
-  },
-  content: {
-    flex: 1,
-  },
-  topInfo: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  rarity: {
-    color: '#4ee6e6',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  class: {
-    color: '#ffe066',
-    fontWeight: 'bold',
-    fontSize: 15,
-    marginBottom: 2,
-  },
-  heroName: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 22,
-    marginBottom: 6,
-  },
-  gearRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  gearCol: {
-    justifyContent: 'space-between',
-    height: 180,
-  },
-  gearSlot: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#23242b',
-    borderRadius: 10,
-    marginVertical: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  gearIcon: {
-    width: 32,
-    height: 32,
-    resizeMode: 'contain',
-  },
-  emptySlot: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  slotLabel: {
-    color: '#666',
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  speechBubble: {
-    backgroundColor: '#f5e6c4',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    alignSelf: 'center',
-    marginVertical: 10,
-    borderWidth: 2,
-    borderColor: '#e2c48d',
-    maxWidth: 320,
-  },
-  speechText: {
-    color: '#5a4a2c',
-    fontSize: 15,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  attributesSection: {
-    width: '90%',
-    marginVertical: 15,
-  },
-  attributesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  attributeBox: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#23242b',
-    borderRadius: 10,
-    paddingVertical: 12,
-    marginHorizontal: 4,
-    borderWidth: 2,
-  },
-  attributeIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  attributeValue: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  attributeLabel: {
-    color: '#ccc',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  progressSection: {
-    width: '90%',
-    marginVertical: 10,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  progressBox: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#1a1b1f',
-    borderRadius: 8,
-    paddingVertical: 10,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  progressIcon: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  progressValue: {
-    color: '#ffe066',
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  progressLabel: {
-    color: '#999',
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  storiesSection: {
-    width: '100%',
-    marginVertical: 20,
-  },
-  storiesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  storyCard: {
-    width: 200,
-    backgroundColor: '#23242b',
-    borderRadius: 16,
-    marginHorizontal: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  storyImage: {
-    width: '100%',
-    height: 120,
-    resizeMode: 'cover',
-  },
-  progressIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 4,
-    padding: 4,
-    minWidth: 40,
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: 30,
-    height: 3,
-    backgroundColor: '#333',
-    borderRadius: 2,
-    marginBottom: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 2,
-  },
-  progressText: {
-    color: '#fff',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
-  storyContent: {
-    padding: 12,
-  },
-  storyHeader: {
-    marginBottom: 8,
-  },
-  storyTitle: {
-    color: '#ffe066',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  storyDifficulty: {
-    color: '#4ee6e6',
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  skillCategory: {
-    color: '#ffe066',
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  storyDesc: {
-    color: '#ccc',
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  storyAction: {
-    alignItems: 'center',
-    backgroundColor: '#1a1b1f',
-    borderRadius: 6,
-    paddingVertical: 8,
-  },
-  actionText: {
-    color: '#4ee6e6',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  quickActionsSection: {
-    width: '90%',
-    marginVertical: 10,
-  },
-  characterCard: {
-    width: 140,
-    height: 250,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#181A20',
-    borderRadius: 12,
-    marginRight: 28,
-    borderWidth: 1,
-    borderColor: '#222',
-    overflow: 'hidden',
-  },
-  characterPreview: {
-    width: 120,
-    height: 220,
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  layer: {
-    position: 'absolute',
-    width: 120,
-    height: 220,
-    resizeMode: 'contain',
-  },
-  background: {
-    zIndex: -1,
-  },
-  tooltipContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 10,
-    borderRadius: 8,
-    maxWidth: 200,
-  },
-  tooltipText: {
-    color: '#fff',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-});
-
-export default GameHomeScreen;
+export default ArchiveInterface; 

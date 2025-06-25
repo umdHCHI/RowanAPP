@@ -1,17 +1,19 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Animated,
+  createGlobalStyles,
   Dimensions,
+  Icon,
+  LinearGradient,
   Modal,
+  React,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
-import { useTheme } from '../../context/ThemeContext';
-import { createGlobalStyles } from '../../styles/globalStyles';
+  useEffect,
+  useState,
+  useTheme,
+  View,
+} from '../../imports';
 
 const { width, height } = Dimensions.get('window');
 

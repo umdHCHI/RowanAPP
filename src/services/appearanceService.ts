@@ -17,8 +17,8 @@ export interface BackendCharacterData {
   selected_hair_color: number;
   selected_eye_type: number;
   selected_eye_color: number;
-  selected_eyebrow_style?: number;
-  selected_eyebrow_color?: number;
+  selected_eyebrow_style: number;
+  selected_eyebrow_color: number;
   selected_mouth_type: number;
   selected_shirt_type: number;
   selected_background_type: number;
@@ -60,6 +60,26 @@ class AppearanceService {
       return await apiService.post<Appearance>('appearances', { ...appearanceData, character: characterId });
     } catch (error) {
       console.error('Error creating appearance:', error);
+      throw error;
+    }
+  }
+
+  // ===== Character Customization Methods =====
+  
+  async updateCharacterCustomization(characterId: number, customizationData: BackendCharacterData): Promise<any> {
+    try {
+      return await apiService.updateCharacterCustomization(characterId, customizationData);
+    } catch (error) {
+      console.error('Error updating character customization:', error);
+      throw error;
+    }
+  }
+
+  async uploadAppearanceAsset(assetType: string, assetId: number, imageFile: any): Promise<any> {
+    try {
+      return await apiService.uploadAppearanceAsset(assetType, assetId, imageFile);
+    } catch (error) {
+      console.error('Error uploading appearance asset:', error);
       throw error;
     }
   }
@@ -192,6 +212,8 @@ class AppearanceService {
     hairColor: number;
     eyeType: number;
     eyeColor: number;
+    eyebrowStyle: number;
+    eyebrowColor: number;
     mouthType: number;
     shirtType: number;
     backgroundType: number;
@@ -203,6 +225,8 @@ class AppearanceService {
       selected_hair_color: params.hairColor,
       selected_eye_type: params.eyeType,
       selected_eye_color: params.eyeColor,
+      selected_eyebrow_style: params.eyebrowStyle,
+      selected_eyebrow_color: params.eyebrowColor,
       selected_mouth_type: params.mouthType,
       selected_shirt_type: params.shirtType,
       selected_background_type: params.backgroundType,
@@ -235,6 +259,8 @@ class AppearanceService {
         selected_hair_color: character.selected_hair_color,
         selected_eye_type: character.selected_eye_type,
         selected_eye_color: character.selected_eye_color,
+        selected_eyebrow_style: character.selected_eyebrow_style,
+        selected_eyebrow_color: character.selected_eyebrow_color,
         selected_mouth_type: character.selected_mouth_type,
         selected_shirt_type: character.selected_shirt_type,
         selected_background_type: character.selected_background_type,
@@ -246,6 +272,44 @@ class AppearanceService {
       console.error('Error getting character assets:', error);
       throw error;
     }
+  }
+
+  /**
+   * Utility method to update character customization with proper data structure
+   */
+  async updateCharacterCustomizationWithDefaults(characterId: number, partialData: Partial<BackendCharacterData>): Promise<any> {
+    // Provide default values for missing fields
+    const fullData: BackendCharacterData = {
+      selected_base_model: 0,
+      selected_skin_color: 0,
+      selected_hair_style: 0,
+      selected_hair_color: 0,
+      selected_eye_type: 0,
+      selected_eye_color: 0,
+      selected_eyebrow_style: 0,
+      selected_eyebrow_color: 0,
+      selected_mouth_type: 0,
+      selected_shirt_type: 0,
+      selected_background_type: 0,
+      ...partialData
+    };
+    
+    return this.updateCharacterCustomization(characterId, fullData);
+  }
+
+  /**
+   * Example usage of appearance asset upload
+   */
+  async uploadHairStyleAsset(assetId: number, imageFile: any): Promise<any> {
+    return this.uploadAppearanceAsset('hair_style', assetId, imageFile);
+  }
+
+  async uploadEyeStyleAsset(assetId: number, imageFile: any): Promise<any> {
+    return this.uploadAppearanceAsset('eye_style', assetId, imageFile);
+  }
+
+  async uploadMouthStyleAsset(assetId: number, imageFile: any): Promise<any> {
+    return this.uploadAppearanceAsset('mouth_style', assetId, imageFile);
   }
 }
 
