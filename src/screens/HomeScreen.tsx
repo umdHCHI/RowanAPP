@@ -1,11 +1,13 @@
-import { useAuth } from "../context/AuthContext";
-import { useOnboarding } from "../context/OnboardingContext";
-import { useTheme } from "../context/ThemeContext";
+import {
+  useAuth,
+  useOnboarding,
+  useTheme
+} from "../imports";
 import CharacterHomeScreen from "./characterStory/CharacterHomeScreen";
 import CharacterCreatorScreen from "./onboarding/CharacterCreatorScreen";
+import PersonalitySurveyScreen from "./onboarding/PersonalitySurveyScreen";
 import WelcomeScreen from "./onboarding/WelcomeScreen";
 import PersonalityHomeScreen from "./personalityStory/PersonalityHomeScreen";
-import PersonalitySurveyScreen from "./PersonalitySurveyScreen";
 
 export default function HomeScreen() {
   const { styles } = useTheme();

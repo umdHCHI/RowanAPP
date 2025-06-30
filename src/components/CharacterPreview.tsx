@@ -1,61 +1,38 @@
 import React from 'react';
-import { Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { CharacterPreviewProps } from '../types/appearance';
 
-// Set the size for the whole preview (background and all layers)
-const PREVIEW_WIDTH = 270;  // Match your background image's width
-const PREVIEW_HEIGHT = 150; // Match your background image's height
-
-// Use these for all layers
+// Sizing and offset constants (can be adjusted as needed)
+const PREVIEW_WIDTH = 500;
+const PREVIEW_HEIGHT = 250;
 const BASE_WIDTH = PREVIEW_WIDTH;
 const BASE_HEIGHT = PREVIEW_HEIGHT;
 const BASE_TOP_OFFSET = 0;
 const BASE_LEFT_OFFSET = 0;
-
 const HAIR_WIDTH = PREVIEW_WIDTH;
 const HAIR_HEIGHT = PREVIEW_HEIGHT;
-const HAIR_TOP_OFFSET = 0;
+const HAIR_TOP_OFFSET = -35;
 const HAIR_LEFT_OFFSET = 0;
-
-const CLOTHES_WIDTH = PREVIEW_WIDTH;
-const CLOTHES_HEIGHT = PREVIEW_HEIGHT;
-const CLOTHES_TOP_OFFSET = 0;
-const CLOTHES_LEFT_OFFSET = 0;
-
+const CLOTHES_WIDTH = PREVIEW_WIDTH * 0.4;
+const CLOTHES_HEIGHT = CLOTHES_WIDTH / 3; // Example aspect ratio
+const CLOTHES_LEFT_OFFSET = (PREVIEW_WIDTH - CLOTHES_WIDTH) / 2;
+const CLOTHES_TOP_OFFSET = 160;
 const EYES_WIDTH = PREVIEW_WIDTH;
 const EYES_HEIGHT = PREVIEW_HEIGHT;
-const EYES_TOP_OFFSET = 0;
+const EYES_TOP_OFFSET = -30;
 const EYES_LEFT_OFFSET = 0;
-
 const EYEBROWS_WIDTH = PREVIEW_WIDTH;
 const EYEBROWS_HEIGHT = PREVIEW_HEIGHT;
-const EYEBROWS_TOP_OFFSET = 0;
+const EYEBROWS_TOP_OFFSET = -30;
 const EYEBROWS_LEFT_OFFSET = 0;
-
 const MOUTH_WIDTH = PREVIEW_WIDTH;
 const MOUTH_HEIGHT = PREVIEW_HEIGHT;
-const MOUTH_TOP_OFFSET = 0;
+const MOUTH_TOP_OFFSET = -30;
 const MOUTH_LEFT_OFFSET = 0;
 
-// Only use the correct assets for the main avatar preview
-
-type CharacterPreviewProps = {
-  background: ImageSourcePropType;
-  skinIndex: ImageSourcePropType;
-  hairSheet: ImageSourcePropType;
-  clothesSheet: ImageSourcePropType;
-  eyesSheet: ImageSourcePropType;
-  eyebrowsSheet: ImageSourcePropType;
-  mouthSheet: ImageSourcePropType;
-  hairIndex: number;
-  clothesIndex: number;
-  eyesIndex: number;
-  eyebrowsIndex: number;
-  mouthIndex: number;
-};
-
 const CharacterPreview: React.FC<CharacterPreviewProps> = ({
+  baseAsset,
   background,
-  skinIndex,
   hairSheet,
   clothesSheet,
   eyesSheet,
@@ -70,7 +47,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
   return (
     <View style={styles.previewContainer}>
       <Image source={background} style={styles.baseLayer} />
-      <Image source={skinIndex} style={styles.baseLayer} />
+      <Image source={baseAsset} style={styles.baseLayer} />
       <Image source={hairSheet} style={styles.hairLayer} />
       <Image source={clothesSheet} style={styles.clothesLayer} />
       <Image source={eyesSheet} style={styles.eyesLayer} />

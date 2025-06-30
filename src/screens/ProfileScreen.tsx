@@ -1,4 +1,5 @@
-import { Text, TouchableOpacity, View, useTheme } from "../imports";
+import { Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "../context/ThemeContext";
 
 export default function ProfileScreen() {
   const { styles, isDark, toggleTheme } = useTheme();

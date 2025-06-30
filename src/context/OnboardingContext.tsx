@@ -1,7 +1,7 @@
 //contexts for onboarding if the users is allocated for survey or character creator
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { CharacterAppearance, Appearance } from '../types/appearance';
+import { Appearance, CharacterAppearance } from '../types/appearance';
 type OnboardingPath = 'survey' | 'character' | null;
 
 
@@ -12,6 +12,7 @@ export type OnboardingState = {
   researchGroup: 'A' | 'B' | null; // 'A' for character, 'B' for survey, null for loading
   characterAppearance?: CharacterAppearance;
   appearance?: Appearance; 
+  isLoading: boolean;
 };
 
 interface OnboardingContextType {
@@ -22,6 +23,7 @@ interface OnboardingContextType {
   setAssignedPath: (path: OnboardingPath) => void;
   setCharacterAppearance: (appearance: CharacterAppearance) => void;
   resetOnboarding: () => void;
+  setIsLoading: (loading: boolean) => void;
 }
 
 // To test different states, modify these values:
@@ -33,6 +35,7 @@ const defaultState: OnboardingState = {
   assignedPath: null, // initially null, can be set to 'survey' or 'character'
   researchGroup: 'A',
   characterAppearance: undefined,
+  isLoading: false,
 };
 
 
@@ -69,6 +72,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setOnboardingState(prev => ({
       ...prev,
       isComplete: true,
+      assignedPath: 'character',
+      researchGroup: 'A',
     }));
   };
 
@@ -100,6 +105,13 @@ const setAssignedPath = (path: OnboardingPath) => {
     AsyncStorage.removeItem(CHARACTER_APPEARANCE_KEY).catch(() => {});
   };
 
+  const setIsLoading = (loading: boolean) => {
+    setOnboardingState(prev => ({
+      ...prev,
+      isLoading: loading,
+    }));
+  };
+
   return (
     <OnboardingContext.Provider
       value={{
@@ -110,6 +122,7 @@ const setAssignedPath = (path: OnboardingPath) => {
         setAssignedPath,
         setCharacterAppearance,
         resetOnboarding,
+        setIsLoading,
       }}
     >
       {children}

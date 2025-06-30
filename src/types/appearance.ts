@@ -1,28 +1,41 @@
-export interface Appearance {
-    id: number;
-    gender: 'masculine' | 'feminine' | 'nonbinary';
-    skin: number;
-    hair: number;
-    clothes: number;
-    glasses: number;
-    background: number;
-    eyes: number;
-    mouth: number;
-    created_at: string;
-    updated_at: string;
-  }
-  
-  export interface AppearanceData {
-    gender: 'masculine' | 'feminine' | 'nonbinary';
-    skin: string;
-    hair: string;
-    clothes: string;
-    glasses: string;
-    eyes: string;
-    mouth: string;
-  }
+import React from 'react';
+import { ImageSourcePropType } from 'react-native';
+import { Character } from './user';
 
-  export interface CharacterAppearance {
+// Consolidated Appearance type that matches the backend character model structure
+export interface Appearance {
+  id: number;
+  character: number;
+  
+  // Character customization fields (matching backend Character model)
+  selected_base_model: number;
+  selected_skin_color: number;
+  selected_hair_style: number;
+  selected_hair_color: number;
+  selected_eye_type: number;
+  selected_eye_color: number;
+  selected_eyebrow_style: number;
+  selected_eyebrow_color: number;
+  selected_mouth_type: number;
+  selected_shirt_type: number;
+  selected_background_type: number;
+  
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppearanceData {
+  gender: 'masculine' | 'feminine' | 'nonbinary';
+  skin: string;
+  hair: string;
+  clothes: string;
+  glasses: string;
+  eyes: string;
+  mouth: string;
+}
+
+export interface CharacterAppearance {
   gender: 'masculine' | 'feminine' | 'nonbinary';
   skin: number;
   hair: number;
@@ -31,44 +44,6 @@ export interface Appearance {
   eyes: number;
   mouth: number;
   background: number;
-  isComplete: boolean;
-}
-
-// Consolidated Appearance types - single source of truth
-export interface Appearance {
-  id: number;
-  character: number;
-  
-  // Asset image mappings (JSON fields)
-  base_model_images: Record<string, string>;
-  skin_color_images: Record<string, string>;
-  hair_style_images: Record<string, string>;
-  hair_color_images: Record<string, string>;
-  eye_images: Record<string, string>;
-  eye_color_images: Record<string, string>;
-  eyebrow_images: Record<string, string>;
-  mouth_images: Record<string, string>;
-  shirt_images: Record<string, string>;
-  background_images: Record<string, string>;
-  
-  // Generated character image
-  character_image?: string;
-  
-  // Timestamps
-  created_at: string;
-  updated_at: string;
-}
-
-// Frontend character appearance for onboarding context
-export interface CharacterAppearance {
-  gender: 'masculine' | 'feminine' | 'nonbinary';
-  skin: number;      // Frontend asset index
-  hair: number;      // Frontend asset index
-  clothes: number;   // Frontend asset index
-  eyes: number;      // Frontend asset index
-  mouth: number;     // Frontend asset index
-  background: number; // Frontend asset index
-  glasses: number;
   isComplete: boolean;
 }
 
@@ -118,6 +93,89 @@ export interface ExperienceGainResponse {
   wellness_updates?: Record<string, number>;
 }
 
-// Import Character type from user.ts to avoid duplication
-import { Character } from './user';
+export type CharacterPreviewProps = {
+  baseAsset: ImageSourcePropType;
+  background: ImageSourcePropType;
+  hairSheet: ImageSourcePropType;
+  clothesSheet: ImageSourcePropType;
+  eyesSheet: ImageSourcePropType;
+  eyebrowsSheet: ImageSourcePropType;
+  mouthSheet: ImageSourcePropType;
+  hairIndex: number;
+  clothesIndex: number;
+  eyesIndex: number;
+  eyebrowsIndex: number;
+  mouthIndex: number;
+};
 
+export type CharacterFrameProps = {
+  children: React.ReactNode;
+  frame?: ImageSourcePropType;
+  size?: number;
+};
+
+// ===== CENTRALIZED CHARACTER CREATOR CATEGORIES =====
+
+export interface CategoryConfig {
+  label: string;
+  options: number;
+  current: number;
+  setter: (value: number) => void;
+}
+
+export interface CharacterCreatorCategories {
+  styleCategories: CategoryConfig[];
+  colorCategories: CategoryConfig[];
+}
+
+// Utility function to create category configurations
+export const createCharacterCreatorCategories = (
+  character: {
+    selectedHairStyle: number;
+    selectedEyeType: number;
+    selectedEyebrowStyle: number;
+    selectedMouthType: number;
+    selectedShirtType: number;
+    selectedBackgroundType: number;
+    selectedBaseModel: number;
+    selectedHairColor: number;
+    selectedEyeColor: number;
+    selectedEyebrowColor: number;
+    selectedClothesColor: number;
+    selectedBackgroundColor: number;
+  },
+  setters: {
+    setSelectedHairStyle: (value: number) => void;
+    setSelectedEyeType: (value: number) => void;
+    setSelectedEyebrowStyle: (value: number) => void;
+    setSelectedMouthType: (value: number) => void;
+    setSelectedShirtType: (value: number) => void;
+    setSelectedBackgroundType: (value: number) => void;
+    setSelectedBaseModel: (value: number) => void;
+    setSelectedHairColor: (value: number) => void;
+    setSelectedEyeColor: (value: number) => void;
+    setSelectedEyebrowColor: (value: number) => void;
+    setSelectedClothesColor: (value: number) => void;
+    setSelectedBackgroundColor: (value: number) => void;
+  }
+): CharacterCreatorCategories => {
+  const styleCategories: CategoryConfig[] = [
+    { label: 'Hair Style', options: 12, current: character.selectedHairStyle, setter: setters.setSelectedHairStyle },
+    { label: 'Eyes', options: 12, current: character.selectedEyeType, setter: setters.setSelectedEyeType },
+    { label: 'Eyebrow Style', options: 12, current: character.selectedEyebrowStyle, setter: setters.setSelectedEyebrowStyle },
+    { label: 'Mouth', options: 12, current: character.selectedMouthType, setter: setters.setSelectedMouthType },
+    { label: 'Clothes', options: 12, current: character.selectedShirtType, setter: setters.setSelectedShirtType },
+    { label: 'Background', options: 11, current: character.selectedBackgroundType, setter: setters.setSelectedBackgroundType },
+  ];
+
+  const colorCategories: CategoryConfig[] = [
+    { label: 'Skin Color', options: 16, current: character.selectedBaseModel, setter: setters.setSelectedBaseModel },
+    { label: 'Hair Color', options: 16, current: character.selectedHairColor, setter: setters.setSelectedHairColor },
+    { label: 'Eye Color', options: 16, current: character.selectedEyeColor, setter: setters.setSelectedEyeColor },
+    { label: 'Eyebrow Color', options: 16, current: character.selectedEyebrowColor, setter: setters.setSelectedEyebrowColor },
+    { label: 'Clothes Color', options: 16, current: character.selectedClothesColor || 0, setter: setters.setSelectedClothesColor },
+    { label: 'Background Color', options: 16, current: character.selectedBackgroundColor || 0, setter: setters.setSelectedBackgroundColor },
+  ];
+
+  return { styleCategories, colorCategories };
+}; 

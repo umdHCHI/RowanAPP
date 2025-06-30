@@ -3,7 +3,7 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
 import { EquipmentItem, EquippedItems } from '../types/equipment';
 import { Prompt } from '../types/journal';
-import { Character, CharacterCreateData, CharacterCustomizationData, GameData, LoginResponse, ResearchGroup, UserProfile } from '../types/user';
+import { CharacterCreateData, GameData, LoginResponse, ResearchGroup, UserProfile } from '../types/user';
 import { API_ENDPOINTS, apiBaseUrl } from './apiConfig';
 
 const testToken = Constants.expoConfig?.extra?.TEST_USER_TOKEN as string;
@@ -14,7 +14,141 @@ if (!testToken) {
     console.warn('TEST_USER_TOKEN not configured in environment variables');
 }
 
-const FALLBACK_TEST_TOKEN = 'f1cc174d83a2101bc328075957300f2407b68324';
+const FALLBACK_TEST_TOKEN = '8a71299900898a32febbca89ef5638a406475348';
+
+// ===== NEW TYPES FOR WELLNESS BACKEND =====
+export interface WellnessCharacter {
+    id: number;
+    user: string;
+    name: string;
+    level: number;
+    experience: number;
+    // Wellness attributes
+    awareness: number;
+    resilience: number;
+    connection: number;
+    balance: number;
+    // Resources
+    coins: number;
+    crystals: number;
+    // Progress
+    memories_explored: number;
+    coping_skills_learned: number;
+    insights_discovered: number;
+    // Customization indices (frontend maps these to assets)
+    selected_base_model: number;
+    selected_skin_color: number;
+    selected_hair_style: number;
+    selected_hair_color: number;
+    selected_eye_type: number;
+    selected_eye_color: number;
+    selected_eyebrow_style: number;
+    selected_eyebrow_color: number;
+    selected_mouth_type: number;
+    selected_shirt_type: number;
+    selected_background_type: number;
+    // Calculated fields
+    experience_needed_for_next_level: number;
+    experience_progress_percentage: number;
+    wellness_average: number;
+    memory_progress: string;
+    wellness_stats: WellnessStats[];
+    character_config: CharacterConfig;
+    coping_tools: CharacterTool[];
+    equipped_gear: CharacterGear[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CharacterConfig {
+    selected_base_model: number;
+    selected_skin_color: number;
+    selected_hair_style: number;
+    selected_hair_color: number;
+    selected_eye_type: number;
+    selected_eye_color: number;
+    selected_eyebrow_style: number;
+    selected_eyebrow_color: number;
+    selected_mouth_type: number;
+    selected_shirt_type: number;
+    selected_background_type: number;
+}
+
+export interface WellnessStats {
+    icon: string;
+    label: string;
+    value: number;
+    color: string;
+}
+
+export interface CopingTool {
+    id: number;
+    name: string;
+    tool_type: 'focus' | 'comfort' | 'shield' | 'ground';
+    subtype: string;
+    description: string;
+    emoji_icon: string;
+    awareness_bonus: number;
+    resilience_bonus: number;
+    connection_bonus: number;
+    balance_bonus: number;
+    level_required: number;
+    memories_required: number;
+    insights_required: number;
+    wellness_bonuses: Record<string, number>;
+    is_unlocked_for_character: boolean;
+    created_at: string;
+}
+
+export interface CharacterTool {
+    id: number;
+    tool: CopingTool;
+    is_equipped: boolean;
+    times_used: number;
+    effectiveness_rating?: number;
+    acquired_at: string;
+}
+
+export interface ReflectionEntry {
+    id: number;
+    character: string;
+    entry_type: 'memory' | 'insight' | 'skill' | 'challenge' | 'growth';
+    title: string;
+    content: string;
+    prompt: string;
+    skill_category?: string;
+    map_area?: string;
+    difficulty?: string;
+    wellness_gains: Record<string, number>;
+    tools_unlocked: CopingTool[];
+    created_at: string;
+}
+
+export interface CharacterGear {
+    id: number;
+    gear_type: {
+        id: number;
+        name: string;
+        slot: 'weapon' | 'armor' | 'helmet' | 'boots';
+        description: string;
+        emoji_icon: string;
+        stat_bonuses: Record<string, number>;
+    };
+    is_equipped: boolean;
+    acquired_at: string;
+}
+
+export interface HomeData {
+    character: WellnessCharacter;
+    archive_metrics: {
+        icon: string;
+        label: string;
+        value: string;
+        progress: number;
+    }[];
+    recent_reflections: ReflectionEntry[];
+    available_tools: CopingTool[];
+}
 
 // ===== Axios Setup =====
 const apiClient: AxiosInstance = axios.create({
@@ -74,14 +208,23 @@ class ApiService {
     }
 
     public async post<T>(endpoint: keyof typeof API_ENDPOINTS, data?: any, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
+        const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
+        console.log(`POST ${url}`, { data, config });
+        
         try {
-            const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
             const axiosConfig = { ...config };
             delete (axiosConfig as any).urlSuffix;
             const response = await apiClient.post<T>(url, data, axiosConfig);
+            console.log(`POST ${url} success:`, response.data);
             return response.data;
-        } catch (error) {
-            this.handleError(error, 'POST', API_ENDPOINTS[endpoint]);
+        } catch (error: any) {
+            console.error(`POST ${url} failed:`, error);
+            if (error.response) {
+                console.error('Response data:', error.response.data);
+                console.error('Response status:', error.response.status);
+                console.error('Response headers:', error.response.headers);
+            }
+            this.handleError(error, 'POST', url);
             throw error;
         }
     }
@@ -112,10 +255,12 @@ class ApiService {
         }
     }
 
-    private handleError(error: any, method: string, url: string) {
+    private handleError(error: any, method: string, endpoint: string | ((storyId: number, passageId: string) => string)) {
+        const endpointStr = typeof endpoint === 'function' ? 'function' : endpoint;
+        
         if (axios.isAxiosError(error)) {
             const axiosError = error as AxiosError;
-            console.error(`Error in ${method} ${url}:`, {
+            console.error(`Error in ${method} ${endpointStr}:`, {
                 status: axiosError.response?.status,
                 data: axiosError.response?.data,
                 message: axiosError.message,
@@ -123,19 +268,17 @@ class ApiService {
                 url: axiosError.config?.url,
             });
             
-            // Log the full error response for debugging
             if (axiosError.response?.data) {
                 console.error('Full error response:', axiosError.response.data);
             }
         } else {
-            console.error(`Error in ${method} ${url}:`, error);
+            console.error(`Error in ${method} ${endpointStr}:`, error);
         }
     }
 
     // ===== Authentication Methods =====
     async login(username: string, password: string): Promise<LoginResponse> {
         try {
-            // Call the real login endpoint for all users
             const response = await this.post<LoginResponse>('login', { username, password });
             await AsyncStorage.setItem('authToken', response.token);
             await AsyncStorage.setItem('characterId', String(response.user.id));
@@ -181,11 +324,7 @@ class ApiService {
     }
 
     async updateProfile(profileData: any): Promise<UserProfile> {
-        return this.patch<UserProfile>('updateProfile', { profile: profileData });
-    }
-
-    async getUsers(): Promise<UserProfile[]> {
-        return this.get<UserProfile[]>('users');
+        return this.patch<UserProfile>('users', profileData);
     }
 
     async assignResearchGroup(groupId: number): Promise<void> {
@@ -193,14 +332,10 @@ class ApiService {
     }
 
     async assignResearchGroupByCondition(condition: 'A' | 'B'): Promise<void> {
-        // First, get available research groups
         const availableGroups = await this.getAvailableGroups();
-        
-        // Find a group with the matching condition
         const targetGroup = availableGroups.find(group => group.condition === condition);
         
         if (!targetGroup) {
-            // If no group exists with this condition, try to create one
             console.log(`No research group found with condition ${condition}, attempting to create one...`);
             try {
                 const newGroup = await this.createResearchGroup(condition);
@@ -210,18 +345,12 @@ class ApiService {
                 throw new Error(`No research group available for condition ${condition} and could not create one`);
             }
         } else {
-            // Assign to existing group
             await this.post('assignResearchGroup', { research_group_id: targetGroup.id });
         }
     }
 
-    // ===== Research Group Methods =====
     async getAvailableGroups(): Promise<ResearchGroup[]> {
-        console.log('Fetching user\'s research group...');
-        // Get the user's assigned research group (if any)
-        const userGroups = await this.get<ResearchGroup[]>('availableResearchGroups');
-        console.log('User\'s research groups received:', userGroups);
-        return userGroups;
+        return this.get<ResearchGroup[]>('availableResearchGroups');
     }
 
     async getAllGroups(): Promise<ResearchGroup[]> {
@@ -235,88 +364,284 @@ class ApiService {
         });
     }
 
-    // ===== Onboarding Methods =====
     async completeOnboarding(path: 'character' | 'survey'): Promise<UserProfile> {
         try {
-            const groups = await this.getAvailableGroups();
-            const researchGroup = groups.find((group) => 
-                (path === 'character' && group.condition === 'A') || 
-                (path === 'survey' && group.condition === 'B')
-            );
-
-            if (!researchGroup) {
-                throw new Error('No suitable research group found');
+            console.log('=== API SERVICE: COMPLETING ONBOARDING ===');
+            console.log('Path:', path);
+            
+            // First, try to get the current user profile
+            let currentProfile;
+            try {
+                currentProfile = await this.getProfile();
+                console.log('Current profile found:', currentProfile);
+            } catch (error) {
+                console.log('No existing profile found');
+                currentProfile = null;
             }
 
-            const updatedProfile = await this.post<UserProfile>('completeOnboarding', {
+            // Prepare the onboarding data
+            const onboardingData: any = {
                 has_completed_onboarding: true,
-                completion_type: path,
-                research_group: researchGroup.id
-            });
+                completion_type: path
+            };
 
-            console.log('Onboarding completed:', updatedProfile);
+            console.log('Sending onboarding data:', onboardingData);
+
+            // Try to complete onboarding using the endpoint
+            const updatedProfile = await this.post<UserProfile>('completeOnboarding', onboardingData);
+            console.log('Onboarding completed successfully:', updatedProfile);
             return updatedProfile;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error completing onboarding:', error);
+            if (error.response) {
+                console.error('Response data:', error.response.data);
+                console.error('Response status:', error.response.status);
+            }
             throw error;
         }
     }
 
     // ===== Character Methods =====
-    async createCharacter(characterData: CharacterCreateData): Promise<Character> {
-        return this.post<Character>('characters', characterData);
+    async createCharacter(characterData: CharacterCreateData): Promise<WellnessCharacter> {
+        // POST to /api/characters/characters/ - Create new character
+        try {
+            console.log('=== API SERVICE: CHARACTER CREATION ===');
+            console.log('API Base URL:', apiBaseUrl);
+            console.log('Endpoint:', API_ENDPOINTS.characters);
+            console.log('Full URL will be:', `${apiBaseUrl}${API_ENDPOINTS.characters}`);
+            console.log('Original character data:', characterData);
+            
+            // Check if this is a simple name-only request or complete character data
+            const isSimpleRequest = Object.keys(characterData).length === 1 && 'name' in characterData;
+            
+            if (isSimpleRequest) {
+                // Simple request - only send the name field
+                const cleanData = { name: characterData.name };
+                console.log('Simple request - cleaned data (name only):', cleanData);
+                console.log('Simple data JSON:', JSON.stringify(cleanData, null, 2));
+                console.log('Simple data keys:', Object.keys(cleanData));
+                
+                // Verify no user field is present
+                if ('user' in cleanData) {
+                    console.error('ERROR: user field found in clean data!');
+                    throw new Error('User field should not be present in character creation data');
+                }
+                
+                const result = await this.post<WellnessCharacter>('characters', cleanData);
+                console.log('Character created successfully (simple):', result);
+                return result;
+            } else {
+                // Complete request - send all character data including customization
+                console.log('Complete request - sending full character data:', characterData);
+                console.log('Complete data JSON:', JSON.stringify(characterData, null, 2));
+                console.log('Complete data keys:', Object.keys(characterData));
+                
+                // Verify no user field is present
+                if ('user' in characterData) {
+                    console.error('ERROR: user field found in character data!');
+                    throw new Error('User field should not be present in character creation data');
+                }
+                
+                const result = await this.post<WellnessCharacter>('characters', characterData);
+                console.log('Character created successfully (complete):', result);
+                return result;
+            }
+        } catch (error: any) {
+            console.error('Character creation failed:', error);
+            if (error.response) {
+                console.error('Response data:', error.response.data);
+                console.error('Response status:', error.response.status);
+                console.error('Response headers:', error.response.headers);
+            }
+            throw error;
+        }
     }
 
-    async getMyCharacter(): Promise<Character> {
-        return this.get<Character>('myCharacter');
+    async getMyCharacter(): Promise<WellnessCharacter> {
+        return this.get<WellnessCharacter>('myCharacter');
     }
 
-    async getCharacterHomeData(): Promise<any> {
-        return this.get<any>('characterHomeData');
+    async getCharacterHomeData(): Promise<HomeData> {
+        return this.get<HomeData>('characterHomeData');
     }
 
-    async updateCharacterCustomization(characterId: number, customizationData: CharacterCustomizationData): Promise<Character> {
-        return this.patch<Character>('characterCustomization', customizationData, { urlSuffix: `${characterId}/update_customization/` });
+    async getCharacterStats(): Promise<{
+        base_stats: Record<string, number>;
+        total_stats: Record<string, number>;
+        level: number;
+        experience: number;
+        experience_needed: number;
+        experience_progress: number;
+        wellness_average: number;
+        equipped_tools_count: number;
+        character_config: CharacterConfig;
+    }> {
+        return this.get('characterStats');
     }
 
-    async updateCharacterStats(characterId: number, statsData: any): Promise<Character> {
-        return this.patch<Character>('characterStats', statsData, { urlSuffix: `${characterId}/update_stats/` });
+    async updateCharacterCustomization(characterId: number, customizationData: Partial<CharacterConfig>): Promise<{
+        message: string;
+        character: WellnessCharacter;
+        character_config: CharacterConfig;
+    }> {
+        return this.patch('characters', customizationData, { urlSuffix: `${characterId}/` });
     }
 
-    async gainExperience(characterId: number, experience: number): Promise<any> {
-        return this.post<any>('characterExperience', { experience }, { urlSuffix: `${characterId}/gain_experience/` });
+    async gainExperience(characterId: number, experience: number, source?: string): Promise<WellnessCharacter & {
+        experience_gained: number;
+        source: string;
+        level_up?: boolean;
+        levels_gained?: number;
+        message?: string;
+    }> {
+        return this.post('gainExperience', { experience, source }, { urlSuffix: `${characterId}/gain-experience/` });
     }
 
-    async equipGear(characterId: number, gearData: any): Promise<any> {
-        return this.post<any>('characterGear', gearData, { urlSuffix: `${characterId}/equip_gear/` });
+    async gainWellness(characterId: number, wellnessGains: Partial<{
+        awareness: number;
+        resilience: number;
+        connection: number;
+        balance: number;
+    }>): Promise<WellnessCharacter & {
+        wellness_gained: Record<string, number>;
+        new_values: Record<string, number>;
+        message: string;
+    }> {
+        return this.post('gainWellness', wellnessGains, { urlSuffix: `${characterId}/gain-wellness/` });
     }
 
-    async getCustomizationOptions(): Promise<any> {
-        return this.get<any>('customizationOptions');
+    async getCustomizationOptions(): Promise<CharacterConfig & { option_limits: Record<string, number> }> {
+        return this.get('customizationOptions');
     }
 
-    async uploadAppearanceAsset(assetType: string, assetId: number, imageFile: any): Promise<any> {
-        const formData = new FormData();
-        formData.append('asset_type', assetType);
-        formData.append('asset_id', assetId.toString());
-        formData.append('image', imageFile);
+    // ===== NEW COPING TOOLS METHODS =====
+    async getAvailableCopingTools(): Promise<CopingTool[]> {
+        return this.get<CopingTool[]>('availableCopingTools');
+    }
+
+    async getAllCopingTools(): Promise<CopingTool[]> {
+        return this.get<CopingTool[]>('copingTools');
+    }
+
+    async getCopingToolsByType(type?: string, subtype?: string): Promise<CopingTool[]> {
+        const params = new URLSearchParams();
+        if (type) params.append('type', type);
+        if (subtype) params.append('subtype', subtype);
         
-        return this.post('appearanceUpload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
+        const queryString = params.toString();
+        return this.get<CopingTool[]>('copingToolsByType', { 
+            urlSuffix: queryString ? `?${queryString}` : '' 
         });
     }
 
-    async getMyAppearance(): Promise<any> {
-        return this.get<any>('myAppearance');
+    async getMyTools(): Promise<CharacterTool[]> {
+        return this.get<CharacterTool[]>('myTools');
     }
 
-    async getAssetImages(): Promise<any> {
-        return this.get<any>('assetImages');
+    async getEquippedTools(): Promise<CharacterTool[]> {
+        return this.get<CharacterTool[]>('equippedTools');
     }
 
-    // ===== Equipment Methods =====
+    async acquireCopingTool(toolId: number): Promise<CharacterTool> {
+        return this.post<CharacterTool>('characterTools', { tool_id: toolId });
+    }
+
+    async equipTool(toolId: number): Promise<{ message: string; tool: CharacterTool }> {
+        return this.post('equipTool', {}, { urlSuffix: `${toolId}/equip/` });
+    }
+
+    async unequipTool(toolId: number): Promise<{ message: string; tool: CharacterTool }> {
+        return this.post('unequipTool', {}, { urlSuffix: `${toolId}/unequip/` });
+    }
+
+    async useTool(toolId: number, effectivenessRating?: number, notes?: string): Promise<{
+        message: string;
+        times_used: number;
+        effectiveness_rating?: number;
+        tool: CharacterTool;
+    }> {
+        return this.post('useTool', {
+            effectiveness_rating: effectivenessRating,
+            notes
+        }, { urlSuffix: `${toolId}/use/` });
+    }
+
+    async getToolUsageStats(): Promise<{
+        total_tools: number;
+        equipped_tools: number;
+        total_usage: number;
+        tools_with_ratings: number;
+        average_effectiveness: number;
+        most_used_tool?: {
+            name: string;
+            times_used: number;
+            effectiveness?: number;
+        };
+    }> {
+        return this.get('toolUsageStats');
+    }
+
+    // ===== NEW REFLECTION METHODS =====
+    async getMyReflections(): Promise<ReflectionEntry[]> {
+        return this.get<ReflectionEntry[]>('myReflections');
+    }
+
+    async getRecentReflections(): Promise<ReflectionEntry[]> {
+        return this.get<ReflectionEntry[]>('recentReflections');
+    }
+
+    async createReflection(reflectionData: {
+        entry_type: 'memory' | 'insight' | 'skill' | 'challenge' | 'growth';
+        title: string;
+        content: string;
+        prompt: string;
+        skill_category?: string;
+        map_area?: string;
+        difficulty?: string;
+        wellness_gains?: Record<string, number>;
+        tools_unlocked_ids?: number[];
+    }): Promise<ReflectionEntry> {
+        return this.post<ReflectionEntry>('reflections', reflectionData);
+    }
+
+    async quickReflect(reflectionData: {
+        title: string;
+        content: string;
+        prompt: string;
+    }): Promise<{ message: string; reflection: ReflectionEntry }> {
+        return this.post('quickReflect', reflectionData);
+    }
+
+    async getReflectionsByType(type: string): Promise<ReflectionEntry[]> {
+        return this.get<ReflectionEntry[]>('reflectionsByType', { urlSuffix: `?type=${type}` });
+    }
+
+    // ===== NEW GEAR METHODS =====
+    async getAvailableGear(): Promise<any[]> {
+        return this.get<any[]>('availableGear');
+    }
+
+    async getMyGear(): Promise<CharacterGear[]> {
+        return this.get<CharacterGear[]>('myGear');
+    }
+
+    async getEquippedGear(): Promise<CharacterGear[]> {
+        return this.get<CharacterGear[]>('equippedGear');
+    }
+
+    async acquireGear(gearTypeId: number): Promise<CharacterGear> {
+        return this.post<CharacterGear>('characterGear', { gear_type_id: gearTypeId });
+    }
+
+    async equipGear(gearId: number): Promise<{ message: string; gear: CharacterGear }> {
+        return this.post('equipGear', {}, { urlSuffix: `${gearId}/equip/` });
+    }
+
+    async unequipGear(gearId: number): Promise<{ message: string; gear: CharacterGear }> {
+        return this.post('unequipGear', {}, { urlSuffix: `${gearId}/unequip/` });
+    }
+
+    // ===== EXISTING METHODS (KEEP FOR COMPATIBILITY) =====
     async getInventory(characterId: string): Promise<EquipmentItem[]> {
         return this.get<EquipmentItem[]>('characters', { urlSuffix: `${characterId}/inventory` });
     }
@@ -333,7 +658,6 @@ class ApiService {
         await this.delete('characters', { urlSuffix: `${characterId}/equipment/${itemId}` });
     }
 
-    // ===== Game Data Methods =====
     async getGameData(): Promise<GameData> {
         return this.get<GameData>('gameData');
     }
@@ -346,9 +670,142 @@ class ApiService {
         return this.patch<GameData>('gameData', gameData);
     }
 
-    // ===== Journal Methods =====
     async getJournalPrompts(): Promise<Prompt[]> {
         return this.get<Prompt[]>('journalPrompts');
+    }
+
+    // ===== STORY METHODS (UPDATED FOR NEW BACKEND STRUCTURE) =====
+    
+    // Get story catalog
+    async getNewStoryCatalog(): Promise<any[]> {
+        return this.get<any[]>('storyCatalog');
+    }
+
+    // Get chapters for a specific story
+    async getNewStoryChapters(storyId: number): Promise<any[]> {
+        return this.get<any[]>('storyChaptersList', { urlSuffix: `${storyId}/chapters/` });
+    }
+
+    // Get passages for a specific chapter
+    async getNewChapterPassages(chapterId: number): Promise<any[]> {
+        return this.get<any[]>('chapterPassages', { urlSuffix: `${chapterId}/passages/` });
+    }
+
+    // Get specific passage content
+    async getNewPassageContent(storyId: number, passageId: string): Promise<any> {
+        return this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${encodeURIComponent(passageId)}/` });
+    }
+
+    // Get story progress
+    async getNewStoryProgress(storyId: number): Promise<any> {
+        return this.get<any>('storyProgressGet', { urlSuffix: `${storyId}/progress/` });
+    }
+
+    // Start a story
+    async startNewStory(storyId: number): Promise<any> {
+        return this.post<any>('storyStart', {}, { urlSuffix: `${storyId}/start/` });
+    }
+
+    // Make a choice in the story
+    async makeNewStoryChoice(choiceId: string, choiceData?: any): Promise<any> {
+        return this.post<any>('choiceSelect', choiceData || {}, { urlSuffix: `${choiceId}/select/` });
+    }
+
+    // Complete a story
+    async completeNewStory(storyId: number, completionData: any): Promise<any> {
+        return this.post<any>('storyComplete', completionData, { urlSuffix: `${storyId}/complete/` });
+    }
+
+    // ===== LEGACY STORY METHODS (KEEP FOR COMPATIBILITY) =====
+    async getStoryRoot(): Promise<{
+        stories: string;
+        catalog: string;
+        'game-data': string;
+        progress: string;
+    }> {
+        return this.get('storyRoot');
+    }
+
+    async getStories(): Promise<any[]> {
+        return this.get<any[]>('stories');
+    }
+
+    async getStoryContent(storyId: string): Promise<any> {
+        return this.get<any>('storyContent', { urlSuffix: `${storyId}/` });
+    }
+
+    async getStoryPassage(storyId: string, passageId: string): Promise<any> {
+        return this.get<any>('storyContent', { urlSuffix: `${storyId}/passage/${passageId}/` });
+    }
+
+    async makeStoryChoice(storyId: string, choiceId: string, choiceData?: any): Promise<any> {
+        return this.post<any>('storyContent', choiceData || {}, { urlSuffix: `${storyId}/choice/${choiceId}/` });
+    }
+
+    async getStoryDetailedProgress(storyId: string): Promise<any> {
+        return this.get<any>('storyContent', { urlSuffix: `${storyId}/progress/` });
+    }
+
+    async restartStory(storyId: string): Promise<any> {
+        return this.post<any>('storyContent', {}, { urlSuffix: `${storyId}/restart/` });
+    }
+
+    async completeSpecificStory(storyId: string, completionData: any): Promise<any> {
+        return this.post<any>('storyContent', completionData, { urlSuffix: `${storyId}/complete/` });
+    }
+
+    async getStoryGameData(characterId: string): Promise<any> {
+        return this.get<any>('storyGameData');
+    }
+
+    async updateStoryGameData(characterId: string, gameData: any): Promise<any> {
+        return this.patch<any>('storyGameData', gameData, { urlSuffix: `${characterId}/` });
+    }
+
+    // ===== TESTING METHODS =====
+    async testBackendEndpoints(): Promise<void> {
+        console.log('=== TESTING BACKEND ENDPOINTS ===');
+        
+        try {
+            // Test 1: Get user profile
+            console.log('Test 1: Getting user profile...');
+            const profile = await this.getProfile();
+            console.log('User profile:', profile);
+            
+            // Test 2: Try to update profile directly
+            console.log('Test 2: Trying to update profile...');
+            try {
+                const updatedProfile = await this.patch<UserProfile>('userProfile', {
+                    has_completed_onboarding: true,
+                    completion_type: 'character'
+                });
+                console.log('Profile updated successfully:', updatedProfile);
+            } catch (updateError) {
+                console.log('Profile update failed:', updateError);
+            }
+            
+            // Test 3: Try different endpoints
+            console.log('Test 3: Testing different endpoints...');
+            const endpoints = [
+                'users/me/',
+                'users/',
+                'users/complete_onboarding/',
+                'users/1/'
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    console.log(`Testing endpoint: ${endpoint}`);
+                    const response = await apiClient.get(endpoint);
+                    console.log(`Endpoint ${endpoint} success:`, response.data);
+                } catch (error: any) {
+                    console.log(`Endpoint ${endpoint} failed:`, error.response?.status, error.response?.data);
+                }
+            }
+            
+        } catch (error) {
+            console.error('Backend endpoint test failed:', error);
+        }
     }
 }
 

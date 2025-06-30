@@ -11,9 +11,8 @@ export type {
 // Appearance and character customization types
 export type {
     Appearance,
-    CharacterAppearance,
-    CharacterCreateRequest,
-    CharacterCustomizationRequest, CharacterHomeData,
+    CategoryConfig, CharacterAppearance,
+    CharacterCreateRequest, CharacterCreatorCategories, CharacterCustomizationRequest, CharacterHomeData,
     ExperienceGainResponse, WellnessStat
 } from './appearance';
 

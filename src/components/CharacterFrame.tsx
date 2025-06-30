@@ -1,14 +1,8 @@
 import React from 'react';
-import { Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { CharacterFrameProps } from '../types/appearance';
 
-// Default to first brown background
 const DEFAULT_FRAME = require('../../assets/character-creator/BGs/brown/brown_one.png');
-
-export type CharacterFrameProps = {
-  children: React.ReactNode;
-  frame?: ImageSourcePropType;
-  size?: number; // width/height of the square
-};
 
 const CharacterFrame: React.FC<CharacterFrameProps> = ({
   children,

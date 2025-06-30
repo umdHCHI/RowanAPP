@@ -18,9 +18,7 @@ export {
 } from 'react-native';
 
 export {
-    createContext,
-    ReactNode,
-    useContext,
+    createContext, ReactNode, useCallback, useContext,
     useEffect,
     useState
 } from 'react';
@@ -38,11 +36,6 @@ export { router, Tabs, useRouter } from 'expo-router';
 export { default as AsyncStorage } from '@react-native-async-storage/async-storage';
 export { default as axios } from 'axios';
 export { default as Icon } from 'react-native-vector-icons/Feather';
-
-// ===== Context Hooks =====
-export { useAuth } from './context/AuthContext';
-export { useOnboarding } from './context/OnboardingContext';
-export { useTheme } from './context/ThemeContext';
 
 // ===== Services =====
 export {
@@ -71,21 +64,12 @@ export { HauntedLibraryBG } from './components/HauntedLibrary';
 export { default as PixelButton } from './components/PixelButton';
 export { default as ThoughtDefenderModal } from './components/ThoughtDefenderModal';
 
-// ===== Screens =====
-export { default as CharacterHomeScreen } from './screens/characterStory/CharacterHomeScreen';
-export { default as StoryCatalogScreen } from './screens/characterStory/StoryCatalogScreen';
-export { default as StoryScreen } from './screens/characterStory/StoryScreen';
-export { default as HomeScreen } from './screens/HomeScreen';
-export { default as LoginScreen } from './screens/LoginScreen';
-export { default as CharacterCreatorScreen } from './screens/onboarding/CharacterCreatorScreen';
-export { default as WelcomeScreen } from './screens/onboarding/WelcomeScreen';
-export { default as PersonalityHomeScreen } from './screens/personalityStory/PersonalityHomeScreen';
-export { default as PersonalitySurveyScreen } from './screens/PersonalitySurveyScreen';
-export { default as ProfileScreen } from './screens/ProfileScreen';
-export { default as SettingsScreen } from './screens/SettingsScreen';
-
-// ===== Navigation =====
-export { default as TabNavigator } from './navigation/TabNavigator';
+// ===== Character Creator Components =====
+export { CategorySelector } from './components/CharacterCreator/CategorySelector';
+export { CharacterNameInput } from './components/CharacterCreator/CharacterNameInput';
+export { CharacterPreviewSection } from './components/CharacterCreator/CharacterPreviewSection';
+export { ColorOptionControls } from './components/CharacterCreator/ColorOptionControls';
+export { StyleControls } from './components/CharacterCreator/StyleControls';
 
 // ===== Assets =====
 export {
@@ -93,21 +77,24 @@ export {
     baseOptions,
     bgOptions,
     // Frame assets
-    characterCreatorAssets, clothesOptions,
+    characterCreatorAssets,
     // Equipment
-    ComfortType,
-    equipmentIcons,
-    equipmentTypeLabels, eyesOptions, FocusType,
-    GroundType, hairOptions,
-    mouthOptions, rarityColors, sampleHeadBar, ShieldType
+    ComfortType, equipmentIcons,
+    equipmentTypeLabels, FocusType,
+    GroundType, mouthOptions,
+    rarityColors,
+    sampleHeadBar, ShieldType
 } from './assets';
 
 // ===== Data =====
 export { sampleInventory } from './data/sampleEquipment';
-export { availableGrimoires } from './data/storyData';
+
+// ===== Constants =====
+export { CHARACTER_CREATOR_CONSTANTS } from './constants/characterCreator';
 
 // ===== Hooks =====
 export { useArchiveProgress } from './hooks/useArchiveProgress';
+export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Styles =====
 export { createGlobalStyles } from './styles/globalStyles';
@@ -118,8 +105,7 @@ export type {
     // Appearance
     Appearance,
     // User and authentication
-    AuthContextType,
-    Character, CharacterAppearance, CharacterCreateData, CharacterCreateRequest, CharacterCustomizationData, CharacterCustomizationRequest,
+    AuthContextType, CategoryConfig, Character, CharacterAppearance, CharacterCreateData, CharacterCreateRequest, CharacterCreatorCategories, CharacterCustomizationData, CharacterCustomizationRequest,
     CharacterHomeData,
     // Journal
     CodexModalProps,
@@ -146,4 +132,13 @@ export type { PersonalityTrait } from './context/PersonalityContext';
 // ===== Additional Types =====
 export type { ArchiveArea } from './components/ArchiveMapModal';
 export type { Grimoire } from './screens/characterStory/StoryCatalogScreen';
+
+// ===== Context Exports =====
+export { useAuth } from './context/AuthContext';
+export { useMasterState } from './context/MasterStateContext';
+export { useOnboarding } from './context/OnboardingContext';
+export { useTheme } from './context/ThemeContext';
+
+// ===== Utility Functions =====
+export { createCharacterCreatorCategories } from './types/appearance';
 

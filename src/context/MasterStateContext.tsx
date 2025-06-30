@@ -1,14 +1,54 @@
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
+import {
+  baseOptions,
+  bgOptionsBlonde, bgOptionsBlue, bgOptionsBlueGreen,
+  bgOptionsBrown,
+  bgOptionsDark,
+  bgOptionsDarkBlue,
+  bgOptionsDarkBrown,
+  bgOptionsGreen,
+  bgOptionsLightBrown, bgOptionsLightGreen, bgOptionsLilac, bgOptionsMagent,
+  bgOptionsOrange, bgOptionsPink, bgOptionsRed, bgOptionsWhite,
+  clothesOptionsBlonde, clothesOptionsBlue, clothesOptionsBlueGreen,
+  clothesOptionsBrown,
+  clothesOptionsDark,
+  clothesOptionsDarkBlue,
+  clothesOptionsDarkBrown,
+  clothesOptionsGreen,
+  clothesOptionsLightBrown, clothesOptionsLightGreen, clothesOptionsLilac, clothesOptionsMagent,
+  clothesOptionsOrange, clothesOptionsPink, clothesOptionsRed, clothesOptionsWhite,
+  eyebrowsOptionsBlonde, eyebrowsOptionsBlue, eyebrowsOptionsBlueGreen,
+  eyebrowsOptionsBrown,
+  eyebrowsOptionsDark,
+  eyebrowsOptionsDarkBlue,
+  eyebrowsOptionsDarkBrown,
+  eyebrowsOptionsGreen,
+  eyebrowsOptionsLightBrown, eyebrowsOptionsLightGreen, eyebrowsOptionsLilac, eyebrowsOptionsMagent,
+  eyebrowsOptionsOrange, eyebrowsOptionsPink, eyebrowsOptionsRed, eyebrowsOptionsWhite,
+  eyesOptionsBlonde, eyesOptionsBlue, eyesOptionsBlueGreen,
+  eyesOptionsBrown,
+  eyesOptionsDark,
+  eyesOptionsDarkBlue,
+  eyesOptionsDarkBrown,
+  eyesOptionsGreen,
+  eyesOptionsLightBrown, eyesOptionsLightGreen, eyesOptionsLilac, eyesOptionsMagent,
+  eyesOptionsOrange, eyesOptionsPink, eyesOptionsRed, eyesOptionsWhite,
+  hairOptionsBlack, hairOptionsBlonde, hairOptionsBlue, hairOptionsBlueGreen,
+  hairOptionsBrown1, hairOptionsBrown2, hairOptionsBrown3, hairOptionsDarkBlue,
+  hairOptionsGreen, hairOptionsLightGreen, hairOptionsLilac, hairOptionsMagent,
+  hairOptionsOrange, hairOptionsPink, hairOptionsRed, hairOptionsWhite,
+  mouthOptions
+} from '../assets/characterOptions';
 import { sampleInventory } from '../data/sampleEquipment';
-import { availableGrimoires } from '../data/storyData';
-import { apiService, appearanceService, archiveService } from '../services';
-import { Appearance, CharacterAppearance, EquipmentItem, EquippedItems } from '../types';
+import { apiService, appearanceService } from '../services';
+import { CharacterTool, CopingTool, HomeData, ReflectionEntry, WellnessCharacter } from '../services/apiService';
+import { CharacterAppearance, EquipmentItem, EquippedItems } from '../types';
 import { useAuth } from './AuthContext';
 import { useOnboarding } from './OnboardingContext';
 import { useTheme } from './ThemeContext';
 
-// ===== TYPES =====
+// ===== UPDATED TYPES FOR NEW BACKEND =====
 
 export interface ArchiveFoundation {
   icon: string;
@@ -98,11 +138,13 @@ interface MasterStateContextType {
     assignedPath: 'survey' | 'character' | null;
     researchGroup: string | null;
     characterAppearance: CharacterAppearance | undefined;
+    isLoading: boolean;
     completeSurvey: () => void;
     completeCharacter: () => void;
     setAssignedPath: (path: 'survey' | 'character' | null) => void;
     setCharacterAppearance: (appearance: CharacterAppearance) => void;
     resetOnboarding: () => void;
+    setIsLoading: (loading: boolean) => void;
   };
 
   // ===== THEME STATE =====
@@ -115,12 +157,14 @@ interface MasterStateContextType {
     isDark: boolean;
   };
 
-  // ===== CHARACTER & APPEARANCE STATE =====
+  // ===== CHARACTER & APPEARANCE STATE (UPDATED FOR NEW BACKEND) =====
   character: {
-    appearance: Appearance | null;
+    // Backend character data
+    backendCharacter: WellnessCharacter | null;
+    
+    // UI state for character creator (local only)
     characterName: string;
     selectedBaseModel: number;
-    selectedSkinColor: number;
     selectedHairStyle: number;
     selectedHairColor: number;
     selectedEyeType: number;
@@ -129,10 +173,13 @@ interface MasterStateContextType {
     selectedEyebrowColor: number;
     selectedMouthType: number;
     selectedShirtType: number;
+    selectedClothesColor: number;
     selectedBackgroundType: number;
+    selectedBackgroundColor: number;
+    
+    // Methods
     setCharacterName: (name: string) => void;
     setSelectedBaseModel: (index: number) => void;
-    setSelectedSkinColor: (index: number) => void;
     setSelectedHairStyle: (index: number) => void;
     setSelectedHairColor: (index: number) => void;
     setSelectedEyeType: (index: number) => void;
@@ -141,13 +188,50 @@ interface MasterStateContextType {
     setSelectedEyebrowColor: (index: number) => void;
     setSelectedMouthType: (index: number) => void;
     setSelectedShirtType: (index: number) => void;
+    setSelectedClothesColor: (index: number) => void;
     setSelectedBackgroundType: (index: number) => void;
-    loadAppearance: () => Promise<void>;
-    createCharacter: () => Promise<void>;
+    setSelectedBackgroundColor: (index: number) => void;
     getHairIndex: () => number;
     getClothesIndex: () => number;
     getEyesIndex: () => number;
     getEyebrowsIndex: () => number;
+    getHairAsset: () => any;
+    getClothesAsset: () => any;
+    getEyesAsset: () => any;
+    getEyebrowsAsset: () => any;
+    getCurrentBackgroundAsset: () => any;
+    getBaseAsset: () => any;
+    getMouthAsset: () => any;
+    createCharacter: () => Promise<void>;
+    updateCharacter: () => Promise<void>;
+    loadCharacter: () => Promise<void>;
+    gainExperience: (amount: number, source?: string) => Promise<void>;
+    gainWellness: (gains: Record<string, number>) => Promise<void>;
+  };
+
+  // ===== WELLNESS FEATURES (NEW) =====
+  wellness: {
+    availableTools: CopingTool[];
+    myTools: CharacterTool[];
+    equippedTools: CharacterTool[];
+    recentReflections: ReflectionEntry[];
+    homeData: HomeData | null;
+    
+    // Tool methods
+    loadAvailableTools: () => Promise<void>;
+    loadMyTools: () => Promise<void>;
+    acquireTool: (toolId: number) => Promise<void>;
+    equipTool: (toolId: number) => Promise<void>;
+    unequipTool: (toolId: number) => Promise<void>;
+    useTool: (toolId: number, effectiveness?: number, notes?: string) => Promise<void>;
+    
+    // Reflection methods
+    loadRecentReflections: () => Promise<void>;
+    createReflection: (reflectionData: any) => Promise<void>;
+    quickReflect: (title: string, content: string, prompt: string) => Promise<void>;
+    
+    // Home data
+    loadHomeData: () => Promise<void>;
   };
 
   // ===== EQUIPMENT & INVENTORY STATE =====
@@ -276,11 +360,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
   } = useOnboarding();
   const { theme, themeMode, toggleTheme, setThemeMode, styles, isDark } = useTheme();
 
-  // ===== CHARACTER STATE =====
-  const [appearance, setAppearance] = useState<Appearance | null>(null);
+  // ===== CHARACTER STATE (UPDATED FOR NEW BACKEND) =====
+  const [backendCharacter, setBackendCharacter] = useState<WellnessCharacter | null>(null);
+  
+  // Local UI state for character creator (keeps your existing component working)
   const [characterName, setCharacterName] = useState('');
   const [selectedBaseModel, setSelectedBaseModel] = useState(0);
-  const [selectedSkinColor, setSelectedSkinColor] = useState(0);
   const [selectedHairStyle, setSelectedHairStyle] = useState(0);
   const [selectedHairColor, setSelectedHairColor] = useState(0);
   const [selectedEyeType, setSelectedEyeType] = useState(0);
@@ -289,7 +374,16 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
   const [selectedEyebrowColor, setSelectedEyebrowColor] = useState(0);
   const [selectedMouthType, setSelectedMouthType] = useState(0);
   const [selectedShirtType, setSelectedShirtType] = useState(0);
+  const [selectedClothesColor, setSelectedClothesColor] = useState(0);
   const [selectedBackgroundType, setSelectedBackgroundType] = useState(0);
+  const [selectedBackgroundColor, setSelectedBackgroundColor] = useState(0);
+
+  // ===== WELLNESS STATE (NEW) =====
+  const [availableTools, setAvailableTools] = useState<CopingTool[]>([]);
+  const [myTools, setMyTools] = useState<CharacterTool[]>([]);
+  const [equippedTools, setEquippedTools] = useState<CharacterTool[]>([]);
+  const [recentReflections, setRecentReflections] = useState<ReflectionEntry[]>([]);
+  const [homeData, setHomeData] = useState<HomeData | null>(null);
 
   // ===== EQUIPMENT STATE =====
   const [inventory, setInventory] = useState<EquipmentItem[]>(sampleInventory);
@@ -319,7 +413,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
   const [isStoryCatalogVisible, setIsStoryCatalogVisible] = useState(false);
   const [currentMapRoomId, setCurrentMapRoomId] = useState('');
   const [selectedStory, setSelectedStory] = useState<Grimoire | null>(null);
-  const [memoryGrimoires, setMemoryGrimoires] = useState<Grimoire[]>(availableGrimoires);
+  const [memoryGrimoires, setMemoryGrimoires] = useState<Grimoire[]>([]);
 
   // ===== STORY STATE =====
   const [currentPassageId, setCurrentPassageId] = useState('start');
@@ -335,11 +429,75 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ===== CHARACTER HELPER FUNCTIONS =====
+  // ===== CHARACTER HELPER FUNCTIONS (UNCHANGED) =====
   const getHairIndex = () => selectedHairStyle + (selectedHairColor * 12);
-  const getClothesIndex = () => selectedShirtType + (selectedSkinColor * 12);
+  const getClothesIndex = () => selectedShirtType + (selectedClothesColor * 12);
   const getEyesIndex = () => selectedEyeType + (selectedEyeColor * 12);
   const getEyebrowsIndex = () => selectedEyebrowStyle + (selectedEyebrowColor * 12);
+
+  // Asset getter functions (unchanged)
+  const getHairAsset = () => {
+    const hairArrays = [
+      hairOptionsBlack, hairOptionsBlonde, hairOptionsBlue, hairOptionsBlueGreen,
+      hairOptionsBrown1, hairOptionsBrown2, hairOptionsBrown3, hairOptionsDarkBlue,
+      hairOptionsGreen, hairOptionsLightGreen, hairOptionsLilac, hairOptionsMagent,
+      hairOptionsOrange, hairOptionsPink, hairOptionsRed, hairOptionsWhite
+    ];
+    const colorArray = hairArrays[selectedHairColor] || hairOptionsBlack;
+    return colorArray[selectedHairStyle] || colorArray[0];
+  };
+
+  const getClothesAsset = () => {
+    const clothesArrays = [
+      clothesOptionsBrown, clothesOptionsBlonde, clothesOptionsBlue, clothesOptionsBlueGreen,
+      clothesOptionsDarkBrown, clothesOptionsDarkBlue, clothesOptionsDark, clothesOptionsGreen,
+      clothesOptionsLightBrown, clothesOptionsLightGreen, clothesOptionsLilac, clothesOptionsMagent,
+      clothesOptionsOrange, clothesOptionsPink, clothesOptionsRed, clothesOptionsWhite
+    ];
+    const colorArray = clothesArrays[selectedClothesColor || 0] || clothesOptionsBrown;
+    return colorArray[selectedShirtType] || colorArray[0];
+  };
+
+  const getEyesAsset = () => {
+    const eyesArrays = [
+      eyesOptionsBrown, eyesOptionsBlonde, eyesOptionsBlue, eyesOptionsBlueGreen,
+      eyesOptionsDarkBrown, eyesOptionsDarkBlue, eyesOptionsDark, eyesOptionsGreen,
+      eyesOptionsLightBrown, eyesOptionsLightGreen, eyesOptionsLilac, eyesOptionsMagent,
+      eyesOptionsOrange, eyesOptionsPink, eyesOptionsRed, eyesOptionsWhite
+    ];
+    const colorArray = eyesArrays[selectedEyeColor] || eyesOptionsBrown;
+    return colorArray[selectedEyeType] || colorArray[0];
+  };
+
+  const getEyebrowsAsset = () => {
+    const eyebrowsArrays = [
+      eyebrowsOptionsBrown, eyebrowsOptionsBlonde, eyebrowsOptionsBlue, eyebrowsOptionsBlueGreen,
+      eyebrowsOptionsDarkBrown, eyebrowsOptionsDarkBlue, eyebrowsOptionsDark, eyebrowsOptionsGreen,
+      eyebrowsOptionsLightBrown, eyebrowsOptionsLightGreen, eyebrowsOptionsLilac, eyebrowsOptionsMagent,
+      eyebrowsOptionsOrange, eyebrowsOptionsPink, eyebrowsOptionsRed, eyebrowsOptionsWhite
+    ];
+    const colorArray = eyebrowsArrays[selectedEyebrowColor] || eyebrowsOptionsBrown;
+    return colorArray[selectedEyebrowStyle] || colorArray[0];
+  };
+
+  const getCurrentBackgroundAsset = () => {
+    const backgroundColorArrays = [
+      bgOptionsBrown, bgOptionsBlonde, bgOptionsBlue, bgOptionsBlueGreen,
+      bgOptionsDarkBrown, bgOptionsDarkBlue, bgOptionsDark, bgOptionsGreen,
+      bgOptionsLightBrown, bgOptionsLightGreen, bgOptionsLilac, bgOptionsMagent,
+      bgOptionsOrange, bgOptionsPink, bgOptionsRed, bgOptionsWhite
+    ];
+    const colorArray = backgroundColorArrays[selectedBackgroundColor || 0] || bgOptionsBrown;
+    return colorArray[selectedBackgroundType] || colorArray[0];
+  };
+
+  const getBaseAsset = () => {
+    return baseOptions[selectedBaseModel] || baseOptions[0];
+  };
+
+  const getMouthAsset = () => {
+    return mouthOptions[selectedMouthType] || mouthOptions[0];
+  };
 
   // ===== EQUIPMENT HELPER FUNCTIONS =====
   const getItemIcon = (item: EquipmentItem) => {
@@ -367,7 +525,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
     });
   };
 
-  // ===== ARCHIVE PROGRESS CALCULATIONS =====
+  // ===== ARCHIVE PROGRESS CALCULATIONS (UNCHANGED) =====
   const calculateFoundationValues = useMemo(() => {
     const baseValues = {
       'Sight Beyond Sight': 2,
@@ -378,7 +536,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
 
     // Add points from completed stories
     completedStories.forEach(storyId => {
-      const story = availableGrimoires.find((g: Grimoire) => g.id === storyId);
+      const story = memoryGrimoires.find((g: Grimoire) => g.id === storyId);
       if (story) {
         story.skillFocus.forEach((skill: string) => {
           if (skill.includes('Mindful') || skill.includes('Stress') || skill.includes('Academic')) {
@@ -444,7 +602,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
     });
 
     return baseValues;
-  }, [completedStories, codexEntries, miniGameProgress]);
+  }, [completedStories, codexEntries, miniGameProgress, memoryGrimoires]);
 
   const getNextUnlock = (foundationLabel: string, currentValue: number) => {
     const nextLevel = Math.floor(currentValue / 5) + 1;
@@ -578,167 +736,293 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
     setLearnedSkills(prev => [...new Set([...prev, ...skills])]);
   };
 
-  // ===== CHARACTER CREATION HANDLERS =====
-  const loadAppearance = async () => {
-    try {
-      if (authToken && characterId) {
-        const data = await appearanceService.getAppearance(Number(characterId));
-        setAppearance(data);
-      }
-      // Note: We'll handle CharacterAppearance separately in the UI components
-    } catch (error) {
-      console.error('Failed to load appearance from API:', error);
-    }
-  };
-
+  // ===== NEW CHARACTER CREATION HANDLERS (UPDATED FOR NEW BACKEND) =====
   const createCharacter = async () => {
-    if (!characterName.trim()) {
-      setError('Please enter a character name');
+    if (!authToken) {
+      setError('No authentication token');
       return;
     }
 
-    setError(null);
     setIsLoading(true);
+    setError(null);
     
     try {
-      if (authToken) {
-        console.log('Starting character creation process...');
-        
-        // Step 1: Create the character with basic data
-        const characterCreateData = {
-          name: characterName.trim()
-        };
-        
-        const character = await apiService.createCharacter(characterCreateData);
-        console.log('Character created successfully:', character);
-        
-        // Step 2: Update character customization
-        const customizationData = {
-          selected_base_model: selectedBaseModel,
-          selected_skin_color: selectedSkinColor,
-          selected_hair_style: selectedHairStyle,
-          selected_hair_color: selectedHairColor,
-          selected_eye_type: selectedEyeType,
-          selected_eye_color: selectedEyeColor,
-          selected_eyebrow_style: selectedEyebrowStyle,
-          selected_eyebrow_color: selectedEyebrowColor,
-          selected_mouth_type: selectedMouthType,
-          selected_shirt_type: selectedShirtType,
-          selected_background_type: selectedBackgroundType,
-        };
-        
-        try {
-          await apiService.updateCharacterCustomization(character.id, customizationData);
-          console.log('Character customization updated successfully');
-        } catch (customizationError) {
-          console.warn('Customization update failed, but character was created:', customizationError);
+      const createdCharacter = await appearanceService.createOrUpdateCharacter(
+        characterName,
+        {
+          selectedBaseModel,
+          selectedHairStyle,
+          selectedHairColor,
+          selectedEyeType,
+          selectedEyeColor,
+          selectedEyebrowStyle,
+          selectedEyebrowColor,
+          selectedMouthType,
+          selectedShirtType,
+          selectedClothesColor,
+          selectedBackgroundType,
+          selectedBackgroundColor,
         }
-        
-        // Step 3: Create game data
-        try {
-          const gameData = {
-            player_name: characterName.trim(),
-            score: 0,
-            level: 1,
-            unlocked_areas: [],
-            completed_prompts: [],
-            total_entries: 0
-          };
-          
-          await apiService.createGameData(gameData);
-          console.log('Game data created successfully');
-        } catch (gameDataError) {
-          console.warn('Game data creation failed:', gameDataError);
-        }
-        
-        // Update local onboarding state
-        setCharacterAppearance({
-          gender: 'nonbinary',
-          skin: selectedBaseModel,
-          hair: getHairIndex(),
-          clothes: getClothesIndex(),
-          eyes: getEyesIndex(),
-          mouth: selectedMouthType,
-          background: selectedBackgroundType,
-          glasses: 0,
-          isComplete: true,
-        });
-        
-        try {
-          await apiService.completeOnboarding('character');
-          console.log('Onboarding completed successfully');
-        } catch (onboardingError) {
-          console.error('Failed to complete onboarding:', onboardingError);
-        }
-        
-        completeCharacter();
-        console.log('Navigating to character screen...');
-        
-      } else {
-        setError('Authentication required. Please log in again.');
-      }
-    } catch (error: any) {
-      console.error('Character creation failed:', error);
+      );
       
-      if (error.response?.data) {
-        if (typeof error.response.data === 'object') {
-          const errorMessages = [];
-          for (const [field, messages] of Object.entries(error.response.data)) {
-            if (Array.isArray(messages)) {
-              errorMessages.push(...messages);
-            } else if (typeof messages === 'string') {
-              errorMessages.push(messages);
-            }
-          }
-          setError(errorMessages.length > 0 
-            ? errorMessages.join('. ') 
-            : 'Failed to create character. Please check your input.'
-          );
-        } else if (typeof error.response.data === 'string') {
-          setError(error.response.data);
-        } else {
-          setError('Failed to create character. Please try again.');
-        }
-      } else if (error.message) {
-        setError(error.message);
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setBackendCharacter(createdCharacter);
+      
+      // Complete onboarding
+      completeCharacter();
+      
+      // Load additional data
+      await loadHomeData();
+      await loadAvailableTools();
+      await loadMyTools();
+      
+    } catch (error: any) {
+      setError('Failed to create character: ' + (error?.message || 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ===== ARCHIVE PROGRESS PERSISTENCE =====
-  const loadArchiveProgress = async () => {
-    if (characterId) {
-      try {
-        const progress = await archiveService.getArchiveProgress(characterId);
-        // Update local state with backend data
-        // This would be implemented when backend is ready
-      } catch (error) {
-        console.error('Failed to load archive progress:', error);
-      }
+  const updateCharacter = async () => {
+    if (!authToken || !backendCharacter) {
+      setError('No authentication token or character');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const updatedCharacter = await appearanceService.updateCharacterCustomization(
+        backendCharacter.id,
+        {
+          selectedBaseModel,
+          selectedHairStyle,
+          selectedHairColor,
+          selectedEyeType,
+          selectedEyeColor,
+          selectedEyebrowStyle,
+          selectedEyebrowColor,
+          selectedMouthType,
+          selectedShirtType,
+          selectedClothesColor,
+          selectedBackgroundType,
+          selectedBackgroundColor,
+        }
+      );
+      
+      setBackendCharacter(updatedCharacter);
+    } catch (error: any) {
+      setError('Failed to update character: ' + (error?.message || 'Unknown error'));
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const saveArchiveProgress = async () => {
-    if (characterId) {
-      try {
-        const progress = {
-          completedStories: Array.from(completedStories),
-          codexEntries,
-          miniGameProgress,
-          discoveredArtifacts,
-          finalRewardsArtifacts,
-          learnedSkills,
-          foundationValues: calculateFoundationValues
-        };
-        await archiveService.saveArchiveProgress(characterId, progress);
-      } catch (error) {
-        console.error('Failed to save archive progress:', error);
-      }
+  const loadCharacter = async () => {
+    if (!authToken) {
+      return;
     }
+
+    setIsLoading(true);
+    try {
+      const characterData = await appearanceService.getMyCharacter();
+      
+      if (characterData) {
+        setBackendCharacter(characterData);
+        
+        // Sync UI state with backend data using the mapping function
+        const frontendData = appearanceService.mapBackendToFrontend(characterData);
+        setCharacterName(characterData.name || '');
+        setSelectedBaseModel(frontendData.selectedBaseModel);
+        setSelectedHairStyle(frontendData.selectedHairStyle);
+        setSelectedHairColor(frontendData.selectedHairColor);
+        setSelectedEyeType(frontendData.selectedEyeType);
+        setSelectedEyeColor(frontendData.selectedEyeColor);
+        setSelectedEyebrowStyle(frontendData.selectedEyebrowStyle);
+        setSelectedEyebrowColor(frontendData.selectedEyebrowColor);
+        setSelectedMouthType(frontendData.selectedMouthType);
+        setSelectedShirtType(frontendData.selectedShirtType);
+        setSelectedClothesColor(frontendData.selectedClothesColor);
+        setSelectedBackgroundType(frontendData.selectedBackgroundType);
+        setSelectedBackgroundColor(frontendData.selectedBackgroundColor);
+      }
+    } catch (error) {
+      // Don't set error state for load failures as they might be expected
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const gainExperience = async (amount: number, source?: string) => {
+    if (!backendCharacter) {
+      setError('No character loaded');
+      return;
+    }
+
+    try {
+      const result = await appearanceService.gainExperience(backendCharacter.id, amount, source);
+      setBackendCharacter(result);
+      
+      if (result.level_up) {
+        Alert.alert(
+          '🎉 Level Up!',
+          `Congratulations! You gained ${result.levels_gained} level(s)!`,
+          [{ text: 'Awesome!', style: 'default' }]
+        );
+      }
+    } catch (error: any) {
+      setError('Failed to gain experience: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
+  const gainWellness = async (gains: Record<string, number>) => {
+    if (!backendCharacter) {
+      setError('No character loaded');
+      return;
+    }
+
+    try {
+      const result = await appearanceService.gainWellness(backendCharacter.id, gains);
+      setBackendCharacter(result);
+      
+      Alert.alert(
+        '✨ Wellness Increased!',
+        result.message,
+        [{ text: 'Great!', style: 'default' }]
+      );
+    } catch (error: any) {
+      setError('Failed to gain wellness: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
+  // ===== NEW WELLNESS METHODS =====
+  const loadAvailableTools = async () => {
+    try {
+      const tools = await appearanceService.getAvailableCopingTools();
+      setAvailableTools(tools);
+    } catch (error) {
+      // Handle error silently
+    }
+  };
+
+  const loadMyTools = async () => {
+    try {
+      const tools = await appearanceService.getMyTools();
+      setMyTools(tools);
+      setEquippedTools(tools.filter(tool => tool.is_equipped));
+    } catch (error) {
+      // Handle error silently
+    }
+  };
+
+  const acquireTool = async (toolId: number) => {
+    try {
+      await appearanceService.acquireCopingTool(toolId);
+      await loadMyTools(); // Refresh tools
+      
+      Alert.alert(
+        '🛠️ Tool Acquired!',
+        'You have acquired a new coping tool!',
+        [{ text: 'Excellent!', style: 'default' }]
+      );
+    } catch (error: any) {
+      setError('Failed to acquire tool: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
+  const equipTool = async (toolId: number) => {
+    try {
+      await appearanceService.equipTool(toolId);
+      await loadMyTools(); // Refresh tools
+    } catch (error: any) {
+      setError('Failed to equip tool: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
+  const unequipTool = async (toolId: number) => {
+    try {
+      await apiService.unequipTool(toolId);
+      await loadMyTools(); // Refresh tools
+    } catch (error: any) {
+      setError('Failed to unequip tool: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
+  const useTool = async (toolId: number, effectiveness?: number, notes?: string) => {
+    try {
+      await appearanceService.useTool(toolId, effectiveness, notes);
+      await loadMyTools(); // Refresh tools
+      
+      Alert.alert(
+        '🌟 Tool Used!',
+        'Your tool usage has been recorded.',
+        [{ text: 'Great!', style: 'default' }]
+      );
+    } catch (error: any) {
+      setError('Failed to use tool: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
+  const loadRecentReflections = async () => {
+    try {
+      const reflections = await appearanceService.getRecentReflections();
+      setRecentReflections(reflections);
+    } catch (error) {
+      // Handle error silently
+    }
+  };
+
+  const createReflection = async (reflectionData: any) => {
+    try {
+      await appearanceService.createReflection(reflectionData);
+      await loadRecentReflections(); // Refresh reflections
+      
+      Alert.alert(
+        '📝 Reflection Created!',
+        'Your reflection has been saved.',
+        [{ text: 'Wonderful!', style: 'default' }]
+      );
+    } catch (error: any) {
+      setError('Failed to create reflection: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
+  const quickReflect = async (title: string, content: string, prompt: string) => {
+    try {
+      await appearanceService.createReflection({
+        entry_type: 'growth',
+        title,
+        content,
+        prompt
+      });
+      await loadRecentReflections(); // Refresh reflections
+      
+      Alert.alert(
+        '✨ Quick Reflection Saved!',
+        'Your thoughts have been captured.',
+        [{ text: 'Thank you!', style: 'default' }]
+      );
+    } catch (error: any) {
+      setError('Failed to save quick reflection: ' + (error?.message || 'Unknown error'));
+    }
+  };
+
+  const loadHomeData = async () => {
+    try {
+      const data = await appearanceService.getHomeData();
+      setHomeData(data);
+    } catch (error) {
+      // Handle error silently
+    }
+  };
+
+  // ===== ARCHIVE PROGRESS PERSISTENCE =====
+  const loadArchiveProgress = async () => {
+    // This would be implemented when archive backend is ready
+  };
+
+  const saveArchiveProgress = async () => {
+    // This would be implemented when archive backend is ready
   };
 
   // ===== UI HANDLERS =====
@@ -782,7 +1066,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
 
     // Handle artifact unlock
     if (artifactUnlock) {
-      // This would be implemented with actual artifact database
       setShowArtifactUnlock(true);
       setTimeout(() => setShowArtifactUnlock(false), 4000);
     }
@@ -816,12 +1099,14 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
 
   // ===== EFFECTS =====
   useEffect(() => {
-    loadAppearance();
-  }, [authToken, characterId, onboardingState.characterAppearance]);
-
-  useEffect(() => {
-    loadArchiveProgress();
-  }, [characterId]);
+    if (authToken) {
+      loadCharacter();
+      loadAvailableTools();
+      loadMyTools();
+      loadRecentReflections();
+      loadHomeData();
+    }
+  }, [authToken]);
 
   // ===== CONTEXT VALUE =====
   const value: MasterStateContextType = {
@@ -838,11 +1123,13 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
       assignedPath: onboardingState.assignedPath,
       researchGroup: onboardingState.researchGroup,
       characterAppearance: onboardingState.characterAppearance,
+      isLoading: onboardingState.isLoading,
       completeSurvey,
       completeCharacter,
       setAssignedPath,
       setCharacterAppearance,
       resetOnboarding,
+      setIsLoading,
     },
     theme: {
       theme,
@@ -853,10 +1140,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
       isDark,
     },
     character: {
-      appearance,
+      backendCharacter,
       characterName,
       selectedBaseModel,
-      selectedSkinColor,
       selectedHairStyle,
       selectedHairColor,
       selectedEyeType,
@@ -865,10 +1151,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
       selectedEyebrowColor,
       selectedMouthType,
       selectedShirtType,
+      selectedClothesColor,
       selectedBackgroundType,
+      selectedBackgroundColor,
       setCharacterName,
       setSelectedBaseModel,
-      setSelectedSkinColor,
       setSelectedHairStyle,
       setSelectedHairColor,
       setSelectedEyeType,
@@ -877,13 +1164,42 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
       setSelectedEyebrowColor,
       setSelectedMouthType,
       setSelectedShirtType,
+      setSelectedClothesColor,
       setSelectedBackgroundType,
-      loadAppearance,
-      createCharacter,
+      setSelectedBackgroundColor,
       getHairIndex,
       getClothesIndex,
       getEyesIndex,
       getEyebrowsIndex,
+      getHairAsset,
+      getClothesAsset,
+      getEyesAsset,
+      getEyebrowsAsset,
+      getCurrentBackgroundAsset,
+      getBaseAsset,
+      getMouthAsset,
+      createCharacter,
+      updateCharacter,
+      loadCharacter,
+      gainExperience,
+      gainWellness,
+    },
+    wellness: {
+      availableTools,
+      myTools,
+      equippedTools,
+      recentReflections,
+      homeData,
+      loadAvailableTools,
+      loadMyTools,
+      acquireTool,
+      equipTool,
+      unequipTool,
+      useTool,
+      loadRecentReflections,
+      createReflection,
+      quickReflect,
+      loadHomeData,
     },
     equipment: {
       inventory,
@@ -971,4 +1287,4 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ childr
       {children}
     </MasterStateContext.Provider>
   );
-}; 
+};

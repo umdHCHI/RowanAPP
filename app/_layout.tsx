@@ -7,10 +7,10 @@ import { ThemeProvider } from '../src/context/ThemeContext';
 
 export default function RootLayout() {
   return (
-    <MasterStateProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <OnboardingProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <OnboardingProvider>
+          <MasterStateProvider>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="(auth)" />
@@ -20,9 +20,9 @@ export default function RootLayout() {
               <Stack.Screen name="profile" />
               <Stack.Screen name="settings" />
             </Stack>
-          </OnboardingProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </MasterStateProvider>
+          </MasterStateProvider>
+        </OnboardingProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

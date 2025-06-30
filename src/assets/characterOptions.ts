@@ -13,7 +13,7 @@ export const baseOptions = [//DONE
   require('../../assets/character-creator/Bases/base_main/base_nine.png'),
 ];
 
-export const hairOptions = [
+export const hairOptionsBlack = [
   //Black
   require('../../assets/character-creator/Hairs/Hair Black_1.png'),
   require('../../assets/character-creator/Hairs/Hair Black_2.png'),
@@ -47,6 +47,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Black_30.png'),
   require('../../assets/character-creator/Hairs/Hair Black_31.png'),
   require('../../assets/character-creator/Hairs/Hair Black_32.png'),
+];
+
+export const hairOptionsBlonde = [
   //Blonde
   require('../../assets/character-creator/Hairs/Hair Blonde_1.png'),
   require('../../assets/character-creator/Hairs/Hair Blonde_2.png'),
@@ -80,7 +83,10 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Blonde_30.png'),
   require('../../assets/character-creator/Hairs/Hair Blonde_31.png'),
   require('../../assets/character-creator/Hairs/Hair Blonde_32.png'),
-//Blue
+];
+
+export const hairOptionsBlue = [
+  //Blue
   require('../../assets/character-creator/Hairs/Hair Blue_1.png'),
   require('../../assets/character-creator/Hairs/Hair Blue_2.png'),
   require('../../assets/character-creator/Hairs/Hair Blue_3.png'),
@@ -113,6 +119,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Blue_30.png'),
   require('../../assets/character-creator/Hairs/Hair Blue_31.png'),
   require('../../assets/character-creator/Hairs/Hair Blue_32.png'),
+];
+
+export const hairOptionsBlueGreen = [
   //Blue-Green
   require('../../assets/character-creator/Hairs/Hair Blue-Green_1.png'),
   require('../../assets/character-creator/Hairs/Hair Blue-Green_2.png'),
@@ -146,7 +155,10 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Blue-Green_30.png'),
   require('../../assets/character-creator/Hairs/Hair Blue-Green_31.png'),
   require('../../assets/character-creator/Hairs/Hair Blue-Green_32.png'),
-//Brown 1
+];
+
+export const hairOptionsBrown1 = [
+  //Brown 1
   require('../../assets/character-creator/Hairs/Hair Brown 1_1.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 1_2.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 1_3.png'),
@@ -179,6 +191,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Brown 1_30.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 1_31.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 1_32.png'),
+];
+
+export const hairOptionsBrown2 = [
   //Brown 2
   require('../../assets/character-creator/Hairs/Hair Brown 2_1.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 2_2.png'),
@@ -212,6 +227,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Brown 2_30.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 2_31.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 2_32.png'),
+];
+
+export const hairOptionsBrown3 = [
   //Brown 3
   require('../../assets/character-creator/Hairs/Hair Brown 3_1.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 3_2.png'),
@@ -245,6 +263,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Brown 3_30.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 3_31.png'),
   require('../../assets/character-creator/Hairs/Hair Brown 3_32.png'),
+];
+
+export const hairOptionsDarkBlue = [
   //Dark Blue
   require('../../assets/character-creator/Hairs/Hair Dark Blue_1.png'),
   require('../../assets/character-creator/Hairs/Hair Dark Blue_2.png'),
@@ -278,6 +299,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Dark Blue_30.png'),
   require('../../assets/character-creator/Hairs/Hair Dark Blue_31.png'),
   require('../../assets/character-creator/Hairs/Hair Dark Blue_32.png'),
+];
+
+export const hairOptionsGreen = [
   //Green
   require('../../assets/character-creator/Hairs/Hair Green_1.png'),
   require('../../assets/character-creator/Hairs/Hair Green_2.png'),
@@ -311,6 +335,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Green_30.png'),
   require('../../assets/character-creator/Hairs/Hair Green_31.png'),
   require('../../assets/character-creator/Hairs/Hair Green_32.png'),
+];
+
+export const hairOptionsLightGreen = [
   //Light Green
   require('../../assets/character-creator/Hairs/Hair Light Green_1.png'),
   require('../../assets/character-creator/Hairs/Hair Light Green_2.png'),
@@ -344,7 +371,10 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Light Green_30.png'),
   require('../../assets/character-creator/Hairs/Hair Light Green_31.png'),
   require('../../assets/character-creator/Hairs/Hair Light Green_32.png'),
-  //Lilac
+];
+
+export const hairOptionsLilac = [
+    //Lilac
   require('../../assets/character-creator/Hairs/Hair Lilac_1.png'),
   require('../../assets/character-creator/Hairs/Hair Lilac_2.png'),
   require('../../assets/character-creator/Hairs/Hair Lilac_3.png'),
@@ -377,6 +407,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Lilac_30.png'),
   require('../../assets/character-creator/Hairs/Hair Lilac_31.png'),
   require('../../assets/character-creator/Hairs/Hair Lilac_32.png'),
+];
+
+export const hairOptionsMagent = [
   //Magent
   require('../../assets/character-creator/Hairs/Hair Magent_1.png'),
   require('../../assets/character-creator/Hairs/Hair Magent_2.png'),
@@ -410,6 +443,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Magent_30.png'),
   require('../../assets/character-creator/Hairs/Hair Magent_31.png'),
   require('../../assets/character-creator/Hairs/Hair Magent_32.png'),
+];
+
+export const hairOptionsOrange = [
   //Orange
   require('../../assets/character-creator/Hairs/Hair Orange_1.png'),
   require('../../assets/character-creator/Hairs/Hair Orange_2.png'),
@@ -443,6 +479,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Orange_30.png'),
   require('../../assets/character-creator/Hairs/Hair Orange_31.png'),
   require('../../assets/character-creator/Hairs/Hair Orange_32.png'),
+];
+
+export const hairOptionsPink = [
   //Pink
   require('../../assets/character-creator/Hairs/Hair Pink_1.png'),
   require('../../assets/character-creator/Hairs/Hair Pink_2.png'),
@@ -476,7 +515,10 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Pink_30.png'),
   require('../../assets/character-creator/Hairs/Hair Pink_31.png'),
   require('../../assets/character-creator/Hairs/Hair Pink_32.png'),
-  //Red
+];
+
+export const hairOptionsRed = [
+    //Red
   require('../../assets/character-creator/Hairs/Hair Red_1.png'),
   require('../../assets/character-creator/Hairs/Hair Red_2.png'),
   require('../../assets/character-creator/Hairs/Hair Red_3.png'),
@@ -509,6 +551,9 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair Red_30.png'),
   require('../../assets/character-creator/Hairs/Hair Red_31.png'),
   require('../../assets/character-creator/Hairs/Hair Red_32.png'),
+];
+
+export const hairOptionsWhite = [
   //White
   require('../../assets/character-creator/Hairs/Hair White_1.png'),
   require('../../assets/character-creator/Hairs/Hair White_2.png'),
@@ -544,7 +589,7 @@ export const hairOptions = [
   require('../../assets/character-creator/Hairs/Hair White_32.png'),
 ];
 
-export const clothesOptions = [
+export const clothesOptionsBlonde = [
   //Blonde
   require('../../assets/character-creator/Clothes/Clothes Blonde_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_2.png'),
@@ -558,7 +603,10 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Blonde_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_12.png'),
-//Blue
+];
+
+export const clothesOptionsBlue = [
+  //Blue
   require('../../assets/character-creator/Clothes/Clothes Blue_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue_2.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue_3.png'),
@@ -571,6 +619,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Blue_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue_12.png'),
+];
+
+export const clothesOptionsBlueGreen = [
   //Blue-Green
   require('../../assets/character-creator/Clothes/Clothes Blue-Green_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue-Green_2.png'),
@@ -584,6 +635,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Blue-Green_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue-Green_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue-Green_12.png'),
+];
+
+export const clothesOptionsBrown = [
   //Brown
   require('../../assets/character-creator/Clothes/Clothes Brown_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Brown_2.png'),
@@ -597,6 +651,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Brown_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Brown_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Brown_12.png'),
+];
+
+export const clothesOptionsDarkBlue = [
   //Dark Blue
   require('../../assets/character-creator/Clothes/Clothes Dark Blue_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark Blue_2.png'),
@@ -610,6 +667,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Dark Blue_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark Blue_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark Blue_12.png'),
+];
+
+export const clothesOptionsDarkBrown = [
   //Dark Brown
   require('../../assets/character-creator/Clothes/Clothes Dark Brown_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark Brown_2.png'),
@@ -623,6 +683,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Dark Brown_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark Brown_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark Brown_12.png'),
+];
+
+export const clothesOptionsDark = [
   //Dark
   require('../../assets/character-creator/Clothes/Clothes Dark_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark_2.png'),
@@ -636,6 +699,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Dark_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Dark_12.png'),
+];
+
+export const clothesOptionsGreen = [
   //Green
   require('../../assets/character-creator/Clothes/Clothes Green_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Green_2.png'),
@@ -649,6 +715,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Green_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Green_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Green_12.png'),
+];
+
+export const clothesOptionsLightBrown = [
   //Light Brown
   require('../../assets/character-creator/Clothes/Clothes Light Brown_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Light Brown_2.png'),
@@ -662,6 +731,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Light Brown_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Light Brown_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Light Brown_12.png'),
+];
+
+export const clothesOptionsLightGreen = [
   //Light Green
   require('../../assets/character-creator/Clothes/Clothes Light Green_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Light Green_2.png'),
@@ -675,7 +747,10 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Light Green_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Light Green_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Light Green_12.png'),
-  //Lilac
+];
+
+export const clothesOptionsLilac = [
+      //Lilac
   require('../../assets/character-creator/Clothes/Clothes Lilac_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Lilac_2.png'),
   require('../../assets/character-creator/Clothes/Clothes Lilac_3.png'),
@@ -688,6 +763,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Lilac_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Lilac_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Lilac_12.png'),
+];
+
+export const clothesOptionsMagent = [
   //Magent
   require('../../assets/character-creator/Clothes/Clothes Magent_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Magent_2.png'),
@@ -701,6 +779,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Magent_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Magent_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Magent_12.png'),
+];
+
+export const clothesOptionsOrange = [
   //Orange
   require('../../assets/character-creator/Clothes/Clothes Orange_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Orange_2.png'),
@@ -714,6 +795,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Orange_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Orange_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Orange_12.png'),
+];
+
+export const clothesOptionsPink = [
   //Pink
   require('../../assets/character-creator/Clothes/Clothes Pink_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Pink_2.png'),
@@ -727,6 +811,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Pink_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Pink_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Pink_12.png'),
+];
+
+export const clothesOptionsRed = [
   //Red
   require('../../assets/character-creator/Clothes/Clothes Red_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Red_2.png'),
@@ -740,6 +827,9 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes Red_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Red_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Red_12.png'),
+];
+
+export const clothesOptionsWhite = [
   //White
   require('../../assets/character-creator/Clothes/Clothes White_1.png'),
   require('../../assets/character-creator/Clothes/Clothes White_2.png'),
@@ -755,7 +845,7 @@ export const clothesOptions = [
   require('../../assets/character-creator/Clothes/Clothes White_12.png'),
 ];
 
-export const eyesOptions = [
+export const eyesOptionsBlonde = [
   //Blonde
   require('../../assets/character-creator/Eyes/Eyes Blonde_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Blonde_2.png'),
@@ -769,6 +859,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Blonde_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Blonde_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Blonde_12.png'),
+];
+
+export const eyesOptionsBlue = [
   //Blue
   require('../../assets/character-creator/Eyes/Eyes Blue_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Blue_2.png'),
@@ -782,6 +875,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Blue_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Blue_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Blue_12.png'),
+];
+
+export const eyesOptionsBlueGreen = [
   //Blue-Green
   require('../../assets/character-creator/Eyes/Eyes Blue-Green_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Blue-Green_2.png'),
@@ -795,6 +891,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Blue-Green_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Blue-Green_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Blue-Green_12.png'),
+];
+
+export const eyesOptionsBrown = [
   //Brown
   require('../../assets/character-creator/Eyes/Eyes Brown_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Brown_2.png'),
@@ -808,6 +907,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Brown_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Brown_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Brown_12.png'),
+];
+
+export const eyesOptionsDarkBlue = [
   //Dark Blue
   require('../../assets/character-creator/Eyes/Eyes Dark Blue_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark Blue_2.png'),
@@ -821,6 +923,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Dark Blue_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark Blue_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark Blue_12.png'),
+];
+
+export const eyesOptionsDarkBrown = [
   //Dark Brown
   require('../../assets/character-creator/Eyes/Eyes Dark Brown_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark Brown_2.png'),
@@ -834,6 +939,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Dark Brown_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark Brown_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark Brown_12.png'),
+];
+
+export const eyesOptionsDark = [
   //Dark
   require('../../assets/character-creator/Eyes/Eyes Dark_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark_2.png'),
@@ -847,6 +955,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Dark_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Dark_12.png'),
+];
+
+export const eyesOptionsGreen = [
   //Green
   require('../../assets/character-creator/Eyes/Eyes Green_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Green_2.png'),
@@ -860,6 +971,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Green_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Green_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Green_12.png'),
+];
+
+export const eyesOptionsLightBrown = [
   //Light Brown
   require('../../assets/character-creator/Eyes/Eyes Light Brown_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Light Brown_2.png'),
@@ -873,6 +987,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Light Brown_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Light Brown_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Light Brown_12.png'),
+];
+
+export const eyesOptionsLightGreen = [
   //Light Green
   require('../../assets/character-creator/Eyes/Eyes Light Green_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Light Green_2.png'),
@@ -886,6 +1003,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Light Green_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Light Green_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Light Green_12.png'),
+];
+
+export const eyesOptionsLilac = [
   //Lilac
   require('../../assets/character-creator/Eyes/Eyes Lilac_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Lilac_2.png'),
@@ -899,7 +1019,10 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Lilac_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Lilac_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Lilac_12.png'),
-  //Magent
+];
+
+export const eyesOptionsMagent = [
+      //Magent
   require('../../assets/character-creator/Eyes/Eyes Magent_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Magent_2.png'),
   require('../../assets/character-creator/Eyes/Eyes Magent_3.png'),
@@ -912,6 +1035,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Magent_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Magent_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Magent_12.png'),
+];
+
+export const eyesOptionsOrange = [
   //Orange
   require('../../assets/character-creator/Eyes/Eyes Orange_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Orange_2.png'),
@@ -925,6 +1051,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Orange_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Orange_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Orange_12.png'),
+];
+
+export const eyesOptionsPink = [
   //Pink
   require('../../assets/character-creator/Eyes/Eyes Pink_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Pink_2.png'),
@@ -938,6 +1067,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Pink_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Pink_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Pink_12.png'),
+];
+
+export const eyesOptionsRed = [
   //Red
   require('../../assets/character-creator/Eyes/Eyes Red_1.png'),
   require('../../assets/character-creator/Eyes/Eyes Red_2.png'),
@@ -951,6 +1083,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes Red_10.png'),
   require('../../assets/character-creator/Eyes/Eyes Red_11.png'),
   require('../../assets/character-creator/Eyes/Eyes Red_12.png'),
+];
+
+export const eyesOptionsWhite = [
   //White
   require('../../assets/character-creator/Eyes/Eyes White_1.png'),
   require('../../assets/character-creator/Eyes/Eyes White_2.png'),
@@ -966,7 +1101,9 @@ export const eyesOptions = [
   require('../../assets/character-creator/Eyes/Eyes White_12.png'),
 ];
 
-export const eyebrowsOptions = [
+
+
+export const eyebrowsOptionsBlonde = [
   //Blonde
   require('../../assets/character-creator/Eyebrows/Eyebrows Blonde_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blonde_2.png'),
@@ -980,6 +1117,9 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Blonde_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blonde_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blonde_12.png'),
+];
+
+export const eyebrowsOptionsBlue = [
   //Blue
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue_2.png'),
@@ -993,7 +1133,10 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue_12.png'),
-//Blue-Green
+];
+
+export const eyebrowsOptionsBlueGreen = [
+  //Blue-Green
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue-Green_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue-Green_2.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue-Green_3.png'),
@@ -1006,6 +1149,9 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue-Green_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue-Green_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Blue-Green_12.png'),
+];
+
+export const eyebrowsOptionsBrown = [
   //Brown
   require('../../assets/character-creator/Eyebrows/Eyebrows Brown_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Brown_2.png'),
@@ -1019,6 +1165,9 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Brown_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Brown_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Brown_12.png'),
+];
+
+export const eyebrowsOptionsDarkBlue = [
   //Dark Blue
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Blue_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Blue_2.png'),
@@ -1032,6 +1181,9 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Blue_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Blue_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Blue_12.png'),
+];
+
+export const eyebrowsOptionsDarkBrown = [
   //Dark Brown
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Brown_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Brown_2.png'),
@@ -1045,6 +1197,9 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Brown_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Brown_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark Brown_12.png'),
+];
+
+export const eyebrowsOptionsDark = [
   //Dark
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark_2.png'),
@@ -1058,6 +1213,9 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Dark_12.png'),
+];
+
+export const eyebrowsOptionsGreen = [
   //Green
   require('../../assets/character-creator/Eyebrows/Eyebrows Green_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Green_2.png'),
@@ -1071,6 +1229,9 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Green_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Green_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Green_12.png'),
+];
+
+export const eyebrowsOptionsLightBrown = [
   //Light Brown
   require('../../assets/character-creator/Eyebrows/Eyebrows Light Brown_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Light Brown_2.png'),
@@ -1084,6 +1245,9 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Light Brown_10.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Light Brown_11.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Light Brown_12.png'),
+];
+
+export const eyebrowsOptionsLightGreen = [
   //Light Green
   require('../../assets/character-creator/Eyebrows/Eyebrows Light Green_1.png'),
   require('../../assets/character-creator/Eyebrows/Eyebrows Light Green_2.png'),
@@ -1099,23 +1263,103 @@ export const eyebrowsOptions = [
   require('../../assets/character-creator/Eyebrows/Eyebrows Light Green_12.png'),
 ];
 
-export const mouthOptions = [
-  require('../../assets/character-creator/Mouths/Mouth_1.png'),
-  require('../../assets/character-creator/Mouths/Mouth_2.png'),
-  require('../../assets/character-creator/Mouths/Mouth_3.png'),
-  require('../../assets/character-creator/Mouths/Mouth_4.png'),
-  require('../../assets/character-creator/Mouths/Mouth_5.png'),
-  require('../../assets/character-creator/Mouths/Mouth_6.png'),
-  require('../../assets/character-creator/Mouths/Mouth_7.png'),
-  require('../../assets/character-creator/Mouths/Mouth_8.png'),
-  require('../../assets/character-creator/Mouths/Mouth_9.png'),
-  require('../../assets/character-creator/Mouths/Mouth_10.png'),
-  require('../../assets/character-creator/Mouths/Mouth_11.png'),
-  require('../../assets/character-creator/Mouths/Mouth_12.png'),
+export const eyebrowsOptionsLilac = [
+  //Lilac
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_1.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_2.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_3.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_4.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_5.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_6.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_7.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_8.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_9.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_10.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_11.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Lilac_12.png'),
 ];
 
+export const eyebrowsOptionsMagent = [
+  //Magent
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_1.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_2.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_3.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_4.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_5.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_6.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_7.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_8.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_9.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_10.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_11.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Magent_12.png'),
+];
+
+export const eyebrowsOptionsOrange = [
+  //Orange
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_1.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_2.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_3.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_4.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_5.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_6.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_7.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_8.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_9.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_10.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_11.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Orange_12.png'),
+];
+
+export const eyebrowsOptionsPink = [
+  //Pink
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_1.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_2.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_3.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_4.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_5.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_6.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_7.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_8.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_9.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_10.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_11.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Pink_12.png'),
+];
+
+export const eyebrowsOptionsRed = [
+  //Red
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_1.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_2.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_3.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_4.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_5.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_6.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_7.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_8.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_9.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_10.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_11.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows Red_12.png'),
+];
+
+export const eyebrowsOptionsWhite = [
+  //White
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_1.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_2.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_3.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_4.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_5.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_6.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_7.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_8.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_9.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_10.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_11.png'),
+  require('../../assets/character-creator/Eyebrows/Eyebrows White_12.png'),
+];
   // Background options
-  export const bgOptions = [
+export const bgOptions = [
     require('../../assets/character-creator/BGs/Brown.png'),
     require('../../assets/character-creator/BGs/Light Brown.png'),
     require('../../assets/character-creator/BGs/Dark Brown.png'),
@@ -1136,3 +1380,247 @@ export const mouthOptions = [
   export const baseHUD = [
     require('../../assets/character-creator/sample_hud_heads/head_base.png')
   ];
+
+  export const bgOptionsBlonde = [
+    require('../../assets/character-creator/BGs/blonde/Blonde_1.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_2.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_3.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_4.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_5.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_6.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_7.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_8.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_9.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_10.png'),
+    require('../../assets/character-creator/BGs/blonde/Blonde_11.png'),
+
+  ];
+
+  export const bgOptionsBrown = [
+    require('../../assets/character-creator/BGs/brown/Brown_1.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_2.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_3.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_4.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_5.png'),
+      require('../../assets/character-creator/BGs/brown/Brown_6.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_7.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_8.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_9.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_10.png'),
+    require('../../assets/character-creator/BGs/brown/Brown_11.png'),
+
+  ];
+
+export const bgOptionsBlue = [
+  require('../../assets/character-creator/BGs/blue/Blue_1.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_2.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_3.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_4.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_5.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_6.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_7.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_8.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_9.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_10.png'),
+  require('../../assets/character-creator/BGs/blue/Blue_11.png'),
+];
+
+export const bgOptionsBlueGreen = [
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_1.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_2.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_3.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_4.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_5.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_6.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_7.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_8.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_9.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_10.png'),
+  require('../../assets/character-creator/BGs/blue-green/Blue-Green_11.png'),
+];
+
+export const bgOptionsDarkBlue = [
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_1.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_2.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_3.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_4.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_5.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_6.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_7.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_8.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_9.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_10.png'),
+  require('../../assets/character-creator/BGs/dark-blue/Dark Blue_11.png'),
+];
+
+export const bgOptionsDarkBrown = [
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_1.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_2.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_3.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_4.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_5.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_6.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_7.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_8.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_9.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_10.png'),
+  require('../../assets/character-creator/BGs/dark-brown/Dark Brown_11.png'),
+];
+
+export const bgOptionsDark = [
+  require('../../assets/character-creator/BGs/dark/Dark_1.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_2.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_3.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_4.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_5.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_6.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_7.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_8.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_9.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_10.png'),
+  require('../../assets/character-creator/BGs/dark/Dark_11.png'),
+];
+export const bgOptionsGreen = [
+  require('../../assets/character-creator/BGs/green/Green_1.png'),
+  require('../../assets/character-creator/BGs/green/Green_2.png'),
+  require('../../assets/character-creator/BGs/green/Green_3.png'),
+  require('../../assets/character-creator/BGs/green/Green_4.png'),
+  require('../../assets/character-creator/BGs/green/Green_5.png'),
+  require('../../assets/character-creator/BGs/green/Green_6.png'),
+  require('../../assets/character-creator/BGs/green/Green_7.png'),
+  require('../../assets/character-creator/BGs/green/Green_8.png'),
+  require('../../assets/character-creator/BGs/green/Green_9.png'),
+  require('../../assets/character-creator/BGs/green/Green_10.png'),
+  require('../../assets/character-creator/BGs/green/Green_11.png'),
+];
+
+
+export const bgOptionsLightBrown = [
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_1.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_2.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_3.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_4.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_5.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_6.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_7.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_8.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_9.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_10.png'),
+  require('../../assets/character-creator/BGs/light-brown/Light Brown_11.png'),
+];
+
+export const bgOptionsLightGreen = [  
+  require('../../assets/character-creator/BGs/light-green/Light Green_1.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_2.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_3.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_4.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_5.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_6.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_7.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_8.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_9.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_10.png'),
+  require('../../assets/character-creator/BGs/light-green/Light Green_11.png'),
+];
+
+export const bgOptionsLilac = [ 
+  require('../../assets/character-creator/BGs/lilac/Lilac_1.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_2.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_3.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_4.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_5.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_6.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_7.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_8.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_9.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_10.png'),
+  require('../../assets/character-creator/BGs/lilac/Lilac_11.png'),
+];
+
+export const bgOptionsMagent = [
+  require('../../assets/character-creator/BGs/magent/Magent_1.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_2.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_3.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_4.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_5.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_6.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_7.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_8.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_9.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_10.png'),
+  require('../../assets/character-creator/BGs/magent/Magent_11.png'),
+];
+
+export const bgOptionsOrange = [
+  require('../../assets/character-creator/BGs/orange/Orange_1.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_2.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_3.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_4.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_5.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_6.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_7.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_8.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_9.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_10.png'),
+  require('../../assets/character-creator/BGs/orange/Orange_11.png'),
+];
+
+export const bgOptionsPink = [
+  require('../../assets/character-creator/BGs/pink/Pink_1.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_2.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_3.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_4.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_5.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_6.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_7.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_8.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_9.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_10.png'),
+  require('../../assets/character-creator/BGs/pink/Pink_11.png'),
+];
+
+export const bgOptionsRed = [
+  require('../../assets/character-creator/BGs/red/Red_1.png'),
+  require('../../assets/character-creator/BGs/red/Red_2.png'),
+  require('../../assets/character-creator/BGs/red/Red_3.png'),
+  require('../../assets/character-creator/BGs/red/Red_4.png'),
+  require('../../assets/character-creator/BGs/red/Red_5.png'),
+  require('../../assets/character-creator/BGs/red/Red_6.png'),
+  require('../../assets/character-creator/BGs/red/Red_7.png'),
+  require('../../assets/character-creator/BGs/red/Red_8.png'),
+  require('../../assets/character-creator/BGs/red/Red_9.png'),
+  require('../../assets/character-creator/BGs/red/Red_10.png'),
+  require('../../assets/character-creator/BGs/red/Red_11.png'),
+];
+
+export const bgOptionsWhite = [ 
+  require('../../assets/character-creator/BGs/white/White_1.png'),
+  require('../../assets/character-creator/BGs/white/White_2.png'),
+  require('../../assets/character-creator/BGs/white/White_3.png'),
+  require('../../assets/character-creator/BGs/white/White_4.png'),
+  require('../../assets/character-creator/BGs/white/White_5.png'),
+  require('../../assets/character-creator/BGs/white/White_6.png'),
+  require('../../assets/character-creator/BGs/white/White_7.png'),
+  require('../../assets/character-creator/BGs/white/White_8.png'),
+  require('../../assets/character-creator/BGs/white/White_9.png'),
+  require('../../assets/character-creator/BGs/white/White_10.png'),
+  require('../../assets/character-creator/BGs/white/White_11.png'),
+];
+
+// Mouth options (style only, no color variants)
+export const mouthOptions = [
+  require('../../assets/character-creator/Mouths/Mouth_1.png'),
+  require('../../assets/character-creator/Mouths/Mouth_2.png'),
+  require('../../assets/character-creator/Mouths/Mouth_3.png'),
+  require('../../assets/character-creator/Mouths/Mouth_4.png'),
+  require('../../assets/character-creator/Mouths/Mouth_5.png'),
+  require('../../assets/character-creator/Mouths/Mouth_6.png'),
+  require('../../assets/character-creator/Mouths/Mouth_7.png'),
+  require('../../assets/character-creator/Mouths/Mouth_8.png'),
+  require('../../assets/character-creator/Mouths/Mouth_9.png'),
+  require('../../assets/character-creator/Mouths/Mouth_10.png'),
+  require('../../assets/character-creator/Mouths/Mouth_11.png'),
+  require('../../assets/character-creator/Mouths/Mouth_12.png'),
+];
+
+

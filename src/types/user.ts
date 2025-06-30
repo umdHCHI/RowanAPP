@@ -11,6 +11,7 @@ export interface LoginResponse {
             has_completed_onboarding?: boolean;
             completion_type?: string | null;
             completion_data_id?: number | null;
+            character?: Character;
             created_at?: string;
             updated_at?: string;
         } | null;
@@ -33,6 +34,9 @@ export interface UserProfile {
         has_completed_onboarding?: boolean;
         completion_type?: string | null;
         completion_data_id?: number | null;
+        character?: Character;
+        created_at?: string;
+        updated_at?: string;
     } | null;
     personality_profile: any;
 }
@@ -78,6 +82,18 @@ export interface Character {
 
 export interface CharacterCreateData {
     name: string;
+    // Include all customization fields for initial character creation
+    selected_base_model?: number;
+    selected_skin_color?: number;
+    selected_hair_style?: number;
+    selected_hair_color?: number;
+    selected_eye_type?: number;
+    selected_eye_color?: number;
+    selected_eyebrow_style?: number;
+    selected_eyebrow_color?: number;
+    selected_mouth_type?: number;
+    selected_shirt_type?: number;
+    selected_background_type?: number;
 }
 
 export interface CharacterCustomizationData {
@@ -92,6 +108,8 @@ export interface CharacterCustomizationData {
     selected_mouth_type: number;
     selected_shirt_type: number;
     selected_background_type: number;
+    selected_background_color?: number;
+    selected_clothes_color?: number;
 }
 
 export interface GameData {

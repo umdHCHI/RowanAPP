@@ -2,10 +2,10 @@ import axios from 'axios';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import { Modal, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../context/AuthContext';
-import { useOnboarding } from '../context/OnboardingContext';
-import { useTheme } from '../context/ThemeContext';
-import { apiBaseUrl } from '../services/apiConfig';
+import { useAuth } from '../../context/AuthContext';
+import { useOnboarding } from '../../context/OnboardingContext';
+import { useTheme } from '../../context/ThemeContext';
+import { apiBaseUrl } from '../../services/apiConfig';
 
 const QUESTIONS = [
   {
