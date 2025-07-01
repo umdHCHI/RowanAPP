@@ -1,6 +1,6 @@
-import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
-import { CharacterPreviewProps } from '../types/appearance';
+import React from "react";
+import { Image, StyleSheet, View } from "react-native";
+import { CharacterPreviewProps } from "../types/appearance";
 
 // Sizing and offset constants (can be adjusted as needed)
 const PREVIEW_WIDTH = 500;
@@ -61,59 +61,59 @@ const styles = StyleSheet.create({
   previewContainer: {
     width: PREVIEW_WIDTH,
     height: PREVIEW_HEIGHT,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    position: "relative",
+    alignItems: "center",
+    justifypassages: "center",
+    overflow: "hidden",
   },
   baseLayer: {
     width: BASE_WIDTH,
     height: BASE_HEIGHT,
-    position: 'absolute',
+    position: "absolute",
     top: BASE_TOP_OFFSET,
     left: BASE_LEFT_OFFSET,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   hairLayer: {
     width: HAIR_WIDTH,
     height: HAIR_HEIGHT,
-    position: 'absolute',
+    position: "absolute",
     top: HAIR_TOP_OFFSET,
     left: HAIR_LEFT_OFFSET,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   clothesLayer: {
     width: CLOTHES_WIDTH,
     height: CLOTHES_HEIGHT,
-    position: 'absolute',
+    position: "absolute",
     top: CLOTHES_TOP_OFFSET,
     left: CLOTHES_LEFT_OFFSET,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   eyesLayer: {
     width: EYES_WIDTH,
     height: EYES_HEIGHT,
-    position: 'absolute',
+    position: "absolute",
     top: EYES_TOP_OFFSET,
     left: EYES_LEFT_OFFSET,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   eyebrowsLayer: {
     width: EYEBROWS_WIDTH,
     height: EYEBROWS_HEIGHT,
-    position: 'absolute',
+    position: "absolute",
     top: EYEBROWS_TOP_OFFSET,
     left: EYEBROWS_LEFT_OFFSET,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   mouthLayer: {
     width: MOUTH_WIDTH,
     height: MOUTH_HEIGHT,
-    position: 'absolute',
+    position: "absolute",
     top: MOUTH_TOP_OFFSET,
     left: MOUTH_LEFT_OFFSET,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
 });
 
-export default CharacterPreview; 
+export default CharacterPreview;

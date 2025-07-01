@@ -20,7 +20,7 @@ export type CodexModalProps = {
   onClose: () => void;
   onSave: (entry: {
     type: string;
-    content: string;
+    passages: string;
     prompt: string;
     skillCategory: string;
     mapArea: string;

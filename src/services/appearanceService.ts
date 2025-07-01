@@ -360,7 +360,7 @@ class AppearanceService {
   async createReflection(reflectionData: {
     entry_type: 'memory' | 'insight' | 'skill' | 'challenge' | 'growth';
     title: string;
-    content: string;
+    passages: string;
     prompt: string;
     skill_category?: string;
     map_area?: string;

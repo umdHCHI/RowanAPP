@@ -1,6 +1,6 @@
-//should be cleaned up and centralized now 
-import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+//should be cleaned up and centralized now
+import React, { useCallback, useMemo, useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import {
   CHARACTER_CREATOR_CONSTANTS,
   CategorySelector,
@@ -10,45 +10,47 @@ import {
   StyleControls,
   createCharacterCreatorCategories,
   useCharacterCreation,
-  useMasterState
-} from '../../imports';
+  useMasterState,
+} from "../../imports";
 
 export default function CharacterCreatorScreen() {
   const { theme, character, loading, onboarding, auth } = useMasterState();
   const [selectedCategory, setSelectedCategory] = useState(0);
 
   // Create centralized category configurations with memoization
-  const { styleCategories, colorCategories } = useMemo(() => 
-    createCharacterCreatorCategories(
-      {
-        selectedHairStyle: character.selectedHairStyle,
-        selectedEyeType: character.selectedEyeType,
-        selectedEyebrowStyle: character.selectedEyebrowStyle,
-        selectedMouthType: character.selectedMouthType,
-        selectedShirtType: character.selectedShirtType,
-        selectedBackgroundType: character.selectedBackgroundType,
-        selectedBaseModel: character.selectedBaseModel,
-        selectedHairColor: character.selectedHairColor,
-        selectedEyeColor: character.selectedEyeColor,
-        selectedEyebrowColor: character.selectedEyebrowColor,
-        selectedClothesColor: character.selectedClothesColor,
-        selectedBackgroundColor: character.selectedBackgroundColor,
-      },
-      {
-        setSelectedHairStyle: character.setSelectedHairStyle,
-        setSelectedEyeType: character.setSelectedEyeType,
-        setSelectedEyebrowStyle: character.setSelectedEyebrowStyle,
-        setSelectedMouthType: character.setSelectedMouthType,
-        setSelectedShirtType: character.setSelectedShirtType,
-        setSelectedBackgroundType: character.setSelectedBackgroundType,
-        setSelectedBaseModel: character.setSelectedBaseModel,
-        setSelectedHairColor: character.setSelectedHairColor,
-        setSelectedEyeColor: character.setSelectedEyeColor,
-        setSelectedEyebrowColor: character.setSelectedEyebrowColor,
-        setSelectedClothesColor: character.setSelectedClothesColor,
-        setSelectedBackgroundColor: character.setSelectedBackgroundColor,
-      }
-    ), [character]
+  const { styleCategories, colorCategories } = useMemo(
+    () =>
+      createCharacterCreatorCategories(
+        {
+          selectedHairStyle: character.selectedHairStyle,
+          selectedEyeType: character.selectedEyeType,
+          selectedEyebrowStyle: character.selectedEyebrowStyle,
+          selectedMouthType: character.selectedMouthType,
+          selectedShirtType: character.selectedShirtType,
+          selectedBackgroundType: character.selectedBackgroundType,
+          selectedBaseModel: character.selectedBaseModel,
+          selectedHairColor: character.selectedHairColor,
+          selectedEyeColor: character.selectedEyeColor,
+          selectedEyebrowColor: character.selectedEyebrowColor,
+          selectedClothesColor: character.selectedClothesColor,
+          selectedBackgroundColor: character.selectedBackgroundColor,
+        },
+        {
+          setSelectedHairStyle: character.setSelectedHairStyle,
+          setSelectedEyeType: character.setSelectedEyeType,
+          setSelectedEyebrowStyle: character.setSelectedEyebrowStyle,
+          setSelectedMouthType: character.setSelectedMouthType,
+          setSelectedShirtType: character.setSelectedShirtType,
+          setSelectedBackgroundType: character.setSelectedBackgroundType,
+          setSelectedBaseModel: character.setSelectedBaseModel,
+          setSelectedHairColor: character.setSelectedHairColor,
+          setSelectedEyeColor: character.setSelectedEyeColor,
+          setSelectedEyebrowColor: character.setSelectedEyebrowColor,
+          setSelectedClothesColor: character.setSelectedClothesColor,
+          setSelectedBackgroundColor: character.setSelectedBackgroundColor,
+        }
+      ),
+    [character]
   );
 
   // Custom hook for character creation logic
@@ -63,17 +65,20 @@ export default function CharacterCreatorScreen() {
     await auth.logout();
   }, [auth]);
 
-  const handleNameChange = useCallback((name: string) => {
-    character.setCharacterName(name);
-  }, [character]);
+  const handleNameChange = useCallback(
+    (name: string) => {
+      character.setCharacterName(name);
+    },
+    [character]
+  );
 
   const handleCategorySelect = useCallback((index: number) => {
     setSelectedCategory(index);
   }, []);
 
   // Memoized current category
-  const currentStyleCategory = useMemo(() => 
-    styleCategories[selectedCategory], 
+  const currentStyleCategory = useMemo(
+    () => styleCategories[selectedCategory],
     [styleCategories, selectedCategory]
   );
 
@@ -87,13 +92,10 @@ export default function CharacterCreatorScreen() {
         styles={theme.styles}
       />
 
-      {/* Main Content Area */}
-      <View style={theme.styles.characterCreatorMainContent}>
+      {/* Main passages Area */}
+      <View style={theme.styles.characterCreatorMainpassages}>
         {/* Left Side - Character Preview */}
-        <CharacterPreviewSection
-          character={character}
-          styles={theme.styles}
-        />
+        <CharacterPreviewSection character={character} styles={theme.styles} />
 
         {/* Right Side - Color Options */}
         <View style={theme.styles.characterCreatorColorSection}>
@@ -105,7 +107,12 @@ export default function CharacterCreatorScreen() {
             styles={theme.styles}
             maxHeight={CHARACTER_CREATOR_CONSTANTS.COLOR_OPTIONS_MAX_HEIGHT}
           />
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: CHARACTER_CREATOR_CONSTANTS.COLOR_OPTIONS_MAX_HEIGHT }}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={{
+              maxHeight: CHARACTER_CREATOR_CONSTANTS.COLOR_OPTIONS_MAX_HEIGHT,
+            }}
+          >
             {colorCategories.map((category, index) => (
               <ColorOptionControls
                 key={index}
@@ -139,17 +146,16 @@ export default function CharacterCreatorScreen() {
       <View style={theme.styles.characterCreatorButtonSection}>
         <TouchableOpacity
           style={[
-            theme.styles.characterCreatorCompleteButton, 
-            { opacity: loading.isLoading ? 0.7 : 1 }
+            theme.styles.characterCreatorCompleteButton,
+            { opacity: loading.isLoading ? 0.7 : 1 },
           ]}
           onPress={handleCharacterCreation}
           disabled={loading.isLoading}
         >
           <Text style={theme.styles.characterCreatorCompleteButtonText}>
-            {loading.isLoading 
-              ? CHARACTER_CREATOR_CONSTANTS.BUTTONS.CREATING_CHARACTER 
-              : CHARACTER_CREATOR_CONSTANTS.BUTTONS.COMPLETE_CHARACTER
-            }
+            {loading.isLoading
+              ? CHARACTER_CREATOR_CONSTANTS.BUTTONS.CREATING_CHARACTER
+              : CHARACTER_CREATOR_CONSTANTS.BUTTONS.COMPLETE_CHARACTER}
           </Text>
         </TouchableOpacity>
       </View>

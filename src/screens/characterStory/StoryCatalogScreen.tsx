@@ -14,17 +14,17 @@ import {
   useEffect,
   useState,
   View,
-} from '../../imports';
+} from "../../imports";
 
 // Import archive service for backend operations
-import { archiveService } from '../../services/archiveService';
+import { archiveService } from "../../services/archiveService";
 // Import test function
 // Import ChapterScreen for chapter selection - temporarily disabled
 // import ChapterScreen from './ChapterScreen';
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
-export type Grimoire = {
+export type Story = {
   id: string;
   title: string;
   category: string;
@@ -33,7 +33,7 @@ export type Grimoire = {
   timeToComplete: string;
   exploration: number;
   revelations: number;
-  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
+  rarity: "Common" | "Rare" | "Epic" | "Legendary";
   skillFocus: string[];
   atmosphere: string;
   statBoosts: string[];
@@ -43,198 +43,273 @@ export type Grimoire = {
   image?: string;
 };
 
-type GrimoireCatalogModalProps = {
+type StoryCatalogModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSelectGrimoire: (grimoire: Grimoire) => void;
+  onSelectStory: (Story: Story) => void;
 };
 
-const GrimoireCatalogModal = ({ visible, onClose, onSelectGrimoire }: GrimoireCatalogModalProps) => {
-  const [grimoires, setGrimoires] = useState<Grimoire[]>([]);
+const StoryCatalogModal = ({
+  visible,
+  onClose,
+  onSelectStory,
+}: StoryCatalogModalProps) => {
+  const [Storys, setStorys] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const globalStyles = createGlobalStyles(darkTheme);
 
-  // Load grimoires from backend on mount
+  // Load Storys from backend on mount
   useEffect(() => {
-    const loadGrimoires = async () => {
+    const loadStorys = async () => {
       if (!visible) return;
-      
+
       setIsLoading(true);
       setError(null);
-      
+
       try {
-        console.log('Loading grimoires from backend...');
-        const backendGrimoires = await archiveService.getAvailableStories();
-        console.log('Backend grimoires response:', backendGrimoires);
-        
-        if (backendGrimoires && backendGrimoires.length > 0) {
-          console.log('Setting grimoires:', backendGrimoires);
-          setGrimoires(backendGrimoires);
+        console.log("Loading Storys from backend...");
+        const backendStorys = await archiveService.getAvailableStories();
+        console.log("Backend Storys response:", backendStorys);
+
+        if (backendStorys && backendStorys.length > 0) {
+          console.log("Setting Storys:", backendStorys);
+          setStorys(backendStorys);
         } else {
-          console.log('No grimoires returned from backend');
-          setGrimoires([]);
+          console.log("No Storys returned from backend");
+          setStorys([]);
         }
       } catch (error) {
-        console.error('Failed to load grimoires from the Archive:', error);
-        setError('Failed to load grimoires from the Archive');
-        setGrimoires([]);
+        console.error("Failed to load Storys from the Archive:", error);
+        setError("Failed to load Storys from the Archive");
+        setStorys([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadGrimoires();
+    loadStorys();
   }, [visible]);
 
   const getRarityColors = (rarity: string): readonly [string, string] => {
     switch (rarity) {
-      case 'Legendary': return ['#F97316', '#FCD34D'];
-      case 'Epic': return ['#A855F7', '#F472B6'];
-      case 'Rare': return ['#3B82F6', '#06B6D4'];
-      default: return ['#6B7280', '#9CA3AF'];
+      case "Legendary":
+        return ["#F97316", "#FCD34D"];
+      case "Epic":
+        return ["#A855F7", "#F472B6"];
+      case "Rare":
+        return ["#3B82F6", "#06B6D4"];
+      default:
+        return ["#6B7280", "#9CA3AF"];
     }
   };
 
   const getRarityGlow = (rarity: string): string => {
     switch (rarity) {
-      case 'Legendary': return 'rgba(249, 115, 22, 0.3)';
-      case 'Epic': return 'rgba(168, 85, 247, 0.3)';
-      case 'Rare': return 'rgba(59, 130, 246, 0.3)';
-      default: return 'rgba(107, 114, 128, 0.2)';
+      case "Legendary":
+        return "rgba(249, 115, 22, 0.3)";
+      case "Epic":
+        return "rgba(168, 85, 247, 0.3)";
+      case "Rare":
+        return "rgba(59, 130, 246, 0.3)";
+      default:
+        return "rgba(107, 114, 128, 0.2)";
     }
   };
 
-  const GrimoireCard = ({ grimoire }: { grimoire: Grimoire }) => (
+  const StoryCard = ({ Story }: { Story: Story }) => (
     <TouchableOpacity
-      style={[globalStyles.grimoireCard, { opacity: grimoire.isLocked ? 0.6 : 1 }]}
-      onPress={() => !grimoire.isLocked && onSelectGrimoire(grimoire)}
-      activeOpacity={grimoire.isLocked ? 1 : 0.8}
-      disabled={grimoire.isLocked}
+      style={[globalStyles.StoryCard, { opacity: Story.isLocked ? 0.6 : 1 }]}
+      onPress={() => !Story.isLocked && onSelectStory(Story)}
+      activeOpacity={Story.isLocked ? 1 : 0.8}
+      disabled={Story.isLocked}
     >
       <LinearGradient
-        colors={['rgba(30, 41, 59, 0.95)', 'rgba(51, 65, 85, 0.8)', 'rgba(30, 41, 59, 0.95)']}
-        style={globalStyles.grimoireCardGradient}
+        colors={[
+          "rgba(30, 41, 59, 0.95)",
+          "rgba(51, 65, 85, 0.8)",
+          "rgba(30, 41, 59, 0.95)",
+        ]}
+        style={globalStyles.StoryCardGradient}
       >
-        <BlurView intensity={10} style={globalStyles.grimoireCardBlur}>
+        <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
           {/* Rarity Border */}
           <LinearGradient
-            colors={getRarityColors(grimoire.rarity)}
-            style={globalStyles.grimoireRarityBorder}
+            colors={getRarityColors(Story.rarity)}
+            style={globalStyles.StoryRarityBorder}
           />
-          
+
           {/* Lock Overlay */}
-          {grimoire.isLocked && (
-            <View style={globalStyles.grimoireLockOverlay}>
+          {Story.isLocked && (
+            <View style={globalStyles.StoryLockOverlay}>
               <LinearGradient
-                colors={['rgba(0, 0, 0, 0.8)', 'rgba(0, 0, 0, 0.6)']}
-                style={globalStyles.grimoireLockGradient}
+                colors={["rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 0.6)"]}
+                style={globalStyles.StoryLockGradient}
               >
                 <Icon name="lock" size={24} color="#A855F7" />
-                <Text style={[globalStyles.grimoireLockText, { color: '#A855F7' }]}>Level {grimoire.unlockLevel} Required</Text>
+                <Text
+                  style={[globalStyles.StoryLockText, { color: "#A855F7" }]}
+                >
+                  Level {Story.unlockLevel} Required
+                </Text>
               </LinearGradient>
             </View>
           )}
 
           {/* Header */}
-          <View style={globalStyles.grimoireCardHeader}>
-            <View style={globalStyles.grimoireTitleSection}>
-              <Text style={[globalStyles.grimoireCardTitle, { color: '#A855F7' }]}>{grimoire.title || 'Untitled Grimoire'}</Text>
-              <Text style={[globalStyles.grimoireCardCategory, { color: '#9CA3AF' }]}>{grimoire.category || 'Unknown Category'}</Text>
-            </View>
-            
-            <View style={globalStyles.grimoireRarityBadge}>
-              <LinearGradient
-                colors={getRarityColors(grimoire.rarity)}
-                style={globalStyles.grimoireRarityBadgeGradient}
+          <View style={globalStyles.StoryCardHeader}>
+            <View style={globalStyles.StoryTitleSection}>
+              <Text style={[globalStyles.StoryCardTitle, { color: "#A855F7" }]}>
+                {Story.title || "Untitled Story"}
+              </Text>
+              <Text
+                style={[globalStyles.StoryCardCategory, { color: "#9CA3AF" }]}
               >
-                <Text style={globalStyles.grimoireRarityBadgeText}>{grimoire.rarity}</Text>
+                {Story.category || "Unknown Category"}
+              </Text>
+            </View>
+
+            <View style={globalStyles.StoryRarityBadge}>
+              <LinearGradient
+                colors={getRarityColors(Story.rarity)}
+                style={globalStyles.StoryRarityBadgeGradient}
+              >
+                <Text style={globalStyles.StoryRarityBadgeText}>
+                  {Story.rarity}
+                </Text>
               </LinearGradient>
             </View>
           </View>
 
           {/* Progress Indicator */}
-          {(grimoire.exploration || 0) > 0 && (
-            <View style={globalStyles.grimoireProgressSection}>
-              <View style={globalStyles.grimoireProgressHeader}>
+          {(Story.exploration || 0) > 0 && (
+            <View style={globalStyles.StoryProgressSection}>
+              <View style={globalStyles.StoryProgressHeader}>
                 <Icon name="compass" size={12} color="#06B6D4" />
-                <Text style={[globalStyles.grimoireProgressLabel, { color: '#06B6D4' }]}>Exploration: {grimoire.exploration || 0}%</Text>
+                <Text
+                  style={[
+                    globalStyles.StoryProgressLabel,
+                    { color: "#06B6D4" },
+                  ]}
+                >
+                  Exploration: {Story.exploration || 0}%
+                </Text>
               </View>
-              <View style={globalStyles.grimoireProgressBar}>
+              <View style={globalStyles.StoryProgressBar}>
                 <LinearGradient
-                  colors={['#06B6D4', '#A855F7']}
-                  style={[globalStyles.grimoireProgressFill, { width: `${grimoire.exploration || 0}%` }]}
+                  colors={["#06B6D4", "#A855F7"]}
+                  style={[
+                    globalStyles.StoryProgressFill,
+                    { width: `${Story.exploration || 0}%` },
+                  ]}
                 />
               </View>
             </View>
           )}
 
           {/* Description */}
-          <Text style={[globalStyles.grimoireDescription, { color: '#9CA3AF' }]}>{grimoire.description || 'No description available'}</Text>
-          
+          <Text style={[globalStyles.StoryDescription, { color: "#9CA3AF" }]}>
+            {Story.description || "No description available"}
+          </Text>
+
           {/* Atmosphere */}
-          <View style={globalStyles.grimoireAtmosphereContainer}>
+          <View style={globalStyles.StoryAtmosphereContainer}>
             <Icon name="eye" size={10} color="#06B6D4" />
-            <Text style={[globalStyles.grimoireAtmosphereText, { color: '#06B6D4' }]}>✦ {grimoire.atmosphere || 'Mysterious atmosphere'} ✦</Text>
+            <Text
+              style={[globalStyles.StoryAtmosphereText, { color: "#06B6D4" }]}
+            >
+              ✦ {Story.atmosphere || "Mysterious atmosphere"} ✦
+            </Text>
           </View>
 
           {/* Skill Focus Tags */}
-          <View style={globalStyles.grimoireSkillFocusContainer}>
-            <Text style={[globalStyles.grimoireSkillFocusLabel, { color: '#9CA3AF' }]}>Coping Skills:</Text>
-            <View style={globalStyles.grimoireSkillTags}>
-              {(grimoire.skillFocus || []).slice(0, 2).map((skill, index) => (
-                <View key={index} style={globalStyles.grimoireSkillTag}>
-                  <Text style={globalStyles.grimoireSkillTagText}>{skill}</Text>
+          <View style={globalStyles.StorySkillFocusContainer}>
+            <Text
+              style={[globalStyles.StorySkillFocusLabel, { color: "#9CA3AF" }]}
+            >
+              Coping Skills:
+            </Text>
+            <View style={globalStyles.StorySkillTags}>
+              {(Story.skillFocus || []).slice(0, 2).map((skill, index) => (
+                <View key={index} style={globalStyles.StorySkillTag}>
+                  <Text style={globalStyles.StorySkillTagText}>{skill}</Text>
                 </View>
               ))}
-              {(grimoire.skillFocus || []).length > 2 && (
-                <View style={globalStyles.grimoireSkillTag}>
-                  <Text style={globalStyles.grimoireSkillTagText}>+{(grimoire.skillFocus || []).length - 2}</Text>
+              {(Story.skillFocus || []).length > 2 && (
+                <View style={globalStyles.StorySkillTag}>
+                  <Text style={globalStyles.StorySkillTagText}>
+                    +{(Story.skillFocus || []).length - 2}
+                  </Text>
                 </View>
               )}
             </View>
           </View>
 
           {/* Stat Boosts */}
-          <View style={globalStyles.grimoireStatBoostsContainer}>
-            <Text style={[globalStyles.grimoireStatBoostsLabel, { color: '#9CA3AF' }]}>Strengthens:</Text>
-            <View style={globalStyles.grimoireStatBoostTags}>
-              {(grimoire.statBoosts || []).map((stat, index) => (
-                <View key={index} style={globalStyles.grimoireStatBoostTag}>
+          <View style={globalStyles.StoryStatBoostsContainer}>
+            <Text
+              style={[globalStyles.StoryStatBoostsLabel, { color: "#9CA3AF" }]}
+            >
+              Strengthens:
+            </Text>
+            <View style={globalStyles.StoryStatBoostTags}>
+              {(Story.statBoosts || []).map((stat, index) => (
+                <View key={index} style={globalStyles.StoryStatBoostTag}>
                   <Icon name="trending-up" size={8} color="#10B981" />
-                  <Text style={[globalStyles.grimoireStatBoostText, { color: '#10B981' }]}>{stat}</Text>
+                  <Text
+                    style={[
+                      globalStyles.StoryStatBoostText,
+                      { color: "#10B981" },
+                    ]}
+                  >
+                    {stat}
+                  </Text>
                 </View>
               ))}
             </View>
           </View>
 
           {/* Footer Info */}
-          <View style={globalStyles.grimoireFooter}>
-            <View style={globalStyles.grimoireFooterStat}>
+          <View style={globalStyles.StoryFooter}>
+            <View style={globalStyles.StoryFooterStat}>
               <Icon name="clock" size={12} color="#FB923C" />
-              <Text style={[globalStyles.grimoireFooterStatText, { color: '#9CA3AF' }]}>{grimoire.timeToComplete || 'Unknown time'}</Text>
+              <Text
+                style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
+              >
+                {Story.timeToComplete || "Unknown time"}
+              </Text>
             </View>
-            <View style={globalStyles.grimoireFooterStat}>
+            <View style={globalStyles.StoryFooterStat}>
               <Icon name="key" size={12} color="#A855F7" />
-              <Text style={[globalStyles.grimoireFooterStatText, { color: '#9CA3AF' }]}>{grimoire.revelations || 0} revelations</Text>
+              <Text
+                style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
+              >
+                {Story.revelations || 0} revelations
+              </Text>
             </View>
-            <View style={globalStyles.grimoireFooterStat}>
+            <View style={globalStyles.StoryFooterStat}>
               <Icon name="zap" size={12} color="#A855F7" />
-              <Text style={[globalStyles.grimoireFooterStatText, { color: '#9CA3AF' }]}>{grimoire.difficulty || 'Unknown'}</Text>
+              <Text
+                style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
+              >
+                {Story.difficulty || "Unknown"}
+              </Text>
             </View>
           </View>
 
           {/* Action Button */}
-          {!grimoire.isLocked && (
-            <View style={globalStyles.grimoireActionButton}>
+          {!Story.isLocked && (
+            <View style={globalStyles.StoryActionButton}>
               <LinearGradient
-                colors={['#7C3AED', '#A855F7']}
-                style={globalStyles.grimoireActionButtonGradient}
+                colors={["#7C3AED", "#A855F7"]}
+                style={globalStyles.StoryActionButtonGradient}
               >
                 <Icon name="book-open" size={14} color="#E0E7FF" />
-                <Text style={globalStyles.grimoireActionButtonText}>
-                  {(grimoire.exploration || 0) > 0 ? 'Continue Study' : 'Begin Reading'}
+                <Text style={globalStyles.StoryActionButtonText}>
+                  {(Story.exploration || 0) > 0
+                    ? "Continue Study"
+                    : "Begin Reading"}
                 </Text>
               </LinearGradient>
             </View>
@@ -248,10 +323,22 @@ const GrimoireCatalogModal = ({ visible, onClose, onSelectGrimoire }: GrimoireCa
   if (isLoading) {
     return (
       <Modal visible={visible} transparent onRequestClose={onClose}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.8)' }}>
-          <Icon name="loader" size={40} color="#A855F7" style={{ marginBottom: 16 }} />
-          <Text style={{ color: 'white', fontSize: 18, margin: 20 }}>
-            Loading Grimoires from the Archive...
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.8)",
+          }}
+        >
+          <Icon
+            name="loader"
+            size={40}
+            color="#A855F7"
+            style={{ marginBottom: 16 }}
+          />
+          <Text style={{ color: "white", fontSize: 18, margin: 20 }}>
+            Loading Storys from the Archive...
           </Text>
         </View>
       </Modal>
@@ -262,13 +349,40 @@ const GrimoireCatalogModal = ({ visible, onClose, onSelectGrimoire }: GrimoireCa
   if (error) {
     return (
       <Modal visible={visible} transparent onRequestClose={onClose}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.8)' }}>
-          <Icon name="alert-circle" size={40} color="#EF4444" style={{ marginBottom: 16 }} />
-          <Text style={{ color: 'white', fontSize: 18, margin: 20, textAlign: 'center' }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.8)",
+          }}
+        >
+          <Icon
+            name="alert-circle"
+            size={40}
+            color="#EF4444"
+            style={{ marginBottom: 16 }}
+          />
+          <Text
+            style={{
+              color: "white",
+              fontSize: 18,
+              margin: 20,
+              textAlign: "center",
+            }}
+          >
             {error}
           </Text>
-          <TouchableOpacity onPress={onClose} style={{ padding: 20, backgroundColor: '#333', borderRadius: 8, marginTop: 20 }}>
-            <Text style={{ color: 'white' }}>Close</Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              padding: 20,
+              backgroundColor: "#333",
+              borderRadius: 8,
+              marginTop: 20,
+            }}
+          >
+            <Text style={{ color: "white" }}>Close</Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -284,74 +398,139 @@ const GrimoireCatalogModal = ({ visible, onClose, onSelectGrimoire }: GrimoireCa
       statusBarTranslucent
     >
       <>
-        <View style={globalStyles.grimoireModalOverlay}>
+        <View style={globalStyles.StoryModalOverlay}>
           <LinearGradient
-            colors={['rgba(30, 41, 59, 0.95)', 'rgba(51, 65, 85, 0.8)', 'rgba(30, 41, 59, 0.95)']}
+            colors={[
+              "rgba(30, 41, 59, 0.95)",
+              "rgba(51, 65, 85, 0.8)",
+              "rgba(30, 41, 59, 0.95)",
+            ]}
             style={StyleSheet.absoluteFillObject}
           />
-          
-          <View style={globalStyles.grimoireModalContent}>
+
+          <View style={globalStyles.StoryModalpassages}>
             <LinearGradient
-              colors={['rgba(30, 41, 59, 0.95)', 'rgba(51, 65, 85, 0.8)', 'rgba(30, 41, 59, 0.95)']}
-              style={[globalStyles.grimoireModalGradient, { borderColor: '#374151' }]}
+              colors={[
+                "rgba(30, 41, 59, 0.95)",
+                "rgba(51, 65, 85, 0.8)",
+                "rgba(30, 41, 59, 0.95)",
+              ]}
+              style={[
+                globalStyles.StoryModalGradient,
+                { borderColor: "#374151" },
+              ]}
             >
-              <BlurView intensity={20} style={globalStyles.grimoireModalBlur}>
-                
+              <BlurView intensity={20} style={globalStyles.StoryModalBlur}>
                 {/* Header */}
-                <View style={globalStyles.grimoireModalHeader}>
-                  <View style={globalStyles.grimoireHeaderContent}>
+                <View style={globalStyles.StoryModalHeader}>
+                  <View style={globalStyles.StoryHeaderpassages}>
                     <Icon name="book" size={24} color="#A855F7" />
-                    <Text style={[globalStyles.grimoireModalTitle, { color: '#A855F7' }]}>Archive of Grimoires</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <TouchableOpacity 
-                        style={[globalStyles.grimoireCloseButton, { marginRight: 8 }]} 
+                    <Text
+                      style={[
+                        globalStyles.StoryModalTitle,
+                        { color: "#A855F7" },
+                      ]}
+                    >
+                      Archive of Storys
+                    </Text>
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          globalStyles.StoryCloseButton,
+                          { marginRight: 8 },
+                        ]}
                         onPress={() => runComprehensiveTest()}
                       >
                         <LinearGradient
-                          colors={['rgba(59, 130, 246, 0.8)', 'rgba(37, 99, 235, 0.8)']}
-                          style={globalStyles.grimoireCloseButtonGradient}
+                          colors={[
+                            "rgba(59, 130, 246, 0.8)",
+                            "rgba(37, 99, 235, 0.8)",
+                          ]}
+                          style={globalStyles.StoryCloseButtonGradient}
                         >
-                          <Text style={{ color: '#E0E7FF', fontSize: 12 }}>Test</Text>
+                          <Text style={{ color: "#E0E7FF", fontSize: 12 }}>
+                            Test
+                          </Text>
                         </LinearGradient>
                       </TouchableOpacity>
-                      <TouchableOpacity style={globalStyles.grimoireCloseButton} onPress={onClose}>
+                      <TouchableOpacity
+                        style={globalStyles.StoryCloseButton}
+                        onPress={onClose}
+                      >
                         <LinearGradient
-                          colors={['rgba(239, 68, 68, 0.8)', 'rgba(220, 38, 38, 0.8)']}
-                          style={globalStyles.grimoireCloseButtonGradient}
+                          colors={[
+                            "rgba(239, 68, 68, 0.8)",
+                            "rgba(220, 38, 38, 0.8)",
+                          ]}
+                          style={globalStyles.StoryCloseButtonGradient}
                         >
                           <Icon name="x" size={18} color="#FECACA" />
                         </LinearGradient>
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <Text style={[globalStyles.grimoireModalSubtitle, { color: '#9CA3AF' }]}>
-                    Ancient grimoires of wisdom await your study. Each grimoire contains powerful coping techniques disguised as mystical knowledge.
+                  <Text
+                    style={[
+                      globalStyles.StoryModalSubtitle,
+                      { color: "#9CA3AF" },
+                    ]}
+                  >
+                    Ancient Storys of wisdom await your study. Each Story
+                    contains powerful coping techniques disguised as mystical
+                    knowledge.
                   </Text>
                 </View>
 
-                {/* Grimoire Grid */}
-                <ScrollView 
-                  style={globalStyles.grimoireScrollView}
-                  contentContainerStyle={globalStyles.grimoireGrid}
+                {/* Story Grid */}
+                <ScrollView
+                  style={globalStyles.StoryScrollView}
+                  contentContainerStyle={globalStyles.StoryGrid}
                   showsVerticalScrollIndicator={false}
                 >
-                  {grimoires.length > 0 ? (
-                    grimoires.map(grimoire => (
-                      <GrimoireCard key={grimoire.id} grimoire={grimoire} />
+                  {Storys.length > 0 ? (
+                    Storys.map((Story) => (
+                      <StoryCard key={Story.id} Story={Story} />
                     ))
                   ) : (
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
-                      <Icon name="book" size={40} color="#A855F7" style={{ marginBottom: 16 }} />
-                      <Text style={{ color: '#9CA3AF', fontSize: 18, textAlign: 'center' }}>
-                        No Grimoires Available
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        padding: 40,
+                      }}
+                    >
+                      <Icon
+                        name="book"
+                        size={40}
+                        color="#A855F7"
+                        style={{ marginBottom: 16 }}
+                      />
+                      <Text
+                        style={{
+                          color: "#9CA3AF",
+                          fontSize: 18,
+                          textAlign: "center",
+                        }}
+                      >
+                        No Storys Available
                       </Text>
-                      <Text style={{ color: '#6B7280', fontSize: 14, textAlign: 'center', marginTop: 8 }}>
-                        The Archive is currently empty. Check back later for new wisdom to discover.
+                      <Text
+                        style={{
+                          color: "#6B7280",
+                          fontSize: 14,
+                          textAlign: "center",
+                          marginTop: 8,
+                        }}
+                      >
+                        The Archive is currently empty. Check back later for new
+                        wisdom to discover.
                       </Text>
                     </View>
                   )}
                 </ScrollView>
-                
               </BlurView>
             </LinearGradient>
           </View>
@@ -363,53 +542,62 @@ const GrimoireCatalogModal = ({ visible, onClose, onSelectGrimoire }: GrimoireCa
 
 // Add a comprehensive test function
 const runComprehensiveTest = async () => {
-  console.log('=== RUNNING COMPREHENSIVE STORY TEST ===');
-  
+  console.log("=== RUNNING COMPREHENSIVE STORY TEST ===");
+
   try {
     // Test 1: Get story catalog
-    console.log('1. Testing story catalog...');
+    console.log("1. Testing story catalog...");
     const catalog = await archiveService.getAvailableStories();
-    console.log('Story catalog result:', catalog);
-    console.log('Catalog length:', catalog?.length);
-    
+    console.log("Story catalog result:", catalog);
+    console.log("Catalog length:", catalog?.length);
+
     if (catalog && catalog.length > 0) {
       const firstStory = catalog[0];
-      console.log('First story:', firstStory);
-      
+      console.log("First story:", firstStory);
+
       // Test 2: Get chapters for first story
-      console.log('2. Testing chapters for story:', firstStory.id);
+      console.log("2. Testing chapters for story:", firstStory.id);
       const chapters = await archiveService.getChapters(firstStory.id);
-      console.log('Chapters result:', chapters);
-      
+      console.log("Chapters result:", chapters);
+
       if (chapters && chapters.length > 0) {
         const firstChapter = chapters[0];
-        console.log('First chapter:', firstChapter);
-        
-        // Test 3: Get story content from chapter
-        console.log('3. Testing story content from chapter:', firstChapter.id);
-        const storyContent = await archiveService.getStoryContentFromChapter(firstStory.id, firstChapter.id);
-        console.log('Story content result:', storyContent);
-        console.log('Story content passages:', storyContent?.passages);
-        console.log('Story content passages length:', storyContent?.passages?.length);
-        
-        if (storyContent && storyContent.passages && storyContent.passages.length > 0) {
-          console.log('✅ SUCCESS: Story content loaded with passages');
-          console.log('First passage:', storyContent.passages[0]);
+        console.log("First chapter:", firstChapter);
+
+        // Test 3: Get story passages from chapter
+        console.log("3. Testing story passages from chapter:", firstChapter.id);
+        const storypassages = await archiveService.getStorypassagesFromChapter(
+          firstStory.id,
+          firstChapter.id
+        );
+        console.log("Story passages result:", storypassages);
+        console.log("Story passages passages:", storypassages?.passages);
+        console.log(
+          "Story passages passages length:",
+          storypassages?.passages?.length
+        );
+
+        if (
+          storypassages &&
+          storypassages.passages &&
+          storypassages.passages.length > 0
+        ) {
+          console.log("✅ SUCCESS: Story passages loaded with passages");
+          console.log("First passage:", storypassages.passages[0]);
         } else {
-          console.log('❌ FAILED: No passages in story content');
+          console.log("❌ FAILED: No passages in story passages");
         }
       } else {
-        console.log('❌ FAILED: No chapters found');
+        console.log("❌ FAILED: No chapters found");
       }
     } else {
-      console.log('❌ FAILED: No stories in catalog');
+      console.log("❌ FAILED: No stories in catalog");
     }
-    
   } catch (error) {
-    console.error('❌ TEST FAILED:', error);
+    console.error("❌ TEST FAILED:", error);
   }
-  
-  console.log('=== END COMPREHENSIVE TEST ===');
+
+  console.log("=== END COMPREHENSIVE TEST ===");
 };
 
-export default GrimoireCatalogModal;
+export default StoryCatalogModal;

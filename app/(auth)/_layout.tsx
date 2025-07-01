@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { useTheme } from '../../src/context/ThemeContext';
+import { Stack } from "expo-router";
+import { useTheme } from "../../src/context/ThemeContext";
 
 export default function AuthLayout() {
   const { theme } = useTheme();
@@ -8,7 +8,7 @@ export default function AuthLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: {
+        passagesStyle: {
           backgroundColor: theme.background,
         },
       }}
@@ -16,9 +16,9 @@ export default function AuthLayout() {
       <Stack.Screen
         name="login"
         options={{
-          title: 'Login',
+          title: "Login",
         }}
       />
     </Stack>
   );
-} 
+}

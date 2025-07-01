@@ -1,14 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from 'react-native';
-import { EquipmentItem, EquippedItems } from '../types/equipment';
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { EquipmentItem, EquippedItems } from "../types/equipment";
 
 interface EquipmentModalProps {
   visible: boolean;
@@ -25,18 +25,18 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
   onEquip,
   onUnequip,
   inventory,
-  equippedItems
+  equippedItems,
 }) => {
   const getSlotLabel = (type: string) => {
     switch (type) {
-      case 'focus':
-        return 'Focus Item';
-      case 'comfort':
-        return 'Comfort Layer';
-      case 'shield':
-        return 'Mind Shield';
-      case 'ground':
-        return 'Ground Stone';
+      case "focus":
+        return "Focus Item";
+      case "comfort":
+        return "Comfort Layer";
+      case "shield":
+        return "Mind Shield";
+      case "ground":
+        return "Ground Stone";
       default:
         return type;
     }
@@ -44,16 +44,16 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
 
   const getStatColor = (stat: string) => {
     switch (stat) {
-      case 'awareness':
-        return '#4A90E2';
-      case 'resilience':
-        return '#2ECC71';
-      case 'connection':
-        return '#E74C3C';
-      case 'balance':
-        return '#F39C12';
+      case "awareness":
+        return "#4A90E2";
+      case "resilience":
+        return "#2ECC71";
+      case "connection":
+        return "#E74C3C";
+      case "balance":
+        return "#F39C12";
       default:
-        return '#fff';
+        return "#fff";
     }
   };
 
@@ -76,9 +76,9 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       </View>
 
       <Text style={styles.itemDescription}>{item.description}</Text>
-      
+
       <View style={styles.statsContainer}>
-        {Object.entries(item.wellnessStats).map(([stat, value]) => 
+        {Object.entries(item.wellnessStats).map(([stat, value]) =>
           value ? renderStat(stat, value) : null
         )}
       </View>
@@ -86,11 +86,14 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       <Text style={styles.effectText}>Effect: {item.effect}</Text>
 
       <TouchableOpacity
-        style={[styles.actionButton, isEquipped ? styles.unequipButton : styles.equipButton]}
-        onPress={() => isEquipped ? onUnequip(item) : onEquip(item)}
+        style={[
+          styles.actionButton,
+          isEquipped ? styles.unequipButton : styles.equipButton,
+        ]}
+        onPress={() => (isEquipped ? onUnequip(item) : onEquip(item))}
       >
         <Text style={styles.actionButtonText}>
-          {isEquipped ? 'Unequip' : 'Equip'}
+          {isEquipped ? "Unequip" : "Equip"}
         </Text>
       </TouchableOpacity>
     </View>
@@ -104,7 +107,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+        <View style={styles.modalpassages}>
           <View style={styles.header}>
             <Text style={styles.title}>Coping Tools</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -112,19 +115,17 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content}>
+          <ScrollView style={styles.passages}>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Equipped</Text>
-              {Object.values(equippedItems).map(item => 
+              {Object.values(equippedItems).map((item) =>
                 renderItem(item, true)
               )}
             </View>
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Inventory</Text>
-              {inventory.map(item => 
-                renderItem(item, false)
-              )}
+              {inventory.map((item) => renderItem(item, false))}
             </View>
           </ScrollView>
         </View>
@@ -136,69 +137,69 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifypassages: "center",
+    alignItems: "center",
   },
-  modalContent: {
-    width: '90%',
-    height: '80%',
-    backgroundColor: '#23242b',
+  modalpassages: {
+    width: "90%",
+    height: "80%",
+    backgroundColor: "#23242b",
     borderRadius: 20,
     padding: 20,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifypassages: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   title: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   closeButton: {
     padding: 5,
   },
-  content: {
+  passages: {
     flex: 1,
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
-    color: '#ffe066',
+    color: "#ffe066",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   itemCard: {
-    backgroundColor: '#1a1b1f',
+    backgroundColor: "#1a1b1f",
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: "#333",
   },
   itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifypassages: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   itemName: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   itemType: {
-    color: '#4ee6e6',
+    color: "#4ee6e6",
     fontSize: 12,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   itemDescription: {
-    color: '#ccc',
+    color: "#ccc",
     fontSize: 14,
     marginBottom: 12,
     lineHeight: 20,
@@ -207,41 +208,41 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifypassages: "space-between",
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   statValue: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   effectText: {
-    color: '#ffe066',
+    color: "#ffe066",
     fontSize: 14,
-    fontStyle: 'italic',
+    fontStyle: "italic",
     marginBottom: 12,
   },
   actionButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   equipButton: {
-    backgroundColor: '#4ee6e6',
+    backgroundColor: "#4ee6e6",
   },
   unequipButton: {
-    backgroundColor: '#ff6b6b',
+    backgroundColor: "#ff6b6b",
   },
   actionButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
+    color: "#000",
+    fontWeight: "bold",
     fontSize: 14,
   },
 });
 
-export default EquipmentModal; 
+export default EquipmentModal;

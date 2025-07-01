@@ -1,8 +1,8 @@
 // Centralized story data - extracted from components for better organization
-import { Grimoire } from '../screens/characterStory/StoryCatalogScreen';
+import { Story } from '../screens/characterStory/StoryCatalogScreen';
 
-// Grimoire catalog data
-export const availableGrimoires: Grimoire[] = [
+// Story catalog data
+export const availableStorys: Story[] = [
   {
     id: '1',
     title: 'Chronicle of the Fractured Mind',
@@ -53,7 +53,7 @@ export const availableGrimoires: Grimoire[] = [
   },
   {
     id: '4',
-    title: 'Grimoire of Overwhelming Tides',
+    title: 'Story of Overwhelming Tides',
     category: 'Emotional Regulation Sanctum',
     description: 'Navigate the tempestuous waters of overwhelming emotions. Learn ancient techniques to ride the waves rather than be swept away.',
     difficulty: 'Emotional Mastery',
@@ -85,9 +85,9 @@ export const availableGrimoires: Grimoire[] = [
   },
   {
     id: '6',
-    title: 'Grimoire of Inner Transformation',
+    title: 'Story of Inner Transformation',
     category: 'Advanced Self-Mastery',
-    description: 'The most powerful grimoire in the Archive. Synthesize all learned wisdom into a personal philosophy of resilience and growth.',
+    description: 'The most powerful Story in the Archive. Synthesize all learned wisdom into a personal philosophy of resilience and growth.',
     difficulty: 'Mastery Integration',
     timeToComplete: '35 min',
     exploration: 0,
@@ -101,8 +101,8 @@ export const availableGrimoires: Grimoire[] = [
   },
 ];
 
-// Story content data
-export const storyContent = {
+// Story passages data
+export const storypassages = {
   '1': {
     id: '1',
     title: 'Chronicle of the Fractured Mind',
@@ -185,7 +185,7 @@ export const mentalArtifacts = [
     type: 'Comfort Codex',
     equipped: false,
     resonance: 78,
-    description: 'A weathered grimoire that wraps the mind in protective solace',
+    description: 'A weathered Story that wraps the mind in protective solace',
     rarity: 'Rare',
   },
   // Add more artifacts here...

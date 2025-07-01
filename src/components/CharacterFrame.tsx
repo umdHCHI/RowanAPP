@@ -1,8 +1,8 @@
-import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
-import { CharacterFrameProps } from '../types/appearance';
+import React from "react";
+import { Image, StyleSheet, View } from "react-native";
+import { CharacterFrameProps } from "../types/appearance";
 
-const DEFAULT_FRAME = require('../../assets/character-creator/BGs/brown/brown_one.png');
+const DEFAULT_FRAME = require("../../assets/character-creator/BGs/brown/brown_one.png");
 
 const CharacterFrame: React.FC<CharacterFrameProps> = ({
   children,
@@ -10,27 +10,36 @@ const CharacterFrame: React.FC<CharacterFrameProps> = ({
   size = 50,
 }) => {
   return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>      
-      <View style={{ width: size, height: size, overflow: 'hidden', position: 'absolute', top: 0, left: 0 }}>
+    <View style={[styles.wrapper, { width: size, height: size }]}>
+      <View
+        style={{
+          width: size,
+          height: size,
+          overflow: "hidden",
+          position: "absolute",
+          top: 0,
+          left: 0,
+        }}
+      >
         <Image source={frame} style={{ width: size, height: size }} />
       </View>
-      <View style={styles.content}>{children}</View>
+      <View style={styles.passages}>{children}</View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    position: "relative",
+    alignItems: "center",
+    justifypassages: "center",
+    overflow: "hidden",
   },
-  content: {
+  passages: {
     zIndex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifypassages: "center",
   },
 });
 
-export default CharacterFrame; 
+export default CharacterFrame;

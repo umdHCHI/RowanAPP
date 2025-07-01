@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from './apiService';
+import { Character } from '../types/User';
 
 export class BackendIntegrationTest {
   private authToken: string | null = null;
@@ -116,7 +117,7 @@ export class BackendIntegrationTest {
       const storiesResponse = await fetch(`${baseUrl}stories/stories/`, {
         headers: {
           'Authorization': `Bearer ${this.authToken}`,
-          'Content-Type': 'application/json'
+          'passages-Type': 'application/json'
         }
       });
       
@@ -130,7 +131,7 @@ export class BackendIntegrationTest {
       const progressResponse = await fetch(`${baseUrl}stories/progress/`, {
         headers: {
           'Authorization': `Bearer ${this.authToken}`,
-          'Content-Type': 'application/json'
+          'passages-Type': 'application/json'
         }
       });
       
@@ -258,16 +259,16 @@ export const getCopingToolMapping = async () => {
     // Map coping tool names to IDs
     existingCopingTools.forEach((tool: any) => {
       console.log(`Checking coping tool: ${tool.name} (ID: ${tool.id})`);
-      if (tool.name === "Binder's Quill of Mastery") {
+      if (tool.subtype === "journaling") {
         copingToolMapping['confront'] = tool.id;
         console.log(`✅ Mapped confront -> ${tool.id}`);
-      } else if (tool.name === "Ear Rune of Will") {
+      } else if (tool.subtype === "boundary") {
         copingToolMapping['avoid'] = tool.id;
         console.log(`✅ Mapped avoid -> ${tool.id}`);
-      } else if (tool.name === "Guide's Bookmark of Kinship") {
+      } else if (tool.subtype === "social") {
         copingToolMapping['assist'] = tool.id;
         console.log(`✅ Mapped assist -> ${tool.id}`);
-      }
+      }//need to add them all 
     });
     
     console.log('🎯 Final coping tool mapping:', copingToolMapping);
@@ -316,13 +317,13 @@ export async function testStoryEndpoints() {
           const firstPassage = passages[0];
           console.log('First passage:', firstPassage);
           
-          // Test 4: Get passage content
-          console.log('\n4. Testing passage content endpoint...');
+          // Test 4: Get passage passages
+          console.log('\n4. Testing passage passages endpoint...');
           const passageId = firstPassage.passage_id;
           console.log('Testing with passage ID:', passageId);
           
-          const passageContent = await apiService.getNewPassageContent(storyId, passageId);
-          console.log('Passage content response:', passageContent);
+          const passagepassages = await apiService.getNewPassagepassages(storyId, passageId);
+          console.log('Passage passages response:', passagepassages);
           
           // Test 5: Get story progress
           console.log('\n5. Testing story progress endpoint...');
@@ -346,4 +347,4 @@ export async function testStoryEndpoints() {
 }
 
 // Export for use in other files
-export default testStoryEndpoints; 
+export default testStoryEndpoints;

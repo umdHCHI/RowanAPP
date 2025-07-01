@@ -114,7 +114,7 @@ export interface ReflectionEntry {
     character: string;
     entry_type: 'memory' | 'insight' | 'skill' | 'challenge' | 'growth';
     title: string;
-    content: string;
+    passages: string;
     prompt: string;
     skill_category?: string;
     map_area?: string;
@@ -154,7 +154,7 @@ export interface HomeData {
 const apiClient: AxiosInstance = axios.create({
     baseURL: apiBaseUrl,
     headers: {
-        'Content-Type': 'application/json',
+        'passages-Type': 'application/json',
         'Accept': 'application/json'
     },
 });
@@ -593,7 +593,7 @@ class ApiService {
     async createReflection(reflectionData: {
         entry_type: 'memory' | 'insight' | 'skill' | 'challenge' | 'growth';
         title: string;
-        content: string;
+        passages: string;
         prompt: string;
         skill_category?: string;
         map_area?: string;
@@ -606,7 +606,7 @@ class ApiService {
 
     async quickReflect(reflectionData: {
         title: string;
-        content: string;
+        passages: string;
         prompt: string;
     }): Promise<{ message: string; reflection: ReflectionEntry }> {
         return this.post('quickReflect', reflectionData);
@@ -691,8 +691,8 @@ class ApiService {
         return this.get<any[]>('chapterPassages', { urlSuffix: `${chapterId}/passages/` });
     }
 
-    // Get specific passage content
-    async getNewPassageContent(storyId: number, passageId: string): Promise<any> {
+    // Get specific passage passages
+    async getNewPassagepassages(storyId: number, passageId: string): Promise<any> {
         return this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${encodeURIComponent(passageId)}/` });
     }
 
@@ -730,28 +730,28 @@ class ApiService {
         return this.get<any[]>('stories');
     }
 
-    async getStoryContent(storyId: string): Promise<any> {
-        return this.get<any>('storyContent', { urlSuffix: `${storyId}/` });
+    async getStorypassages(storyId: string): Promise<any> {
+        return this.get<any>('storypassages', { urlSuffix: `${storyId}/` });
     }
 
     async getStoryPassage(storyId: string, passageId: string): Promise<any> {
-        return this.get<any>('storyContent', { urlSuffix: `${storyId}/passage/${passageId}/` });
+        return this.get<any>('storypassages', { urlSuffix: `${storyId}/passage/${passageId}/` });
     }
 
     async makeStoryChoice(storyId: string, choiceId: string, choiceData?: any): Promise<any> {
-        return this.post<any>('storyContent', choiceData || {}, { urlSuffix: `${storyId}/choice/${choiceId}/` });
+        return this.post<any>('storypassages', choiceData || {}, { urlSuffix: `${storyId}/choice/${choiceId}/` });
     }
 
     async getStoryDetailedProgress(storyId: string): Promise<any> {
-        return this.get<any>('storyContent', { urlSuffix: `${storyId}/progress/` });
+        return this.get<any>('storypassages', { urlSuffix: `${storyId}/progress/` });
     }
 
     async restartStory(storyId: string): Promise<any> {
-        return this.post<any>('storyContent', {}, { urlSuffix: `${storyId}/restart/` });
+        return this.post<any>('storypassages', {}, { urlSuffix: `${storyId}/restart/` });
     }
 
     async completeSpecificStory(storyId: string, completionData: any): Promise<any> {
-        return this.post<any>('storyContent', completionData, { urlSuffix: `${storyId}/complete/` });
+        return this.post<any>('storypassages', completionData, { urlSuffix: `${storyId}/complete/` });
     }
 
     async getStoryGameData(characterId: string): Promise<any> {

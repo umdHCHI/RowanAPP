@@ -13,7 +13,7 @@ export interface Choice {
 export interface Passage {
   id: string;
   passageId: string;
-  content: string;
+  passages: string;
   passageType: string;
   mood?: string;
   backgroundImage?: string;
@@ -35,7 +35,7 @@ export interface ChapterPassage {
   mood?: string;
   backgroundImage?: string;
   order: number;
-  content?: string;
+  passages?: string;
 }
 
 export interface StorySummary {
@@ -73,7 +73,7 @@ export interface ArchiveProgress {
   codexEntries: Array<{
     id: string;
     type: string;
-    content: string;
+    passages: string;
     prompt: string;
     skillCategory: string;
     mapArea: string;
@@ -126,7 +126,7 @@ export interface StoryProgress {
 
 export interface CodexEntry {
   type: string;
-  content: string;
+  passages: string;
   prompt: string;
   skillCategory: string;
   mapArea: string;
@@ -163,9 +163,9 @@ class ArchiveService {
           console.log(`Transforming story ${index + 1}:`, story);
           const storySummary = this.transformBackendStory(story);
           console.log(`Story ${index + 1} summary:`, storySummary);
-          const grimoire = this.transformToGrimoire(storySummary);
-          console.log(`Story ${index + 1} grimoire:`, grimoire);
-          return grimoire;
+          const Story = this.transformToStory(storySummary);
+          console.log(`Story ${index + 1} Story:`, Story);
+          return Story;
         });
         
         console.log('Final transformed stories:', transformedStories);
@@ -329,7 +329,7 @@ class ArchiveService {
         // Transform backend format to frontend format
         const transformedStories = backendStories.map(story => {
           const storySummary = this.transformBackendStory(story);
-          return this.transformToGrimoire(storySummary);
+          return this.transformToStory(storySummary);
         });
         console.log('Transformed stories (fallback):', transformedStories);
         return transformedStories;
@@ -345,36 +345,36 @@ class ArchiveService {
     }
   }
 
-  // Get story content from backend (legacy method)
-  async getStoryContent(storyId: string): Promise<any> {
+  // Get story passages from backend (legacy method)
+  async getStorypassages(storyId: string): Promise<any> {
     try {
       // Try new method first
       const storyDetail = await this.getPassage(storyId);
       if (storyDetail) {
-        console.log('Retrieved story content from new endpoint for ID:', storyId);
+        console.log('Retrieved story passages from new endpoint for ID:', storyId);
         // Transform to frontend format
-        const transformedContent = this.transformBackendStoryContent(storyDetail);
-        console.log('Transformed story content:', transformedContent);
-        return transformedContent;
+        const transformedpassages = this.transformBackendStorypassages(storyDetail);
+        console.log('Transformed story passages:', transformedpassages);
+        return transformedpassages;
       }
       
       // Fallback to old method
-      const backendContent = await apiService.getStoryContent(storyId);
-      console.log('Raw backend story content response (fallback):', backendContent);
+      const backendpassages = await apiService.getStorypassages(storyId);
+      console.log('Raw backend story passages response (fallback):', backendpassages);
       
-      if (backendContent) {
-        console.log('Retrieved story content from backend for ID:', storyId);
+      if (backendpassages) {
+        console.log('Retrieved story passages from backend for ID:', storyId);
         // Transform backend format to frontend format
-        const transformedContent = this.transformBackendStoryContent(backendContent);
-        console.log('Transformed story content:', transformedContent);
-        return transformedContent;
+        const transformedpassages = this.transformBackendStorypassages(backendpassages);
+        console.log('Transformed story passages:', transformedpassages);
+        return transformedpassages;
       }
       
-      // Return null if no content available
-      console.log('No backend story content available for ID:', storyId);
+      // Return null if no passages available
+      console.log('No backend story passages available for ID:', storyId);
       return null;
     } catch (error) {
-      console.error('Failed to get story content from backend for ID:', storyId, error);
+      console.error('Failed to get story passages from backend for ID:', storyId, error);
       // Return null on error
       return null;
     }
@@ -558,8 +558,8 @@ class ArchiveService {
     };
   }
 
-  // Transform StorySummary to Grimoire format for frontend compatibility
-  private transformToGrimoire(storySummary: StorySummary): any {
+  // Transform StorySummary to Story format for frontend compatibility
+  private transformToStory(storySummary: StorySummary): any {
     return {
       id: storySummary.id,
       title: storySummary.title,
@@ -580,42 +580,42 @@ class ArchiveService {
     };
   }
 
-  // Transform backend story content to frontend format
-  private transformBackendStoryContent(backendContent: any): any {
+  // Transform backend story passages to frontend format
+  private transformBackendStorypassages(backendpassages: any): any {
     // This method transforms the Django backend response format to match the frontend expectations
     
-    if (!backendContent) return null;
+    if (!backendpassages) return null;
     
-    // If backend content has a story object with passages
-    if (backendContent.story && backendContent.passage) {
+    // If backend passages has a story object with passages
+    if (backendpassages.story && backendpassages.passage) {
       return {
-        id: backendContent.story.id?.toString(),
-        title: backendContent.story.title,
-        subtitle: backendContent.story.category || backendContent.story.type,
-        atmosphere: backendContent.story.atmosphere || 'Mysterious',
-        difficulty: backendContent.story.difficulty || 'Intermediate',
-        rarity: backendContent.story.rarity || 'Common',
-        skillFocus: backendContent.story.skill_focus || ['General'],
-        passages: this.transformBackendPassages(backendContent.passage, backendContent.choices)
+        id: backendpassages.story.id?.toString(),
+        title: backendpassages.story.title,
+        subtitle: backendpassages.story.category || backendpassages.story.type,
+        atmosphere: backendpassages.story.atmosphere || 'Mysterious',
+        difficulty: backendpassages.story.difficulty || 'Intermediate',
+        rarity: backendpassages.story.rarity || 'Common',
+        skillFocus: backendpassages.story.skill_focus || ['General'],
+        passages: this.transformBackendPassages(backendpassages.passage, backendpassages.choices)
       };
     }
     
-    // If backend content has passages array
-    if (backendContent.passages && Array.isArray(backendContent.passages)) {
+    // If backend passages has passages array
+    if (backendpassages.passages && Array.isArray(backendpassages.passages)) {
       return {
-        id: backendContent.id?.toString(),
-        title: backendContent.title,
-        subtitle: backendContent.category || backendContent.type,
-        atmosphere: backendContent.atmosphere || 'Mysterious',
-        difficulty: backendContent.difficulty || 'Intermediate',
-        rarity: backendContent.rarity || 'Common',
-        skillFocus: backendContent.skill_focus || ['General'],
-        passages: this.transformBackendPassagesArray(backendContent.passages)
+        id: backendpassages.id?.toString(),
+        title: backendpassages.title,
+        subtitle: backendpassages.category || backendpassages.type,
+        atmosphere: backendpassages.atmosphere || 'Mysterious',
+        difficulty: backendpassages.difficulty || 'Intermediate',
+        rarity: backendpassages.rarity || 'Common',
+        skillFocus: backendpassages.skill_focus || ['General'],
+        passages: this.transformBackendPassagesArray(backendpassages.passages)
       };
     }
     
     // If it's a simple story object, return as is
-    return backendContent;
+    return backendpassages;
   }
 
   // Transform backend passage and choices to frontend format
@@ -627,10 +627,10 @@ class ArchiveService {
       return [];
     }
     
-    // Transform the passage content
+    // Transform the passage passages
     const transformedPassage = {
       id: passage.passage_id || 'unknown',
-      text: passage.content || 'No content available',
+      text: passage.passages || 'No passages available',
       atmosphere: passage.mood || 'mysterious',
       passageType: passage.passage_type || 'narration',
       backgroundImage: passage.background_image || null,
@@ -662,7 +662,7 @@ class ArchiveService {
       
       return {
         id: passage.passage_id || `passage_${index}`,
-        text: passage.content || `Passage ${passage.passage_id} - ${passage.passage_type}`,
+        text: passage.passages || `Passage ${passage.passage_id} - ${passage.passage_type}`,
         atmosphere: passage.mood || 'mysterious',
         passageType: passage.passage_type || 'narration',
         order: passage.order || index + 1,
@@ -680,10 +680,10 @@ class ArchiveService {
     });
   }
 
-  // Get story content starting from a specific chapter
-  async getStoryContentFromChapter(storyId: string, chapterId: number): Promise<any> {
+  // Get story passages starting from a specific chapter
+  async getStorypassagesFromChapter(storyId: string, chapterId: number): Promise<any> {
     try {
-      console.log('Getting story content from chapter:', storyId, 'chapter:', chapterId);
+      console.log('Getting story passages from chapter:', storyId, 'chapter:', chapterId);
       
       // First, get the chapters for this story
       const chapters = await apiService.getNewStoryChapters(parseInt(storyId));
@@ -707,32 +707,32 @@ class ArchiveService {
         return null;
       }
       
-      // Fetch content for each passage
-      const passagesWithContent = [];
+      // Fetch passages for each passage
+      const passagesWithpassages = [];
       for (const passage of passages) {
         try {
-          const passageContent = await apiService.getNewPassageContent(parseInt(storyId), passage.passage_id);
-          if (passageContent?.passage?.content) {
-            passagesWithContent.push({
+          const passagepassages = await apiService.getNewPassagepassages(parseInt(storyId), passage.passage_id);
+          if (passagepassages?.passage?.passages) {
+            passagesWithpassages.push({
               ...passage,
-              content: passageContent.passage.content
+              passages: passagepassages.passage.passages
             });
           } else {
-            // Fallback to passage without content
-            passagesWithContent.push(passage);
+            // Fallback to passage without passages
+            passagesWithpassages.push(passage);
           }
         } catch (error) {
-          console.error(`Failed to fetch content for passage ${passage.passage_id}:`, error);
-          passagesWithContent.push(passage);
+          console.error(`Failed to fetch passages for passage ${passage.passage_id}:`, error);
+          passagesWithpassages.push(passage);
         }
       }
       
-      // Get the first passage content to start the story
-      const firstPassage = passagesWithContent[0];
-      console.log('First passage with content:', firstPassage);
+      // Get the first passage passages to start the story
+      const firstPassage = passagesWithpassages[0];
+      console.log('First passage with passages:', firstPassage);
       
       // Transform the backend data to frontend format
-      const transformedContent = {
+      const transformedpassages = {
         id: storyId,
         title: targetChapter.title || 'Unknown Story',
         subtitle: targetChapter.title || 'Unknown Chapter',
@@ -740,7 +740,7 @@ class ArchiveService {
         difficulty: this.mapDifficulty(1),
         rarity: this.mapRarity('main'),
         skillFocus: this.generateSkillFocus('main'),
-        passages: this.transformBackendPassagesArray(passagesWithContent),
+        passages: this.transformBackendPassagesArray(passagesWithpassages),
         currentPassage: firstPassage ? this.transformBackendPassages(firstPassage, []) : null,
         progress: {
           passagesVisited: 0,
@@ -752,11 +752,11 @@ class ArchiveService {
         chapterTitle: targetChapter.title
       };
       
-      console.log('Transformed story content:', transformedContent);
-      return transformedContent;
+      console.log('Transformed story passages:', transformedpassages);
+      return transformedpassages;
       
     } catch (error) {
-      console.error('Failed to get story content from chapter:', error);
+      console.error('Failed to get story passages from chapter:', error);
       return null;
     }
   }

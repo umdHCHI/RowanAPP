@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { availableGrimoires } from '../data/storyData';
+import { availableStorys } from '../data/storyData';
 
 export interface ArchiveFoundation {
   icon: string;
@@ -16,7 +16,7 @@ export interface ArchiveFoundation {
 export interface CodexEntry {
   id: string;
   type: string;
-  content: string;
+  passages: string;
   prompt: string;
   skillCategory: string;
   mapArea: string;
@@ -66,7 +66,7 @@ export const useArchiveProgress = () => {
 
     // Add points from completed stories
     completedStories.forEach(storyId => {
-      const story = availableGrimoires.find(g => g.id === storyId);
+      const story = availableStorys.find(g => g.id === storyId);
       if (story) {
         // Each completed story gives points to its skill focus areas
         story.skillFocus.forEach(skill => {
@@ -231,8 +231,8 @@ export const useArchiveProgress = () => {
   }), [completedStories, discoveredArtifacts, finalRewardsArtifacts, learnedSkills]);
 
   // Action handlers
-  const handleStoryComplete = (grimoireId: string) => {
-    setCompletedStories(prev => new Set([...prev, grimoireId]));
+  const handleStoryComplete = (StoryId: string) => {
+    setCompletedStories(prev => new Set([...prev, StoryId]));
   };
 
   const handleCodexEntry = (entry: Omit<CodexEntry, 'id' | 'timestamp'>) => {

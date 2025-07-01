@@ -131,7 +131,7 @@ export type { PersonalityTrait } from './context/PersonalityContext';
 
 // ===== Additional Types =====
 export type { ArchiveArea } from './components/ArchiveMapModal';
-export type { Grimoire } from './screens/characterStory/StoryCatalogScreen';
+export type { Story } from './screens/characterStory/StoryCatalogScreen';
 
 // ===== Context Exports =====
 export { useAuth } from './context/AuthContext';

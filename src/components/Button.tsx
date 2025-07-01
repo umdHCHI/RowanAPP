@@ -1,7 +1,15 @@
-import React from 'react';
-import { Image, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import React from "react";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native";
 
-type ButtonVariant = 'lightGreen' | 'darkBrown' | 'lightBrown';
+type ButtonVariant = "lightGreen" | "darkBrown" | "lightBrown";
 
 interface ButtonProps {
   onPress: () => void;
@@ -13,21 +21,21 @@ interface ButtonProps {
 
 const getButtonImage = (variant: ButtonVariant) => {
   switch (variant) {
-    case 'lightGreen':
-      return require('../../assets/UI/buttons/lightGreenlongbutton.png');
-    case 'darkBrown':
-      return require('../../assets/UI/buttons/darkBrownlongbutton.png');
-    case 'lightBrown':
-      return require('../../assets/UI/buttons/lightBrownlongbutton.png');
+    case "lightGreen":
+      return require("../../assets/UI/buttons/lightGreenlongbutton.png");
+    case "darkBrown":
+      return require("../../assets/UI/buttons/darkBrownlongbutton.png");
+    case "lightBrown":
+      return require("../../assets/UI/buttons/lightBrownlongbutton.png");
     default:
-      return require('../../assets/UI/buttons/lightGreenlongbutton.png');
+      return require("../../assets/UI/buttons/lightGreenlongbutton.png");
   }
 };
 
 const Button: React.FC<ButtonProps> = ({
   onPress,
   title,
-  variant = 'lightGreen',
+  variant = "lightGreen",
   style,
   textStyle,
 }) => {
@@ -38,7 +46,7 @@ const Button: React.FC<ButtonProps> = ({
         style={styles.buttonImage}
         resizeMode="stretch"
       />
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={onPress}
         style={styles.touchable}
         activeOpacity={0.8}
@@ -51,27 +59,27 @@ const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'relative',
+    position: "relative",
     minWidth: 120,
     height: 40,
   },
   buttonImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
+    position: "absolute",
+    width: "100%",
+    height: "100%",
   },
   touchable: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifypassages: "center",
     paddingHorizontal: 10,
   },
   text: {
-    color: '#000',
-    fontWeight: 'bold',
+    color: "#000",
+    fontWeight: "bold",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 
-export default Button; 
+export default Button;

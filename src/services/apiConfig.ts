@@ -78,7 +78,7 @@ export const API_ENDPOINTS = {
     // Story endpoints 
     storyRoot: 'story/',
     stories: 'story/catalog/',
-    storyContent: 'story/story/',
+    storypassages: 'story/story/',
     storyChapters: 'story/story/chapters/',//needs helper too 
     passageDetail: (storyId: number, passageId: string) =>
         `story/stories/${storyId}/passage/${encodeURIComponent(passageId)}/`,

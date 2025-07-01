@@ -16,14 +16,14 @@ const exampleDir = "app-example";
 const newAppDir = "app";
 const exampleDirPath = path.join(root, exampleDir);
 
-const indexContent = `import { Text, View } from "react-native";
+const indexpassages = `import { Text, View } from "react-native";
 
 export default function Index() {
   return (
     <View
       style={{
         flex: 1,
-        justifyContent: "center",
+        justifypassages: "center",
         alignItems: "center",
       }}
     >
@@ -33,7 +33,7 @@ export default function Index() {
 }
 `;
 
-const layoutContent = `import { Stack } from "expo-router";
+const layoutpassages = `import { Stack } from "expo-router";
 
 export default function RootLayout() {
   return <Stack />;
@@ -77,12 +77,12 @@ const moveDirectories = async (userInput) => {
 
     // Create index.tsx
     const indexPath = path.join(newAppDirPath, "index.tsx");
-    await fs.promises.writeFile(indexPath, indexContent);
+    await fs.promises.writeFile(indexPath, indexpassages);
     console.log("📄 app/index.tsx created.");
 
     // Create _layout.tsx
     const layoutPath = path.join(newAppDirPath, "_layout.tsx");
-    await fs.promises.writeFile(layoutPath, layoutContent);
+    await fs.promises.writeFile(layoutPath, layoutpassages);
     console.log("📄 app/_layout.tsx created.");
 
     console.log("\n✅ Project reset complete. Next steps:");

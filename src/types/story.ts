@@ -1,0 +1,133 @@
+import { Character } from './user';
+// Story types 
+export type StoryCategory = 'main' | 'side' | 'character' | 'random';
+export type PassageType = 'narration' | 'dialogue' | 'action' | 'decision' | 'ending';
+export type ChoiceType = 'normal' | 'skill_check' | 'item_required' | 'relationship' | 'ending';
+
+export interface Story {
+  id: number;
+  title: string;
+  description: string;
+  image?: string | null;
+  starting_passage_id: string;
+  min_level: number;
+  category: StoryCategory;
+  is_repeatable: boolean;
+  created_at: string;
+  updated_at: string;
+  chapters?: Chapter[];
+}
+
+export interface Chapter {
+  id: number;
+  story: number;
+  title: string;
+  content: string;
+  chapter_number: number;
+  is_starting_chapter: boolean;
+  variables: Record<string, any>;
+  image?: string | null;
+  requirements: Record<string, any>;
+  rewards: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  passages?: Passage[];
+}
+
+export interface Passage {
+  id: number;
+  chapter: number | null;
+  passage_id: string;
+  content: string;
+  passage_type: PassageType;
+  speaker?: NPC | null;
+  required_conditions: Record<string, any>;
+  story_effects: Record<string, any>;
+  mood?: string;
+  background_music?: string;
+  background_image?: string | null;
+  order: number;
+  choices?: Choice[];
+}
+
+export interface Choice {
+  id: number;
+  passage: number;
+  text: string;
+  next_passage?: number | null; // From GenericForeignKey
+  next_passage_id?: string;
+  choice_type: ChoiceType;
+  requirements: Record<string, any>;
+  effects: Record<string, any>;
+  success_passage_id?: string;
+  failure_passage_id?: string;
+  required_conditions: Record<string, any>;
+  order: number;
+}
+
+export interface NPC {
+  id: number;
+  name: string;
+  description: string;
+  npcavatar?: string | null;
+  personality_traits: Record<string, number>;
+  created_at: string;
+}
+
+export interface StoryProgress {
+  id: number;
+  user: number;
+  story: number;
+  current_passage_id: string;
+  passages_visited: string[];
+  choices_made: {
+    choice_id: number;
+    choice_text: string;
+    timestamp: string;
+  }[];
+  story_variables: Record<string, any>;
+  is_completed: boolean;
+  completion_type: string;
+  started_at: string;
+  last_played: string;
+  completed_at?: string | null;
+}
+
+
+// StoryScreenProps defines the props for the StoryScreen component
+export type StoryScreenProps = {
+  visible: boolean;
+  onClose: () => void;
+  story: Story;
+  chapter: Chapter;
+  passage: Passage;
+  choices: Choice[];
+  npc: NPC;
+  onStatGain: (gains: Record<string, number>) => void;
+  onArtifactUnlock: (artifact: string) => void;
+  onSkillLearned: (skills: string[]) => void;
+  onStoryComplete: (completionData: {
+    storyId: string;
+    finalRewards: string[];
+    skillsLearned: string[];
+    totalStatGains: Record<string, number>;
+  }) => void;
+};
+
+
+// saved rewards type
+export interface SavedRewards {
+  characterStats?: Character[];
+  level?: number;
+  totalExperience?: number;
+  experienceNeeded?: number;
+  experienceProgress?: number;
+  wellnessAverage?: number;
+  equippedToolsCount?: number;
+  wellnessStats?: Record<string, number>;
+  characterGear?: any[]; // or a more specific Gear[] type if you have it
+  storyProgress?: StoryProgress[];
+  totalStoriesStarted?: number;
+  storiesCompleted?: number;
+  characterCopingTools?: any[]; // or a more specific CopingTool[] type if you have it
+}

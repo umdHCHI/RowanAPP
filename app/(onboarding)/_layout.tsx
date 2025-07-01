@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { useTheme } from '../../src/context/ThemeContext';
+import { Stack } from "expo-router";
+import { useTheme } from "../../src/context/ThemeContext";
 
 export default function OnboardingLayout() {
   const { theme } = useTheme();
@@ -8,7 +8,7 @@ export default function OnboardingLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: {
+        passagesStyle: {
           backgroundColor: theme.background,
         },
       }}
@@ -16,21 +16,21 @@ export default function OnboardingLayout() {
       <Stack.Screen
         name="onboarding"
         options={{
-          title: 'Welcome',
+          title: "Welcome",
         }}
       />
       <Stack.Screen
         name="character-creator"
         options={{
-          title: 'Create Character',
+          title: "Create Character",
         }}
       />
       <Stack.Screen
         name="personality-test"
         options={{
-          title: 'Personality Test',
+          title: "Personality Test",
         }}
       />
     </Stack>
   );
-} 
+}
