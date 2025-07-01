@@ -9,12 +9,12 @@ export type {
 } from './user';
 
 // Appearance and character customization types
-export type {
+/*export type {
     Appearance,
     CategoryConfig, CharacterAppearance,
     CharacterCreateRequest, CharacterCreatorCategories, CharacterCustomizationRequest, CharacterHomeData,
     ExperienceGainResponse, WellnessStat
-} from './appearance';
+} from './appearance';*/
 
 // Equipment types
 export type {

@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.8)",
-    justifypassages: "center",
+    justifyContent: "center",
     alignItems: "center",
   },
   modalpassages: {
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifypassages: "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
   },
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   itemHeader: {
     flexDirection: "row",
-    justifypassages: "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   statRow: {
     flexDirection: "row",
-    justifypassages: "space-between",
+    justifyContent: "space-between",
     marginBottom: 4,
   },
   statLabel: {

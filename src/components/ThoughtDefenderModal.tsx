@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.95)",
-    justifypassages: "center",
+    justifyContent: "center",
     alignItems: "center",
   },
   modalpassages: {
@@ -1000,7 +1000,7 @@ const styles = StyleSheet.create({
   },
   hud: {
     flexDirection: "row",
-    justifypassages: "space-between",
+    justifyContent: "space-between",
     width: "100%",
     backgroundColor: "#0f0f23",
     borderWidth: 2,
@@ -1073,7 +1073,7 @@ const styles = StyleSheet.create({
   },
   startScreen: {
     flex: 1,
-    justifypassages: "center",
+    justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
   },
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 10,
     minHeight: 50,
-    justifypassages: "center",
+    justifyContent: "center",
     alignItems: "center",
   },
   startButtonText: {
@@ -1149,7 +1149,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: "rgba(0, 255, 65, 0.3)",
     borderStyle: "dashed",
-    justifypassages: "center",
+    justifyContent: "center",
     alignItems: "center",
     zIndex: 10, // Lower than thoughts but higher than background
     elevation: 10,
@@ -1168,7 +1168,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 2,
     borderColor: "#00aa2a",
-    justifypassages: "center",
+    justifyContent: "center",
     alignItems: "center",
     shadowColor: "#00ff41",
     shadowOffset: { width: 0, height: 0 },
@@ -1197,7 +1197,7 @@ const styles = StyleSheet.create({
   },
   thoughtpassages: {
     alignItems: "center",
-    justifypassages: "center",
+    justifyContent: "center",
     width: "100%",
     height: "100%",
   },
@@ -1228,7 +1228,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 8,
     height: 8,
-    justifypassages: "center",
+    justifyContent: "center",
     alignItems: "center",
   },
   projectileText: {

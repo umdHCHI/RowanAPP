@@ -97,6 +97,15 @@ const ArchiveInterface: React.FC = () => {
 
   const handleDirectStoryOpen = async (Story: any) => {
     try {
+      // Check if Story is defined and has an id
+      if (!Story?.id) {
+        console.error("Story is undefined or missing id:", Story);
+        Alert.alert("Error", "Invalid story data. Please try again.", [
+          { text: "OK", style: "default" },
+        ]);
+        return;
+      }
+      
       // Get story passages from backend
       const storypassages = await archiveService.getStorypassages(Story.id);
       if (storypassages) {
@@ -1116,7 +1125,7 @@ const ArchiveInterface: React.FC = () => {
                         >
                           <Icon name="book-open" size={18} color="#E0E7FF" />
                           <Text style={theme.styles.chronicleButtonText}>
-                            {archive.completedStories.has(Story.id)
+                            {archive.completedStories.has(Story?.id || "")
                               ? "Restart Exploration"
                               : Story.exploration > 0
                               ? "Resume Exploration"
@@ -1318,15 +1327,37 @@ const ArchiveInterface: React.FC = () => {
       </View>
 
       {/* Modals */}
-      <StoryScreen
-        visible={ui.isStoryVisible}
-        onClose={handleCloseStory}
-        Story={ui.selectedStory}
-        onStatGain={() => {}} // This would be handled by the master state
-        onArtifactUnlock={archive.handleArtifactUnlock}
-        onSkillLearned={archive.handleSkillLearned}
-        onStoryComplete={handleStoryCompleteLocal}
-      />
+      {ui.selectedStory && (
+        <StoryScreen
+          visible={ui.isStoryVisible}
+          onClose={handleCloseStory}
+          story={ui.selectedStory as any}
+          chapter={{ 
+            id: 1, 
+            title: ui.selectedStory?.title || "Chapter 1",
+            content: ui.selectedStory?.description || "",
+            chapter_number: 1,
+            is_starting_chapter: true,
+            variables: {},
+            requirements: {},
+            rewards: {},
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            passages: (ui.selectedStory?.passages as any)?.passages || []
+          } as any}
+          passage={(ui.selectedStory?.passages as any)?.passages?.[0] || {} as any}
+          choices={(ui.selectedStory?.passages as any)?.passages?.[0]?.choices || []}
+          onStatGain={() => {}} // This would be handled by the master state
+          onArtifactUnlock={(artifact: string) => archive.handleArtifactUnlock({ name: artifact } as any)}
+          onSkillLearned={archive.handleSkillLearned}
+          onStoryComplete={(completionData) => handleStoryCompleteLocal({
+            StoryId: completionData.storyId,
+            finalRewards: completionData.finalRewards,
+            skillsLearned: completionData.skillsLearned,
+            totalStatGains: completionData.totalStatGains
+          })}
+        />
+      )}
 
       {/* Chapter Selection Modal */}
       <ChapterScreen

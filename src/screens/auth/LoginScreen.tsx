@@ -123,6 +123,33 @@ export default function LoginScreen() {
             {isLoading ? 'Logging in...' : 'Login'}
           </Text>
         </TouchableOpacity>
+
+        {/* Test User Auto-Login Button */}
+        <TouchableOpacity
+          style={[styles.button, { marginTop: 10, backgroundColor: '#10B981' }]}
+          onPress={async () => {
+            setIsLoading(true);
+            try {
+              // Use the fallback test token for auto-login
+              const testToken = 'f1cc174d83a2101bc328075957300f2407b68324';
+              const testUserId = '1'; // Assuming test user ID is 1
+              
+              await login(testToken, testUserId);
+              
+              // Navigate to character screen for test user
+              router.replace('/(character)/character');
+            } catch (err) {
+              setError('Test login failed');
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>
+            Test User Login
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

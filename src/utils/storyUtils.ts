@@ -7,7 +7,19 @@ export interface TemplateChoice {
   }
   export function useCurrentPassage(passages: any[], currentId: string) {
     return useMemo(
-      () => (passages && currentId ? passages.find((p) => p.id === currentId) || null : null),
+      () => {
+        if (!passages || !currentId) return null;
+        
+        // Try to find passage by passage_id first (backend structure)
+        let passage = passages.find((p) => p.passage_id === currentId);
+        
+        // If not found, try by id (fallback)
+        if (!passage) {
+          passage = passages.find((p) => p.id === currentId);
+        }
+        
+        return passage || null;
+      },
       [passages, currentId]
     );
   }

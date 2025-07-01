@@ -1,6 +1,6 @@
 import React from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { CharacterPreviewProps } from "../types/appearance";
+import { CharacterPreviewProps } from "../types/user";
 
 // Sizing and offset constants (can be adjusted as needed)
 const PREVIEW_WIDTH = 500;
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     height: PREVIEW_HEIGHT,
     position: "relative",
     alignItems: "center",
-    justifypassages: "center",
+    justifyContent: "center",
     overflow: "hidden",
   },
   baseLayer: {

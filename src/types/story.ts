@@ -16,6 +16,18 @@ export interface Story {
   created_at: string;
   updated_at: string;
   chapters?: Chapter[];
+  passages?: Passage[];
+  // Frontend-specific fields
+  difficulty?: string;
+  atmosphere?: string;
+  rarity?: string;
+  skillFocus?: string[];
+  statBoosts?: string[];
+  timeToComplete?: string;
+  revelations?: number;
+  exploration?: number;
+  unlockLevel?: number;
+  isLocked?: boolean;
 }
 
 export interface Chapter {
@@ -80,17 +92,21 @@ export interface StoryProgress {
   story: number;
   current_passage_id: string;
   passages_visited: string[];
+  passages_visited_count?: number;//I dont have this in the backend
   choices_made: {
     choice_id: number;
     choice_text: string;
     timestamp: string;
   }[];
+  choices_made_count?: number;
   story_variables: Record<string, any>;
   is_completed: boolean;
   completion_type: string;
   started_at: string;
   last_played: string;
   completed_at?: string | null;
+  progress_percentage?: number;
+  story_title?: string;
 }
 
 
@@ -102,7 +118,7 @@ export type StoryScreenProps = {
   chapter: Chapter;
   passage: Passage;
   choices: Choice[];
-  npc: NPC;
+  npc?: NPC;
   onStatGain: (gains: Record<string, number>) => void;
   onArtifactUnlock: (artifact: string) => void;
   onSkillLearned: (skills: string[]) => void;
@@ -130,4 +146,107 @@ export interface SavedRewards {
   totalStoriesStarted?: number;
   storiesCompleted?: number;
   characterCopingTools?: any[]; // or a more specific CopingTool[] type if you have it
+}
+
+// Archive progress and related types
+export interface ArchiveProgress {
+  completedStories: string[];
+  codexEntries: Array<{
+    id: string;
+    type: string;
+    passages: string;
+    prompt: string;
+    skillCategory: string;
+    mapArea: string;
+    difficulty: string;
+    timestamp: number;
+  }>;
+  miniGameProgress: {
+    thoughtDefenderLevel: number;
+    thoughtDefenderScore: number;
+    thoughtDefenderWins: number;
+    drawingEntries: number;
+    totalGameTime: number;
+  };
+  discoveredArtifacts: Array<{
+    name: string;
+    type: string;
+    equipped: boolean;
+    resonance: number;
+    description: string;
+    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
+  }>;
+  finalRewardsArtifacts: Array<{
+    name: string;
+    type: string;
+    equipped: boolean;
+    resonance: number;
+    description: string;
+    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
+  }>;
+  learnedSkills: string[];
+  foundationValues: {
+    'Sight Beyond Sight': number;
+    'Unbreakable Will': number;
+    "Heart's Compass": number;
+    'Elemental Harmony': number;
+  };
+}
+
+export interface CodexEntry {
+  type: string;
+  passages: string;
+  prompt: string;
+  skillCategory: string;
+  mapArea: string;
+  difficulty: string;
+}
+
+export interface MiniGameResult {
+  gameType: 'thoughtDefender' | 'drawing';
+  score?: number;
+  level?: number;
+  won?: boolean;
+  gameTime?: number;
+  data?: any;
+}
+
+// Frontend-specific types for archive service
+export interface LocalStoryProgress {
+  storyId: string;
+  exploration: number;
+  completed: boolean;
+  lastPlayedAt?: string;
+  choices: Array<{
+    passageId: string;
+    choiceIndex: number;
+    timestamp: number;
+  }>;
+}
+
+export interface ChapterSummary {
+  id: number;
+  title: string;
+  chapterNumber: number;
+  isStartingChapter: boolean;
+}
+
+export interface ChapterPassage {
+  id: number;
+  passage_id: string;
+  passage_type: string;
+  mood?: string;
+  backgroundImage?: string;
+  order: number;
+  passages?: string;
+}
+
+export interface StoryDetail {
+  story: Story;
+  passage: Passage;
+  progress: {
+    passagesVisited: number;
+    isCompleted: boolean;
+    progressPercentage: number;
+  };
 }

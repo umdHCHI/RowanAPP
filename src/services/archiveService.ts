@@ -1,3 +1,14 @@
+import {
+  ArchiveProgress,
+  ChapterPassage,
+  ChapterSummary,
+  CodexEntry,
+  LocalStoryProgress,
+  MiniGameResult,
+  Passage,
+  Story,
+  StoryDetail
+} from '../types/story';
 import { apiService } from './apiService';
 
 // Types for story & passage data
@@ -10,137 +21,7 @@ export interface Choice {
   effects?: Record<string, any>;
 }
 
-export interface Passage {
-  id: string;
-  passageId: string;
-  passages: string;
-  passageType: string;
-  mood?: string;
-  backgroundImage?: string;
-  choices: Choice[];
-}
 
-export interface ChapterSummary {
-  id: number;
-  title: string;
-  chapterNumber: number;
-  isStartingChapter: boolean;
-}
-
-// New interface for backend chapter passages
-export interface ChapterPassage {
-  id: number;
-  passage_id: string;
-  passage_type: string;
-  mood?: string;
-  backgroundImage?: string;
-  order: number;
-  passages?: string;
-}
-
-export interface StorySummary {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  difficulty?: string;
-  atmosphere?: string;
-  rarity?: string;
-  skillFocus?: string[];
-  statBoosts?: string[];
-  timeToComplete?: string;
-  revelations?: number;
-  exploration?: number;
-  unlockLevel?: number;
-  isLocked?: boolean;
-  image?: string;
-  isRepeatable?: boolean;
-}
-
-export interface StoryDetail {
-  story: StorySummary;
-  passage: Passage;
-  progress: {
-    passagesVisited: number;
-    isCompleted: boolean;
-    progressPercentage: number;
-  };
-}
-
-// Types for archive data
-export interface ArchiveProgress {
-  completedStories: string[];
-  codexEntries: Array<{
-    id: string;
-    type: string;
-    passages: string;
-    prompt: string;
-    skillCategory: string;
-    mapArea: string;
-    difficulty: string;
-    timestamp: number;
-  }>;
-  miniGameProgress: {
-    thoughtDefenderLevel: number;
-    thoughtDefenderScore: number;
-    thoughtDefenderWins: number;
-    drawingEntries: number;
-    totalGameTime: number;
-  };
-  discoveredArtifacts: Array<{
-    name: string;
-    type: string;
-    equipped: boolean;
-    resonance: number;
-    description: string;
-    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-  }>;
-  finalRewardsArtifacts: Array<{
-    name: string;
-    type: string;
-    equipped: boolean;
-    resonance: number;
-    description: string;
-    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-  }>;
-  learnedSkills: string[];
-  foundationValues: {
-    'Sight Beyond Sight': number;
-    'Unbreakable Will': number;
-    "Heart's Compass": number;
-    'Elemental Harmony': number;
-  };
-}
-
-export interface StoryProgress {
-  storyId: string;
-  exploration: number;
-  completed: boolean;
-  lastPlayedAt?: string;
-  choices: Array<{
-    passageId: string;
-    choiceIndex: number;
-    timestamp: number;
-  }>;
-}
-
-export interface CodexEntry {
-  type: string;
-  passages: string;
-  prompt: string;
-  skillCategory: string;
-  mapArea: string;
-  difficulty: string;
-}
-
-export interface MiniGameResult {
-  gameType: 'thoughtDefender' | 'drawing';
-  score?: number;
-  level?: number;
-  won?: boolean;
-  gameTime?: number;
-  data?: any;
-}
 
 class ArchiveService {
   // NEW STORY FLOW METHODS
@@ -161,11 +42,11 @@ class ArchiveService {
         // Transform backend format to frontend format
         const transformedStories = res.map((story, index) => {
           console.log(`Transforming story ${index + 1}:`, story);
-          const storySummary = this.transformBackendStory(story);
-          console.log(`Story ${index + 1} summary:`, storySummary);
-          const Story = this.transformToStory(storySummary);
-          console.log(`Story ${index + 1} Story:`, Story);
-          return Story;
+          const transformedStory = this.transformBackendStory(story);
+          console.log(`Story ${index + 1} transformed:`, transformedStory);
+          const finalStory = this.transformToStory(transformedStory);
+          console.log(`Story ${index + 1} final:`, finalStory);
+          return finalStory;
         });
         
         console.log('Final transformed stories:', transformedStories);
@@ -234,24 +115,143 @@ class ArchiveService {
       console.error('Failed to start story:', error);
       throw error;
     }
-  }
-
-  // Fetch the user's current or specific passage
-  async getPassage(storyId: string, passageId?: string): Promise<StoryDetail> {
+  }  // Fetch the user's current or specific passage
+  async getPassage(storyId: string, passageId?: string): Promise<Passage> {
     try {
-      let currentPassageId = passageId || 'start';
+      console.log("=== GET PASSAGE (UPDATED) ===");
+      console.log("Story ID:", storyId);
+      console.log("Requested Passage ID:", passageId);
+      
+      let currentPassageId = passageId || '1'; // Start with '1' instead of 'start'
       if (!passageId) {
-        // Get current passage - we'll need to get progress first
-        const progress = await this.getStoryProgressById(storyId);
-        currentPassageId = progress?.current_passage_id || 'start';
+        // Get current passage from progress first
+        try {
+          const progress = await this.getStoryProgressById(storyId);
+          currentPassageId = progress?.current_passage_id || '1';
+          console.log("Got current passage from progress:", currentPassageId);
+        } catch (progressError) {
+          console.warn('Could not get story progress, using passage 1:', progressError);
+          currentPassageId = '1';
+        }
       }
       
-      const suffix = `${storyId}/passage/${encodeURIComponent(currentPassageId)}/`;
-      return await apiService.get<StoryDetail>('storyPassage', { urlSuffix: suffix });
+      // Convert to numeric form for better handling
+      const numericPassageId = this.resolvePassageId(currentPassageId);
+      console.log("Resolved passage ID to:", numericPassageId);
+      
+      console.log('=== FETCHING PASSAGE FROM BACKEND ===');
+      console.log('Story ID:', storyId);
+      console.log('Numeric Passage ID:', numericPassageId);
+      
+      // Use the passageDetail endpoint function from API config
+      const endpoint = `story/stories/${storyId}/passage/${encodeURIComponent(numericPassageId)}/`;
+      console.log('Full API endpoint:', endpoint);
+      
+      // Make direct API call using the correct endpoint structure
+      try {
+        const response = await apiService.get<any>('storyRoot', { 
+          urlSuffix: `stories/${storyId}/passage/${encodeURIComponent(numericPassageId)}/` 
+        });
+        
+        console.log('Raw API response:', response);
+        
+        // The backend returns a nested structure, extract the passage
+        if (response?.passage) {
+          console.log('Found passage in response:', response.passage);
+          return response.passage as Passage;
+        } else if (response?.content) {
+          // Sometimes the response might be the passage directly
+          console.log('Response appears to be passage directly:', response);
+          return response as Passage;
+        } else if (response) {
+          // Log the response structure to understand what we're getting
+          console.log('Unexpected response structure:', Object.keys(response));
+          console.log('Full response:', response);
+        }
+      } catch (apiError) {
+        console.log("Main API call failed, trying fallback:", apiError);
+      }
+      
+      // Try sequential ID approach as fallback
+      console.log('Primary fetch failed, trying sequential ID approach...');
+      const sequentialResult = await this.getPassageBySequentialId(storyId, numericPassageId);
+      if (sequentialResult) {
+        console.log('Successfully fetched using sequential ID:', sequentialResult);
+        return sequentialResult;
+      }
+      
+      throw new Error(`No passage found in response for passage ID: ${numericPassageId}`);
     } catch (error) {
       console.error('Failed to get passage:', error);
+      console.error('Error details:', {
+        storyId,
+        passageId,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
+  }
+
+  // Helper method to resolve passage ID to numeric form
+  private resolvePassageId(passageId: string): string {
+    // If it's already numeric, return as-is
+    if (/^\d+$/.test(passageId)) {
+      return passageId;
+    }
+    
+    // Map common starting passage names to 1
+    if (passageId === 'start' || passageId === 'begin' || passageId === 'intro') {
+      return '1';
+    }
+    
+    // Extract numbers from string (e.g., "passage_2" -> "2")
+    const numMatch = passageId.match(/\d+/);
+    if (numMatch) {
+      return numMatch[0];
+    }
+    
+    // Default to 1 if no number found
+    return '1';
+  }
+
+  // Helper method to try sequential passage IDs (for skipped IDs)
+  private async getPassageBySequentialId(storyId: string, targetId: string): Promise<Passage | null> {
+    const targetNum = parseInt(targetId);
+    if (isNaN(targetNum)) return null;
+    
+    // Try a range around the target ID (in case some IDs are skipped)
+    const idsToTry = [targetNum];
+    
+    // Add nearby IDs to try (e.g., if looking for 5, try 4, 6, 3, 7, etc.)
+    for (let offset = 1; offset <= 3; offset++) {
+      if (targetNum - offset >= 1) idsToTry.push(targetNum - offset);
+      idsToTry.push(targetNum + offset);
+    }
+    
+    console.log("Trying sequential IDs:", idsToTry);
+    
+    for (const id of idsToTry) {
+      try {
+        const response = await apiService.get<any>('storyRoot', { 
+          urlSuffix: `stories/${storyId}/passage/${id}/` 
+        });
+        
+        console.log(`Sequential ID ${id} response:`, response);
+        
+        if (response?.passage) {
+          console.log("Found passage via sequential ID:", id, response.passage);
+          return response.passage as Passage;
+        } else if (response?.content) {
+          console.log("Found passage content via sequential ID:", id, response);
+          return response as Passage;
+        }
+      } catch (error) {
+        console.log(`Sequential ID ${id} failed:`, error instanceof Error ? error.message : String(error));
+        continue;
+      }
+    }
+    
+    return null;
   }
 
   // Make a choice and receive the next passage back
@@ -266,7 +266,7 @@ class ArchiveService {
   }
 
   // Get story progress (compatible with existing code)
-  async getStoryProgress(characterId: string, storyId: string): Promise<StoryProgress> {
+  async getStoryProgress(characterId: string, storyId: string): Promise<LocalStoryProgress> {
     try {
       // Try to get progress from backend
       const progress = await apiService.getNewStoryProgress(parseInt(storyId));
@@ -328,8 +328,8 @@ class ArchiveService {
         console.log('Retrieved stories from backend (fallback):', backendStories);
         // Transform backend format to frontend format
         const transformedStories = backendStories.map(story => {
-          const storySummary = this.transformBackendStory(story);
-          return this.transformToStory(storySummary);
+          const transformedStory = this.transformBackendStory(story);
+          return this.transformToStory(transformedStory);
         });
         console.log('Transformed stories (fallback):', transformedStories);
         return transformedStories;
@@ -425,7 +425,7 @@ class ArchiveService {
   }
 
   // Update story progress
-  async updateStoryProgress(characterId: string, storyId: string, progress: Partial<StoryProgress>): Promise<void> {
+  async updateStoryProgress(characterId: string, storyId: string, progress: Partial<LocalStoryProgress>): Promise<void> {
     try {
       await apiService.getStoryDetailedProgress(storyId);
       // Note: The backend doesn't have a direct update progress endpoint
@@ -535,48 +535,53 @@ class ArchiveService {
   // TRANSFORMATION METHODS
 
   // Transform backend story metadata to frontend format
-  private transformBackendStory(backendStory: any): StorySummary {
+  private transformBackendStory(backendStory: any): Story {
     console.log('Transforming backend story:', backendStory);
     
     return {
-      id: backendStory.id?.toString() || 'unknown',
+      id: backendStory.id || 0,
       title: backendStory.title || 'Untitled Story',
       description: backendStory.description || 'No description available',
+      image: backendStory.image || null,
+      starting_passage_id: backendStory.starting_passage_id || 'start',
+      min_level: backendStory.min_level || 1,
       category: backendStory.category || 'main',
+      is_repeatable: backendStory.is_repeatable || false,
+      created_at: backendStory.created_at || new Date().toISOString(),
+      updated_at: backendStory.updated_at || new Date().toISOString(),
+      chapters: backendStory.chapters || [],
+      // Frontend-specific fields
       difficulty: this.mapDifficulty(backendStory.min_level || 1),
       atmosphere: this.generateAtmosphere(backendStory.category || 'main'),
-      rarity: this.mapRarity(backendStory.category || 'main'),
-      skillFocus: this.generateSkillFocus(backendStory.category || 'main'),
+      rarity: this.mapRarity(backendStory.category || 'main'),      skillFocus: this.generateSkillFocus(backendStory.category || 'main'),
       statBoosts: this.generateStatBoosts(backendStory.category || 'main'),
       timeToComplete: this.estimateTimeToComplete(backendStory.chapter_count || 0),
       revelations: backendStory.chapter_count || 0,
       exploration: 0, // Will be updated based on progress
       unlockLevel: backendStory.min_level || 1,
-      isLocked: false, // Will be determined by character level
-      image: backendStory.image || null,
-      isRepeatable: backendStory.is_repeatable || false
+      isLocked: false // Will be determined by character level
     };
   }
 
-  // Transform StorySummary to Story format for frontend compatibility
-  private transformToStory(storySummary: StorySummary): any {
+  // Transform Story to frontend format for compatibility
+  private transformToStory(story: Story): any {
     return {
-      id: storySummary.id,
-      title: storySummary.title,
-      category: storySummary.category,
-      description: storySummary.description,
-      difficulty: storySummary.difficulty || 'Intermediate',
-      timeToComplete: storySummary.timeToComplete || '15-20 minutes',
-      exploration: storySummary.exploration || 0,
-      revelations: storySummary.revelations || 3,
-      rarity: storySummary.rarity || 'Common',
-      skillFocus: storySummary.skillFocus || ['General'],
-      atmosphere: storySummary.atmosphere || 'Mysterious',
-      statBoosts: storySummary.statBoosts || ['General'],
-      unlockLevel: storySummary.unlockLevel || 1,
-      isLocked: storySummary.isLocked || false,
-      image: storySummary.image || null,
-      isRepeatable: storySummary.isRepeatable || false
+      id: story.id,
+      title: story.title,
+      category: story.category,
+      description: story.description,
+      difficulty: story.difficulty || 'Intermediate',
+      timeToComplete: story.timeToComplete || '15-20 minutes',
+      exploration: story.exploration || 0,
+      revelations: story.revelations || 3,
+      rarity: story.rarity || 'Common',
+      skillFocus: story.skillFocus || ['General'],
+      atmosphere: story.atmosphere || 'Mysterious',
+      statBoosts: story.statBoosts || ['General'],
+      unlockLevel: story.unlockLevel || 1,
+      isLocked: story.isLocked || false,
+      image: story.image || null,
+      is_repeatable: story.is_repeatable || false
     };
   }
 
@@ -1351,12 +1356,11 @@ class ArchiveService {
 
   private estimateTimeToComplete(chapterCount: number): string {
     const baseTime = 5; // minutes per chapter
-    const totalMinutes = chapterCount * baseTime;
-    if (totalMinutes <= 10) return '5-10 min';
+    const totalMinutes = chapterCount * baseTime;    if (totalMinutes <= 10) return '5-10 min';
     if (totalMinutes <= 20) return '10-20 min';
     if (totalMinutes <= 30) return '20-30 min';
     return '30+ min';
   }
 }
 
-export const archiveService = new ArchiveService(); 
+export const archiveService = new ArchiveService();

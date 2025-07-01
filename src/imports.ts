@@ -102,28 +102,35 @@ export { darkTheme, lightTheme, ThemeColors } from './styles/theme';
 
 // ===== Types =====
 export type {
-    // Appearance
-    Appearance,
-    // User and authentication
-    AuthContextType, CategoryConfig, Character, CharacterAppearance, CharacterCreateData, CharacterCreateRequest, CharacterCreatorCategories, CharacterCustomizationData, CharacterCustomizationRequest,
-    CharacterHomeData,
+    AuthContextType,
+    //UserCharacter System
+    Character, CharacterCreateData, CharacterCustomizationData,
+
     // Journal
     CodexModalProps,
     // Equipment
     EquipmentItem,
     EquipmentSubtype,
     EquipmentType,
-    EquippedItems, ExperienceGainResponse,
+    EquippedItems,
     // Game
     ExtendedGameData,
-    GameAchievement, GameData, GameSession,
+    GameAchievement,
+    //User Game Data - Persistent Game Data
+    GameData, GameSession,
     // Wellness system
     GearItem,
-    GearUnlockSystem, JournalEntry, LoginResponse, Prompt, ReflectionAnalysis,
+    GearUnlockSystem, JournalEntry,
+    // User and authentication
+    LoginResponse, Prompt, ReflectionAnalysis,
     ReflectionPattern,
-    ReflectionPatterns, ResearchGroup, StatGains,
+    ReflectionPatterns,
+    //User Research Group
+    ResearchGroup, StatGains,
     StoryGains,
-    StoryProgression, UserProfile, WellnessStat, WellnessStats
+    StoryProgression,
+    // User Profile
+    UserProfile, WellnessStats
 } from './types';
 
 // ===== Context Types =====
@@ -140,5 +147,5 @@ export { useOnboarding } from './context/OnboardingContext';
 export { useTheme } from './context/ThemeContext';
 
 // ===== Utility Functions =====
-export { createCharacterCreatorCategories } from './types/appearance';
+export { createCharacterCreatorCategories } from './types/user';
 

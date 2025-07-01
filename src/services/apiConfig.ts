@@ -1,12 +1,63 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-// Get API URL from environment configuration
-export const apiBaseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
+// Get API URLs from environment configuration
+const envApiBaseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
+//const envApiLocalUrl = Constants.expoConfig?.extra?.API_LOCAL_URL;
 
-console.log('API Base URL configured:', apiBaseUrl);
+// Determine which API URL to use based on platform and environment
+const getApiBaseUrl = (): string => {
+    console.log('Environment variables:', { envApiBaseUrl });
+    console.log('Platform:', Platform.OS, 'DEV mode:', __DEV__);
+    
+    // For web platform, always prefer the remote API for now
+    if (Platform.OS === 'web') {
+        // Always use the remote API URL for web to avoid CORS issues with localhost
+        if (envApiBaseUrl) {
+            console.log('Web platform: Using remote API URL:', envApiBaseUrl);
+            return envApiBaseUrl;
+        }
+        
+        // Only fall back to local if no remote URL is configured
+        if (envApiBaseUrl) {
+            console.log('Web platform: Using local API URL as fallback:', envApiBaseUrl);
+            return envApiBaseUrl;
+        }
+        
+        // Last resort fallback
+        console.warn('Web platform: No API URL configured, using remote fallback');
+        return 'http://131.212.41.8/api/';
+    } else {
+        // For mobile platforms, prefer the main API URL
+        if (envApiBaseUrl) {
+            console.log('Mobile platform: Using base API URL:', envApiBaseUrl);
+            return envApiBaseUrl;
+        }
+        
+        // Fallback to local URL for mobile
+        if (envApiBaseUrl) {
+            console.log('Mobile platform: Using local API URL as fallback:', envApiBaseUrl);
+            return envApiBaseUrl;
+        }
+        
+        console.error('Mobile platform: No API URL configured');
+        throw new Error('API_BASE_URL is not configured');
+    }
+};
+
+export const apiBaseUrl = getApiBaseUrl();
+
+console.log('=== API Configuration ===');
+console.log('Platform:', Platform.OS);
+console.log('Environment API Base URL:', envApiBaseUrl);
+console.log('Environment API Local URL:', envApiBaseUrl);
+console.log('Selected API Base URL:', apiBaseUrl);
+console.log('Is Development:', __DEV__);
+console.log('========================');
 
 if (!apiBaseUrl) {
-    console.warn('API_BASE_URL is not configured in environment variables');
+    console.error('Failed to determine API base URL');
+    throw new Error('API_BASE_URL could not be determined');
 }
 
 // Updated API endpoints to match the new simplified backend structure

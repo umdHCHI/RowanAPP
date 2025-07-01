@@ -1,6 +1,6 @@
 import React from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { CharacterFrameProps } from "../types/appearance";
+import { CharacterFrameProps } from "../types/user";
 
 const DEFAULT_FRAME = require("../../assets/character-creator/BGs/brown/brown_one.png");
 
@@ -32,13 +32,13 @@ const styles = StyleSheet.create({
   wrapper: {
     position: "relative",
     alignItems: "center",
-    justifypassages: "center",
+    justifyContent: "center",
     overflow: "hidden",
   },
   passages: {
     zIndex: 2,
     alignItems: "center",
-    justifypassages: "center",
+    justifyContent: "center",
   },
 });
 

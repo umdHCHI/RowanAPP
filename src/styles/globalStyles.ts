@@ -74,7 +74,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     modalOverlay: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.5)',
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     modalpassages: {
@@ -89,7 +89,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     creatorRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       width: '100%',
       maxWidth: 500,
       marginTop: 8,
@@ -100,7 +100,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       marginBottom: 8,
       position: 'relative',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginRight: 16,
     },
 
@@ -136,7 +136,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     archiveHeaderpassages: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'center',
       padding: 20,
     },
@@ -149,7 +149,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       width: 40,
       height: 40,
       borderRadius: 20,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       marginRight: 16,
       position: 'relative',
@@ -162,7 +162,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       height: 16,
       borderRadius: 8,
       backgroundColor: 'rgba(0,0,0,0.7)',
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     archiveHeaderTextContainer: {
@@ -260,7 +260,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     archiveSectionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 8,
     },
     archiveSectionTitle: {
@@ -287,7 +287,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     archivePrimaryButtonGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingVertical: 14,
       paddingHorizontal: 24,
     },
@@ -390,7 +390,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     archiveGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'flex-start',
     },
     archiveTwoColumnLayout: {
@@ -451,7 +451,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     // Archive Centered Messages
     archiveCenteredMessageContainer: {
       flex: 1,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       padding: 24,
       minHeight: 300,
@@ -490,14 +490,14 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       backgroundColor: 'rgba(30, 41, 59, 0.9)',
       overflow: 'hidden',
       position: 'relative',
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     archiveCharacterPreview: {
       width: 170,
       height: 230,
       position: 'relative',
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     archiveCharacterLayer: {
@@ -511,7 +511,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     archiveRestorationGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       marginBottom: 20,
     },
     archiveRestorationCard: {
@@ -563,7 +563,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     archiveProgressTrackingHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 16,
     },
     archiveProgressTrackingTitle: {
@@ -584,7 +584,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     archiveProgressTrackingItemHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       marginBottom: 4,
     },
     archiveProgressTrackingItemTitle: {
@@ -654,7 +654,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     avatarShowcaseHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 16,
     },
     avatarShowcaseTitle: {
@@ -666,7 +666,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     characterInfoBar: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 20,
     },
@@ -706,11 +706,11 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     characterDisplaySection: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 16,
     },
     gearColumn: {
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       height: 200,
       marginHorizontal: 8,
     },
@@ -723,7 +723,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     gearSlotGradient: {
       flex: 1,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 1,
       borderColor: 'rgba(217, 119, 6, 0.3)',
@@ -734,7 +734,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     emptyGearSlot: {
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       width: '100%',
       height: '100%',
     },
@@ -765,14 +765,14 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       backgroundColor: 'rgba(30, 41, 59, 0.9)',
       overflow: 'hidden',
       position: 'relative',
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     fullCharacterPreview: {
       width: 170,
       height: 230,
       position: 'relative',
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     fullCharacterLayer: {
@@ -808,7 +808,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     essenceResonanceGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingVertical: 4,
       paddingHorizontal: 8,
     },
@@ -871,7 +871,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     quickActionGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingVertical: 14,
       paddingHorizontal: 16,
     },
@@ -884,7 +884,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     quickActionSecondaryGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingVertical: 14,
       paddingHorizontal: 16,
       borderWidth: 1,
@@ -971,7 +971,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     mapButtonGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingVertical: 10,
       borderWidth: 1,
       borderColor: 'rgba(217, 119, 6, 0.3)',
@@ -995,7 +995,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     foundationsHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 8,
     },
     foundationsTitle: {
@@ -1015,7 +1015,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     foundationsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'flex-start',
     },
     foundationCard: {
@@ -1125,7 +1125,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     nextUnlockContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingHorizontal: 8,
       paddingVertical: 4,
       backgroundColor: 'rgba(217, 119, 6, 0.2)',
@@ -1240,7 +1240,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     chronicleStats: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       marginHorizontal: 16,
       marginBottom: 16,
     },
@@ -1263,7 +1263,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       paddingVertical: 12,
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
     },
     chronicleButtonText: {
       color: '#E0E7FF',
@@ -1283,7 +1283,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     artifactsHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 8,
     },
     artifactsTitle: {
@@ -1314,7 +1314,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     artifactHeader: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'flex-start',
       marginBottom: 12,
     },
@@ -1430,7 +1430,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     wisdomHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 8,
     },
     wisdomTitle: {
@@ -1461,7 +1461,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     insightHeader: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 8,
     },
@@ -1519,7 +1519,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     restorationStatusHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 16,
     },
     restorationStatusTitle: {
@@ -1560,7 +1560,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     skillsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       marginBottom: 12,
     },
     skillBadge: {
@@ -1577,7 +1577,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     centeredMessageContainer: {
       flex: 1,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       padding: 24,
       minHeight: 300,
@@ -1612,7 +1612,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     primaryButtonGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingVertical: 14,
       paddingHorizontal: 24,
     },
@@ -1627,7 +1627,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     StoryModalOverlay: {
       flex: 1,
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(0, 0, 0, 0.95)' : 'rgba(255,255,255,0.95)',
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       padding: 16,
     },
@@ -1643,7 +1643,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     StoryHeader: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'flex-start',
       marginBottom: 16,
       paddingBottom: 12,
@@ -1723,7 +1723,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       borderColor: theme.archiveMode === 'dark' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(6, 182, 212, 0.2)',
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
     },
     StoryPassageContainer: {
       flex: 1,
@@ -1733,7 +1733,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       marginBottom: 16,
       borderWidth: 1,
       borderColor: theme.archiveBorder,
-      justifypassages: 'center',
+      justifyContent: 'center',
     },
     StoryPassageText: {
       fontSize: 14,
@@ -1885,7 +1885,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     StoryLockGradient: {
       flex: 1,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       borderRadius: 16,
     },
@@ -1896,7 +1896,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     StoryCardHeader: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'flex-start',
       marginBottom: 12,
     },
@@ -1955,7 +1955,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     StoryAtmosphereContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       marginBottom: 12,
       paddingVertical: 6,
       backgroundColor: 'rgba(30, 41, 59, 0.3)',
@@ -2013,7 +2013,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     StoryFooter: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'center',
       marginTop: 12,
       paddingTop: 12,
@@ -2036,7 +2036,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     StoryActionButtonGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingVertical: 10,
       paddingHorizontal: 16,
     },
@@ -2066,7 +2066,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     StoryHeaderpassages: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       marginBottom: 12,
     },
     StoryModalTitle: {
@@ -2096,7 +2096,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     codexModalOverlay: {
       flex: 1,
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)',
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     codexModalpassages: {
@@ -2118,7 +2118,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       borderColor: theme.archiveBorder,
       backgroundColor: theme.archiveMode === 'dark' ? '#1A2332' : '#F5E6D3',
       padding: 0,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     codexTextureOverlay: {
@@ -2132,11 +2132,11 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       width: '100%',
       height: '100%',
       padding: 24,
-      justifypassages: 'flex-start',
+      justifyContent: 'flex-start',
     },
     codexHeader: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 20,
       borderBottomWidth: 2,
@@ -2158,7 +2158,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     codexTypeSelector: {
       flexDirection: 'row',
-      justifypassages: 'space-around',
+      justifyContent: 'space-around',
       marginBottom: 20,
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(30, 41, 59, 0.5)' : 'rgba(255, 255, 255, 0.1)',
       borderRadius: 12,
@@ -2232,7 +2232,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     codexPromptMeta: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'center',
     },
     codexSkillCategory: {
@@ -2256,7 +2256,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     codexVoicePlaceholder: {
       flex: 1,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.3)' : 'rgba(243, 244, 246, 0.3)',
       borderRadius: 8,
@@ -2293,7 +2293,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     drawingCanvasToolbar: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       alignItems: 'center',
       padding: 12,
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
@@ -2343,7 +2343,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     drawingCanvasBottomBar: {
       flexDirection: 'row',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       padding: 16,
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
       borderTopWidth: 1,
@@ -2411,13 +2411,13 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     characterCreatorPreviewSection: {
       flex: 1.5,
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       paddingRight: 8,
     },
     characterCreatorColorSection: {
       flex: 1,
       paddingLeft: 8,
-      justifypassages: 'center',
+      justifyContent: 'center',
     },
     characterCreatorColorContainer: {
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.5)' : 'rgba(243, 244, 246, 0.5)',
@@ -2464,7 +2464,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     characterCreatorColorControls: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       paddingHorizontal: 4,
     },
     characterCreatorColorArrowButton: {
@@ -2472,7 +2472,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       width: 28,
       height: 28,
       borderRadius: 14,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       shadowColor: theme.archiveMode === 'dark' ? '#000' : '#000',
       shadowOffset: { width: 0, height: 1 },
@@ -2531,7 +2531,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     characterCreatorStyleControls: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifypassages: 'space-between',
+      justifyContent: 'space-between',
       width: 200,
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.3)' : 'rgba(243, 244, 246, 0.3)',
       borderRadius: 12,
@@ -2544,7 +2544,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       width: 50,
       height: 50,
       borderRadius: 25,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       shadowColor: theme.archiveMode === 'dark' ? '#000' : '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -2567,7 +2567,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     characterCreatorSkinSelectorContainer: {
       width: 360,
       height: 50,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 24,
       position: 'relative',
@@ -2579,7 +2579,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     characterCreatorSkinGrid: {
       flexDirection: 'row',
       width: 360,
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
       zIndex: 1,
     },
@@ -2601,7 +2601,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       height: 15,
       position: 'relative',
       alignItems: 'center',
-      justifypassages: 'center',
+      justifyContent: 'center',
       overflow: 'hidden',
     },
     characterCreatorSkinColorImage: {
@@ -2659,7 +2659,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
 
     // ===== LOGIN SCREEN STYLES =====
     loginContainer: {
-      justifypassages: 'center',
+      justifyContent: 'center',
       padding: 20,
     },
     loginErrorText: {
@@ -2673,7 +2673,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
 
     // ===== WELCOME SCREEN STYLES =====
     welcomeContainer: {
-      justifypassages: 'center',
+      justifyContent: 'center',
       alignItems: 'center',
     },
     welcomeSubtitle: {
