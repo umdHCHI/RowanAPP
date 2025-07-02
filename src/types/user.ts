@@ -28,7 +28,7 @@ export interface AuthContextType {
     characterId: string | null;
     isTestUser: boolean;
     user: { username: string } | null;
-    login: (token: string, characterId: string) => Promise<void>;
+    login: (token: string, characterId: string, userData?: any) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -102,6 +102,32 @@ export interface Character {
     selected_mouth_type: number;
     selected_shirt_type: number;
     selected_background_type: number;
+    personality_traits?: any[];
+    coping_tools?: any[];
+    equipped_gear?: any[];
+    experience_needed_for_next_level?: number;
+    experience_progress_percentage?: number;
+    wellness_average?: number;
+    memory_progress?: string;
+    wellness_stats?: Array<{
+        icon: string;
+        label: string;
+        value: number;
+        color: string;
+    }>;
+    character_config?: {
+        selected_base_model: number;
+        selected_skin_color: number;
+        selected_hair_style: number;
+        selected_hair_color: number;
+        selected_eye_type: number;
+        selected_eye_color: number;
+        selected_eyebrow_style: number;
+        selected_eyebrow_color: number;
+        selected_mouth_type: number;
+        selected_shirt_type: number;
+        selected_background_type: number;
+    };
     created_at: string;
     updated_at: string;
 }

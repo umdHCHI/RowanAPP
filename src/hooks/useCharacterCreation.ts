@@ -5,7 +5,7 @@ import { Alert } from 'react-native';
 interface UseCharacterCreationProps {
   characterName: string;
   createCharacter: () => Promise<void>;
-  completeCharacter: () => void | Promise<void>;
+  completeCharacter: () => Promise<void>;
 }
 
 export const useCharacterCreation = ({
@@ -29,28 +29,23 @@ export const useCharacterCreation = ({
     
     try {
       await createCharacter();
-      await Promise.resolve(completeCharacter());
+      await completeCharacter();
       
-      Alert.alert(
-        '🎉 Character Created Successfully!',
-        `Your character "${characterName}" has been created and you will be redirected to the character home screen.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              try {
-                setTimeout(() => {
-                  router.push('/(character)/character');
-                }, 100);
-              } catch (navError) {
-                router.push('/');
-              }
-            }
-          }
-        ]
-      );
+      // Navigate immediately after successful character creation and onboarding completion
+      console.log('Character created and onboarding completed, navigating to character home...');
+      router.push('/(character)/character');
+      
+      // Show success alert after navigation
+      setTimeout(() => {
+        Alert.alert(
+          '🎉 Character Created Successfully!',
+          `Your character "${characterName}" has been created and you have been redirected to the character home screen.`,
+          [{ text: 'OK', style: 'default' }]
+        );
+      }, 500);
       
     } catch (error) {
+      console.error('Character creation failed:', error);
       Alert.alert(
         'Character Creation Failed',
         'There was an error creating your character. Please try again.',

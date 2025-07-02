@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { CategoryConfig } from '../../types/appearance';
+import { CategoryConfig } from '../../types/user';
 
 interface ColorOptionControlsProps {
   category: CategoryConfig;

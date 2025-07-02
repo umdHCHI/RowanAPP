@@ -1,4 +1,5 @@
-import { apiService, CharacterConfig, WellnessCharacter } from './apiService';
+import { Character } from '../types';
+import { apiService } from './apiService';
 
 export interface FrontendCharacterData {
   baseIndex: number;
@@ -32,10 +33,10 @@ class AppearanceService {
       selectedBackgroundType: number;
       selectedBackgroundColor: number;
     }
-  ): Promise<WellnessCharacter> {
+  ): Promise<Character> {
     try {
       // First, check if user already has a character
-      let existingCharacter: WellnessCharacter | null = null;
+      let existingCharacter: Character | null = null;
       try {
         existingCharacter = await apiService.getMyCharacter();
       } catch (error: any) {
@@ -154,10 +155,10 @@ class AppearanceService {
       selectedBackgroundType?: number;
       selectedBackgroundColor?: number;
     }
-  ): Promise<WellnessCharacter> {
+  ): Promise<Character> {
     try {
       // Map frontend field names to backend field names
-      const backendData: Partial<CharacterConfig> = {};
+      const backendData: Partial<Character> = {};
       
       if (customizationData.selectedBaseModel !== undefined) {
         backendData.selected_base_model = customizationData.selectedBaseModel;
@@ -201,7 +202,7 @@ class AppearanceService {
   /**
    * Check if user has a character (NEW METHOD)
    */
-  async checkUserHasCharacter(): Promise<{ hasCharacter: boolean; character?: WellnessCharacter }> {
+  async checkUserHasCharacter(): Promise<{ hasCharacter: boolean; character?: Character }> {
     try {
       const character = await apiService.getMyCharacter();
       return { hasCharacter: true, character };
@@ -217,7 +218,7 @@ class AppearanceService {
   /**
    * Get current user's character
    */
-  async getMyCharacter(): Promise<WellnessCharacter> {
+  async getMyCharacter(): Promise<Character> {
     try {
       return await apiService.getMyCharacter();
     } catch (error) {
@@ -228,7 +229,7 @@ class AppearanceService {
   /**
    * Get character customization options
    */
-  async getCustomizationOptions(): Promise<CharacterConfig & { option_limits: Record<string, number> }> {
+  async getCustomizationOptions(): Promise<Character & { option_limits: Record<string, number> }> {
     try {
       return await apiService.getCustomizationOptions();
     } catch (error) {
@@ -259,7 +260,7 @@ class AppearanceService {
     experience_progress: number;
     wellness_average: number;
     equipped_tools_count: number;
-    character_config: CharacterConfig;
+    character_config: Character;
   }> {
     try {
       return await apiService.getCharacterStats();
@@ -351,36 +352,32 @@ class AppearanceService {
       throw error;
     }
   }
-
-  // ===== REFLECTION METHODS =====
+  // ===== CODEX ENTRY METHODS =====
 
   /**
-   * Create a reflection entry
+   * Create a codex entry
    */
-  async createReflection(reflectionData: {
-    entry_type: 'memory' | 'insight' | 'skill' | 'challenge' | 'growth';
-    title: string;
-    passages: string;
-    prompt: string;
-    skill_category?: string;
-    map_area?: string;
-    difficulty?: string;
-    wellness_gains?: Record<string, number>;
-    tools_unlocked_ids?: number[];
+  async createCodexEntry(entryData: {
+    prompt_id: string;
+    entry_type: 'journal' | 'draw' | 'voice';
+    content: string;
+    skill_category: string;
+    map_area: string;
+    difficulty: string;
   }): Promise<any> {
     try {
-      return await apiService.createReflection(reflectionData);
+      return await apiService.createCodexEntry(entryData);
     } catch (error) {
       throw error;
     }
   }
 
   /**
-   * Get recent reflections
+   * Get recent codex entries
    */
-  async getRecentReflections(): Promise<any[]> {
+  async getRecentCodexEntries(): Promise<any[]> {
     try {
-      return await apiService.getRecentReflections();
+      return await apiService.getMyCodexEntries();
     } catch (error) {
       throw error;
     }
@@ -407,7 +404,7 @@ class AppearanceService {
       selectedBackgroundType?: number;
       selectedBackgroundColor?: number;
     }
-  ): Promise<WellnessCharacter> {
+  ): Promise<Character> {
     // Use default customization if none provided
     const defaultCustomization = {
       selectedBaseModel: 0,
@@ -433,7 +430,7 @@ class AppearanceService {
   /**
    * Legacy method - now maps to getMyCharacter
    */
-  async getCharacter(characterId?: number): Promise<WellnessCharacter> {
+  async getCharacter(characterId?: number): Promise<Character> {
     return this.getMyCharacter();
   }
 
@@ -442,7 +439,7 @@ class AppearanceService {
   /**
    * Map backend character data to frontend format
    */
-  mapBackendToFrontend(backendCharacter: WellnessCharacter): {
+  mapBackendToFrontend(backendCharacter: Character): {
     selectedBaseModel: number;
     selectedHairStyle: number;
     selectedHairColor: number;

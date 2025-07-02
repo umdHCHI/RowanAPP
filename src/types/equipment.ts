@@ -31,6 +31,20 @@ export interface EquippedItems {
   ground?: EquipmentItem;
 }
 
+export interface CharacterGear {
+    id: number;
+    gear_type: {
+        id: number;
+        name: string;
+        slot: 'weapon' | 'armor' | 'helmet' | 'boots';
+        description: string;
+        emoji_icon: string;
+        stat_bonuses: Record<string, number>;
+    };
+    is_equipped: boolean;
+    acquired_at: string;
+}
+
 // Equipment categories for organization
 export const EQUIPMENT_CATEGORIES = {
   focus: 'Focus Items',

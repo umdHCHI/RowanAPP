@@ -33,3 +33,19 @@ export interface GameAchievement {
   max_progress: number;
   category: 'wellness' | 'exploration' | 'social' | 'creative';
 }
+
+// Skill types
+export interface Skill {
+    id: number;
+    title: string;
+    description: string;
+}
+
+// Minigame types 
+export interface MiniGameProgress {
+  thoughtDefenderLevel: number;
+  thoughtDefenderScore: number;
+  thoughtDefenderWins: number;
+  drawingEntries: number;
+  totalGameTime: number;
+}

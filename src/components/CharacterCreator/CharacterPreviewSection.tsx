@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import { CharacterFrame, CharacterPreview } from '../../imports';
+import CharacterFrame from '../CharacterFrame';
+import CharacterPreview from '../CharacterPreview';
 
 interface CharacterPreviewSectionProps {
   character: {

@@ -1,4 +1,4 @@
-export type Prompt = {
+export type JournalPrompt = {
   id: number;
   prompt_id: string;
   text: string;
@@ -11,9 +11,28 @@ export type Prompt = {
   updated_at: string;
 };
 
+// Alias for backward compatibility
+export type Prompt = JournalPrompt;
+
+export interface WellnessStats {
+    icon: string;
+    label: string;
+    value: number;
+    color: string;
+}
+
 export type JournalEntry = {
   prompt_id: string;
 };
+
+export interface CodexEntry {
+  type: string;
+  passages: string;
+  prompt: string;
+  skillCategory: string;
+  mapArea: string;
+  difficulty: string;
+}
 
 export type CodexModalProps = {
   visible: boolean;

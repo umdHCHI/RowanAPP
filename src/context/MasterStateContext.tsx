@@ -1,6 +1,7 @@
 import React, {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -97,12 +98,9 @@ import {
   CharacterTool,
   CopingTool,
   HomeData,
-  ReflectionEntry,
-  WellnessCharacter,
 } from "../services/apiService";
-import { CharacterAppearance, EquipmentItem, EquippedItems } from "../types";
+import { Character, CodexEntry, EquipmentItem, EquippedItems, JournalPrompt, MiniGameProgress, Story } from "../types";
 import { useAuth } from "./AuthContext";
-import { useOnboarding } from "./OnboardingContext";
 import { useTheme } from "./ThemeContext";
 
 // ===== UPDATED TYPES FOR NEW BACKEND =====
@@ -119,24 +117,7 @@ export interface ArchiveFoundation {
   storyTriggers: string[];
 }
 
-export interface CodexEntry {
-  id: string;
-  type: string;
-  passages: string;
-  prompt: string;
-  skillCategory: string;
-  mapArea: string;
-  difficulty: string;
-  timestamp: number;
-}
 
-export interface MiniGameProgress {
-  thoughtDefenderLevel: number;
-  thoughtDefenderScore: number;
-  thoughtDefenderWins: number;
-  drawingEntries: number;
-  totalGameTime: number;
-}
 
 export interface MentalArtifact {
   name: string;
@@ -147,23 +128,7 @@ export interface MentalArtifact {
   rarity: "Common" | "Rare" | "Epic" | "Legendary";
 }
 
-export interface Story {
-  id: string;
-  title: string;
-  category: string;
-  description: string;
-  difficulty: string;
-  timeToComplete: string;
-  exploration: number;
-  revelations: number;
-  rarity: "Common" | "Rare" | "Epic" | "Legendary";
-  skillFocus: string[];
-  atmosphere: string;
-  statBoosts: string[];
-  unlockLevel: number;
-  isLocked?: boolean;
-  passages?: any[];
-}
+
 
 export interface ArchiveArea {
   id: string;
@@ -185,7 +150,7 @@ interface MasterStateContextType {
     characterId: string | null;
     isTestUser: boolean;
     user: { username: string } | null;
-    login: (token: string, charId: string) => Promise<void>;
+    login: (token: string, charId: string, userData?: any) => Promise<void>;
     logout: () => Promise<void>;
   };
 
@@ -194,14 +159,15 @@ interface MasterStateContextType {
     isComplete: boolean;
     assignedPath: "survey" | "character" | null;
     researchGroup: string | null;
-    characterAppearance: CharacterAppearance | undefined;
+    characterAppearance: Character | undefined;
     isLoading: boolean;
     completeSurvey: () => void;
-    completeCharacter: () => void;
+    completeCharacter: () => Promise<void>;
     setAssignedPath: (path: "survey" | "character" | null) => void;
-    setCharacterAppearance: (appearance: CharacterAppearance) => void;
+    setCharacterAppearance: (appearance: Character) => void;
     resetOnboarding: () => void;
     setIsLoading: (loading: boolean) => void;
+    loadOnboardingStatus: () => Promise<void>;
   };
 
   // ===== THEME STATE =====
@@ -217,7 +183,7 @@ interface MasterStateContextType {
   // ===== CHARACTER & APPEARANCE STATE (UPDATED FOR NEW BACKEND) =====
   character: {
     // Backend character data
-    backendCharacter: WellnessCharacter | null;
+    backendCharacter: Character | null;
 
     // UI state for character creator (local only)
     characterName: string;
@@ -265,14 +231,19 @@ interface MasterStateContextType {
     gainExperience: (amount: number, source?: string) => Promise<void>;
     gainWellness: (gains: Record<string, number>) => Promise<void>;
   };
-
   // ===== WELLNESS FEATURES (NEW) =====
-  wellness: {
-    availableTools: CopingTool[];
+  wellness: {    availableTools: CopingTool[];
     myTools: CharacterTool[];
-    equippedTools: CharacterTool[];
-    recentReflections: ReflectionEntry[];
+    equippedTools: CharacterTool[];    recentCodexEntries: CodexEntry[];
     homeData: HomeData | null;
+    
+    // Journal prompts
+    availablePrompts: JournalPrompt[];
+    categoryPrompts: {
+      journal: JournalPrompt | null;
+      draw: JournalPrompt | null;
+      voice: JournalPrompt | null;
+    };
 
     // Tool methods
     loadAvailableTools: () => Promise<void>;
@@ -286,14 +257,19 @@ interface MasterStateContextType {
       notes?: string
     ) => Promise<void>;
 
-    // Reflection methods
-    loadRecentReflections: () => Promise<void>;
-    createReflection: (reflectionData: any) => Promise<void>;
-    quickReflect: (
-      title: string,
-      passages: string,
-      prompt: string
+    // Codex entry methods
+    loadRecentCodexEntries: () => Promise<void>;
+    createCodexEntry: (entryData: any) => Promise<void>;
+    quickJournalEntry: (
+      promptId: string,
+      content: string,
+      entryType: 'journal' | 'draw' | 'voice'
     ) => Promise<void>;
+
+    // Journal prompt methods
+    loadAvailablePrompts: () => Promise<void>;
+    loadCategoryPrompts: (unlockedAreas: string[], completedStories: string[]) => Promise<void>;
+    refreshPrompts: () => Promise<void>;
 
     // Home data
     loadHomeData: () => Promise<void>;
@@ -421,21 +397,132 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 }) => {
   // ===== EXTERNAL CONTEXTS =====
   const { authToken, characterId, isTestUser, user, login, logout } = useAuth();
-  const {
-    onboardingState,
-    setOnboardingState,
-    completeSurvey,
-    completeCharacter,
-    setAssignedPath,
-    setCharacterAppearance,
-    resetOnboarding,
-  } = useOnboarding();
   const { theme, themeMode, toggleTheme, setThemeMode, styles, isDark } =
     useTheme();
 
+  // ===== ONBOARDING STATE (LOCAL) =====
+  const [isComplete, setIsComplete] = useState(false);
+  const [assignedPath, setAssignedPath] = useState<"survey" | "character" | null>(null);
+  const [researchGroup, setResearchGroup] = useState<string | null>("A"); // Default to A
+  const [characterAppearance, setCharacterAppearance] = useState<Character | undefined>(undefined);
+  const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
+
+  const completeSurvey = () => {
+    setIsComplete(true);
+    setAssignedPath("survey");
+    setResearchGroup("B");
+  };
+
+  const completeCharacter = async () => {
+    try {
+      // Call the backend to mark onboarding as complete with character path
+      await apiService.completeOnboarding('character');
+      
+      // Update local state
+      setIsComplete(true);
+      setAssignedPath("character");
+      setResearchGroup("A");
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      // Still update local state even if backend call fails
+      setIsComplete(true);
+      setAssignedPath("character");
+      setResearchGroup("A");
+    }
+  };
+
+  const resetOnboarding = () => {
+    setIsComplete(false);
+    setAssignedPath(null);
+    setResearchGroup("A");
+    setCharacterAppearance(undefined);
+  };
+
+  const setOnboardingLoading = (loading: boolean) => {
+    setIsOnboardingLoading(loading);
+  };
+
+  // ===== LOAD USER ONBOARDING STATUS =====
+  const loadUserOnboardingStatus = useCallback(async () => {
+    if (!authToken) {
+      return;
+    }
+
+    try {
+      console.log('MasterStateContext: Loading user onboarding status');
+      const profile = await apiService.getProfile();
+      
+      const hasCompletedOnboarding = profile.profile?.has_completed_onboarding;
+      const completionType = profile.profile?.completion_type;
+      const isAdminUser = profile.username === 'admin';
+
+      console.log('MasterStateContext: User onboarding status:', {
+        username: profile.username,
+        isAdminUser,
+        hasCompletedOnboarding,
+        completionType
+      });
+
+      // Handle different onboarding states
+      if (hasCompletedOnboarding) {
+        // User has completed onboarding
+        setIsComplete(true);
+        
+        if (completionType) {
+          // User has a proper completion type
+          setAssignedPath(completionType as "survey" | "character");
+          
+          // Set research group based on completion type
+          if (completionType === 'character') {
+            setResearchGroup("A");
+          } else if (completionType === 'survey') {
+            setResearchGroup("B");
+          } else {
+            setResearchGroup("A"); // Default fallback
+          }
+        } else {
+          // User completed onboarding but no completion type
+          if (isAdminUser) {
+            // For admin users, default to character path for testing
+            console.log('MasterStateContext: Admin user completed onboarding but no completion type, defaulting to character path for testing');
+            setAssignedPath("character");
+            setResearchGroup("A");
+          } else {
+            // For regular users, they need to complete onboarding properly
+            console.log('MasterStateContext: Regular user completed onboarding but no completion type, requiring re-onboarding');
+            setIsComplete(false);
+            setAssignedPath(null);
+            setResearchGroup("A");
+          }
+        }
+      } else {
+        // User hasn't completed onboarding
+        setIsComplete(false);
+        setAssignedPath(null);
+        setResearchGroup("A"); // Default to A
+      }
+    } catch (error: any) {
+      console.error('MasterStateContext: Failed to load user onboarding status:', error);
+      // If it's a 404 error, the endpoint might not exist - that's okay
+      if (error.response?.status === 404) {
+        console.log('MasterStateContext: User profile endpoint not found (404) - this is expected if the endpoint is not implemented');
+        // On 404 error, default to incomplete onboarding
+        setIsComplete(false);
+        setAssignedPath(null);
+        setResearchGroup("A");
+      } else {
+        console.error('MasterStateContext: Unexpected error loading user onboarding status:', error);
+        // On other errors, default to incomplete onboarding
+        setIsComplete(false);
+        setAssignedPath(null);
+        setResearchGroup("A");
+      }
+    }
+  }, [authToken]);
+
   // ===== CHARACTER STATE (UPDATED FOR NEW BACKEND) =====
   const [backendCharacter, setBackendCharacter] =
-    useState<WellnessCharacter | null>(null);
+    useState<Character | null>(null);
 
   // Local UI state for character creator (keeps your existing component working)
   const [characterName, setCharacterName] = useState("");
@@ -454,12 +541,23 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   // ===== WELLNESS STATE (NEW) =====
   const [availableTools, setAvailableTools] = useState<CopingTool[]>([]);
-  const [myTools, setMyTools] = useState<CharacterTool[]>([]);
-  const [equippedTools, setEquippedTools] = useState<CharacterTool[]>([]);
-  const [recentReflections, setRecentReflections] = useState<ReflectionEntry[]>(
+  const [myTools, setMyTools] = useState<CharacterTool[]>([]);  const [equippedTools, setEquippedTools] = useState<CharacterTool[]>([]);
+  const [recentCodexEntries, setRecentCodexEntries] = useState<CodexEntry[]>(
     []
   );
   const [homeData, setHomeData] = useState<HomeData | null>(null);
+  
+  // Journal prompt state
+  const [availablePrompts, setAvailablePrompts] = useState<JournalPrompt[]>([]);
+  const [categoryPrompts, setCategoryPrompts] = useState<{
+    journal: JournalPrompt | null;
+    draw: JournalPrompt | null;
+    voice: JournalPrompt | null;
+  }>({
+    journal: null,
+    draw: null,
+    voice: null,
+  });
 
   // ===== EQUIPMENT STATE =====
   const [inventory, setInventory] = useState<EquipmentItem[]>(sampleInventory);
@@ -516,15 +614,33 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ===== CHARACTER HELPER FUNCTIONS (UNCHANGED) =====
-  const getHairIndex = () => selectedHairStyle + selectedHairColor * 12;
-  const getClothesIndex = () => selectedShirtType + selectedClothesColor * 12;
-  const getEyesIndex = () => selectedEyeType + selectedEyeColor * 12;
-  const getEyebrowsIndex = () =>
-    selectedEyebrowStyle + selectedEyebrowColor * 12;
+  // ===== CHARACTER HELPER FUNCTIONS =====
+  const getHairIndex = () => {
+    const hairStyle = backendCharacter?.character_config?.selected_hair_style ?? selectedHairStyle;
+    const hairColor = backendCharacter?.character_config?.selected_hair_color ?? selectedHairColor;
+    return hairStyle + hairColor * 12;
+  };
+  const getClothesIndex = () => {
+    const shirtType = backendCharacter?.character_config?.selected_shirt_type ?? selectedShirtType;
+    return shirtType + selectedClothesColor * 12;
+  };
+  const getEyesIndex = () => {
+    const eyeType = backendCharacter?.character_config?.selected_eye_type ?? selectedEyeType;
+    const eyeColor = backendCharacter?.character_config?.selected_eye_color ?? selectedEyeColor;
+    return eyeType + eyeColor * 12;
+  };
+  const getEyebrowsIndex = () => {
+    const eyebrowStyle = backendCharacter?.character_config?.selected_eyebrow_style ?? selectedEyebrowStyle;
+    const eyebrowColor = backendCharacter?.character_config?.selected_eyebrow_color ?? selectedEyebrowColor;
+    return eyebrowStyle + eyebrowColor * 12;
+  };
 
-  // Asset getter functions (unchanged)
+  // Asset getter functions (updated to use backend character data when available)
   const getHairAsset = () => {
+    // Use backend character data if available, otherwise fall back to local state
+    const hairStyle = backendCharacter?.character_config?.selected_hair_style ?? selectedHairStyle;
+    const hairColor = backendCharacter?.character_config?.selected_hair_color ?? selectedHairColor;
+    
     const hairArrays = [
       hairOptionsBlack,
       hairOptionsBlonde,
@@ -543,11 +659,16 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       hairOptionsRed,
       hairOptionsWhite,
     ];
-    const colorArray = hairArrays[selectedHairColor] || hairOptionsBlack;
-    return colorArray[selectedHairStyle] || colorArray[0];
+    const colorArray = hairArrays[hairColor] || hairOptionsBlack;
+    return colorArray[hairStyle] || colorArray[0];
   };
 
   const getClothesAsset = () => {
+    // Use backend character data if available, otherwise fall back to local state
+    const shirtType = backendCharacter?.character_config?.selected_shirt_type ?? selectedShirtType;
+    // For now, use a default color since the API doesn't provide clothes color in character_config
+    const clothesColor = selectedClothesColor;
+    
     const clothesArrays = [
       clothesOptionsBrown,
       clothesOptionsBlonde,
@@ -567,11 +688,15 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       clothesOptionsWhite,
     ];
     const colorArray =
-      clothesArrays[selectedClothesColor || 0] || clothesOptionsBrown;
-    return colorArray[selectedShirtType] || colorArray[0];
+      clothesArrays[clothesColor || 0] || clothesOptionsBrown;
+    return colorArray[shirtType] || colorArray[0];
   };
 
   const getEyesAsset = () => {
+    // Use backend character data if available, otherwise fall back to local state
+    const eyeType = backendCharacter?.character_config?.selected_eye_type ?? selectedEyeType;
+    const eyeColor = backendCharacter?.character_config?.selected_eye_color ?? selectedEyeColor;
+    
     const eyesArrays = [
       eyesOptionsBrown,
       eyesOptionsBlonde,
@@ -590,11 +715,15 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       eyesOptionsRed,
       eyesOptionsWhite,
     ];
-    const colorArray = eyesArrays[selectedEyeColor] || eyesOptionsBrown;
-    return colorArray[selectedEyeType] || colorArray[0];
+    const colorArray = eyesArrays[eyeColor] || eyesOptionsBrown;
+    return colorArray[eyeType] || colorArray[0];
   };
 
   const getEyebrowsAsset = () => {
+    // Use backend character data if available, otherwise fall back to local state
+    const eyebrowStyle = backendCharacter?.character_config?.selected_eyebrow_style ?? selectedEyebrowStyle;
+    const eyebrowColor = backendCharacter?.character_config?.selected_eyebrow_color ?? selectedEyebrowColor;
+    
     const eyebrowsArrays = [
       eyebrowsOptionsBrown,
       eyebrowsOptionsBlonde,
@@ -614,11 +743,16 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       eyebrowsOptionsWhite,
     ];
     const colorArray =
-      eyebrowsArrays[selectedEyebrowColor] || eyebrowsOptionsBrown;
-    return colorArray[selectedEyebrowStyle] || colorArray[0];
+      eyebrowsArrays[eyebrowColor] || eyebrowsOptionsBrown;
+    return colorArray[eyebrowStyle] || colorArray[0];
   };
 
   const getCurrentBackgroundAsset = () => {
+    // Use backend character data if available, otherwise fall back to local state
+    const backgroundType = backendCharacter?.character_config?.selected_background_type ?? selectedBackgroundType;
+    // For now, use a default color since the API doesn't provide background color in character_config
+    const backgroundColor = selectedBackgroundColor;
+    
     const backgroundColorArrays = [
       bgOptionsBrown,
       bgOptionsBlonde,
@@ -638,16 +772,20 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       bgOptionsWhite,
     ];
     const colorArray =
-      backgroundColorArrays[selectedBackgroundColor || 0] || bgOptionsBrown;
-    return colorArray[selectedBackgroundType] || colorArray[0];
+      backgroundColorArrays[backgroundColor || 0] || bgOptionsBrown;
+    return colorArray[backgroundType] || colorArray[0];
   };
 
   const getBaseAsset = () => {
-    return baseOptions[selectedBaseModel] || baseOptions[0];
+    // Use backend character data if available, otherwise fall back to local state
+    const baseModel = backendCharacter?.character_config?.selected_base_model ?? selectedBaseModel;
+    return baseOptions[baseModel] || baseOptions[0];
   };
 
   const getMouthAsset = () => {
-    return mouthOptions[selectedMouthType] || mouthOptions[0];
+    // Use backend character data if available, otherwise fall back to local state
+    const mouthType = backendCharacter?.character_config?.selected_mouth_type ?? selectedMouthType;
+    return mouthOptions[mouthType] || mouthOptions[0];
   };
 
   // ===== EQUIPMENT HELPER FUNCTIONS =====
@@ -724,24 +862,22 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
           }
         });
       }
-    });
-
-    // Add points from codex entries
+    });    // Add points from codex entries
     codexEntries.forEach((entry) => {
       switch (entry.skillCategory) {
-        case "awareness":
+        case "Emotional Awareness":
         case "mindfulness":
           baseValues["Sight Beyond Sight"] += 2;
           break;
-        case "resilience":
-        case "perseverance":
+        case "Self-Compassion":
+        case "Personal Growth":
           baseValues["Unbreakable Will"] += 2;
           break;
-        case "connection":
+        case "Social Connection":
         case "empathy":
           baseValues["Heart's Compass"] += 2;
           break;
-        case "balance":
+        case "Stress Management":
         case "harmony":
           baseValues["Elemental Harmony"] += 2;
           break;
@@ -997,10 +1133,10 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       // Complete onboarding
       completeCharacter();
 
-      // Load additional data
-      await loadHomeData();
-      await loadAvailableTools();
-      await loadMyTools();
+      // Load additional data (temporarily disabled until backend endpoints are implemented)
+      // await memoizedLoadHomeData();
+      // await memoizedLoadAvailableTools();
+      // await memoizedLoadMyTools();
     } catch (error: any) {
       setError(
         "Failed to create character: " + (error?.message || "Unknown error")
@@ -1049,41 +1185,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  const loadCharacter = async () => {
-    if (!authToken) {
-      return;
-    }
 
-    setIsLoading(true);
-    try {
-      const characterData = await appearanceService.getMyCharacter();
-
-      if (characterData) {
-        setBackendCharacter(characterData);
-
-        // Sync UI state with backend data using the mapping function
-        const frontendData =
-          appearanceService.mapBackendToFrontend(characterData);
-        setCharacterName(characterData.name || "");
-        setSelectedBaseModel(frontendData.selectedBaseModel);
-        setSelectedHairStyle(frontendData.selectedHairStyle);
-        setSelectedHairColor(frontendData.selectedHairColor);
-        setSelectedEyeType(frontendData.selectedEyeType);
-        setSelectedEyeColor(frontendData.selectedEyeColor);
-        setSelectedEyebrowStyle(frontendData.selectedEyebrowStyle);
-        setSelectedEyebrowColor(frontendData.selectedEyebrowColor);
-        setSelectedMouthType(frontendData.selectedMouthType);
-        setSelectedShirtType(frontendData.selectedShirtType);
-        setSelectedClothesColor(frontendData.selectedClothesColor);
-        setSelectedBackgroundType(frontendData.selectedBackgroundType);
-        setSelectedBackgroundColor(frontendData.selectedBackgroundColor);
-      }
-    } catch (error) {
-      // Don't set error state for load failures as they might be expected
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const gainExperience = async (amount: number, source?: string) => {
     if (!backendCharacter) {
@@ -1136,30 +1238,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  // ===== NEW WELLNESS METHODS =====
-  const loadAvailableTools = async () => {
-    try {
-      const tools = await appearanceService.getAvailableCopingTools();
-      setAvailableTools(tools);
-    } catch (error) {
-      // Handle error silently
-    }
-  };
 
-  const loadMyTools = async () => {
-    try {
-      const tools = await appearanceService.getMyTools();
-      setMyTools(tools);
-      setEquippedTools(tools.filter((tool) => tool.is_equipped));
-    } catch (error) {
-      // Handle error silently
-    }
-  };
 
   const acquireTool = async (toolId: number) => {
     try {
       await appearanceService.acquireCopingTool(toolId);
-      await loadMyTools(); // Refresh tools
+      await memoizedLoadMyTools(); // Refresh tools
 
       Alert.alert("🛠️ Tool Acquired!", "You have acquired a new coping tool!", [
         { text: "Excellent!", style: "default" },
@@ -1174,7 +1258,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const equipTool = async (toolId: number) => {
     try {
       await appearanceService.equipTool(toolId);
-      await loadMyTools(); // Refresh tools
+      await memoizedLoadMyTools(); // Refresh tools
     } catch (error: any) {
       setError("Failed to equip tool: " + (error?.message || "Unknown error"));
     }
@@ -1183,7 +1267,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const unequipTool = async (toolId: number) => {
     try {
       await apiService.unequipTool(toolId);
-      await loadMyTools(); // Refresh tools
+      await memoizedLoadMyTools(); // Refresh tools
     } catch (error: any) {
       setError(
         "Failed to unequip tool: " + (error?.message || "Unknown error")
@@ -1198,7 +1282,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   ) => {
     try {
       await appearanceService.useTool(toolId, effectiveness, notes);
-      await loadMyTools(); // Refresh tools
+      await memoizedLoadMyTools(); // Refresh tools
 
       Alert.alert("🌟 Tool Used!", "Your tool usage has been recorded.", [
         { text: "Great!", style: "default" },
@@ -1207,64 +1291,95 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       setError("Failed to use tool: " + (error?.message || "Unknown error"));
     }
   };
-
-  const loadRecentReflections = async () => {
+  const createCodexEntry = async (entryData: any) => {
     try {
-      const reflections = await appearanceService.getRecentReflections();
-      setRecentReflections(reflections);
-    } catch (error) {
-      // Handle error silently
-    }
-  };
+      await appearanceService.createCodexEntry(entryData);
+      await memoizedLoadRecentCodexEntries(); // Refresh entries
 
-  const createReflection = async (reflectionData: any) => {
-    try {
-      await appearanceService.createReflection(reflectionData);
-      await loadRecentReflections(); // Refresh reflections
-
-      Alert.alert("📝 Reflection Created!", "Your reflection has been saved.", [
+      Alert.alert("📝 Entry Created!", "Your journal entry has been saved.", [
         { text: "Wonderful!", style: "default" },
       ]);
     } catch (error: any) {
       setError(
-        "Failed to create reflection: " + (error?.message || "Unknown error")
+        "Failed to create entry: " + (error?.message || "Unknown error")
       );
     }
   };
-
-  const quickReflect = async (
-    title: string,
-    passages: string,
-    prompt: string
+  const quickJournalEntry = async (
+    promptId: string,
+    content: string,
+    entryType: 'journal' | 'draw' | 'voice'
   ) => {
     try {
-      await appearanceService.createReflection({
-        entry_type: "growth",
-        title,
-        passages,
-        prompt,
+      await appearanceService.createCodexEntry({
+        prompt_id: promptId,
+        entry_type: entryType,
+        content: content,
+        skill_category: 'Personal Growth',
+        map_area: 'entrance',
+        difficulty: 'Beginner'
       });
-      await loadRecentReflections(); // Refresh reflections
+      await memoizedLoadRecentCodexEntries(); // Refresh entries
 
       Alert.alert(
-        "✨ Quick Reflection Saved!",
-        "Your thoughts have been captured.",
+        "✨ Entry Saved!",
+        "Your journal entry has been captured.",
         [{ text: "Thank you!", style: "default" }]
       );
     } catch (error: any) {
       setError(
-        "Failed to save quick reflection: " +
+        "Failed to save journal entry: " +
           (error?.message || "Unknown error")
       );
     }
   };
 
-  const loadHomeData = async () => {
+  // ===== JOURNAL PROMPT METHODS =====
+  const loadAvailablePrompts = async () => {
     try {
-      const data = await appearanceService.getHomeData();
-      setHomeData(data);
+      const prompts = await apiService.getFilteredJournalPrompts({ isActive: true });
+      setAvailablePrompts(prompts);
+    } catch (error: any) {
+      console.error('Error loading available prompts:', error);
+      // Handle 401 and 404 errors gracefully - these endpoints might not be implemented yet
+      if (error?.response?.status === 401 || error?.response?.status === 404) {
+        console.log('Journal prompts endpoint not available (401/404) - this is expected if the endpoint is not implemented');
+      }
+      setAvailablePrompts([]);
+    }
+  };
+
+  const loadCategoryPrompts = async (unlockedAreas: string[], completedStories: string[]) => {
+    try {
+      const prompts = await apiService.getPromptsByCategory(unlockedAreas, completedStories);
+      setCategoryPrompts(prompts);
+    } catch (error: any) {
+      console.error('Error loading category prompts:', error);
+      // Handle 401 and 404 errors gracefully - these endpoints might not be implemented yet
+      if (error?.response?.status === 401 || error?.response?.status === 404) {
+        console.log('Category prompts endpoint not available (401/404) - this is expected if the endpoint is not implemented');
+      }
+      setCategoryPrompts({
+        journal: null,
+        draw: null,
+        voice: null,
+      });
+    }
+  };
+
+  const refreshPrompts = async () => {
+    try {
+      // Get current unlocked areas and completed stories from the archive state
+      const unlockedAreas = Array.from(completedStories); // You may need to adjust this logic
+      const completedStoriesArray = Array.from(completedStories);
+      
+      // Reload both available prompts and category-specific prompts
+      await Promise.all([
+        loadAvailablePrompts(),
+        loadCategoryPrompts(unlockedAreas, completedStoriesArray)
+      ]);
     } catch (error) {
-      // Handle error silently
+      console.error('Error refreshing prompts:', error);
     }
   };
 
@@ -1357,16 +1472,120 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   // ===== LOADING HANDLERS =====
   const clearError = () => setError(null);
 
-  // ===== EFFECTS =====
-  useEffect(() => {
-    if (authToken) {
-      loadCharacter();
-      loadAvailableTools();
-      loadMyTools();
-      loadRecentReflections();
-      loadHomeData();
+
+
+  // Memoize the functions to prevent unnecessary re-renders
+  const memoizedLoadCharacter = useCallback(async () => {
+    if (!authToken) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const characterData = await appearanceService.getMyCharacter();
+
+      if (characterData) {
+        setBackendCharacter(characterData);
+
+        // Sync UI state with backend data using the mapping function
+        const frontendData =
+          appearanceService.mapBackendToFrontend(characterData);
+        setCharacterName(characterData.name || "");
+        setSelectedBaseModel(frontendData.selectedBaseModel);
+        setSelectedHairStyle(frontendData.selectedHairStyle);
+        setSelectedHairColor(frontendData.selectedHairColor);
+        setSelectedEyeType(frontendData.selectedEyeType);
+        setSelectedEyeColor(frontendData.selectedEyeColor);
+        setSelectedEyebrowStyle(frontendData.selectedEyebrowStyle);
+        setSelectedEyebrowColor(frontendData.selectedEyebrowColor);
+        setSelectedMouthType(frontendData.selectedMouthType);
+        setSelectedShirtType(frontendData.selectedShirtType);
+        setSelectedClothesColor(frontendData.selectedClothesColor);
+        setSelectedBackgroundType(frontendData.selectedBackgroundType);
+        setSelectedBackgroundColor(frontendData.selectedBackgroundColor);
+      }
+    } catch (error: any) {
+      // Don't set error state for load failures as they might be expected
+      if (error.response?.status === 404) {
+        console.log('MasterStateContext: Character endpoint not found (404) - this is expected if the endpoint is not implemented');
+      } else {
+        console.error('MasterStateContext: Error loading character:', error);
+      }
+    } finally {
+      setIsLoading(false);
     }
   }, [authToken]);
+
+  const memoizedLoadAvailableTools = useCallback(async () => {
+    try {
+      const tools = await appearanceService.getAvailableCopingTools();
+      setAvailableTools(tools);
+    } catch (error: any) {
+      // Handle error silently
+      if (error.response?.status === 404) {
+        console.log('MasterStateContext: Available tools endpoint not found (404) - this is expected if the endpoint is not implemented');
+      } else {
+        console.error('MasterStateContext: Error loading available tools:', error);
+      }
+    }
+  }, []);
+
+  const memoizedLoadMyTools = useCallback(async () => {
+    try {
+      const tools = await appearanceService.getMyTools();
+      setMyTools(tools);
+      setEquippedTools(tools.filter((tool) => tool.is_equipped));
+    } catch (error: any) {
+      // Handle error silently
+      if (error.response?.status === 404) {
+        console.log('MasterStateContext: My tools endpoint not found (404) - this is expected if the endpoint is not implemented');
+      } else {
+        console.error('MasterStateContext: Error loading my tools:', error);
+      }
+    }
+  }, []);
+
+  const memoizedLoadRecentCodexEntries = useCallback(async () => {
+    try {
+      const entries = await appearanceService.getRecentCodexEntries();
+      setRecentCodexEntries(entries);
+    } catch (error: any) {
+      // Handle error silently
+      if (error.response?.status === 404) {
+        console.log('MasterStateContext: Recent codex entries endpoint not found (404) - this is expected if the endpoint is not implemented');
+      } else {
+        console.error('MasterStateContext: Error loading recent codex entries:', error);
+      }
+    }
+  }, []);
+
+  const memoizedLoadHomeData = useCallback(async () => {
+    try {
+      const data = await appearanceService.getHomeData();
+      setHomeData(data);
+    } catch (error: any) {
+      // Handle error silently
+      if (error.response?.status === 404) {
+        console.log('MasterStateContext: Home data endpoint not found (404) - this is expected if the endpoint is not implemented');
+      } else {
+        console.error('MasterStateContext: Error loading home data:', error);
+      }
+    }
+  }, []);
+
+  // Update the useEffect to use memoized functions
+  useEffect(() => {
+    if (authToken) {
+      loadUserOnboardingStatus();
+      memoizedLoadCharacter();
+      // Load home data for character display
+      memoizedLoadHomeData();
+      // Temporarily disable these calls until backend endpoints are implemented
+      // memoizedLoadAvailableTools();
+      // memoizedLoadMyTools();
+      // memoizedLoadRecentCodexEntries();
+    }
+  }, [authToken, loadUserOnboardingStatus, memoizedLoadCharacter, memoizedLoadHomeData]);
 
   // ===== CONTEXT VALUE =====
   const value: MasterStateContextType = {
@@ -1379,17 +1598,18 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       logout,
     },
     onboarding: {
-      isComplete: onboardingState.isComplete,
-      assignedPath: onboardingState.assignedPath,
-      researchGroup: onboardingState.researchGroup,
-      characterAppearance: onboardingState.characterAppearance,
-      isLoading: onboardingState.isLoading,
+      isComplete,
+      assignedPath,
+      researchGroup,
+      characterAppearance,
+      isLoading: isOnboardingLoading,
       completeSurvey,
       completeCharacter,
       setAssignedPath,
       setCharacterAppearance,
       resetOnboarding,
-      setIsLoading,
+      setIsLoading: setOnboardingLoading,
+      loadOnboardingStatus: loadUserOnboardingStatus,
     },
     theme: {
       theme,
@@ -1440,7 +1660,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       getMouthAsset,
       createCharacter,
       updateCharacter,
-      loadCharacter,
+      loadCharacter: memoizedLoadCharacter,
       gainExperience,
       gainWellness,
     },
@@ -1448,18 +1668,23 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       availableTools,
       myTools,
       equippedTools,
-      recentReflections,
+      recentCodexEntries,
       homeData,
-      loadAvailableTools,
-      loadMyTools,
+      availablePrompts,
+      categoryPrompts,
+      loadAvailableTools: memoizedLoadAvailableTools,
+      loadMyTools: memoizedLoadMyTools,
       acquireTool,
       equipTool,
       unequipTool,
       useTool,
-      loadRecentReflections,
-      createReflection,
-      quickReflect,
-      loadHomeData,
+      loadRecentCodexEntries: memoizedLoadRecentCodexEntries,
+      createCodexEntry,
+      quickJournalEntry,
+      loadAvailablePrompts,
+      loadCategoryPrompts,
+      refreshPrompts,
+      loadHomeData: memoizedLoadHomeData,
     },
     equipment: {
       inventory,

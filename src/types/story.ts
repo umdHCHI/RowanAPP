@@ -15,6 +15,7 @@ export interface Story {
   is_repeatable: boolean;
   created_at: string;
   updated_at: string;
+  chapter_count?: number; // Backend field for number of chapters
   chapters?: Chapter[];
   passages?: Passage[];
   // Frontend-specific fields

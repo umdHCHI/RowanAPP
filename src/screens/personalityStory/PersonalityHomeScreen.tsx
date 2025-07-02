@@ -1,360 +1,165 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { useAuth } from "../../context/AuthContext";
-import { useOnboarding } from "../../context/OnboardingContext";
-import { useTheme } from "../../context/ThemeContext";
-import { apiBaseUrl } from "../../services/apiConfig";
+import { useMasterState } from "../../context/MasterStateContext";
+import { apiService } from "../../services/apiService";
+import { Story } from "../../types/story";
+import { UserProfile } from "../../types/user";
 
-// Import components from your existing GameHomeScreen
-import ArchiveMapModal from "../../components/ArchiveMapModal";
-import Button from "../../components/Button";
-import CodexModal from "../../components/CodexModal";
-import EquipmentModal from "../../components/EquipmentModal";
-import PixelButton from "../../components/PixelButton";
-import StoryCatalogModal, {
-  Story,
-} from "../../screens/characterStory/StoryCatalogScreen";
+// Dummy Icon and LinearGradient for now (replace with your UI lib)
+const Icon = ({ name, size, color }: any) => <Text style={{ fontSize: size, color }}>{name}</Text>;
+const LinearGradient = ({ children, style }: any) => <View style={style}>{children}</View>;
 
-interface PersonalityTrait {
-  name: string;
-  score: number;
+const TAB_LIST = [
+  { key: "entrance", label: "Entrance Hall", icon: "🏛️" },
+  { key: "storys", label: "Storys", icon: "📖" },
+  { key: "codex", label: "Codex", icon: "📚" },
+  { key: "defender", label: "Mind Defender", icon: "⚡" },
+  { key: "restoration", label: "Restoration", icon: "🛠️" },
+];
+
+type PersonalityKey = "Openness" | "Conscientiousness" | "Extraversion" | "Agreeableness" | "Neuroticism";
+
+const PERSONALITY_BUILDS: Record<PersonalityKey, {
+  title: string;
+  class: string;
   description: string;
-  archiveTitle: string;
-  narrativeDescription: string;
-  copingTools: CopingTool[];
-  storyPrompts: string[];
-  archiveSection: string;
-  wellnessStats: {
+  baseStats: {
     awareness: number;
     resilience: number;
     connection: number;
     balance: number;
   };
-}
-
-interface CopingTool {
-  name: string;
-  description: string;
-  type: "breathing" | "grounding" | "cognitive" | "social" | "creative";
-  effectiveness: number;
-  equipmentType?: "focus" | "comfort" | "shield" | "ground";
-}
-
-// Testing/Development Mode - Preset Personality Profiles for Quick Switching
-const TEST_PERSONALITY_PROFILES: Record<string, Record<string, number>> = {
-  "High Openness": {
-    Openness: 9,
-    Conscientiousness: 4,
-    Extraversion: 6,
-    Agreeableness: 7,
-    Neuroticism: 3,
-  },
-  "High Conscientiousness": {
-    Openness: 5,
-    Conscientiousness: 9,
-    Extraversion: 4,
-    Agreeableness: 6,
-    Neuroticism: 2,
-  },
-  "High Extraversion": {
-    Openness: 7,
-    Conscientiousness: 6,
-    Extraversion: 9,
-    Agreeableness: 8,
-    Neuroticism: 2,
-  },
-  "High Agreeableness": {
-    Openness: 6,
-    Conscientiousness: 7,
-    Extraversion: 4,
-    Agreeableness: 9,
-    Neuroticism: 4,
-  },
-  "High Neuroticism": {
-    Openness: 5,
-    Conscientiousness: 3,
-    Extraversion: 2,
-    Agreeableness: 6,
-    Neuroticism: 8,
-  },
-};
-
-// Personality-specific "character builds" with wellness stat bonuses
-const PERSONALITY_BUILDS: Record<
-  string,
-  {
-    title: string;
-    class: string;
-    description: string;
-    baseStats: {
-      awareness: number;
-      resilience: number;
-      connection: number;
-      balance: number;
-    };
-    preferredTools: string[];
-    storyCategories: string[];
-  }
-> = {
+  storyCategories: string[];
+  storyThemes: string[];
+}> = {
   Openness: {
     title: "The Sage Explorer",
     class: "Creative Pathfinder",
     description: "Masters the art of perspective and boundless curiosity",
     baseStats: { awareness: 8, resilience: 6, connection: 6, balance: 5 },
-    preferredTools: [
-      "Creative Visualization",
-      "Artistic Expression",
-      "Mindful Exploration",
-    ],
-    storyCategories: ["Mystery", "Discovery", "Innovation"],
+    storyCategories: ["Mystery", "Discovery", "Innovation", "Exploration"],
+    storyThemes: ["curiosity", "imagination", "new experiences", "creative thinking"],
   },
   Conscientiousness: {
     title: "The Methodical Guardian",
     class: "Structured Keeper",
     description: "Builds strength through order and disciplined practice",
     baseStats: { awareness: 6, resilience: 8, connection: 5, balance: 7 },
-    preferredTools: ["Structured Breathing", "Goal Setting", "Time Management"],
-    storyCategories: ["Challenge", "Growth", "Achievement"],
+    storyCategories: ["Challenge", "Growth", "Achievement", "Structure"],
+    storyThemes: ["goal-setting", "organization", "perseverance", "self-discipline"],
   },
   Extraversion: {
     title: "The Social Catalyst",
     class: "Community Builder",
     description: "Draws power from connection and shared experiences",
     baseStats: { awareness: 6, resilience: 6, connection: 8, balance: 6 },
-    preferredTools: ["Social Support", "Group Activities", "Verbal Processing"],
-    storyCategories: ["Adventure", "Cooperation", "Leadership"],
+    storyCategories: ["Adventure", "Cooperation", "Leadership", "Social"],
+    storyThemes: ["teamwork", "communication", "social connection", "collaboration"],
   },
   Agreeableness: {
     title: "The Harmonious Healer",
     class: "Empathic Guide",
     description: "Transforms conflict into understanding and growth",
     baseStats: { awareness: 7, resilience: 5, connection: 8, balance: 7 },
-    preferredTools: [
-      "Compassionate Self-Talk",
-      "Boundary Setting",
-      "Loving-Kindness",
-    ],
-    storyCategories: ["Healing", "Relationships", "Harmony"],
+    storyCategories: ["Healing", "Relationships", "Harmony", "Empathy"],
+    storyThemes: ["compassion", "understanding", "conflict resolution", "emotional intelligence"],
   },
   Neuroticism: {
     title: "The Depth Walker",
     class: "Emotional Alchemist",
     description: "Transforms sensitivity into profound wisdom",
     baseStats: { awareness: 8, resilience: 5, connection: 6, balance: 5 },
-    preferredTools: [
-      "Emotional Regulation",
-      "Storm Grounding",
-      "Reflective Writing",
-    ],
-    storyCategories: ["Transformation", "Inner Journey", "Resilience"],
+    storyCategories: ["Transformation", "Inner Journey", "Resilience", "Emotional Depth"],
+    storyThemes: ["emotional awareness", "self-reflection", "coping strategies", "personal growth"],
   },
 };
 
-// Enhanced coping tools that map to equipment system
-const PERSONALITY_COPING_TOOLS: Record<string, CopingTool[]> = {
-  Openness: [
-    {
-      name: "Creative Visualization",
-      description: "Transform stress into abstract art in your mind",
-      type: "creative",
-      effectiveness: 5,
-      equipmentType: "focus",
-    },
-    {
-      name: "Perspective Journal",
-      description: "Record different viewpoints on challenging situations",
-      type: "cognitive",
-      effectiveness: 4,
-      equipmentType: "comfort",
-    },
-    {
-      name: "Curiosity Shield",
-      description: "Use wonder and questions to deflect negative thoughts",
-      type: "cognitive",
-      effectiveness: 4,
-      equipmentType: "shield",
-    },
-  ],
-  Conscientiousness: [
-    {
-      name: "Structured Breathing",
-      description: "Follow precise breathing patterns for inner order",
-      type: "breathing",
-      effectiveness: 5,
-      equipmentType: "focus",
-    },
-    {
-      name: "Achievement Tracker",
-      description: "Break goals into manageable, trackable steps",
-      type: "cognitive",
-      effectiveness: 4,
-      equipmentType: "comfort",
-    },
-    {
-      name: "Routine Anchor",
-      description: "Maintain stability through consistent daily practices",
-      type: "grounding",
-      effectiveness: 4,
-      equipmentType: "ground",
-    },
-  ],
-  Extraversion: [
-    {
-      name: "Social Energy Boost",
-      description: "Connect with others for mutual support and energy",
-      type: "social",
-      effectiveness: 5,
-      equipmentType: "comfort",
-    },
-    {
-      name: "Community Shield",
-      description: "Draw strength from your support network",
-      type: "social",
-      effectiveness: 4,
-      equipmentType: "shield",
-    },
-    {
-      name: "Active Grounding",
-      description: "Use movement and activity to center yourself",
-      type: "grounding",
-      effectiveness: 4,
-      equipmentType: "ground",
-    },
-  ],
-  Agreeableness: [
-    {
-      name: "Self-Compassion Practice",
-      description: "Treat yourself with the kindness you show others",
-      type: "cognitive",
-      effectiveness: 5,
-      equipmentType: "focus",
-    },
-    {
-      name: "Boundary Visualization",
-      description: "Create healthy emotional boundaries while staying open",
-      type: "grounding",
-      effectiveness: 4,
-      equipmentType: "shield",
-    },
-    {
-      name: "Harmony Ritual",
-      description: "Find balance between helping others and self-care",
-      type: "grounding",
-      effectiveness: 4,
-      equipmentType: "ground",
-    },
-  ],
-  Neuroticism: [
-    {
-      name: "Emotional Storm Anchor",
-      description: "Ground yourself when emotions feel overwhelming",
-      type: "grounding",
-      effectiveness: 5,
-      equipmentType: "ground",
-    },
-    {
-      name: "Sensitivity Shield",
-      description: "Transform emotional sensitivity into strength",
-      type: "cognitive",
-      effectiveness: 4,
-      equipmentType: "shield",
-    },
-    {
-      name: "Depth Meditation",
-      description: "Use your emotional awareness for profound insights",
-      type: "breathing",
-      effectiveness: 4,
-      equipmentType: "focus",
-    },
-  ],
-};
+// Backend personality profile interface
+interface PersonalityProfile {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+}
 
-export default function EnhancedPersonalityHomeScreen() {
-  const { styles, theme } = useTheme();
-  const { onboardingState } = useOnboarding();
-  const { authToken } = useAuth();
-
-  // State from original personality screen
-  const [primaryTrait, setPrimaryTrait] = useState<string>("Openness");
-  const [traitScores, setTraitScores] = useState<Record<string, number>>({});
+export default function PersonalityHomeScreen() {
+  const { theme, auth } = useMasterState();
+  const [activeTab, setActiveTab] = useState("entrance");
   const [isLoading, setIsLoading] = useState(true);
+  const [traitScores, setTraitScores] = useState<Record<PersonalityKey, number>>({
+    Openness: 5,
+    Conscientiousness: 5,
+    Extraversion: 5,
+    Agreeableness: 5,
+    Neuroticism: 5,
+  });
+  const [primaryTrait, setPrimaryTrait] = useState<PersonalityKey>("Openness");
   const [error, setError] = useState<string | null>(null);
-  const [dailyPrompt, setDailyPrompt] = useState<string>("");
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // State from game screen
-  const [wellnessStats, setWellnessStats] = useState([
-    { icon: "🧘", label: "AWR", value: 5, color: "#4A90E2" },
-    { icon: "💚", label: "RES", value: 5, color: "#2ECC71" },
-    { icon: "🤝", label: "CON", value: 5, color: "#E74C3C" },
-    { icon: "⚖️", label: "BAL", value: 5, color: "#F39C12" },
-  ]);
+  // Story-related state
+  const [stories, setStories] = useState<Story[]>([]);
+  const [filteredStories, setFilteredStories] = useState<Story[]>([]);
+  const [isLoadingStories, setIsLoadingStories] = useState(false);
+  const [storyError, setStoryError] = useState<string | null>(null);
 
-  const [isEquipmentModalVisible, setIsEquipmentModalVisible] = useState(false);
-  const [isStoryCatalogVisible, setIsStoryCatalogVisible] = useState(false);
-  const [isCodexVisible, setIsCodexVisible] = useState(false);
-  const [isMapVisible, setIsMapVisible] = useState(false);
-
-  // Testing Mode State
-  const [testingMode, setTestingMode] = useState(false);
-  const [originalData, setOriginalData] = useState<{
-    trait: string;
-    scores: Record<string, number>;
-    stats: any[];
-  } | null>(null);
-  const [titleTapCount, setTitleTapCount] = useState(0);
-
-  // Get current personality build
-  const currentBuild = PERSONALITY_BUILDS[primaryTrait];
-  const currentTools = PERSONALITY_COPING_TOOLS[primaryTrait] || [];
-
-  // Personality-based story prompts
-  const storyPrompts: Record<string, string[]> = {
-    Openness: [
-      "A mysterious book appears with pages that change as you read...",
-      "You discover a door that leads to impossible places...",
-      "An ancient artifact begins responding to your curiosity...",
-    ],
-    Conscientiousness: [
-      "The Archive's system has fallen into chaos - only you can restore order...",
-      "A complex puzzle blocks the path to hidden knowledge...",
-      "You must organize scattered memories into meaningful patterns...",
-    ],
-    Extraversion: [
-      "Fellow travelers need your help navigating The Archive together...",
-      "A gathering of minds seeks someone to unite their scattered wisdom...",
-      "Your energy could awaken dormant connections between lost stories...",
-    ],
-    Agreeableness: [
-      "Two conflicting memories need someone to find the harmony between them...",
-      "A wounded soul in The Archive seeks understanding and healing...",
-      "Your compassion could bridge an ancient divide...",
-    ],
-    Neuroticism: [
-      "The Archive's emotional storms are rising - your depth could calm them...",
-      "A mirror shows not your reflection, but your hidden strengths...",
-      "Your sensitivity reveals truths others cannot perceive...",
-    ],
-  };
-
+  // Fetch personality profile from backend
   useEffect(() => {
     const fetchPersonalityProfile = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Check if we have an auth token
-        if (!authToken) {
-          console.log("No auth token available, using fallback data");
-          // Use fallback data for testing
-          const fallbackScores = {
+        // Initialize API service
+        await apiService.initialize();
+
+        // Check if user is authenticated
+        const isAuthenticated = await apiService.validateToken();
+        if (!isAuthenticated) {
+          console.log("User not authenticated, using fallback data");
+          setError("Please log in to view your personality profile");
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch user profile which includes personality data
+        const profile = await apiService.getProfile();
+        setUserProfile(profile);
+
+        if (profile.personality_profile) {
+          // Convert backend format to frontend format
+          const personalityData = profile.personality_profile as PersonalityProfile;
+          const scores: Record<PersonalityKey, number> = {
+            Openness: personalityData.openness,
+            Conscientiousness: personalityData.conscientiousness,
+            Extraversion: personalityData.extraversion,
+            Agreeableness: personalityData.agreeableness,
+            Neuroticism: personalityData.neuroticism,
+          };
+
+          setTraitScores(scores);
+
+          // Find primary trait (highest score)
+          const primary = Object.entries(scores).reduce((a, b) =>
+            scores[a[0] as PersonalityKey] > scores[b[0] as PersonalityKey] ? a : b
+          )[0] as PersonalityKey;
+
+          setPrimaryTrait(primary);
+          console.log("Personality profile loaded:", { scores, primary });
+        } else {
+          console.log("No personality profile found, using fallback data");
+          // Use fallback data if no personality profile exists
+          const fallbackScores: Record<PersonalityKey, number> = {
             Openness: 7,
             Conscientiousness: 6,
             Extraversion: 5,
@@ -363,80 +168,23 @@ export default function EnhancedPersonalityHomeScreen() {
           };
           setTraitScores(fallbackScores);
           setPrimaryTrait("Agreeableness");
-          setWellnessStats([
-            { icon: "🧘", label: "AWR", value: 7, color: "#4A90E2" },
-            { icon: "💚", label: "RES", value: 5, color: "#2ECC71" },
-            { icon: "🤝", label: "CON", value: 8, color: "#E74C3C" },
-            { icon: "⚖️", label: "BAL", value: 7, color: "#F39C12" },
-          ]);
-          setDailyPrompt("Your compassion could bridge an ancient divide...");
-          setIsLoading(false);
-          return;
+        }
+      } catch (error: any) {
+        console.error("Error fetching personality profile:", error);
+        
+        // Handle specific error cases
+        if (error.response?.status === 401) {
+          setError("Authentication required. Please log in.");
+        } else if (error.response?.status === 404) {
+          setError("Personality profile not found. Please complete the personality survey.");
+        } else if (error.message?.includes('network')) {
+          setError("Network error. Please check your connection and try again.");
+        } else {
+          setError("Failed to load personality profile. Please try again.");
         }
 
-        const response = await axios.get(`${apiBaseUrl}users/me/`, {
-          headers: { Authorization: `Token ${authToken}` },
-        });
-
-        const personalityProfile = response.data.personality_profile;
-
-        if (personalityProfile) {
-          const scores: Record<string, number> = {
-            Openness: personalityProfile.openness,
-            Conscientiousness: personalityProfile.conscientiousness,
-            Extraversion: personalityProfile.extraversion,
-            Agreeableness: personalityProfile.agreeableness,
-            Neuroticism: personalityProfile.neuroticism,
-          };
-
-          setTraitScores(scores);
-
-          // Find primary trait
-          const primary = Object.entries(scores).reduce((a, b) =>
-            (scores[a[0]] || 0) > (scores[b[0]] || 0) ? a : b
-          )[0] as keyof typeof PERSONALITY_BUILDS;
-
-          setPrimaryTrait(primary);
-
-          // Set personality-based wellness stats
-          const build = PERSONALITY_BUILDS[primary];
-          if (build) {
-            setWellnessStats([
-              {
-                icon: "🧘",
-                label: "AWR",
-                value: build.baseStats.awareness,
-                color: "#4A90E2",
-              },
-              {
-                icon: "💚",
-                label: "RES",
-                value: build.baseStats.resilience,
-                color: "#2ECC71",
-              },
-              {
-                icon: "🤝",
-                label: "CON",
-                value: build.baseStats.connection,
-                color: "#E74C3C",
-              },
-              {
-                icon: "⚖️",
-                label: "BAL",
-                value: build.baseStats.balance,
-                color: "#F39C12",
-              },
-            ]);
-          }
-
-          // Set daily prompt
-          const prompts = storyPrompts[primary] || storyPrompts.Openness;
-          setDailyPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
-        }
-      } catch (err) {
-        console.error("Error fetching personality data:", err);
-        // Use fallback data instead of showing error
-        const fallbackScores = {
+        // Use fallback data on error
+        const fallbackScores: Record<PersonalityKey, number> = {
           Openness: 7,
           Conscientiousness: 6,
           Extraversion: 5,
@@ -445,120 +193,105 @@ export default function EnhancedPersonalityHomeScreen() {
         };
         setTraitScores(fallbackScores);
         setPrimaryTrait("Agreeableness");
-        setWellnessStats([
-          { icon: "🧘", label: "AWR", value: 7, color: "#4A90E2" },
-          { icon: "💚", label: "RES", value: 5, color: "#2ECC71" },
-          { icon: "🤝", label: "CON", value: 8, color: "#E74C3C" },
-          { icon: "⚖️", label: "BAL", value: 7, color: "#F39C12" },
-        ]);
-        setDailyPrompt("Your compassion could bridge an ancient divide...");
-        setError(null); // Don't show error, use fallback data
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchPersonalityProfile();
-  }, [authToken]);
+  }, []);
 
-  // Testing Functions
-  const applyTestProfile = (profileName: string) => {
-    if (!originalData) {
-      setOriginalData({
-        trait: primaryTrait,
-        scores: traitScores,
-        stats: wellnessStats,
-      });
-    }
+  // Fetch and filter stories based on personality
+  useEffect(() => {
+    const fetchStories = async () => {
+      if (activeTab !== "storys") return;
 
-    const testScores = TEST_PERSONALITY_PROFILES[profileName];
-    setTraitScores(testScores);
+      try {
+        setIsLoadingStories(true);
+        setStoryError(null);
 
-    // Find new primary trait
-    const primary = Object.entries(testScores).reduce((a, b) =>
-      testScores[a[0]] > testScores[b[0]] ? a : b
-    )[0] as keyof typeof PERSONALITY_BUILDS;
+        // Fetch available stories from backend
+        const availableStories = await apiService.getAvailableStories();
+        setStories(availableStories);
 
-    setPrimaryTrait(primary);
+        // Filter stories based on primary personality trait
+        const currentBuild = PERSONALITY_BUILDS[primaryTrait];
+        const filtered = availableStories.filter(story => {
+          // Check if story category matches personality preferences
+          if (story.category && currentBuild.storyCategories.includes(story.category)) {
+            return true;
+          }
 
-    // Update wellness stats based on new personality
-    const build = PERSONALITY_BUILDS[primary];
-    if (build) {
-      setWellnessStats([
-        {
-          icon: "🧘",
-          label: "AWR",
-          value: build.baseStats.awareness,
-          color: "#4A90E2",
-        },
-        {
-          icon: "💚",
-          label: "RES",
-          value: build.baseStats.resilience,
-          color: "#2ECC71",
-        },
-        {
-          icon: "🤝",
-          label: "CON",
-          value: build.baseStats.connection,
-          color: "#E74C3C",
-        },
-        {
-          icon: "⚖️",
-          label: "BAL",
-          value: build.baseStats.balance,
-          color: "#F39C12",
-        },
-      ]);
-    }
+          // Check if story skillFocus matches personality themes
+          if (story.skillFocus && Array.isArray(story.skillFocus)) {
+            const hasMatchingSkill = story.skillFocus.some(skill => 
+              currentBuild.storyThemes.includes(skill.toLowerCase())
+            );
+            if (hasMatchingSkill) return true;
+          }
 
-    // Update daily prompt
-    const prompts = storyPrompts[primary] || storyPrompts.Openness;
-    setDailyPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
-  };
+          // Check if story description contains personality-relevant keywords
+          const description = story.description?.toLowerCase() || "";
+          const hasRelevantKeywords = currentBuild.storyThemes.some(theme =>
+            description.includes(theme.toLowerCase())
+          );
+          if (hasRelevantKeywords) return true;
 
-  const resetToOriginal = () => {
-    if (originalData) {
-      setPrimaryTrait(originalData.trait);
-      setTraitScores(originalData.scores);
-      setWellnessStats(originalData.stats);
-      setOriginalData(null);
+          // Check if story atmosphere matches personality themes
+          if (story.atmosphere) {
+            const atmosphere = story.atmosphere.toLowerCase();
+            const hasMatchingAtmosphere = currentBuild.storyThemes.some(theme =>
+              atmosphere.includes(theme.toLowerCase())
+            );
+            if (hasMatchingAtmosphere) return true;
+          }
 
-      // Reset daily prompt to original trait
-      const prompts = storyPrompts[originalData.trait] || storyPrompts.Openness;
-      setDailyPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
-    }
-  };
+          // If no specific matches, include stories that might be generally suitable
+          return story.difficulty === "Beginner" || story.difficulty === "Intermediate";
+        });
 
-  // Secret testing mode activation (tap title 5 times)
-  const handleTitleTap = () => {
-    const newCount = titleTapCount + 1;
-    setTitleTapCount(newCount);
+        setFilteredStories(filtered);
+        console.log(`Filtered ${filtered.length} stories for ${primaryTrait} personality`);
+      } catch (error: any) {
+        console.error("Error fetching stories:", error);
+        setStoryError("Failed to load stories. Please try again.");
+        setFilteredStories([]);
+      } finally {
+        setIsLoadingStories(false);
+      }
+    };
 
-    if (newCount >= 5) {
-      setTestingMode(true);
-      setTitleTapCount(0);
-    }
+    fetchStories();
+  }, [activeTab, primaryTrait]);
 
-    // Reset counter after 3 seconds of no taps
-    setTimeout(() => setTitleTapCount(0), 3000);
+  const currentBuild = PERSONALITY_BUILDS[primaryTrait];
+
+  // Story selection handler
+  const handleStorySelect = (story: Story) => {
+    Alert.alert(
+      `Start "${story.title}"?`,
+      `This story is matched to your ${primaryTrait.toLowerCase()} personality. Ready to begin your journey?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Begin Story", 
+          style: "default",
+          onPress: () => {
+            // TODO: Navigate to story screen
+            console.log("Starting story:", story);
+            Alert.alert("Story Navigation", "Story navigation will be implemented next!");
+          }
+        }
+      ]
+    );
   };
 
   if (isLoading) {
     return (
-      <View
-        style={[
-          styles.screenContainer,
-          {
-            justifypassages: "center",
-            alignItems: "center",
-            backgroundColor: "#181A20",
-          },
-        ]}
-      >
+      <View style={styles.centered}>
         <ActivityIndicator size="large" color="#4ee6e6" />
-        <Text style={[styles.text, { marginTop: 16, color: "#fff" }]}>
-          The Archive is attuning to your essence...
+        <Text style={{ color: "#fff", marginTop: 16 }}>
+          Loading your personality profile...
         </Text>
       </View>
     );
@@ -566,31 +299,23 @@ export default function EnhancedPersonalityHomeScreen() {
 
   if (error) {
     return (
-      <View
-        style={[
-          styles.screenContainer,
-          {
-            justifypassages: "center",
-            alignItems: "center",
-            backgroundColor: "#181A20",
-            padding: 20,
-          },
-        ]}
-      >
-        <Text
-          style={[
-            styles.text,
-            { color: "#ff6b6b", textAlign: "center", marginBottom: 16 },
-          ]}
-        >
+      <View style={styles.centered}>
+        <Text style={{ color: "#ff6b6b", textAlign: "center", marginBottom: 16 }}>
           {error}
         </Text>
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: "#4ee6e6", padding: 12 }]}
-          onPress={() => window.location.reload()}
+          style={styles.retryButton}
+          onPress={() => {
+            setError(null);
+            setIsLoading(true);
+            // Retry loading
+            setTimeout(() => {
+              setIsLoading(false);
+            }, 1000);
+          }}
         >
-          <Text style={[styles.text, { color: "#181A20" }]}>
-            Reconnect to The Archive
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>
+            Retry
           </Text>
         </TouchableOpacity>
       </View>
@@ -599,586 +324,529 @@ export default function EnhancedPersonalityHomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#181A20" }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        passagesContainerStyle={{
-          alignItems: "center",
-          paddingTop: 20,
-          paddingBottom: 100,
-        }}
-      >
-        {/* Testing/Development Mode Panel */}
-        {testingMode && (
-          <View
-            style={{
-              width: "95%",
-              backgroundColor: "#333",
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 16,
-              borderWidth: 1,
-              borderColor: "#555",
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                justifypassages: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-                🔧 Personality Testing Mode
-              </Text>
-              <TouchableOpacity onPress={() => setTestingMode(false)}>
-                <Text style={{ color: "#ff6b6b", fontSize: 14 }}>Hide</Text>
-              </TouchableOpacity>
-            </View>
+      <StatusBar barStyle="light-content" backgroundColor="#181A20" />
+      {/* Background Gradient */}
+      <LinearGradient style={StyleSheet.absoluteFill}>
+        {/* Add your gradient colors here */}
+      </LinearGradient>
 
-            <Text style={{ color: "#ccc", marginBottom: 12, fontSize: 13 }}>
-              Switch between personality types to see how the interface adapts:
-            </Text>
-
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 8,
-                marginBottom: 12,
-              }}
-            >
-              {Object.keys(TEST_PERSONALITY_PROFILES).map((profileName) => {
-                const isActive =
-                  primaryTrait ===
-                  Object.entries(TEST_PERSONALITY_PROFILES[profileName]).reduce(
-                    (a, b) =>
-                      TEST_PERSONALITY_PROFILES[profileName][a[0]] >
-                      TEST_PERSONALITY_PROFILES[profileName][b[0]]
-                        ? a
-                        : b
-                  )[0];
-
-                return (
-                  <TouchableOpacity
-                    key={profileName}
-                    style={{
-                      backgroundColor: isActive ? "#4ee6e6" : "#555",
-                      padding: 8,
-                      borderRadius: 8,
-                      minWidth: 80,
-                    }}
-                    onPress={() => applyTestProfile(profileName)}
-                  >
-                    <Text
-                      style={{
-                        color: isActive ? "#000" : "#fff",
-                        fontSize: 11,
-                        textAlign: "center",
-                        fontWeight: isActive ? "bold" : "normal",
-                      }}
-                    >
-                      {profileName}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <View
-              style={{
-                flexDirection: "row",
-                justifypassages: "space-between",
-                gap: 8,
-              }}
-            >
-              <TouchableOpacity
-                style={{
-                  backgroundColor: "#ff6b6b",
-                  padding: 10,
-                  borderRadius: 8,
-                  flex: 1,
-                }}
-                onPress={resetToOriginal}
-              >
-                <Text
-                  style={{
-                    color: "#fff",
-                    textAlign: "center",
-                    fontSize: 12,
-                    fontWeight: "bold",
-                  }}
-                >
-                  Reset Original
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  backgroundColor: "#4CAF50",
-                  padding: 10,
-                  borderRadius: 8,
-                  flex: 1,
-                }}
-                onPress={() => {
-                  const randomProfile = Object.keys(TEST_PERSONALITY_PROFILES)[
-                    Math.floor(
-                      Math.random() *
-                        Object.keys(TEST_PERSONALITY_PROFILES).length
-                    )
-                  ];
-                  applyTestProfile(randomProfile);
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#fff",
-                    textAlign: "center",
-                    fontSize: 12,
-                    fontWeight: "bold",
-                  }}
-                >
-                  Random Profile
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={{ color: "#999", fontSize: 11, marginTop: 8 }}>
-              Current: {currentBuild.title} (
-              {traitScores[primaryTrait]?.toFixed(1) || "0.0"}/10)
-            </Text>
-          </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Personality Resonance</Text>
+        <Text style={styles.headerTrait}>{currentBuild.title}</Text>
+        <Text style={styles.headerClass}>{currentBuild.class}</Text>
+        <Text style={styles.headerDesc}>{currentBuild.description}</Text>
+        {userProfile && (
+          <Text style={styles.userInfo}>
+            Welcome, {userProfile.username}
+          </Text>
         )}
+      </View>
 
-        {/* Show Testing Mode Hint */}
-        {!testingMode && titleTapCount === 0 && (
+      {/* Tab Navigation */}
+      <View style={styles.tabBar}>
+        {TAB_LIST.map((tab) => (
           <TouchableOpacity
-            style={{
-              position: "absolute",
-              top: 10,
-              right: 10,
-              zIndex: 1000,
-              backgroundColor: "rgba(0,0,0,0.3)",
-              padding: 6,
-              borderRadius: 6,
-            }}
-            onPress={() => setTitleTapCount(1)}
+            key={tab.key}
+            style={[
+              styles.tabButton,
+              activeTab === tab.key && styles.tabButtonActive,
+            ]}
+            onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={{ color: "#ccc", fontSize: 12, opacity: 0.7 }}>
-              🔧
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Character Build Info - Now tappable for testing mode */}
-        <TouchableOpacity
-          style={{ alignItems: "center", marginBottom: 15 }}
-          onPress={handleTitleTap}
-          activeOpacity={0.9}
-        >
-          <Text
-            style={{
-              color: "#4ee6e6",
-              fontWeight: "bold",
-              fontSize: 16,
-              marginBottom: 2,
-            }}
-          >
-            {currentBuild.title}{" "}
-            {titleTapCount > 0 &&
-              titleTapCount < 5 &&
-              "🔧".repeat(titleTapCount)}
-          </Text>
-          <Text
-            style={{
-              color: "#ffe066",
-              fontWeight: "bold",
-              fontSize: 15,
-              marginBottom: 2,
-            }}
-          >
-            {currentBuild.class}
-          </Text>
-          <Text
-            style={{
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: 22,
-              marginBottom: 6,
-            }}
-          >
-            Seeker of The Archive
-          </Text>
-          <Text
-            style={{
-              color: "#ccc",
-              fontSize: 14,
-              textAlign: "center",
-              paddingHorizontal: 20,
-            }}
-          >
-            {currentBuild.description}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Wellness Attributes - From GameHomeScreen */}
-        <View style={{ width: "90%", marginVertical: 15 }}>
-          <Text
-            style={{
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: 18,
-              marginBottom: 10,
-            }}
-          >
-            Wellness Attributes
-          </Text>
-          <View
-            style={{ flexDirection: "row", justifypassages: "space-between" }}
-          >
-            {wellnessStats.map((stat, i) => (
-              <TouchableOpacity
-                key={i}
-                style={{
-                  flex: 1,
-                  alignItems: "center",
-                  backgroundColor: "#23242b",
-                  borderRadius: 10,
-                  paddingVertical: 12,
-                  marginHorizontal: 4,
-                  borderWidth: 2,
-                  borderColor: stat.color,
-                }}
-                onPress={() =>
-                  Alert.alert(
-                    `${stat.label} - ${stat.value}`,
-                    `Your ${stat.label} reflects your ${primaryTrait} nature`
-                  )
-                }
-              >
-                <Text style={{ fontSize: 20, marginBottom: 4 }}>
-                  {stat.icon}
-                </Text>
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: 16,
-                    marginBottom: 2,
-                    color: stat.color,
-                  }}
-                >
-                  {stat.value}
-                </Text>
-                <Text
-                  style={{ color: "#ccc", fontSize: 11, fontWeight: "bold" }}
-                >
-                  {stat.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Today's Story Prompt - Styled like GameHomeScreen speech bubble */}
-        {dailyPrompt && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: "#f5e6c4",
-              borderRadius: 12,
-              paddingHorizontal: 18,
-              paddingVertical: 12,
-              marginVertical: 15,
-              borderWidth: 2,
-              borderColor: "#e2c48d",
-              maxWidth: 340,
-              width: "90%",
-            }}
-          >
+            <Text style={{ fontSize: 18 }}>{tab.icon}</Text>
             <Text
               style={{
-                color: "#5a4a2c",
-                fontSize: 16,
-                fontWeight: "bold",
-                marginBottom: 8,
-              }}
-            >
-              Today's Tale Awaits
-            </Text>
-            <Text
-              style={{
-                color: "#5a4a2c",
-                fontSize: 14,
-                fontStyle: "italic",
-                lineHeight: 20,
-              }}
-            >
-              "{dailyPrompt}"
-            </Text>
-            <Text
-              style={{
-                color: "#8B7355",
+                color: activeTab === tab.key ? "#4ee6e6" : "#fff",
+                fontWeight: activeTab === tab.key ? "bold" : "normal",
                 fontSize: 12,
-                marginTop: 8,
-                textAlign: "center",
               }}
             >
-              Tap to begin your journey →
+              {tab.label}
             </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Personalized Coping Arsenal - Equipment style */}
-        <View style={{ width: "90%", marginVertical: 15 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifypassages: "space-between",
-              alignItems: "center",
-              marginBottom: 15,
-            }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>
-              Your Coping Arsenal
-            </Text>
-            <PixelButton>
-              <Button
-                title="Manage Tools"
-                variant="lightGreen"
-                onPress={() => setIsEquipmentModalVisible(true)}
-                style={{ width: 120 }}
-              />
-            </PixelButton>
-          </View>
-
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {currentTools.map((tool, index) => (
-              <TouchableOpacity
-                key={index}
-                style={{
-                  backgroundColor: "#23242b",
-                  borderRadius: 12,
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: "#333",
-                  borderLeftWidth: 4,
-                  borderLeftColor: "#4ee6e6",
-                  flex: 1,
-                  minWidth: "45%",
-                  marginBottom: 8,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#ffe066",
-                    fontSize: 14,
-                    fontWeight: "bold",
-                    marginBottom: 4,
-                  }}
-                >
-                  {tool.name}
-                </Text>
-                <Text style={{ color: "#ccc", fontSize: 12, lineHeight: 16 }}>
-                  {tool.description}
-                </Text>
-                <Text style={{ color: "#4ee6e6", fontSize: 11, marginTop: 4 }}>
-                  {"⭐".repeat(tool.effectiveness)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Quick Actions - Personality specific */}
-        <View
-          style={{
-            width: "90%",
-            marginVertical: 10,
-            flexDirection: "row",
-            gap: 10,
-          }}
-        >
-          <PixelButton style={{ flex: 1 }}>
-            <Button
-              title="📚 Browse Stories"
-              variant="darkBrown"
-              onPress={() => setIsStoryCatalogVisible(true)}
-              style={{ width: "100%" }}
-            />
-          </PixelButton>
-          <PixelButton style={{ flex: 1 }}>
-            <Button
-              title="🗺️ Archive Map"
-              variant="lightGreen"
-              onPress={() => setIsMapVisible(true)}
-              style={{ width: "100%" }}
-            />
-          </PixelButton>
-        </View>
-
-        {/* Personality Insight Card - Dynamic based on current personality */}
-        <View
-          style={{
-            width: "90%",
-            backgroundColor: "#23242b",
-            borderRadius: 12,
-            padding: 16,
-            marginVertical: 15,
-            borderWidth: 1,
-            borderColor: "#333",
-            borderLeftWidth: 4,
-            borderLeftColor: "#4ee6e6",
-          }}
-        >
-          <Text
-            style={{
-              color: "#4ee6e6",
-              fontSize: 16,
-              fontWeight: "bold",
-              marginBottom: 8,
-            }}
-          >
-            Your Archive Resonance
-          </Text>
-          <Text
-            style={{
-              color: "#fff",
-              fontSize: 14,
-              lineHeight: 20,
-              marginBottom: 12,
-            }}
-          >
-            As a <Text style={{ color: "#ffe066" }}>{currentBuild.class}</Text>,
-            you naturally gravitate toward{" "}
-            {currentBuild.storyCategories.join(", ").toLowerCase()} stories.
-            Your {primaryTrait.toLowerCase()} shapes how you experience and grow
-            from each tale.
-          </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              justifypassages: "space-between",
-              marginBottom: 8,
-            }}
-          >
-            <Text style={{ color: "#ccc", fontSize: 12 }}>
-              Primary Trait Score:
-            </Text>
-            <Text
-              style={{ color: "#4ee6e6", fontSize: 12, fontWeight: "bold" }}
-            >
-              {traitScores[primaryTrait]?.toFixed(1) || "0.0"}/10
-            </Text>
-          </View>
-          <View
-            style={{ flexDirection: "row", justifypassages: "space-between" }}
-          >
-            <Text style={{ color: "#ccc", fontSize: 12 }}>
-              Preferred Tools:
-            </Text>
-            <Text style={{ color: "#ffe066", fontSize: 12 }}>
-              {currentBuild.preferredTools.length} available
-            </Text>
-          </View>
-
-          {/* Show testing mode status if active */}
-          {testingMode && originalData && (
-            <View
-              style={{
-                marginTop: 12,
-                paddingTop: 8,
-                borderTopWidth: 1,
-                borderTopColor: "#444",
-              }}
-            >
-              <Text
-                style={{ color: "#ff6b6b", fontSize: 11, fontStyle: "italic" }}
-              >
-                🔧 Testing Mode Active - Original: {originalData.trait}
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Bottom Navigation - From GameHomeScreen */}
-      <View
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 70,
-          backgroundColor: "#23242b",
-          flexDirection: "row",
-          justifypassages: "space-around",
-          alignItems: "center",
-          borderTopWidth: 1,
-          borderColor: "#333",
-        }}
-      >
-        {[
-          { icon: "📚", label: "Codex", action: () => setIsCodexVisible(true) },
-          { icon: "🗺️", label: "Map", action: () => setIsMapVisible(true) },
-          {
-            icon: "🎒",
-            label: "Tools",
-            action: () => setIsEquipmentModalVisible(true),
-          },
-          {
-            icon: "⭐",
-            label: "Growth",
-            action: () =>
-              Alert.alert(
-                "Growth Tracking",
-                "View your personal development journey!"
-              ),
-          },
-        ].map((item, idx) => (
-          <TouchableOpacity
-            key={item.label}
-            onPress={item.action}
-            style={{ alignItems: "center" }}
-          >
-            <Text style={{ fontSize: 22 }}>{item.icon}</Text>
-            <Text style={{ color: "#fff", fontSize: 12 }}>{item.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Modals - From GameHomeScreen */}
-      <EquipmentModal
-        visible={isEquipmentModalVisible}
-        onClose={() => setIsEquipmentModalVisible(false)}
-        onEquip={() => {}}
-        onUnequip={() => {}}
-        inventory={[]}
-        equippedItems={{}}
-      />
+      {/* Tab Content */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+        {activeTab === "entrance" && (
+          <View>
+            <Text style={styles.sectionTitle}>Big Five Personality Scores</Text>
+            <View style={styles.traitRow}>
+              {Object.entries(traitScores).map(([trait, score]) => (
+                <TouchableOpacity
+                  key={trait}
+                  style={[
+                    styles.traitCard,
+                    trait === primaryTrait && styles.primaryTraitCard
+                  ]}
+                  onPress={() => {
+                    Alert.alert(
+                      `${trait} - ${score}/10`,
+                      `Your ${trait.toLowerCase()} score reflects your natural tendencies. This influences how you experience stories and interact with the world.`
+                    );
+                  }}
+                >
+                  <Text style={styles.traitName}>{trait}</Text>
+                  <Text style={styles.traitScore}>{score}/10</Text>
+                  {trait === primaryTrait && (
+                    <Text style={styles.primaryIndicator}>Primary</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.moodBubble}>
+              <Text style={styles.moodText}>
+                {`"Ready to explore your story as a ${currentBuild.class}..."`}
+              </Text>
+            </View>
+            <Text style={styles.sectionTitle}>Wellness Attributes</Text>
+            <View style={styles.traitRow}>
+              {Object.entries(currentBuild.baseStats).map(([label, value]) => (
+                <View key={label} style={styles.traitCard}>
+                  <Text style={styles.traitName}>{label.toUpperCase()}</Text>
+                  <Text style={styles.traitScore}>{value}</Text>
+                </View>
+              ))}
+            </View>
+            
+            {/* Personality Profile Status */}
+            <View style={styles.profileStatus}>
+              <Text style={styles.sectionTitle}>Profile Status</Text>
+              <View style={styles.statusCard}>
+                <Text style={styles.statusText}>
+                  {userProfile?.personality_profile 
+                    ? "✅ Personality profile loaded from backend"
+                    : "⚠️ Using fallback personality data"
+                  }
+                </Text>
+                <Text style={styles.statusSubtext}>
+                  {userProfile?.personality_profile 
+                    ? "Your Big Five scores are based on your survey responses"
+                    : "Complete the personality survey to get personalized recommendations"
+                  }
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+        {activeTab === "storys" && (
+          <View>
+            <View style={styles.storyHeader}>
+              <Text style={styles.sectionTitle}>
+                Stories for {currentBuild.title}
+              </Text>
+              <Text style={styles.storySubtitle}>
+                Curated for your {primaryTrait.toLowerCase()} personality
+              </Text>
+            </View>
 
-      <StoryCatalogModal
-        visible={isStoryCatalogVisible}
-        onClose={() => setIsStoryCatalogVisible(false)}
-        onSelectStory={(Story: Story) => {
-          console.log("Selected Story:", Story);
-          setIsStoryCatalogVisible(false);
-        }}
-      />
+            {isLoadingStories ? (
+              <View style={styles.centeredMessage}>
+                <ActivityIndicator size="large" color="#4ee6e6" />
+                <Text style={styles.centeredMessageText}>
+                  Finding stories that resonate with your personality...
+                </Text>
+              </View>
+            ) : storyError ? (
+              <View style={styles.centeredMessage}>
+                <Text style={styles.errorText}>{storyError}</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={() => {
+                    setStoryError(null);
+                    setIsLoadingStories(true);
+                    // Retry loading stories
+                    setTimeout(() => {
+                      setIsLoadingStories(false);
+                    }, 1000);
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                    Retry
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : filteredStories.length > 0 ? (
+              filteredStories.map((story, index) => (
+                <TouchableOpacity
+                  key={story.id || index}
+                  style={styles.storyCard}
+                  onPress={() => handleStorySelect(story)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.storyCardHeader}>
+                    <Text style={styles.storyTitle}>
+                      {story.title || "Untitled Story"}
+                    </Text>
+                    <View style={styles.storyBadges}>
+                      <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryBadgeText}>
+                          {story.category || "General"}
+                        </Text>
+                      </View>
+                      <View style={styles.difficultyBadge}>
+                        <Text style={styles.difficultyBadgeText}>
+                          {story.difficulty || "Unknown"}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
 
-      <CodexModal
-        visible={isCodexVisible}
-        onClose={() => setIsCodexVisible(false)}
-        onSave={() => setIsCodexVisible(false)}
-        unlockedAreas={[]}
-      />
+                  <Text style={styles.storyDescription}>
+                    {story.description || "No description available"}
+                  </Text>
 
-      <ArchiveMapModal
-        visible={isMapVisible}
-        currentRoomId=""
-        onClose={() => setIsMapVisible(false)}
-        onAreaSelect={() => {}}
-        completedEntries={0}
-        entries={[]}
-      />
+                  <View style={styles.storyFooter}>
+                    <View style={styles.storyStats}>
+                      <Text style={styles.storyStat}>
+                        📖 {story.chapter_count || 1} chapters
+                      </Text>
+                      <Text style={styles.storyStat}>
+                        ⏱️ {story.timeToComplete || "15-30 min"}
+                      </Text>
+                    </View>
+                    <View style={styles.personalityMatch}>
+                      <Text style={styles.matchText}>
+                        🎯 Perfect for {primaryTrait}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.centeredMessage}>
+                <Text style={styles.centeredMessageTitle}>
+                  No Stories Available
+                </Text>
+                <Text style={styles.centeredMessageText}>
+                  No stories are currently matched to your {primaryTrait.toLowerCase()} personality. 
+                  Check back later for new content!
+                </Text>
+              </View>
+            )}
+
+            {/* Story Filter Info */}
+            <View style={styles.filterInfo}>
+              <Text style={styles.filterInfoTitle}>
+                How Stories Are Matched
+              </Text>
+              <Text style={styles.filterInfoText}>
+                Stories are selected based on your {primaryTrait.toLowerCase()} personality, 
+                focusing on themes like: {currentBuild.storyThemes.slice(0, 3).join(", ")}
+              </Text>
+            </View>
+          </View>
+        )}
+        {activeTab === "codex" && (
+          <View>
+            <Text style={styles.sectionTitle}>Codex</Text>
+            {/* TODO: Codex content */}
+            <Text style={{ color: "#fff", marginTop: 20 }}>
+              (Codex placeholder)
+            </Text>
+          </View>
+        )}
+        {activeTab === "defender" && (
+          <View>
+            <Text style={styles.sectionTitle}>Mind Defender</Text>
+            {/* TODO: Mind Defender content */}
+            <Text style={{ color: "#fff", marginTop: 20 }}>
+              (Mind Defender placeholder)
+            </Text>
+          </View>
+        )}
+        {activeTab === "restoration" && (
+          <View>
+            <Text style={styles.sectionTitle}>Restoration</Text>
+            {/* TODO: Restoration content */}
+            <Text style={{ color: "#fff", marginTop: 20 }}>
+              (Restoration placeholder)
+            </Text>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#181A20",
+  },
+  header: {
+    alignItems: "center",
+    paddingTop: 40,
+    paddingBottom: 20,
+    backgroundColor: "#23242b",
+    borderBottomWidth: 1,
+    borderColor: "#333",
+  },
+  headerTitle: {
+    color: "#4ee6e6",
+    fontWeight: "bold",
+    fontSize: 18,
+    marginBottom: 2,
+  },
+  headerTrait: {
+    color: "#ffe066",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  headerClass: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 22,
+    marginBottom: 6,
+  },
+  headerDesc: {
+    color: "#ccc",
+    fontSize: 14,
+    textAlign: "center",
+    paddingHorizontal: 20,
+  },
+  userInfo: {
+    color: "#4ee6e6",
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: "italic",
+  },
+  tabBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#23242b",
+    borderBottomWidth: 1,
+    borderColor: "#333",
+    paddingVertical: 8,
+  },
+  tabButton: {
+    alignItems: "center",
+    flex: 1,
+    paddingVertical: 4,
+  },
+  tabButtonActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#4ee6e6",
+  },
+  sectionTitle: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  traitRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  traitCard: {
+    backgroundColor: "#23242b",
+    borderRadius: 10,
+    padding: 10,
+    alignItems: "center",
+    flex: 1,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  primaryTraitCard: {
+    borderColor: "#4ee6e6",
+    borderWidth: 2,
+    backgroundColor: "#2a2d35",
+  },
+  traitName: {
+    color: "#4ee6e6",
+    fontWeight: "bold",
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  traitScore: {
+    color: "#ffe066",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  primaryIndicator: {
+    color: "#4ee6e6",
+    fontSize: 10,
+    fontWeight: "bold",
+    marginTop: 2,
+  },
+  moodBubble: {
+    backgroundColor: "#f5e6c4",
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 15,
+    borderWidth: 2,
+    borderColor: "#e2c48d",
+    alignItems: "center",
+  },
+  moodText: {
+    color: "#5a4a2c",
+    fontSize: 14,
+    fontStyle: "italic",
+    textAlign: "center",
+  },
+  profileStatus: {
+    marginTop: 20,
+  },
+  statusCard: {
+    backgroundColor: "#23242b",
+    borderRadius: 10,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  statusText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  statusSubtext: {
+    color: "#ccc",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  retryButton: {
+    backgroundColor: "#4ee6e6",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  // Story-specific styles
+  storyHeader: {
+    marginBottom: 20,
+  },
+  storySubtitle: {
+    color: "#4ee6e6",
+    fontSize: 14,
+    fontStyle: "italic",
+  },
+  centeredMessage: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  centeredMessageTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  centeredMessageText: {
+    color: "#ccc",
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  errorText: {
+    color: "#ff6b6b",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  storyCard: {
+    backgroundColor: "#23242b",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#333",
+    borderLeftWidth: 4,
+    borderLeftColor: "#4ee6e6",
+  },
+  storyCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  storyTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+    flex: 1,
+    marginRight: 10,
+  },
+  storyBadges: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  categoryBadge: {
+    backgroundColor: "#4ee6e6",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  categoryBadgeText: {
+    color: "#000",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  difficultyBadge: {
+    backgroundColor: "#ffe066",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  difficultyBadgeText: {
+    color: "#000",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  storyDescription: {
+    color: "#ccc",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  storyFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  storyStats: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  storyStat: {
+    color: "#999",
+    fontSize: 12,
+  },
+  personalityMatch: {
+    backgroundColor: "rgba(78, 230, 230, 0.2)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  matchText: {
+    color: "#4ee6e6",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+  filterInfo: {
+    backgroundColor: "#23242b",
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  filterInfoTitle: {
+    color: "#4ee6e6",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  filterInfoText: {
+    color: "#ccc",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+});

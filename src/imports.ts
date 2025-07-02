@@ -53,8 +53,7 @@ export {
 } from './services';
 
 // ===== Components =====
-export { default as ArchiveMapModal } from './components/ArchiveMapModal';
-export { default as Button } from './components/Button';
+
 export { default as CharacterFrame } from './components/CharacterFrame';
 export { default as CharacterPreview } from './components/CharacterPreview';
 export { default as CodexModal } from './components/CodexModal';
@@ -102,14 +101,13 @@ export { darkTheme, lightTheme, ThemeColors } from './styles/theme';
 
 // ===== Types =====
 export type {
-    AuthContextType,
+    ArchiveProgress, AuthContextType, Chapter, ChapterPassage, ChapterSummary,
     //UserCharacter System
     Character, CharacterCreateData, CharacterCustomizationData,
-
-    // Journal
-    CodexModalProps,
     // Equipment
-    EquipmentItem,
+    CharacterGear, Choice, CodexEntry,
+    // Journal
+    CodexModalProps, EquipmentItem,
     EquipmentSubtype,
     EquipmentType,
     EquippedItems,
@@ -117,33 +115,32 @@ export type {
     ExtendedGameData,
     GameAchievement,
     //User Game Data - Persistent Game Data
-    GameData, GameSession,
+    GameData, GameSession, GameState,
     // Wellness system
     GearItem,
-    GearUnlockSystem, JournalEntry,
-    // User and authentication
-    LoginResponse, Prompt, ReflectionAnalysis,
-    ReflectionPattern,
-    ReflectionPatterns,
+    GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
+    LoginResponse,
+    // MiniGame Types 
+    MiniGameProgress, MiniGameResult, NPC, Passage, PowerUp, Projectile,
     //User Research Group
-    ResearchGroup, StatGains,
-    StoryGains,
-    StoryProgression,
+    ResearchGroup, SavedRewards, Skill, StatGains,
+    //story imports 
+    Story, StoryDetail, StoryGains, StoryProgress, StoryProgression, StoryScreenProps, Thought,
     // User Profile
     UserProfile, WellnessStats
 } from './types';
 
+
+
 // ===== Context Types =====
 export type { PersonalityTrait } from './context/PersonalityContext';
 
-// ===== Additional Types =====
-export type { ArchiveArea } from './components/ArchiveMapModal';
-export type { Story } from './screens/characterStory/StoryCatalogScreen';
+
+
 
 // ===== Context Exports =====
 export { useAuth } from './context/AuthContext';
 export { useMasterState } from './context/MasterStateContext';
-export { useOnboarding } from './context/OnboardingContext';
 export { useTheme } from './context/ThemeContext';
 
 // ===== Utility Functions =====

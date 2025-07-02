@@ -1,8 +1,10 @@
+import React from "react";
 import { Text, View } from "react-native";
-import { useTheme } from "../context/ThemeContext";
+import { useMasterState } from "../context/MasterStateContext";
 
 export default function SettingsScreen() {
-  const { styles, isDark, toggleTheme } = useTheme();
+  const { theme } = useMasterState();
+  const { styles, isDark, toggleTheme } = theme;
 
   return (
     <View style={styles.screenContainer}>

@@ -32,6 +32,19 @@ export async function completeOnboarding(path: 'character' | 'survey') {
       userProfile = null;
     }
 
+    // Assign research group based on path (optional - backend may not be configured)
+    try {
+      const researchCondition = path === 'character' ? 'A' : 'B';
+      console.log('Assigning research group condition:', researchCondition);
+      await apiService.assignResearchGroupByCondition(researchCondition);
+      console.log('Research group assigned successfully');
+    } catch (researchError) {
+      console.error('Failed to assign research group:', researchError);
+      console.log('Research group assignment failed - this is expected if the backend endpoint is not properly configured');
+      // Continue with onboarding even if research group assignment fails
+      // The frontend will handle the research group logic locally
+    }
+
     // Prepare onboarding data
     const onboardingData = {
       has_completed_onboarding: true,

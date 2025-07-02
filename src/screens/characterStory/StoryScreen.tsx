@@ -1,33 +1,31 @@
-import { useAuth } from "../../context/AuthContext";
-import { useTheme } from "../../context/ThemeContext";
+
+import { useMasterState } from "../../context/MasterStateContext";
 import { usePassageFetcher } from "../../hooks/useCurrentPassage";
 import {
   Animated,
-  createGlobalStyles,
   Dimensions,
   Icon,
   Modal,
   React,
   Text,
   TouchableOpacity,
-  useEffect,
-  useState,
+  useEffect, useState,
   View
 } from "../../imports";
-import {
-  useCurrentPassage
-} from "../../utils/storyUtils";
-
 import { archiveService } from "../../services/archiveService";
 import {
   getCopingToolMapping
 } from "../../services/testBackendIntegration";
+import { createGlobalStyles } from "../../styles/globalStyles";
 import {
   Chapter,
   SavedRewards,
   Story,
   StoryScreenProps
 } from "../../types/story";
+import {
+  useCurrentPassage
+} from "../../utils/storyUtils";
 
 const { width, height } = Dimensions.get("window");
 
@@ -113,9 +111,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   onStoryComplete,
 }) => {
   // Context and theme
-  const { theme } = useTheme();
-  const { characterId } = useAuth();
-  const globalStyles = createGlobalStyles(theme);  // Use passages from the story prop - handle both chapter-based and direct passage structures
+  const { theme, auth } = useMasterState();
+  const { characterId } = auth;
+  const globalStyles = createGlobalStyles(theme.theme);  // Use passages from the story prop - handle both chapter-based and direct passage structures
   const passages = story?.chapters?.flatMap((ch) => ch.passages || []) || 
                    (story as any)?.passages?.passages || 
                    (story as any)?.passages || 
@@ -416,26 +414,33 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       console.log("=== TAP-TO-CONTINUE ===");
       console.log("Current passage ID:", currentId);
       
-      // Try to advance to the next numeric passage ID
-      const currentNum = parseInt(currentId);
-      if (!isNaN(currentNum)) {
-        const nextId = String(currentNum + 1);
-        console.log("Advancing to next passage ID:", nextId);
-        setCurrentId(nextId);
-      } else {
-        // Fallback to finding next passage in the array
-        const currentPassages = ChapterPassages || passages;
-        const currentIdx = currentPassages.findIndex(
-          (p: any) => String(p.passage_id) === String(currentId) || String(p.id) === String(currentId)
+      // Track progress for the current passage
+      if (story?.id && currentId) {
+        await archiveService.saveProgress(
+          String(story.id),
+          currentId,
+          undefined, // no choice for tap-to-continue
+          {}, // story_variables
+          {} // player_state
         );
-        if (currentIdx !== -1 && currentIdx + 1 < currentPassages.length) {
-          const nextPassage = currentPassages[currentIdx + 1];
-          if (nextPassage) {
-            const nextId = String(nextPassage.passage_id || nextPassage.id);
-            console.log("Advancing to next passage from array:", nextId);
-            setCurrentId(nextId);
-          }
+      }
+      
+      // Find next passage by order in the passages array
+      const currentPassages = ChapterPassages || passages;
+      const currentIdx = currentPassages.findIndex(
+        (p: any) => String(p.passage_id) === String(currentId) || String(p.id) === String(currentId)
+      );
+      
+      if (currentIdx !== -1 && currentIdx + 1 < currentPassages.length) {
+        const nextPassage = currentPassages[currentIdx + 1];
+        if (nextPassage) {
+          // Use the passage_id from the next passage (could be "p2_shelves", "p3_decision", etc.)
+          const nextId = String(nextPassage.passage_id || nextPassage.id);
+          console.log("Advancing to next passage from array:", nextId);
+          setCurrentId(nextId);
         }
+      } else {
+        console.log("No next passage found in array, story may be complete");
       }
     }
   };
@@ -447,6 +452,17 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     setIsLoadingPassage(true);
     
     try {
+      // Track progress for the current passage and choice
+      if (story?.id && currentId) {
+        await archiveService.saveProgress(
+          String(story.id),
+          currentId,
+          String(choice.id),
+          {}, // story_variables
+          {} // player_state
+        );
+      }
+      
       // Look for the next passage ID in various possible properties
       const nextPassageId = choice.next_passage_id || 
                            choice.next || 
@@ -479,7 +495,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
             onStatGain(effects);
           }
         }
-          // Handle artifact unlocks
+        
+        // Handle artifact unlocks
         if (choice.artifact_unlock || choice.artifactUnlock) {
           const artifactName = choice.artifact_unlock || choice.artifactUnlock;
           console.log("Unlocking artifact:", artifactName);
@@ -491,7 +508,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
             onArtifactUnlock(artifactName);
           }
         }
-          // Handle skills learned
+        
+        // Handle skills learned
         if (choice.skills_learned || choice.skills || choice.skillsLearned) {
           const skills = choice.skills_learned || choice.skills || choice.skillsLearned;
           console.log("Learning skills:", skills);
@@ -501,9 +519,25 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
             skills.forEach((skill: string) => onSkillLearned([skill]));
           }
         }
-          // Check if this is an ending
+        
+        // Check if this is an ending
         if (choice.is_ending || choice.is_end || choice.isEnding) {
           console.log("Story ending reached");
+          
+          // Save game data for story completion
+          if (story?.id) {
+            const finalRewards = choice.final_rewards || choice.finalRewards || [];
+            const score = Object.values(totalStatGains).reduce((sum: number, value: any) => sum + value, 0);
+            
+            await archiveService.saveGameData(
+              String(story.id),
+              currentId,
+              score,
+              finalRewards, // unlocked_areas
+              learnedSkills // completed_prompts
+            );
+          }
+          
           if (onStoryComplete) {
             onStoryComplete({
               storyId: String(story?.id || ""),
@@ -522,13 +556,20 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
         }, 300);
         
       } else {
-        // No next passage specified, try to advance numerically
-        console.log("No next passage ID specified, trying numerical advancement");
-        const currentNum = parseInt(currentId);
-        if (!isNaN(currentNum)) {
-          const nextId = String(currentNum + 1);
-          console.log("Advancing numerically to:", nextId);
-          setTimeout(() => setCurrentId(nextId), 300);
+        // No next passage specified, try to advance by order in passages array
+        console.log("No next passage ID specified, trying array advancement");
+        const currentPassages = ChapterPassages || passages;
+        const currentIdx = currentPassages.findIndex(
+          (p: any) => String(p.passage_id) === String(currentId) || String(p.id) === String(currentId)
+        );
+        
+        if (currentIdx !== -1 && currentIdx + 1 < currentPassages.length) {
+          const nextPassage = currentPassages[currentIdx + 1];
+          if (nextPassage) {
+            const nextId = String(nextPassage.passage_id || nextPassage.id);
+            console.log("Advancing to next passage from array:", nextId);
+            setTimeout(() => setCurrentId(nextId), 300);
+          }
         } else {
           console.warn("Could not determine next passage");
         }
@@ -656,9 +697,11 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
         ) : (
           // Main content
           <View style={globalStyles.StoryModalOverlay}>
-            <View style={globalStyles.StoryModalpassages}>              {/* Header */}
+            <View style={globalStyles.StoryModalpassages}>
+              {/* Header */}
               <View style={globalStyles.StoryHeader}>
-                <View style={globalStyles.StoryHeaderLeft}>                  <Text style={globalStyles.StoryTitle}>
+                <View style={globalStyles.StoryHeaderLeft}>
+                  <Text style={globalStyles.StoryTitle}>
                     {story?.title || "Unknown Story"}
                   </Text>
                   <Text style={globalStyles.StorySubtitle}>
@@ -758,7 +801,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
                     }
                     return null;
                   })()}
-                </TouchableOpacity>                  {/* Choices */}
+                </TouchableOpacity>
+                {/* Choices */}
                 <View style={globalStyles.StoryChoicesContainer}>
                   {(() => {
                     // Prioritize choices from fetched passage

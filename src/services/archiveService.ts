@@ -8,18 +8,10 @@ import {
   Passage,
   Story,
   StoryDetail
-} from '../types/story';
+} from "../types";
 import { apiService } from './apiService';
 
-// Types for story & passage data
-export interface Choice {
-  id: string;
-  text: string;
-  nextPassageId?: string;
-  choiceType?: string;
-  requirements?: Record<string, any>;
-  effects?: Record<string, any>;
-}
+
 
 
 
@@ -73,9 +65,18 @@ class ArchiveService {
     try {
       console.log('Getting chapters for story:', storyId);
       const suffix = `${storyId}/chapters/`;
-      const chapters = await apiService.get<ChapterSummary[]>('storyChaptersList', { urlSuffix: suffix });
+      const chapters = await apiService.get<ChapterSummary[]>('storyChapters', { urlSuffix: suffix });
       console.log('Raw chapters from backend:', chapters);
-      return chapters;
+      
+      // Transform the Django chapter format to frontend format
+      const transformedChapters = chapters.map((chapter: any) => ({
+        id: chapter.id,
+        title: chapter.title,
+        chapterNumber: chapter.chapter_number,
+        isStartingChapter: chapter.is_starting_chapter
+      }));
+      
+      return transformedChapters;
     } catch (error) {
       console.error('Failed to get chapters:', error);
       return [];
@@ -91,7 +92,7 @@ class ArchiveService {
       console.log('API endpoint suffix:', suffix);
       console.log('Full endpoint would be: story/chapters/' + suffix);
       
-      const passages = await apiService.get<ChapterPassage[]>('storyRoot', { urlSuffix: `chapters/${suffix}` });
+      const passages = await apiService.get<ChapterPassage[]>('chapterPassages', { urlSuffix: suffix });
       console.log('Raw passages overview from backend for chapter', chapterId, ':', passages);
       
       if (!passages || passages.length === 0) {
@@ -110,13 +111,13 @@ class ArchiveService {
   async startStory(storyId: string): Promise<StoryDetail> {
     try {
       const suffix = `${storyId}/start/`;
-      return await apiService.post<StoryDetail>('storyStart', null, { urlSuffix: suffix });
+      return await apiService.post<StoryDetail>('startStory', null, { urlSuffix: suffix });
     } catch (error) {
       console.error('Failed to start story:', error);
       throw error;
     }
   }  // Fetch the user's current or specific passage
-  async getPassage(storyId: string, passageId?: string): Promise<Passage> {
+  async getPassage(storyId: number, passageId?: string): Promise<Passage> {
     try {
       console.log("=== GET PASSAGE (UPDATED) ===");
       console.log("Story ID:", storyId);
@@ -149,8 +150,8 @@ class ArchiveService {
       
       // Make direct API call using the correct endpoint structure
       try {
-        const response = await apiService.get<any>('storyRoot', { 
-          urlSuffix: `stories/${storyId}/passage/${encodeURIComponent(numericPassageId)}/` 
+        const response = await apiService.get<any>('storyPassage', { 
+          urlSuffix: `${storyId}/passage/${encodeURIComponent(numericPassageId)}/` 
         });
         
         console.log('Raw API response:', response);
@@ -174,7 +175,7 @@ class ArchiveService {
       
       // Try sequential ID approach as fallback
       console.log('Primary fetch failed, trying sequential ID approach...');
-      const sequentialResult = await this.getPassageBySequentialId(storyId, numericPassageId);
+      const sequentialResult = await this.getPassageBySequentialId(storyId.toString(), numericPassageId);
       if (sequentialResult) {
         console.log('Successfully fetched using sequential ID:', sequentialResult);
         return sequentialResult;
@@ -232,7 +233,7 @@ class ArchiveService {
     
     for (const id of idsToTry) {
       try {
-        const response = await apiService.get<any>('storyRoot', { 
+        const response = await apiService.get<any>('storyPassage', { 
           urlSuffix: `stories/${storyId}/passage/${id}/` 
         });
         
@@ -258,7 +259,7 @@ class ArchiveService {
   async makeChoice(choiceId: string): Promise<StoryDetail> {
     try {
       const suffix = `${choiceId}/select/`;
-      return await apiService.post<StoryDetail>('choiceSelect', null, { urlSuffix: suffix });
+      return await apiService.post<StoryDetail>('choicesCRUD', null, { urlSuffix: suffix });
     } catch (error) {
       console.error('Failed to make choice:', error);
       throw error;
@@ -275,8 +276,8 @@ class ArchiveService {
       // Transform backend progress to frontend format
       return {
         storyId,
-        exploration: progress.progress?.progress_percentage || 0,
-        completed: progress.progress?.is_completed || false,
+        exploration: progress?.progress_percentage || 0,
+        completed: progress?.is_completed || false,
         lastPlayedAt: new Date().toISOString(),
         choices: []
       };
@@ -293,10 +294,10 @@ class ArchiveService {
   }
 
   // Get story progress (new method for story-specific progress)
-  async getStoryProgressById(storyId: string): Promise<any> {
+  async getStoryProgressById(storyId: number): Promise<any> {
     try {
       const suffix = `${storyId}/progress/`;
-      return await apiService.get<any>('storyProgressGet', { urlSuffix: suffix });
+      return await apiService.get<any>('storyProgress', { urlSuffix: suffix });
     } catch (error) {
       console.error('Failed to get story progress:', error);
       throw error;
@@ -308,7 +309,7 @@ class ArchiveService {
     try {
       // Use the start endpoint to restart
       const suffix = `${storyId}/start/`;
-      await apiService.post('storyStart', null, { urlSuffix: suffix });
+      await apiService.post('startStory', null, { urlSuffix: suffix });
     } catch (error) {
       console.error('Failed to restart story:', error);
       throw error;
@@ -345,37 +346,215 @@ class ArchiveService {
     }
   }
 
-  // Get story passages from backend (legacy method)
-  async getStorypassages(storyId: string): Promise<any> {
+  // Get story passages from backend
+  async getStorypassages(storyId: number, passageId?: string): Promise<any> {
     try {
-      // Try new method first
-      const storyDetail = await this.getPassage(storyId);
-      if (storyDetail) {
-        console.log('Retrieved story passages from new endpoint for ID:', storyId);
-        // Transform to frontend format
-        const transformedpassages = this.transformBackendStorypassages(storyDetail);
-        console.log('Transformed story passages:', transformedpassages);
-        return transformedpassages;
-      }
+      console.log('=== getStorypassages called ===');
+      console.log('Story ID:', storyId);
+      console.log('Passage ID:', passageId);
       
-      // Fallback to old method
-      const backendpassages = await apiService.getStorypassages(storyId);
-      console.log('Raw backend story passages response (fallback):', backendpassages);
+      // Get chapters for this story directly 
+      const chapters = await apiService.get<any[]>('storyChapters', { urlSuffix: `${storyId}/chapters/` });
+      console.log('Chapters for story:', chapters);
       
-      if (backendpassages) {
-        console.log('Retrieved story passages from backend for ID:', storyId);
-        // Transform backend format to frontend format
-        const transformedpassages = this.transformBackendStorypassages(backendpassages);
-        console.log('Transformed story passages:', transformedpassages);
-        return transformedpassages;
-      }
+      // Check if this story has chapters
+      const hasChapters = chapters && chapters.length > 0;
+      console.log('Story has chapters:', hasChapters, 'chapter_count:', chapters?.length);
       
-      // Return null if no passages available
-      console.log('No backend story passages available for ID:', storyId);
-      return null;
+              if (hasChapters) {
+          // Find the starting chapter
+          const startingChapter = chapters.find((ch: any) => ch.is_starting_chapter);
+          if (!startingChapter) {
+            console.error('No starting chapter found for story:', storyId);
+            return null;
+          }
+          
+          console.log('Starting chapter:', startingChapter);
+          
+          // Get passages for the starting chapter
+          const passages = await apiService.get<any[]>('chapterPassages', { urlSuffix: `${startingChapter.id}/passages/` });
+          console.log('Passages for starting chapter:', passages);
+          
+          if (!passages || passages.length === 0) {
+            console.error('No passages found for starting chapter:', startingChapter.id);
+            return null;
+          }
+          
+          // Get the first passage details
+          let firstPassage = null;
+          if (passages.length > 0) {
+            try {
+              // Use the passage_id from the chapter passages list
+              const firstPassageId = passages[0].passage_id;
+              firstPassage = await apiService.getStoryPassage(storyId, firstPassageId);
+              console.log('First passage details:', firstPassage);
+            } catch (error) {
+              console.warn('Could not get first passage details, using basic info:', error);
+              firstPassage = passages[0];
+            }
+          }
+          
+          // Get choices for the first passage
+          let choices: any[] = [];
+          if (firstPassage) {
+            try {
+              choices = await apiService.getPassageChoices(firstPassage.id);
+              console.log('Choices for first passage:', choices);
+            } catch (error) {
+              console.warn('Could not get choices for first passage:', error);
+            }
+          }
+          
+          // Transform to frontend format
+          const transformedStory = {
+            id: storyId.toString(),
+            title: startingChapter.story_title || 'Unknown Story',
+            subtitle: startingChapter.title || 'Unknown Chapter',
+            atmosphere: this.generateAtmosphere('main'),
+            difficulty: this.mapDifficulty(1),
+            rarity: this.mapRarity('main'),
+            skillFocus: this.generateSkillFocus('main'),
+            passages: passages.map(passage => ({
+              id: passage.id,
+              passage_id: passage.passage_id,
+              content: passage.content,
+              passage_type: passage.passage_type,
+              speaker: passage.speaker,
+              required_conditions: passage.required_conditions || {},
+              story_effects: passage.story_effects || {},
+              mood: passage.mood,
+              background_music: passage.background_music,
+              background_image: passage.background_image,
+              order: passage.order,
+              choices: [] // Will be populated per passage
+            })),
+            currentPassage: firstPassage ? {
+              id: firstPassage.id,
+              passage_id: firstPassage.passage_id,
+              content: firstPassage.content,
+              passage_type: firstPassage.passage_type,
+              speaker: firstPassage.speaker,
+              required_conditions: firstPassage.required_conditions || {},
+              story_effects: firstPassage.story_effects || {},
+              mood: firstPassage.mood,
+              background_music: firstPassage.background_music,
+              background_image: firstPassage.background_image,
+              order: firstPassage.order,
+              choices: choices
+            } : null,
+            progress: {
+              passagesVisited: 0,
+              isCompleted: false,
+              progressPercentage: 0
+            },
+            isChapterBased: true,
+            chapterId: startingChapter.id,
+            chapterTitle: startingChapter.title
+          };
+          
+          console.log('Transformed chapter-based story:', transformedStory);
+          return transformedStory;
+        
+              } else {
+          // For non-chapter stories, we need to get chapters first, then get passages from the first chapter
+          // This is because the Django backend structure requires chapters even for simple stories
+          console.log('Non-chapter story detected, getting chapters first...');
+          
+          try {
+            // Use the first chapter (or starting chapter if available)
+            const targetChapter = chapters.find((ch: any) => ch.is_starting_chapter) || chapters[0];
+            console.log('Target chapter for non-chapter story:', targetChapter);
+            
+            // Get passages for this chapter
+            const passages = await apiService.get<any[]>('chapterPassages', { urlSuffix: `${targetChapter.id}/passages/` });
+            console.log('Passages for non-chapter story:', passages);
+            
+            if (!passages || passages.length === 0) {
+              console.log('No passages found for chapter:', targetChapter.id);
+              return null;
+            }
+            
+            // Get the first passage details
+            let firstPassage = null;
+            if (passages.length > 0) {
+              try {
+                firstPassage = await apiService.getStoryPassage(storyId, passages[0].passage_id);
+                console.log('First passage details:', firstPassage);
+              } catch (error) {
+                console.warn('Could not get first passage details, using basic info:', error);
+                firstPassage = passages[0];
+              }
+            }
+            
+            // Get choices for the first passage
+            let choices: any[] = [];
+            if (firstPassage) {
+              try {
+                choices = await apiService.getPassageChoices(firstPassage.id);
+                console.log('Choices for first passage:', choices);
+              } catch (error) {
+                console.warn('Could not get choices for first passage:', error);
+              }
+            }
+            
+            // Transform to frontend format
+            const transformedStory = {
+              id: storyId.toString(),
+              title: targetChapter.story_title || 'Unknown Story',
+              subtitle: targetChapter.title || 'main',
+              atmosphere: this.generateAtmosphere('main'),
+              difficulty: this.mapDifficulty(1),
+              rarity: this.mapRarity('main'),
+              skillFocus: this.generateSkillFocus('main'),
+              passages: passages.map(passage => ({
+                id: passage.id,
+                passage_id: passage.passage_id,
+                content: passage.content,
+                passage_type: passage.passage_type,
+                speaker: passage.speaker,
+                required_conditions: passage.required_conditions || {},
+                story_effects: passage.story_effects || {},
+                mood: passage.mood,
+                background_music: passage.background_music,
+                background_image: passage.background_image,
+                order: passage.order,
+                choices: [] // Will be populated per passage
+              })),
+              currentPassage: firstPassage ? {
+                id: firstPassage.id,
+                passage_id: firstPassage.passage_id,
+                content: firstPassage.content,
+                passage_type: firstPassage.passage_type,
+                speaker: firstPassage.speaker,
+                required_conditions: firstPassage.required_conditions || {},
+                story_effects: firstPassage.story_effects || {},
+                mood: firstPassage.mood,
+                background_music: firstPassage.background_music,
+                background_image: firstPassage.background_image,
+                order: firstPassage.order,
+                choices: choices
+              } : null,
+              progress: {
+                passagesVisited: 0,
+                isCompleted: false,
+                progressPercentage: 0
+              },
+              isChapterBased: false,
+              chapterId: targetChapter.id,
+              chapterTitle: targetChapter.title
+            };
+            
+            console.log('Transformed non-chapter story:', transformedStory);
+            return transformedStory;
+            
+          } catch (error) {
+            console.error('Failed to get passages for non-chapter story:', error);
+            return null;
+          }
+        }
+      
     } catch (error) {
       console.error('Failed to get story passages from backend for ID:', storyId, error);
-      // Return null on error
       return null;
     }
   }
@@ -427,7 +606,7 @@ class ArchiveService {
   // Update story progress
   async updateStoryProgress(characterId: string, storyId: string, progress: Partial<LocalStoryProgress>): Promise<void> {
     try {
-      await apiService.getStoryDetailedProgress(storyId);
+      await apiService.getStoryProgress(parseInt(storyId));
       // Note: The backend doesn't have a direct update progress endpoint
       // Progress is typically updated through choices and completion
       console.log('Story progress updated through backend interaction');
@@ -444,12 +623,13 @@ class ArchiveService {
     totalStatGains: {[key: string]: number};
   }): Promise<void> {
     try {
-      // Use new API method
-      await apiService.completeNewStory(parseInt(storyId), {
-        final_rewards: completionData.finalRewards,
-        skills_learned: completionData.skillsLearned,
-        stat_gains: completionData.totalStatGains
-      });
+      console.log('Completing story with data:', { storyId, completionData });
+      
+      // Calculate total experience from stat gains
+      const totalExperience = Object.values(completionData.totalStatGains).reduce((sum, gain) => sum + gain, 0);
+      
+      // Save story completion with proper progress tracking
+      await this.saveStoryCompletion(storyId, totalExperience, completionData.totalStatGains);
       
       console.log('Story completed successfully via backend');
     } catch (error) {
@@ -507,20 +687,7 @@ class ArchiveService {
     }
   }
 
-  // Get artifact database
-  async getArtifactDatabase(): Promise<any> {
-    try {
-      // In the future, this will come from the backend
-      // return await apiService.get<any>('artifacts');
-      
-      // For now, return from local data
-      const { artifactDatabase } = await import('../data/storyData');
-      return artifactDatabase;
-    } catch (error) {
-      console.error('Failed to get artifact database:', error);
-      return {};
-    }
-  }
+
 
   // Sync local progress with backend
   async syncProgress(characterId: string, localProgress: ArchiveProgress): Promise<void> {
@@ -690,8 +857,8 @@ class ArchiveService {
     try {
       console.log('Getting story passages from chapter:', storyId, 'chapter:', chapterId);
       
-      // First, get the chapters for this story
-      const chapters = await apiService.getNewStoryChapters(parseInt(storyId));
+      // First, get the chapters for this story using the actual Django endpoint
+      const chapters = await apiService.get<any[]>('storyChapters', { urlSuffix: `${storyId}/chapters/` });
       console.log('Chapters for story:', chapters);
       
       // Find the specific chapter
@@ -703,8 +870,8 @@ class ArchiveService {
       
       console.log('Found target chapter:', targetChapter);
       
-      // Get passages for this chapter
-      const passages = await apiService.getNewChapterPassages(chapterId);
+      // Get passages for this chapter using the Django endpoint
+      const passages = await apiService.get<any[]>('chapterPassages', { urlSuffix: `${chapterId}/passages/` });
       console.log('Passages for chapter:', passages);
       
       if (!passages || passages.length === 0) {
@@ -712,41 +879,70 @@ class ArchiveService {
         return null;
       }
       
-      // Fetch passages for each passage
-      const passagesWithpassages = [];
-      for (const passage of passages) {
+      // Get the story details from the chapter data
+      const storyTitle = targetChapter.story_title || 'Unknown Story';
+      console.log('Story title from chapter:', storyTitle);
+      
+      // Get the first passage details to start the story
+      let firstPassage = null;
+      if (passages.length > 0) {
         try {
-          const passagepassages = await apiService.getNewPassagepassages(parseInt(storyId), passage.passage_id);
-          if (passagepassages?.passage?.passages) {
-            passagesWithpassages.push({
-              ...passage,
-              passages: passagepassages.passage.passages
-            });
-          } else {
-            // Fallback to passage without passages
-            passagesWithpassages.push(passage);
-          }
+          firstPassage = await apiService.getStoryPassage(parseInt(storyId), passages[0].passage_id);
+          console.log('First passage details:', firstPassage);
         } catch (error) {
-          console.error(`Failed to fetch passages for passage ${passage.passage_id}:`, error);
-          passagesWithpassages.push(passage);
+          console.warn('Could not get first passage details, using basic info:', error);
+          firstPassage = passages[0];
         }
       }
       
-      // Get the first passage passages to start the story
-      const firstPassage = passagesWithpassages[0];
-      console.log('First passage with passages:', firstPassage);
+      // Get choices for the first passage
+      let choices: any[] = [];
+      if (firstPassage) {
+        try {
+          choices = await apiService.getPassageChoices(firstPassage.id);
+          console.log('Choices for first passage:', choices);
+        } catch (error) {
+          console.warn('Could not get choices for first passage:', error);
+        }
+      }
       
       // Transform the backend data to frontend format
-      const transformedpassages = {
+      const transformedStory = {
         id: storyId,
-        title: targetChapter.title || 'Unknown Story',
+        title: story?.title || targetChapter.story_title || 'Unknown Story',
         subtitle: targetChapter.title || 'Unknown Chapter',
-        atmosphere: this.generateAtmosphere('main'),
-        difficulty: this.mapDifficulty(1),
-        rarity: this.mapRarity('main'),
-        skillFocus: this.generateSkillFocus('main'),
-        passages: this.transformBackendPassagesArray(passagesWithpassages),
-        currentPassage: firstPassage ? this.transformBackendPassages(firstPassage, []) : null,
+        atmosphere: this.generateAtmosphere(story?.category || 'main'),
+        difficulty: this.mapDifficulty(story?.min_level || 1),
+        rarity: this.mapRarity(story?.category || 'main'),
+        skillFocus: this.generateSkillFocus(story?.category || 'main'),
+        passages: passages.map(passage => ({
+          id: passage.id,
+          passage_id: passage.passage_id,
+          content: passage.content,
+          passage_type: passage.passage_type,
+          speaker: passage.speaker,
+          required_conditions: passage.required_conditions || {},
+          story_effects: passage.story_effects || {},
+          mood: passage.mood,
+          background_music: passage.background_music,
+          background_image: passage.background_image,
+          order: passage.order,
+          choices: [] // Will be populated per passage
+        })),
+        currentPassage: firstPassage ? {
+          id: firstPassage.id,
+          passage_id: firstPassage.passage_id,
+          content: firstPassage.content,
+          passage_type: firstPassage.passage_type,
+          speaker: firstPassage.speaker,
+          required_conditions: firstPassage.required_conditions || {},
+          story_effects: firstPassage.story_effects || {},
+          mood: firstPassage.mood,
+          background_music: firstPassage.background_music,
+          background_image: firstPassage.background_image,
+          order: firstPassage.order,
+          choices: choices
+        } : null,
         progress: {
           passagesVisited: 0,
           isCompleted: false,
@@ -757,8 +953,8 @@ class ArchiveService {
         chapterTitle: targetChapter.title
       };
       
-      console.log('Transformed story passages:', transformedpassages);
-      return transformedpassages;
+      console.log('Transformed story:', transformedStory);
+      return transformedStory;
       
     } catch (error) {
       console.error('Failed to get story passages from chapter:', error);
@@ -778,7 +974,7 @@ class ArchiveService {
     }
   }
 
-  // Get character's gear
+  // Get character's gear --- faling needs a condition IF the character has NO gear 
   async getCharacterGear(): Promise<any[]> {
     try {
       return await apiService.get<any[]>('myGear');
@@ -898,7 +1094,7 @@ class ArchiveService {
       console.log('Saving progress data:', progressData);
       
       try {
-        await apiService.post('storyProgress', progressData);
+        await apiService.post('storyProgressCRUD', progressData);
         console.log('Successfully saved choice rewards to progress endpoint');
       } catch (progressError: any) {
         console.error('Failed to save to progress endpoint:', progressError);
@@ -1019,7 +1215,7 @@ class ArchiveService {
       const characterStats = userProfile?.profile?.character;
       
       // Get story progress for all stories
-      const storyProgress = await apiService.get<any>('storyProgress');
+      const storyProgress = await apiService.get<any>('storyProgressCRUD');
       
       // Try different endpoints for character's coping tools/gear
       let characterCopingTools: any[] = [];
@@ -1123,24 +1319,46 @@ class ArchiveService {
       
       console.log('Using player ID:', playerId);
       
-      // 1. Save to progress endpoint for story-specific tracking
+      // 1. First, get the existing progress record for this story
+      let existingProgress = null;
+      try {
+        const allProgress = await apiService.get<any[]>('storyProgressCRUD');
+        existingProgress = allProgress.find((progress: any) => 
+          progress.story === parseInt(storyId) && progress.user === playerId
+        );
+        console.log('Found existing progress record:', existingProgress);
+      } catch (error) {
+        console.log('Could not find existing progress record, will create new one');
+      }
+      
+      // 2. Update or create progress record
       const progressData = {
-        user: playerId, // Backend expects 'user' not 'player'
-        profile: playerId, // Backend requires 'profile' field
-        story: parseInt(storyId), // Convert to number for backend
+        user: playerId,
+        profile: playerId,
+        story: parseInt(storyId),
         xp: experience,
         passage: 'story_complete',
         choices: ['story_completed'],
         wellness_gains: wellnessGains,
         loot_items: [],
-        completed_at: new Date().toISOString()
+        is_completed: true, // Mark as completed
+        progress_percentage: 100, // Set to 100% completion
+        completed_at: new Date().toISOString(),
+        last_played: new Date().toISOString()
       };
       
       console.log('Saving progress data:', progressData);
       
       try {
-        await apiService.post('storyProgress', progressData);
-        console.log('Successfully saved story completion to progress endpoint');
+        if (existingProgress) {
+          // Update existing progress record
+          await apiService.patch('storyProgressCRUD', progressData, { urlSuffix: `${existingProgress.id}/` });
+          console.log('Successfully updated existing progress record');
+        } else {
+          // Create new progress record
+          await apiService.post('storyProgressCRUD', progressData);
+          console.log('Successfully created new progress record');
+        }
       } catch (progressError: any) {
         console.error('Failed to save to progress endpoint:', progressError);
         console.error('Progress error details:', {
@@ -1361,6 +1579,165 @@ class ArchiveService {
     if (totalMinutes <= 30) return '20-30 min';
     return '30+ min';
   }
+
+  // Save progress for a specific passage/choice
+  async saveProgress(storyId: string, passageId: string, choiceId?: string, storyVariables?: any, playerState?: any): Promise<void> {
+    try {
+      console.log('=== SAVING PROGRESS ===');
+      console.log('Story ID:', storyId);
+      console.log('Passage ID:', passageId);
+      console.log('Choice ID:', choiceId);
+      
+      // Get user profile to find user ID
+      const userProfile = await apiService.getProfile();
+      const userId = userProfile?.id;
+      
+      if (!userId) {
+        console.error('No user ID found in profile');
+        return;
+      }
+      
+      const progressData = {
+        user: userId,
+        profile: userId, // Backend expects profile field
+        story_id: storyId,
+        passage_id: passageId,
+        choice_id: choiceId || null,
+        story_variables: storyVariables || {},
+        player_state: playerState || {},
+        completed_at: new Date().toISOString()
+      };
+      
+      console.log('Saving progress data:', progressData);
+      
+      await apiService.post('storyProgressCRUD', progressData);
+      console.log('Progress saved successfully');
+      
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+      // Don't throw error to avoid breaking story flow
+    }
+  }
+
+  // Save game data for story completion
+  async saveGameData(storyId: string, passageId: string, score: number, unlockedAreas: string[], completedPrompts: string[]): Promise<void> {
+    try {
+      console.log('=== SAVING GAME DATA ===');
+      console.log('Story ID:', storyId);
+      console.log('Passage ID:', passageId);
+      console.log('Score:', score);
+      console.log('Unlocked areas:', unlockedAreas);
+      console.log('Completed prompts:', completedPrompts);
+      
+      // Get user profile
+      const userProfile = await apiService.getProfile();
+      const userId = userProfile?.id;
+      const characterName = userProfile?.profile?.character?.name || 'Unknown Player';
+      const characterLevel = userProfile?.profile?.character?.level || 1;
+      
+      if (!userId) {
+        console.error('No user ID found in profile');
+        return;
+      }
+      
+      const gameData = {
+        user: userId,
+        profile: userId,
+        player_name: characterName,
+        score: score,
+        level: characterLevel,
+        last_played: new Date().toISOString(),
+        current_story_id: storyId,
+        current_passage_id: passageId,
+        unlocked_areas: unlockedAreas,
+        completed_prompts: completedPrompts,
+        total_entries: completedPrompts.length
+      };
+      
+      console.log('Saving game data:', gameData);
+      
+      await apiService.post('gameData', gameData);
+      console.log('Game data saved successfully');
+      
+    } catch (error) {
+      console.error('Failed to save game data:', error);
+      // Don't throw error to avoid breaking story flow
+    }
+  }
+
+  // Get user's progress records for a story
+  async getStoryProgressRecords(storyId: string): Promise<any[]> {
+    try {
+      console.log('Getting progress records for story:', storyId);
+      
+      // Get user profile to find user ID
+      const userProfile = await apiService.getProfile();
+      const userId = userProfile?.id;
+      
+      if (!userId) {
+        console.error('No user ID found in profile');
+        return [];
+      }
+      
+      const progress = await apiService.get<any[]>('storyProgressCRUD');
+      
+      // Filter progress for this specific story
+      const storyProgress = progress.filter((p: any) => p.story_id === storyId);
+      
+      console.log('Story progress records:', storyProgress);
+      return storyProgress;
+      
+    } catch (error) {
+      console.error('Failed to get story progress records:', error);
+      return [];
+    }
+  }
+
+  // Get user's game data
+  async getGameData(): Promise<any[]> {
+    try {
+      console.log('Getting game data');
+      
+      const gameData = await apiService.get<any[]>('gameData');
+      console.log('Game data:', gameData);
+      return gameData;
+      
+    } catch (error) {
+      console.error('Failed to get game data:', error);
+      return [];
+    }
+  }
+
+  // Make a choice and track progress
+  async makeChoiceAndTrackProgress(choiceId: string, storyId: string, currentPassageId: string, nextPassageId?: string): Promise<any> {
+    try {
+      console.log('=== MAKING CHOICE AND TRACKING PROGRESS ===');
+      console.log('Choice ID:', choiceId);
+      console.log('Story ID:', storyId);
+      console.log('Current Passage ID:', currentPassageId);
+      console.log('Next Passage ID:', nextPassageId);
+      
+      // Save progress for the current passage and choice
+      await this.saveProgress(storyId, currentPassageId, choiceId);
+      
+      // Make the choice using the existing method
+      const result = await this.makeChoice(choiceId);
+      
+      // If we have a next passage ID, save progress for it too
+      if (nextPassageId) {
+        await this.saveProgress(storyId, nextPassageId);
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error('Failed to make choice and track progress:', error);
+      throw error;
+    }
+  }
 }
 
 export const archiveService = new ArchiveService();
+
+export { ChapterSummary };
+

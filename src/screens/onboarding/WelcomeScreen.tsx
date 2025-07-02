@@ -1,32 +1,31 @@
 //should be cleaned up and centralized now 
 import React, { useEffect } from 'react';
+import { useMasterState } from "../../context/MasterStateContext";
 import {
   Alert,
   Text,
   TouchableOpacity,
   View,
-  completeOnboarding,
-  router,
-  useAuth,
-  useOnboarding,
-  useTheme
+  router
 } from '../../imports';
+import { completeOnboarding } from '../../services/onboardingService';
 
 export default function WelcomeScreen() {
-  const { styles } = useTheme();
-  const { authToken, isTestUser } = useAuth();
-  const { onboardingState, setAssignedPath, setIsLoading } = useOnboarding();
+  const { theme, auth, onboarding } = useMasterState();
+  const { styles } = theme;
+  const { authToken, isTestUser } = auth;
+  const { isComplete, assignedPath, setAssignedPath, setIsLoading, isLoading } = onboarding;
 
   useEffect(() => {
     // Only auto-navigate for non-admin users who already have an assigned path
-    if (authToken && onboardingState.assignedPath && !isTestUser) {
-      if (onboardingState.assignedPath === 'character') {
+    if (authToken && assignedPath && !isTestUser) {
+      if (assignedPath === 'character') {
         router.replace('/(onboarding)/character-creator');
-      } else if (onboardingState.assignedPath === 'survey') {
+      } else if (assignedPath === 'survey') {
         router.replace('/(onboarding)/personality-test');
       }
     }
-  }, [authToken, onboardingState.assignedPath, isTestUser]);
+  }, [authToken, assignedPath, isTestUser]);
 
   const handleSurveyChoice = async () => {
     if (!authToken) {
@@ -101,21 +100,21 @@ export default function WelcomeScreen() {
         Choose how you want to start your journey:
       </Text>
       <TouchableOpacity
-        style={[styles.button, styles.welcomeButton, onboardingState.isLoading && styles.welcomeButtonDisabled]}
+        style={[styles.button, styles.welcomeButton, isLoading && styles.welcomeButtonDisabled]}
         onPress={handleSurveyChoice}
-        disabled={onboardingState.isLoading}
+        disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {onboardingState.isLoading ? 'Processing...' : 'Start Personality Survey'}
+          {isLoading ? 'Processing...' : 'Start Personality Survey'}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.button, styles.welcomeButton, onboardingState.isLoading && styles.welcomeButtonDisabled]}
+        style={[styles.button, styles.welcomeButton, isLoading && styles.welcomeButtonDisabled]}
         onPress={handleCharacterChoice}
-        disabled={onboardingState.isLoading}
+        disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {onboardingState.isLoading ? 'Processing...' : 'Start Character Creator'}
+          {isLoading ? 'Processing...' : 'Start Character Creator'}
         </Text>
       </TouchableOpacity>
     </View>

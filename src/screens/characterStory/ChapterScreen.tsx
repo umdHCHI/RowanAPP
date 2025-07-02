@@ -16,7 +16,7 @@ import {
 } from "../../imports";
 
 // Import useTheme directly to avoid circular dependency issues
-import { useTheme } from "../../context/ThemeContext";
+import { useMasterState } from "../../context/MasterStateContext";
 import { archiveService, ChapterSummary } from "../../services/archiveService";
 
 const { width, height } = Dimensions.get("window");
@@ -36,8 +36,8 @@ const ChapterScreen = ({
   storyTitle,
   onChapterSelect,
 }: ChapterScreenProps) => {
-  const { theme } = useTheme();
-  const globalStyles = createGlobalStyles(theme);
+  const { theme } = useMasterState();
+  const globalStyles = createGlobalStyles(theme.theme);
 
   const [chapters, setChapters] = useState<ChapterSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);

@@ -5,7 +5,7 @@ import { resolve } from 'path';
 config({ path: resolve(__dirname, '.env') });
 
 // Validate required environment variables
-const requiredEnvVars = ['API_BASE_URL', 'API_LOCAL_URL'];
+const requiredEnvVars = ['API_BASE_URL'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
@@ -55,7 +55,6 @@ export default {
     },
     extra: {
       API_BASE_URL: process.env.API_BASE_URL,
-      API_LOCAL_URL: process.env.API_LOCAL_URL,
       TEST_USER_TOKEN: process.env.TEST_USER_TOKEN,
       router: {},
     }

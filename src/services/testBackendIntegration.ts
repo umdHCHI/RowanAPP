@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from './apiService';
-import { Character } from '../types/User';
+
 
 export class BackendIntegrationTest {
   private authToken: string | null = null;

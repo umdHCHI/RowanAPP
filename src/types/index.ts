@@ -8,36 +8,33 @@ export type {
     GameData, LoginResponse, ResearchGroup, UserProfile
 } from './user';
 
-// Appearance and character customization types
-/*export type {
-    Appearance,
-    CategoryConfig, CharacterAppearance,
-    CharacterCreateRequest, CharacterCreatorCategories, CharacterCustomizationRequest, CharacterHomeData,
-    ExperienceGainResponse, WellnessStat
-} from './appearance';*/
+
 
 // Equipment types
 export type {
-    EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems
+    CharacterGear, EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems
 } from './equipment';
 
 // Game types
 export type {
-    ExtendedGameData, GameAchievement, GameSession
+    ExtendedGameData, GameAchievement, GameSession, MiniGameProgress, Skill
 } from './game';
 
 // Journal types
-export type {
-    CodexModalProps, JournalEntry, Prompt
-} from './journal';
+export type { CodexEntry, CodexModalProps, JournalEntry, JournalPrompt, WellnessStats } from './journal';
 
-// Wellness system types
+// Wellness system types -- might need to be standardized further
 export type {
     GearItem,
     GearUnlockSystem,
-    ReflectionAnalysis, ReflectionPattern,
-    ReflectionPatterns, StatGains,
+    StatGains,
     StoryGains,
-    StoryProgression, WellnessStats
+    StoryProgression
 } from '../data/wellnessSystem';
+
+// Story types
+export type { ArchiveProgress, Chapter, ChapterPassage, ChapterSummary, Choice, LocalStoryProgress, MiniGameResult, NPC, Passage, SavedRewards, Story, StoryDetail, StoryProgress, StoryScreenProps } from './story';
+
+// MiniGame types
+export type { GameState, PowerUp, Projectile, Thought } from './thoughtGame';
 

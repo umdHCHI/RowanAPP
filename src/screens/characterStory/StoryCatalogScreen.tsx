@@ -8,12 +8,13 @@ import {
   Modal,
   React,
   ScrollView,
+  Story,
   StyleSheet,
   Text,
   TouchableOpacity,
   useEffect,
   useState,
-  View,
+  View
 } from "../../imports";
 
 // Import archive service for backend operations
@@ -24,7 +25,7 @@ import { archiveService } from "../../services/archiveService";
 
 const { width } = Dimensions.get("window");
 
-export type Story = {
+/*export type Story = {
   id: string;
   title: string;
   category: string;
@@ -41,7 +42,7 @@ export type Story = {
   isLocked?: boolean;
   passages?: any[];
   image?: string;
-};
+};*/
 
 type StoryCatalogModalProps = {
   visible: boolean;
@@ -136,7 +137,7 @@ const StoryCatalogModal = ({
         <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
           {/* Rarity Border */}
           <LinearGradient
-            colors={getRarityColors(Story.rarity)}
+            colors={getRarityColors(Story.rarity ? Story.rarity : "Common")}
             style={globalStyles.StoryRarityBorder}
           />
 
@@ -172,7 +173,7 @@ const StoryCatalogModal = ({
 
             <View style={globalStyles.StoryRarityBadge}>
               <LinearGradient
-                colors={getRarityColors(Story.rarity)}
+                colors={getRarityColors(Story.rarity? Story.rarity : "Common")}
                 style={globalStyles.StoryRarityBadgeGradient}
               >
                 <Text style={globalStyles.StoryRarityBadgeText}>
@@ -223,7 +224,7 @@ const StoryCatalogModal = ({
             </Text>
           </View>
 
-          {/* Skill Focus Tags */}
+          {/* Skill Focus Tags  - Might not be used */}
           <View style={globalStyles.StorySkillFocusContainer}>
             <Text
               style={[globalStyles.StorySkillFocusLabel, { color: "#9CA3AF" }]}

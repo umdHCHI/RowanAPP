@@ -75,7 +75,6 @@ export const API_ENDPOINTS = {
     
     // Character endpoints - updated to match actual backend structure
     characters: 'characters/characters/', // Base character endpoint
-    characterCharacters: 'characters/characters/', // Character model operations
     myCharacter: 'characters/characters/my_character/', 
     characterHomeData: 'characters/characters/home_data/',
     characterStats: 'characters/characters/stats/',
@@ -93,20 +92,15 @@ export const API_ENDPOINTS = {
     
     // Character Tools 
     myTools: 'characters/character-tools/',
-    //myTools: 'characters/character-tools/my-tools/',
     equippedTools: 'characters/character-tools/equipped/',
     equipTool: 'characters/character-tools/', // {id}/equip/
     unequipTool: 'characters/character-tools/', // {id}/unequip/
     useTool: 'characters/character-tools/', // {id}/use/
     toolUsageStats: 'characters/character-tools/usage-stats/',
     characterTools: 'characters/character-tools/',
-    
-    // Reflections 
-    reflections: 'characters/reflections/',
-    myReflections: 'characters/reflections/my-reflections/',
-    recentReflections: 'characters/reflections/recent/',
-    reflectionsByType: 'characters/reflections/by-type/',
-    quickReflect: 'characters/reflections/quick-reflect/',
+    journalPrompts: 'journal/journal-prompts/',
+    codexEntries: 'journal/codex-entries/',
+    myCodexEntries: 'journal/codex-entries/',
     
     // Gear
     gearTypes: 'characters/gear-types/',
@@ -126,38 +120,28 @@ export const API_ENDPOINTS = {
     researchGroups: 'research/research-groups/',
     availableResearchGroups: 'research/research-groups/',
     
-    // Story endpoints 
-    storyRoot: 'story/',
-    stories: 'story/catalog/',
-    storypassages: 'story/story/',
-    storyChapters: 'story/story/chapters/',//needs helper too 
-    passageDetail: (storyId: number, passageId: string) =>
-        `story/stories/${storyId}/passage/${encodeURIComponent(passageId)}/`,
-    storyProgress: 'game/progress/',
-    storyComplete: 'story/complete/',
-    storyGameData: 'story/game-data/',
-    
-    // Corrected story flow endpoints based on actual backend
-    storyCatalog: 'story/stories/available/',
-    storyChaptersList: 'story/stories/', // {storyId}/chapters/
-    storyStart: 'story/stories/', // {storyId}/start/
-    storyPassage: 'story/stories/', // {storyId}/passage/{passageId}/
-    choiceSelect: 'story/choices/', // {choiceId}/select/
-    storyProgressGet: 'story/stories/', // {storyId}/progress/
+    // Story endpoints based on Django views
+    storyCatalog: 'story/catalog/',
+   // availableStories: 'story/available/',
+    storyChapters: 'story/stories/', // {storyId}/chapters/
     chapterPassages: 'story/chapters/', // {chapterId}/passages/
+    storyProgress: 'story/stories/', // {storyId}/progress/
+    userProgress: 'story/user-progress/',
+    startStory: 'story/stories/', // {storyId}/start/
+    storyPassage: 'story/stories/', // {storyId}/passage/{passageId}/
+    passageChoices: 'story/passages/', // {passageId}/choices/
     
-    // CRUD Operations endpoints
-    storiesCRUD: 'stories/',
-    chaptersCRUD: 'chapters/',
-    passagesCRUD: 'passages/',
-    choicesCRUD: 'choices/',
-    npcsCRUD: 'npcs/',
-    storyProgressCRUD: 'story-progress/',
-    
-    // Other endpoints
+    // CRUD endpoints for admin/story management
+    storiesCRUD: 'story/stories/',
+    chaptersCRUD: 'story/chapters/',
+    passagesCRUD: 'story/passages/',
+    choicesCRUD: 'story/choices/',
+    npcsCRUD: 'story/npcs/',
+    storyProgressCRUD: 'progress/',
+    storyVariables: 'story/variables/',
+      // Other endpoints
     surveys: 'surveys/',
     personality: 'personality/',
-    journalPrompts: 'game/journal-prompts/',
     gameData: 'game/game-data/',
 } as const;
 

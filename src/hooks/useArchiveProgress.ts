@@ -1,45 +1,7 @@
 import { useMemo, useState } from 'react';
-import { availableStorys } from '../data/storyData';
+import { archiveService } from '../services/archiveService';
+import { CodexEntry, EquipmentItem, MiniGameProgress } from '../types';
 
-export interface ArchiveFoundation {
-  icon: string;
-  label: string;
-  value: number;
-  maxValue: number;
-  colors: string[];
-  description: string;
-  recentGain: number;
-  nextUnlock: string;
-  storyTriggers: string[];
-}
-
-export interface CodexEntry {
-  id: string;
-  type: string;
-  passages: string;
-  prompt: string;
-  skillCategory: string;
-  mapArea: string;
-  difficulty: string;
-  timestamp: number;
-}
-
-export interface MiniGameProgress {
-  thoughtDefenderLevel: number;
-  thoughtDefenderScore: number;
-  thoughtDefenderWins: number;
-  drawingEntries: number;
-  totalGameTime: number;
-}
-
-export interface MentalArtifact {
-  name: string;
-  type: string;
-  equipped: boolean;
-  resonance: number;
-  description: string;
-  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-}
 
 export const useArchiveProgress = () => {
   const [completedStories, setCompletedStories] = useState<Set<string>>(new Set());
@@ -51,8 +13,8 @@ export const useArchiveProgress = () => {
     drawingEntries: 0,
     totalGameTime: 0
   });
-  const [discoveredArtifacts, setDiscoveredArtifacts] = useState<MentalArtifact[]>([]);
-  const [finalRewardsArtifacts, setFinalRewardsArtifacts] = useState<MentalArtifact[]>([]);
+  const [discoveredArtifacts, setDiscoveredArtifacts] = useState<EquipmentItem[]>([]);
+  const [finalRewardsArtifacts, setFinalRewardsArtifacts] = useState<EquipmentItem[]>([]);
   const [learnedSkills, setLearnedSkills] = useState<string[]>([]);
 
   // Calculate foundation values based on actual progress
@@ -64,12 +26,12 @@ export const useArchiveProgress = () => {
       'Elemental Harmony': 2
     };
 
-    // Add points from completed stories
-    completedStories.forEach(storyId => {
-      const story = availableStorys.find(g => g.id === storyId);
+    // Add points from completed stories // needs to to synced with backend 
+    completedStories.forEach(async storyId => {
+      const story = (await archiveService.getAvailableStories()).find((g: { id: string; }) => g.id === storyId);
       if (story) {
         // Each completed story gives points to its skill focus areas
-        story.skillFocus.forEach(skill => {
+        story.skillFocus.forEach((skill: string) => {
           if (skill.includes('Mindful') || skill.includes('Stress') || skill.includes('Academic')) {
             baseValues['Sight Beyond Sight'] += 3;
           }
@@ -86,23 +48,23 @@ export const useArchiveProgress = () => {
       }
     });
 
-    // Add points from codex entries (reflection/journal entries)
+    // Add points from codex entries (reflection/journal entries) resources are courage/fear/exploration/(add connection?) 
     codexEntries.forEach(entry => {
       // Each codex entry gives points based on skill category
       switch (entry.skillCategory) {
-        case 'awareness':
+        case 'Exploration': //
         case 'mindfulness':
           baseValues['Sight Beyond Sight'] += 2;
           break;
-        case 'resilience':
+        case 'Courage':
         case 'perseverance':
           baseValues['Unbreakable Will'] += 2;
           break;
-        case 'connection':
+        case 'connection'://needs to be updated
         case 'empathy':
           baseValues["Heart's Compass"] += 2;
           break;
-        case 'balance':
+        case 'Fear':
         case 'harmony':
           baseValues['Elemental Harmony'] += 2;
           break;
@@ -261,7 +223,7 @@ export const useArchiveProgress = () => {
     }
   };
 
-  const handleArtifactUnlock = (artifact: MentalArtifact) => {
+  const handleArtifactUnlock = (artifact: EquipmentItem) => {
     if (!discoveredArtifacts.find(a => a.name === artifact.name) && 
         !finalRewardsArtifacts.find(a => a.name === artifact.name)) {
       setDiscoveredArtifacts(prev => [...prev, artifact]);

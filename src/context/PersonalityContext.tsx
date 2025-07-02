@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { apiBaseUrl } from "../services/apiConfig";
 import { useAuth } from "./AuthContext";
-import { useOnboarding } from "./OnboardingContext";
+import { useMasterState } from "./MasterStateContext";
 
 // Types for personality system
 export type PersonalityTrait =
@@ -549,7 +549,7 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
   children,
 }) => {
   const { authToken } = useAuth();
-  const { onboardingState } = useOnboarding();
+  const { onboarding } = useMasterState();
 
   // Core state
   const [userType, setUserType] = useState<UserType>("unknown");
@@ -584,8 +584,8 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
 
         // Check if user has completed character creation
         if (
-          onboardingState.assignedPath === "character" ||
-          onboardingState.researchGroup === "A"
+          onboarding.assignedPath === "character" ||
+          onboarding.researchGroup === "A"
         ) {
           setUserType("character");
           // For character users, use balanced personality or default
@@ -624,8 +624,7 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
 
             // Find primary trait
             const primary = Object.entries(scores).reduce((a, b) =>
-              scores[a[0] as PersonalityTrait] >
-              scores[b[0] as PersonalityTrait]
+              scores[a[0] as PersonalityTrait] > scores[b[0] as PersonalityTrait]
                 ? a
                 : b
             )[0] as PersonalityTrait;
@@ -646,7 +645,7 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
     };
 
     initializePersonality();
-  }, [authToken, onboardingState.assignedPath, onboardingState.researchGroup]);
+  }, [authToken, onboarding.assignedPath, onboarding.researchGroup]);
 
   // Helper functions
   const isPersonalityUser = () => userType === "personality";

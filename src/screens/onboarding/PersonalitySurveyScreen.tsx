@@ -1,18 +1,15 @@
 import axios from "axios";
 import { useRouter } from "expo-router";
-import * as React from "react";
+import React from "react";
 import {
   Modal,
   SafeAreaView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { useAuth } from "../../context/AuthContext";
-import { useOnboarding } from "../../context/OnboardingContext";
-import { useTheme } from "../../context/ThemeContext";
+import { useMasterState } from "../../context/MasterStateContext";
 import { apiBaseUrl } from "../../services/apiConfig";
-
 const QUESTIONS = [
   {
     question: "When you're lost in a forest, what do you do first?",
@@ -46,9 +43,10 @@ interface SurveyAnswer {
 }
 
 export default function PersonalitySurveyScreen() {
-  const { styles: globalStyles, theme } = useTheme();
-  const { completeSurvey } = useOnboarding();
-  const { authToken } = useAuth();
+  const { theme, onboarding, auth } = useMasterState();
+  const { styles: globalStyles, theme: themeColors } = theme;
+  const { completeSurvey } = onboarding;
+  const { authToken } = auth;
   const router = useRouter();
   const [modalVisible, setModalVisible] = React.useState(true);
   const [currentQuestion, setCurrentQuestion] = React.useState(0);
@@ -127,9 +125,8 @@ export default function PersonalitySurveyScreen() {
 
       // Update onboarding state
       await completeSurvey();
-
       // Navigate to personality home screen
-      router.replace("/(personality)");
+      router.replace("/(personality)/personality");
     } catch (error: any) {
       console.error("Failed to submit survey:", error);
       console.error("Error response:", error.response?.data);
@@ -217,9 +214,9 @@ export default function PersonalitySurveyScreen() {
                 {
                   alignItems: "flex-start",
                   backgroundColor: isOptionSelected(idx)
-                    ? theme.primary
-                    : theme.card,
-                  borderColor: theme.border,
+                    ? themeColors.primary
+                    : themeColors.card,
+                  borderColor: themeColors.border,
                   borderWidth: 1,
                   marginVertical: 4,
                   opacity: isSubmitting ? 0.5 : 1,
@@ -231,7 +228,7 @@ export default function PersonalitySurveyScreen() {
               <Text
                 style={[
                   globalStyles.text,
-                  { color: isOptionSelected(idx) ? "#fff" : theme.text },
+                  { color: isOptionSelected(idx) ? "#fff" : themeColors.text },
                 ]}
               >
                 {option.text}
@@ -242,7 +239,7 @@ export default function PersonalitySurveyScreen() {
         <View
           style={{
             flexDirection: "row",
-            justifypassages: "space-between",
+            justifyContent: "space-between",
             width: "100%",
             maxWidth: 400,
             marginTop: 16,
@@ -253,7 +250,7 @@ export default function PersonalitySurveyScreen() {
               style={[
                 globalStyles.text,
                 {
-                  color: theme.tabBarInactive,
+                  color: themeColors.tabBarInactive,
                   textDecorationLine: "underline",
                 },
               ]}
@@ -267,7 +264,7 @@ export default function PersonalitySurveyScreen() {
               {
                 opacity: !isOptionSelected(0) || isSubmitting ? 0.5 : 1,
                 marginLeft: 16,
-                backgroundColor: theme.primary,
+                backgroundColor: themeColors.primary,
               },
             ]}
             onPress={handleNext}
@@ -282,7 +279,7 @@ export default function PersonalitySurveyScreen() {
           <Text
             style={[
               globalStyles.text,
-              { color: theme.notification, marginTop: 16 },
+              { color: themeColors.notification, marginTop: 16 },
             ]}
           >
             {error}

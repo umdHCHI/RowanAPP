@@ -7,10 +7,34 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import Button from "./Button";
+import { GameState, PowerUp, Projectile, Thought } from "../types";
 import PixelButton from "./PixelButton";
+
+// Simple custom button component for the game
+const GameButton = ({ title, onPress, style, color = "darkBrown" }: any) => (
+  <TouchableOpacity
+    style={[
+      {
+        backgroundColor: color === "darkBrown" ? "#8B4513" : "#4CAF50",
+        padding: 12,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 2,
+        borderColor: color === "darkBrown" ? "#654321" : "#45a049",
+      },
+      style,
+    ]}
+    onPress={onPress}
+  >
+    <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 14 }}>
+      {title}
+    </Text>
+  </TouchableOpacity>
+);
+
 
 const { width, height } = Dimensions.get("window");
 const GAME_WIDTH = width * 0.9;
@@ -18,59 +42,10 @@ const GAME_HEIGHT = height * 0.6;
 const PADDLE_WIDTH = 60;
 const PADDLE_HEIGHT = 20;
 
-// TypeScript Interfaces
-interface Position {
-  x: number;
-  y: number;
-}
 
-interface Thought {
-  id: number;
-  text: string;
-  isPositive: boolean;
-  x: number;
-  y: number;
-  speed: number;
-  powerUpType?:
-    | "shield"
-    | "multishot"
-    | "slowtime"
-    | "extralife"
-    | "multiplier"
-    | "fastshoot";
-}
 
-interface Projectile {
-  id: number;
-  x: number;
-  y: number;
-  speed: number;
-}
 
-interface PowerUp {
-  type:
-    | "shield"
-    | "multishot"
-    | "slowtime"
-    | "extralife"
-    | "multiplier"
-    | "fastshoot";
-  duration: number;
-  active: boolean;
-}
-
-interface GameState {
-  wave: number;
-  thoughtsInWave: number;
-  thoughtsCleared: number;
-  scoreMultiplier: number;
-  timeSlowActive: boolean;
-  shieldActive: boolean;
-  multiShotActive: boolean;
-  fastShootActive: boolean;
-}
-
-// Power-up definitions
+// Power-up definitions --- power ups from from story 
 const POWER_UPS = {
   shield: {
     name: "🛡️ SHIELD",
@@ -110,7 +85,7 @@ const POWER_UPS = {
   },
 };
 
-// Enhanced thought arrays with power-up types
+// Enhanced thought arrays with power-up types -- needs to be altered from stroy/person 
 const POSITIVE_THOUGHTS = [
   { text: "I am capable", powerUp: undefined },
   { text: "I can handle this", powerUp: undefined },
@@ -948,9 +923,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           )}
 
           <PixelButton>
-            <Button
+            <GameButton
               title="🚪 EXIT GAME"
-              variant="darkBrown"
+              color="darkBrown"
               onPress={onClose}
               style={{ width: 150 }}
             />

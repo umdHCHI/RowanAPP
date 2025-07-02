@@ -1,8 +1,6 @@
 import { useMasterState } from "../../context/MasterStateContext";
 import {
   Alert,
-  ArchiveArea,
-  ArchiveMapModal,
   BlurView,
   CharacterPreview,
   CodexModal,
@@ -76,6 +74,32 @@ const ArchiveInterface: React.FC = () => {
     loadStories();
   }, []);
 
+  // Load home data and journal prompts on mount (only once)
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load home data for character display
+        await wellness.loadHomeData();
+        
+        // Load available prompts first
+        await wellness.loadAvailablePrompts();
+        
+        // Then load category-specific prompts based on current progress
+        const unlockedAreas = ["entrance"]; // Start with entrance, add more based on progress
+        const completedStoriesArray = Array.from(archive.completedStories);
+        await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
+      } catch (error: any) {
+        console.error('Error loading data:', error);
+        // Don't retry on 404 errors - the endpoint might not be implemented yet
+        if (error?.response?.status === 404) {
+          console.log('Some endpoints not found (404) - this is expected if the endpoints are not implemented');
+        }
+      }
+    };
+
+    loadData();
+  }, []); // Empty dependency array - only run once on mount
+
   // Story handlers
   const handleOpenStory = async (Story: any) => {
     try {
@@ -83,9 +107,17 @@ const ArchiveInterface: React.FC = () => {
       console.log("Story data:", Story);
       console.log("Story ID:", Story?.id);
       console.log("Story title:", Story?.title);
+      console.log("Chapter count:", Story?.chapter_count);
 
-      setSelectedStory(Story);
-      setIsChapterScreenVisible(true);
+      // Check if story has chapters
+      if (Story?.chapter_count && Story.chapter_count > 0) {
+        // Chapter-based story - show chapter selection
+        setSelectedStory(Story);
+        setIsChapterScreenVisible(true);
+      } else {
+        // Non-chapter story - open directly
+        await handleDirectStoryOpen(Story);
+      }
     } catch (error) {
       console.error("Error in handleOpenStory:", error);
       // Show error to user
@@ -109,7 +141,27 @@ const ArchiveInterface: React.FC = () => {
       // Get story passages from backend
       const storypassages = await archiveService.getStorypassages(Story.id);
       if (storypassages) {
-        ui.openStory({ ...Story, passages: storypassages });
+        // Get user's progress for this story
+        const progressRecords = await archiveService.getStoryProgressRecords(String(Story.id));
+        console.log("User progress for story:", progressRecords);
+        
+        // Calculate exploration percentage based on progress
+        let exploration = 0;
+        if (progressRecords.length > 0) {
+          // Count unique passages visited
+          const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
+          const totalPassages = storypassages.passages?.length || 1;
+          exploration = Math.round((uniquePassages.size / totalPassages) * 100);
+        }
+        
+        // Update story with progress information
+        const storyWithProgress = {
+          ...Story,
+          passages: storypassages,
+          exploration: exploration
+        };
+        
+        ui.openStory(storyWithProgress);
       } else {
         // Show error if no passages found
         Alert.alert(
@@ -126,6 +178,7 @@ const ArchiveInterface: React.FC = () => {
     }
   };
 
+  // Chapter selection is not needed for Django backend (no chapters)
   const handleChapterSelect = async (chapterId: number) => {
     try {
       console.log("=== handleChapterSelect called ===");
@@ -165,10 +218,24 @@ const ArchiveInterface: React.FC = () => {
             storypassages.passages?.length
           );
 
-          // Create a modified story object with chapter information
+          // Get user's progress for this story
+          const progressRecords = await archiveService.getStoryProgressRecords(String(selectedStory.id));
+          console.log("User progress for story:", progressRecords);
+          
+          // Calculate exploration percentage based on progress
+          let exploration = 0;
+          if (progressRecords.length > 0) {
+            // Count unique passages visited
+            const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
+            const totalPassages = storypassages.passages?.length || 1;
+            exploration = Math.round((uniquePassages.size / totalPassages) * 100);
+          }
+
+          // Create a modified story object with chapter information and progress
           const storyWithChapter = {
             ...selectedStory,
             passages: storypassages, // Pass the entire storypassages object directly
+            exploration: exploration
           };
           console.log(
             "Final story object being passed to StoryScreen:",
@@ -370,8 +437,10 @@ const ArchiveInterface: React.FC = () => {
 
     // Use home_data character if available, otherwise fall back to backend character
     const characterData = hasHomeData ? homeData.character : backendCharacter;
-    const wellnessStats = hasHomeData
-      ? homeData.character.wellness_stats
+    
+    // wellness_stats comes from home_data, not from the character object directly
+    const wellnessStats = hasHomeData && (homeData as any).character?.wellness_stats
+      ? (homeData as any).character.wellness_stats
       : null;
 
     // Ensure characterData is not null before using it
@@ -416,11 +485,11 @@ const ArchiveInterface: React.FC = () => {
               eyesSheet={character.getEyesAsset()}
               eyebrowsSheet={character.getEyebrowsAsset()}
               mouthSheet={character.getMouthAsset()}
-              hairIndex={character.getHairIndex()}
-              clothesIndex={character.getClothesIndex()}
-              eyesIndex={character.getEyesIndex()}
-              eyebrowsIndex={character.getEyebrowsIndex()}
-              mouthIndex={character.selectedMouthType}
+              hairIndex={characterData.character_config?.selected_hair_style || character.getHairIndex()}
+              clothesIndex={characterData.character_config?.selected_shirt_type || character.getClothesIndex()}
+              eyesIndex={characterData.character_config?.selected_eye_type || character.getEyesIndex()}
+              eyebrowsIndex={characterData.character_config?.selected_eyebrow_style || character.getEyebrowsIndex()}
+              mouthIndex={characterData.character_config?.selected_mouth_type || character.selectedMouthType}
             />
 
             {/* Character Level and Status */}
@@ -443,7 +512,7 @@ const ArchiveInterface: React.FC = () => {
               >
                 <Icon name="zap" size={12} color="#FCD34D" />
                 <Text style={theme.styles.essenceResonanceText}>
-                  {characterData.wellness_average || 87}% Resonance
+                  {(characterData as any).wellness_average || 87}% Resonance
                 </Text>
               </LinearGradient>
             </View>
@@ -469,7 +538,7 @@ const ArchiveInterface: React.FC = () => {
     <View style={theme.styles.archiveContainer}>
       <StatusBar
         barStyle={
-          theme.themeMode === "dark" ? "light-passages" : "dark-passages"
+          theme.themeMode === "dark" ? "light-content" : "dark-content"
         }
         backgroundColor={theme.theme.archiveBackground}
       />
@@ -542,7 +611,7 @@ const ArchiveInterface: React.FC = () => {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                passagesContainerStyle={theme.styles.archiveTabScrollpassages}
+                contentContainerStyle={theme.styles.archiveTabScrollpassages}
               >
                 <TabButton
                   title="Entrance Hall"
@@ -568,12 +637,12 @@ const ArchiveInterface: React.FC = () => {
                   isActive={ui.activeTab === "defender"}
                   onPress={() => ui.setActiveTab("defender")}
                 />
-                <TabButton
+                {/*`<TabButton
                   title="Memory Map"
                   icon="map"
                   isActive={ui.activeTab === "map"}
                   onPress={() => ui.setActiveTab("map")}
-                />
+                />*/}
                 <TabButton
                   title="Restoration"
                   icon="award"
@@ -628,7 +697,7 @@ const ArchiveInterface: React.FC = () => {
                       </Text>
                     </View>
 
-                    <TouchableOpacity
+                    {/*<TouchableOpacity
                       style={theme.styles.researchConditionBadge}
                       onPress={() =>
                         ui.setResearchCondition(
@@ -656,10 +725,11 @@ const ArchiveInterface: React.FC = () => {
                             : "⧫ Essence Path ⧫"}
                         </Text>
                       </LinearGradient>
-                    </TouchableOpacity>
+                    </TouchableOpacity>*/}
+
                   </View>
 
-                  {/* Main Character Display with Gear */}
+                  {/* Main Character Display with Gear  Gear here needs to be updated to use the gear/type from the equipment state */}
                   <View style={theme.styles.characterDisplaySection}>
                     {/* Left Gear Column */}
                     <View style={theme.styles.gearColumn}>
@@ -769,28 +839,8 @@ const ArchiveInterface: React.FC = () => {
                     </View>
                   </View>
 
-                  {/* Research Condition Info */}
-                  {ui.researchCondition === "personality" && (
-                    <View style={theme.styles.researchConditionInfo}>
-                      <LinearGradient
-                        colors={[
-                          "rgba(139, 92, 246, 0.3)",
-                          "rgba(79, 70, 229, 0.3)",
-                        ]}
-                        style={theme.styles.researchConditionInfoGradient}
-                      >
-                        <Icon name="zap" size={16} color="#FCD34D" />
-                        <Text style={theme.styles.researchConditionInfoTitle}>
-                          Essence-Calibrated Avatar
-                        </Text>
-                        <Text style={theme.styles.researchConditionInfoText}>
-                          Your avatar's manifestation has been shaped by the
-                          deepest readings of your psychological essence
-                          patterns
-                        </Text>
-                      </LinearGradient>
-                    </View>
-                  )}
+                  {/* Research Condition Info Could maybe be removed as this is a differernt page */}
+                  {ui.researchCondition === "personality" ? null : null}
                 </LinearGradient>
               </View>
 
@@ -818,7 +868,7 @@ const ArchiveInterface: React.FC = () => {
                   <View style={theme.styles.foundationsGrid}>
                     {/* Use home_data wellness_stats if available, otherwise fall back to local archive foundations */}
                     {(
-                      wellness.homeData?.character?.wellness_stats ||
+                      (wellness.homeData as any)?.character?.wellness_stats ||
                       archive.archiveFoundations
                     ).map((foundation: any, index: number) => {
                       // Handle both wellness_stats format and archive foundations format
@@ -1159,6 +1209,74 @@ const ArchiveInterface: React.FC = () => {
           {/* Codex Tab */}
           {ui.activeTab === "codex" && (
             <View style={theme.styles.tabpassagesArea}>
+              {/* Journal Prompts Test Section */}
+              <View style={theme.styles.centeredMessageContainer}>
+                <Icon
+                  name="bookmark"
+                  size={30}
+                  color="#10B981"
+                  style={{ marginBottom: 12 }}
+                />
+                <Text style={[theme.styles.centeredMessageTitle, { fontSize: 18, marginBottom: 12 }]}>
+                  Current Journal Prompts
+                </Text>
+                <TouchableOpacity
+                  style={[theme.styles.primaryButton, { marginBottom: 16 }]}
+                  onPress={() => {
+                    const unlockedAreas = ["entrance"]; // Add more areas as needed
+                    const completedStories = Array.from(archive.completedStories);
+                    wellness.loadCategoryPrompts(unlockedAreas, completedStories);
+                  }}
+                >
+                  <LinearGradient
+                    colors={["#10B981", "#059669"]}
+                    style={theme.styles.primaryButtonGradient}
+                  >
+                    <Icon name="refresh-cw" size={18} color="#D1FAE5" />
+                    <Text style={theme.styles.primaryButtonText}>
+                      Load Prompts
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                
+                {/* Display Current Prompts */}
+                <View style={{ width: '100%', marginBottom: 20 }}>
+                  {['journal', 'draw', 'voice'].map((category) => {
+                    const prompt = wellness.categoryPrompts[category as keyof typeof wellness.categoryPrompts];
+                    return (
+                      <View key={category} style={{
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        padding: 12,
+                        marginBottom: 8,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.1)'
+                      }}>
+                        <Text style={{
+                          color: '#A855F7',
+                          fontSize: 14,
+                          fontWeight: 'bold',
+                          marginBottom: 4,
+                          textTransform: 'capitalize'
+                        }}>
+                          {category} Quest:
+                        </Text>
+                        <Text style={{
+                          color: theme.theme.archiveText,
+                          fontSize: 12,
+                          lineHeight: 16
+                        }}>
+                          {prompt 
+                            ? `${prompt.text} (${prompt.skill_category} - ${prompt.difficulty})`
+                            : "No quest available yet"
+                          }
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+              
               <View style={theme.styles.centeredMessageContainer}>
                 <Icon
                   name="edit-3"
@@ -1222,40 +1340,41 @@ const ArchiveInterface: React.FC = () => {
             </View>
           )}
 
-          {/* Memory Map Tab */}
-          {ui.activeTab === "map" && (
-            <View style={theme.styles.tabpassagesArea}>
-              <View style={theme.styles.centeredMessageContainer}>
-                <Icon
-                  name="map"
-                  size={40}
-                  color="#06B6D4"
-                  style={{ marginBottom: 16 }}
-                />
-                <Text style={theme.styles.centeredMessageTitle}>
-                  Memory Map
-                </Text>
-                <Text style={theme.styles.centeredMessageText}>
-                  Explore the vast archive of your mind, unlock new areas, and
-                  discover hidden wisdom.
-                </Text>
-                <TouchableOpacity
-                  style={theme.styles.primaryButton}
-                  onPress={() => ui.setIsMapVisible(true)}
+        {/* Memory Map Tab (currently disabled)
+        {ui.activeTab === "map" && (
+          <View style={theme.styles.tabpassagesArea}>
+            <View style={theme.styles.centeredMessageContainer}>
+              <Icon
+                name="map"
+                size={40}
+                color="#06B6D4"
+                style={{ marginBottom: 16 }}
+              />
+              <Text style={theme.styles.centeredMessageTitle}>
+                Memory Map
+              </Text>
+              <Text style={theme.styles.centeredMessageText}>
+                Explore the vast archive of your mind, unlock new areas, and
+                discover hidden wisdom.
+              </Text>
+              <TouchableOpacity
+                style={theme.styles.primaryButton}
+                onPress={() => ui.setIsMapVisible(true)}
+              >
+                <LinearGradient
+                  colors={["#06B6D4", "#3B82F6"]}
+                  style={theme.styles.primaryButtonGradient}
                 >
-                  <LinearGradient
-                    colors={["#06B6D4", "#3B82F6"]}
-                    style={theme.styles.primaryButtonGradient}
-                  >
-                    <Icon name="map" size={18} color="#E0E7FF" />
-                    <Text style={theme.styles.primaryButtonText}>
-                      Explore the Map
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
+                  <Icon name="map" size={18} color="#E0E7FF" />
+                  <Text style={theme.styles.primaryButtonText}>
+                    Explore the Map
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-          )}
+          </View>
+        )}
+        */}
 
           {/* Restoration Tab - Updated to use home_data archive_metrics */}
           {ui.activeTab === "restoration" && (
@@ -1383,14 +1502,7 @@ const ArchiveInterface: React.FC = () => {
         }
       />
 
-      <ArchiveMapModal
-        visible={ui.isMapVisible}
-        onClose={() => ui.setIsMapVisible(false)}
-        onAreaSelect={(area: ArchiveArea) => ui.setCurrentMapRoomId(area.id)}
-        completedEntries={archive.codexEntries.length}
-        entries={archive.codexEntries}
-        currentRoomId={ui.currentMapRoomId}
-      />
+
     </View>
   );
 };

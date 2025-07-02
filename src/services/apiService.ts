@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
-import { EquipmentItem, EquippedItems } from '../types/equipment';
-import { Prompt } from '../types/journal';
-import { CharacterCreateData, GameData, LoginResponse, ResearchGroup, UserProfile } from '../types/user';
+import { CharacterGear, EquipmentItem, EquippedItems } from '../types/equipment';
+import { CodexEntry, JournalPrompt } from '../types/journal';
+import { Chapter, Choice, NPC, Passage, Story, StoryProgress } from '../types/story';
+import { Character, CharacterCreateData, GameData, LoginResponse, ResearchGroup, UserProfile } from '../types/user';
 import { API_ENDPOINTS, apiBaseUrl } from './apiConfig';
 
 const testToken = Constants.expoConfig?.extra?.TEST_USER_TOKEN as string;
@@ -16,77 +17,112 @@ if (!testToken) {
 
 const FALLBACK_TEST_TOKEN = '8a71299900898a32febbca89ef5638a406475348';
 
-// ===== NEW TYPES FOR WELLNESS BACKEND =====
-export interface WellnessCharacter {
+// ===== TOKEN MANAGEMENT =====
+class TokenManager {
+    private cachedToken: string | null = null;
+    private isInitialized = false;
+    private initializationPromise: Promise<void> | null = null;
+
+    async initialize(): Promise<void> {
+        if (this.isInitialized) return;
+        
+        if (this.initializationPromise) {
+            return this.initializationPromise;
+        }
+
+        this.initializationPromise = this.loadTokenFromStorage();
+        await this.initializationPromise;
+        this.isInitialized = true;
+    }
+
+    private async loadTokenFromStorage(): Promise<void> {
+        try {
+            this.cachedToken = await AsyncStorage.getItem('authToken');
+            console.log('TokenManager: Token loaded from storage:', this.cachedToken ? 'Present' : 'Not found');
+            console.log('TokenManager: Token value:', this.cachedToken);
+        } catch (error) {
+            console.error('TokenManager: Error loading token from storage:', error);
+            this.cachedToken = null;
+        }
+    }
+
+    getToken(): string | null {
+        return this.cachedToken;
+    }
+
+    async setToken(token: string): Promise<void> {
+        this.cachedToken = token;
+        try {
+            await AsyncStorage.setItem('authToken', token);
+            console.log('TokenManager: Token saved to storage');
+        } catch (error) {
+            console.error('TokenManager: Error saving token to storage:', error);
+        }
+    }
+
+    async clearToken(): Promise<void> {
+        this.cachedToken = null;
+        try {
+            await AsyncStorage.removeItem('authToken');
+            console.log('TokenManager: Token cleared from storage');
+        } catch (error) {
+            console.error('TokenManager: Error clearing token from storage:', error);
+        }
+    }
+
+    isTestToken(): boolean {
+        return this.cachedToken === testToken || this.cachedToken === FALLBACK_TEST_TOKEN;
+    }
+}
+
+// ===== REQUEST TRACKING =====
+class RequestTracker {
+    private pendingRequests = new Map<string, Promise<any>>();
+
+    generateKey(method: string, url: string, data?: any): string {
+        return `${method}:${url}:${JSON.stringify(data || {})}`;
+    }
+
+    isPending(key: string): boolean {
+        return this.pendingRequests.has(key);
+    }
+
+    addRequest(key: string, promise: Promise<any>): void {
+        this.pendingRequests.set(key, promise);
+        
+        // Clean up when request completes
+        promise.finally(() => {
+            this.pendingRequests.delete(key);
+        });
+    }
+
+    getPendingRequest(key: string): Promise<any> | undefined {
+        return this.pendingRequests.get(key);
+    }
+}
+
+// ===== TYPES FOR WELLNESS BACKEND =====
+// Using existing interfaces from types files
+// WellnessCharacter = Character (from user.ts)
+// CharacterConfig = Character (from user.ts)
+// WellnessStats = from journal.ts
+// CopingTool = EquipmentItem (from equipment.ts)
+// CharacterTool = EquippedItems (from equipment.ts)
+// Story, NPC, Passage, Choice = from story.ts
+
+// Additional types needed for the API service
+export interface StoryVariable {
     id: number;
-    user: string;
-    name: string;
-    level: number;
-    experience: number;
-    // Wellness attributes
-    awareness: number;
-    resilience: number;
-    connection: number;
-    balance: number;
-    // Resources
-    coins: number;
-    crystals: number;
-    // Progress
-    memories_explored: number;
-    coping_skills_learned: number;
-    insights_discovered: number;
-    // Customization indices (frontend maps these to assets)
-    selected_base_model: number;
-    selected_skin_color: number;
-    selected_hair_style: number;
-    selected_hair_color: number;
-    selected_eye_type: number;
-    selected_eye_color: number;
-    selected_eyebrow_style: number;
-    selected_eyebrow_color: number;
-    selected_mouth_type: number;
-    selected_shirt_type: number;
-    selected_background_type: number;
-    // Calculated fields
-    experience_needed_for_next_level: number;
-    experience_progress_percentage: number;
-    wellness_average: number;
-    memory_progress: string;
-    wellness_stats: WellnessStats[];
-    character_config: CharacterConfig;
-    coping_tools: CharacterTool[];
-    equipped_gear: CharacterGear[];
-    created_at: string;
-    updated_at: string;
+    user: number; // FK to User
+    story: number; // FK to Story
+    variable_name: string;
+    variable_value: any;
 }
 
-export interface CharacterConfig {
-    selected_base_model: number;
-    selected_skin_color: number;
-    selected_hair_style: number;
-    selected_hair_color: number;
-    selected_eye_type: number;
-    selected_eye_color: number;
-    selected_eyebrow_style: number;
-    selected_eyebrow_color: number;
-    selected_mouth_type: number;
-    selected_shirt_type: number;
-    selected_background_type: number;
-}
-
-export interface WellnessStats {
-    icon: string;
-    label: string;
-    value: number;
-    color: string;
-}
-
-export interface CopingTool {
-    id: number;
-    name: string;
+// Extended CopingTool interface for backend compatibility
+export interface CopingTool extends Omit<EquipmentItem, 'subtype'> {
     tool_type: 'focus' | 'comfort' | 'shield' | 'ground';
-    subtype: string;
-    description: string;
+    subtype: string; // Override with string type for backend compatibility
     emoji_icon: string;
     awareness_bonus: number;
     resilience_bonus: number;
@@ -100,6 +136,7 @@ export interface CopingTool {
     created_at: string;
 }
 
+// Extended CharacterTool interface for backend compatibility
 export interface CharacterTool {
     id: number;
     tool: CopingTool;
@@ -109,83 +146,89 @@ export interface CharacterTool {
     acquired_at: string;
 }
 
-export interface ReflectionEntry {
-    id: number;
-    character: string;
-    entry_type: 'memory' | 'insight' | 'skill' | 'challenge' | 'growth';
-    title: string;
-    passages: string;
-    prompt: string;
-    skill_category?: string;
-    map_area?: string;
-    difficulty?: string;
-    wellness_gains: Record<string, number>;
-    tools_unlocked: CopingTool[];
-    created_at: string;
-}
-
-export interface CharacterGear {
-    id: number;
-    gear_type: {
-        id: number;
-        name: string;
-        slot: 'weapon' | 'armor' | 'helmet' | 'boots';
-        description: string;
-        emoji_icon: string;
-        stat_bonuses: Record<string, number>;
-    };
-    is_equipped: boolean;
-    acquired_at: string;
-}
-
 export interface HomeData {
-    character: WellnessCharacter;
+    character: Character;
     archive_metrics: {
         icon: string;
         label: string;
         value: string;
         progress: number;
     }[];
-    recent_reflections: ReflectionEntry[];
+    recent_codex_entries: CodexEntry[];
     available_tools: CopingTool[];
 }
+
+// ===== GLOBAL INSTANCES =====
+const tokenManager = new TokenManager();
+const requestTracker = new RequestTracker();
 
 // ===== Axios Setup =====
 const apiClient: AxiosInstance = axios.create({
     baseURL: apiBaseUrl,
     headers: {
-        'passages-Type': 'application/json',
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
     },
+    timeout: 30000, // 30 second timeout
 });
 
+// Fixed request interceptor - no async operations, uses cached token
 apiClient.interceptors.request.use(
-    async (config) => {
-        try {
-            const token = await AsyncStorage.getItem('authToken');
-            console.log('Request interceptor - Token present:', token ? 'Yes' : 'No');
+    (config) => {
+        // Skip token for login and token verification endpoints
+        const skipTokenEndpoints = ['/api/auth/login/', '/api/auth/token/verify/'];
+        const shouldSkipToken = skipTokenEndpoints.some(endpoint => 
+            config.url?.includes(endpoint)
+        );
+
+        if (!shouldSkipToken) {
+            const token = tokenManager.getToken();
+            console.log('Request interceptor: URL:', config.url);
+            console.log('Request interceptor: Token available:', !!token);
+            console.log('Request interceptor: Token value:', token);
             if (token) {
                 config.headers.Authorization = `Token ${token}`;
-                console.log('Request interceptor - Added Authorization header');
+                console.log('Request interceptor: Added Authorization header');
             } else {
-                console.log('Request interceptor - No token found');
+                console.log('Request interceptor: No token available');
             }
-        } catch (error) {
-            console.error('Error getting auth token:', error);
         }
+
         return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+        console.error('Request interceptor error:', error);
+        return Promise.reject(error);
+    }
 );
 
+// Fixed response interceptor - handles 401 errors without triggering loops
 apiClient.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         if (error.response?.status === 401) {
-            console.error('Authentication error:', error.response.data);
-            console.error('Request URL:', error.config?.url);
-            console.error('Request headers:', error.config?.headers);
-            await AsyncStorage.removeItem('authToken');
+            console.error('Authentication error (401):', {
+                url: error.config?.url,
+                method: error.config?.method,
+                data: error.response.data
+            });
+            
+            // Only clear token for certain endpoints that should require authentication
+            // Don't clear token for endpoints that might not be implemented yet
+            const url = error.config?.url || '';
+            const shouldClearToken = !url.includes('journal/journal-prompts') && 
+                                   !url.includes('story/stories') &&
+                                   !url.includes('characters/coping-tools') &&
+                                   !url.includes('characters/character-tools');
+            
+            if (shouldClearToken) {
+                console.log('Clearing token due to 401 error on authenticated endpoint');
+                await tokenManager.clearToken();
+            } else {
+                console.log('Not clearing token for 401 error on potentially unimplemented endpoint:', url);
+            }
+            
+            // Don't retry the request - let the calling code handle it
         }
         return Promise.reject(error);
     }
@@ -193,23 +236,63 @@ apiClient.interceptors.response.use(
 
 // ===== Main API Service Class =====
 class ApiService {
-    // Generic request methods
+    private isInitialized = false;
+
+    // Initialize the API service
+    async initialize(): Promise<void> {
+        if (this.isInitialized) return;
+        
+        console.log('ApiService: Initializing...');
+        await tokenManager.initialize();
+        this.isInitialized = true;
+        console.log('ApiService: Initialized successfully');
+    }
+
+    // Generic request methods with request deduplication
     public async get<T>(endpoint: keyof typeof API_ENDPOINTS, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
+        const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
+        const key = requestTracker.generateKey('GET', url);
+        
+        // Check for pending request
+        if (requestTracker.isPending(key)) {
+            console.log('ApiService: Returning pending GET request for:', url);
+            return requestTracker.getPendingRequest(key)!;
+        }
+
+        const promise = this.executeGet<T>(url, config);
+        requestTracker.addRequest(key, promise);
+        return promise;
+    }
+
+    private async executeGet<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
         try {
-            const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
             const axiosConfig = { ...config };
             delete (axiosConfig as any).urlSuffix;
             const response = await apiClient.get<T>(url, axiosConfig);
             return response.data;
         } catch (error) {
-            this.handleError(error, 'GET', API_ENDPOINTS[endpoint]);
+            this.handleError(error, 'GET', url);
             throw error;
         }
     }
 
     public async post<T>(endpoint: keyof typeof API_ENDPOINTS, data?: any, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
         const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
-        console.log(`POST ${url}`, { data, config });
+        const key = requestTracker.generateKey('POST', url, data);
+        
+        // Check for pending request
+        if (requestTracker.isPending(key)) {
+            console.log('ApiService: Returning pending POST request for:', url);
+            return requestTracker.getPendingRequest(key)!;
+        }
+
+        const promise = this.executePost<T>(url, data, config);
+        requestTracker.addRequest(key, promise);
+        return promise;
+    }
+
+    private async executePost<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+        console.log(`POST ${url}`, { data });
         
         try {
             const axiosConfig = { ...config };
@@ -222,7 +305,6 @@ class ApiService {
             if (error.response) {
                 console.error('Response data:', error.response.data);
                 console.error('Response status:', error.response.status);
-                console.error('Response headers:', error.response.headers);
             }
             this.handleError(error, 'POST', url);
             throw error;
@@ -230,49 +312,68 @@ class ApiService {
     }
 
     public async patch<T>(endpoint: keyof typeof API_ENDPOINTS, data: any, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
+        const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
+        const key = requestTracker.generateKey('PATCH', url, data);
+        
+        if (requestTracker.isPending(key)) {
+            console.log('ApiService: Returning pending PATCH request for:', url);
+            return requestTracker.getPendingRequest(key)!;
+        }
+
+        const promise = this.executePatch<T>(url, data, config);
+        requestTracker.addRequest(key, promise);
+        return promise;
+    }
+
+    private async executePatch<T>(url: string, data: any, config?: AxiosRequestConfig): Promise<T> {
         try {
-            const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
             const axiosConfig = { ...config };
             delete (axiosConfig as any).urlSuffix;
             const response = await apiClient.patch<T>(url, data, axiosConfig);
             return response.data;
         } catch (error) {
-            this.handleError(error, 'PATCH', API_ENDPOINTS[endpoint]);
+            this.handleError(error, 'PATCH', url);
             throw error;
         }
     }
 
     public async delete<T>(endpoint: keyof typeof API_ENDPOINTS, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
+        const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
+        const key = requestTracker.generateKey('DELETE', url);
+        
+        if (requestTracker.isPending(key)) {
+            console.log('ApiService: Returning pending DELETE request for:', url);
+            return requestTracker.getPendingRequest(key)!;
+        }
+
+        const promise = this.executeDelete<T>(url, config);
+        requestTracker.addRequest(key, promise);
+        return promise;
+    }
+
+    private async executeDelete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
         try {
-            const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
             const axiosConfig = { ...config };
             delete (axiosConfig as any).urlSuffix;
             const response = await apiClient.delete<T>(url, axiosConfig);
             return response.data;
         } catch (error) {
-            this.handleError(error, 'DELETE', API_ENDPOINTS[endpoint]);
+            this.handleError(error, 'DELETE', url);
             throw error;
         }
     }
 
-    private handleError(error: any, method: string, endpoint: string | ((storyId: number, passageId: string) => string)) {
-        const endpointStr = typeof endpoint === 'function' ? 'function' : endpoint;
-        
+    private handleError(error: any, method: string, endpoint: string) {
         if (axios.isAxiosError(error)) {
             const axiosError = error as AxiosError;
-            console.error(`Error in ${method} ${endpointStr}:`, {
+            console.error(`Error in ${method} ${endpoint}:`, {
                 status: axiosError.response?.status,
                 data: axiosError.response?.data,
                 message: axiosError.message,
-                headers: axiosError.config?.headers,
                 url: axiosError.config?.url,
             });
-            
-            if (axiosError.response?.data) {
-                console.error('Full error response:', axiosError.response.data);
-            }
         } else {
-            console.error(`Error in ${method} ${endpointStr}:`, error);
+            console.error(`Error in ${method} ${endpoint}:`, error);
         }
     }
 
@@ -280,7 +381,7 @@ class ApiService {
     async login(username: string, password: string): Promise<LoginResponse> {
         try {
             const response = await this.post<LoginResponse>('login', { username, password });
-            await AsyncStorage.setItem('authToken', response.token);
+            await tokenManager.setToken(response.token);
             await AsyncStorage.setItem('characterId', String(response.user.id));
             return response;
         } catch (error) {
@@ -295,17 +396,17 @@ class ApiService {
         } catch (error) {
             console.error('Logout API error:', error);
         } finally {
-            await AsyncStorage.removeItem('authToken');
+            await tokenManager.clearToken();
             await AsyncStorage.removeItem('characterId');
         }
     }
 
     async validateToken(): Promise<boolean> {
         try {
-            const token = await AsyncStorage.getItem('authToken');
+            const token = tokenManager.getToken();
             if (!token) return false;
 
-            if (token === testToken || token === FALLBACK_TEST_TOKEN) {
+            if (tokenManager.isTestToken()) {
                 return true;
             }
 
@@ -313,7 +414,7 @@ class ApiService {
             return true;
         } catch (error) {
             console.error('Token validation error:', error);
-            await AsyncStorage.removeItem('authToken');
+            await tokenManager.clearToken();
             return false;
         }
     }
@@ -328,40 +429,65 @@ class ApiService {
     }
 
     async assignResearchGroup(groupId: number): Promise<void> {
-        await this.post('assignResearchGroup', { research_group_id: groupId });
+        try {
+            // Assign user to research group using the correct endpoint
+            await this.post('assignResearchGroup', { research_group_id: groupId });
+            console.log('User assigned to research group ID:', groupId);
+        } catch (error) {
+            console.error('Failed to assign research group:', error);
+            console.log('Research group assignment failed - this is expected if the backend is not properly configured');
+            // Don't throw error, just log it and continue
+        }
     }
 
     async assignResearchGroupByCondition(condition: 'A' | 'B'): Promise<void> {
-        const availableGroups = await this.getAvailableGroups();
-        const targetGroup = availableGroups.find(group => group.condition === condition);
-        
-        if (!targetGroup) {
-            console.log(`No research group found with condition ${condition}, attempting to create one...`);
-            try {
-                const newGroup = await this.createResearchGroup(condition);
-                await this.post('assignResearchGroup', { research_group_id: newGroup.id });
-            } catch (createError) {
-                console.error('Failed to create research group:', createError);
-                throw new Error(`No research group available for condition ${condition} and could not create one`);
+        try {
+            console.log('Assigning research group condition:', condition);
+            
+            // Get available research groups (should be 2 groups: A and B)
+            const availableGroups = await this.getAvailableGroups();
+            console.log('Available research groups:', availableGroups);
+            
+            // Find the group with the matching condition
+            const targetGroup = availableGroups.find(group => group.condition === condition);
+            
+            if (!targetGroup) {
+                console.error(`No research group found with condition ${condition}`);
+                console.log('Available groups:', availableGroups);
+                return;
             }
-        } else {
-            await this.post('assignResearchGroup', { research_group_id: targetGroup.id });
+            
+            console.log('Found target research group:', targetGroup);
+            
+            // Assign user to this research group
+            await this.assignResearchGroup(targetGroup.id);
+            console.log('User assigned to research group successfully');
+            
+        } catch (error) {
+            console.error('Failed to assign research group by condition:', error);
+            console.log('Research group assignment failed - this is expected if the backend is not properly configured');
+            // Don't throw error, just log it and continue
         }
     }
 
     async getAvailableGroups(): Promise<ResearchGroup[]> {
-        return this.get<ResearchGroup[]>('availableResearchGroups');
+        try {
+            return await this.get<ResearchGroup[]>('availableResearchGroups');
+        } catch (error) {
+            console.error('Failed to get available research groups:', error);
+            console.log('Research groups endpoint not available - returning empty array');
+            return [];
+        }
     }
 
     async getAllGroups(): Promise<ResearchGroup[]> {
-        return this.get<ResearchGroup[]>('researchGroups');
-    }
-
-    async createResearchGroup(condition: 'A' | 'B'): Promise<ResearchGroup> {
-        return this.post<ResearchGroup>('researchGroups', { 
-            condition,
-            description: condition === 'A' ? 'Character System Group' : 'Big 5 Personality Survey Group'
-        });
+        try {
+            return await this.get<ResearchGroup[]>('researchGroups');
+        } catch (error) {
+            console.error('Failed to get all research groups:', error);
+            console.log('Research groups endpoint not available - returning empty array');
+            return [];
+        }
     }
 
     async completeOnboarding(path: 'character' | 'survey'): Promise<UserProfile> {
@@ -402,7 +528,7 @@ class ApiService {
     }
 
     // ===== Character Methods =====
-    async createCharacter(characterData: CharacterCreateData): Promise<WellnessCharacter> {
+    async createCharacter(characterData: CharacterCreateData): Promise<Character> {
         // POST to /api/characters/characters/ - Create new character
         try {
             console.log('=== API SERVICE: CHARACTER CREATION ===');
@@ -427,7 +553,7 @@ class ApiService {
                     throw new Error('User field should not be present in character creation data');
                 }
                 
-                const result = await this.post<WellnessCharacter>('characters', cleanData);
+                const result = await this.post<Character>('characters', cleanData);
                 console.log('Character created successfully (simple):', result);
                 return result;
             } else {
@@ -442,7 +568,7 @@ class ApiService {
                     throw new Error('User field should not be present in character creation data');
                 }
                 
-                const result = await this.post<WellnessCharacter>('characters', characterData);
+                const result = await this.post<Character>('characters', characterData);
                 console.log('Character created successfully (complete):', result);
                 return result;
             }
@@ -457,8 +583,8 @@ class ApiService {
         }
     }
 
-    async getMyCharacter(): Promise<WellnessCharacter> {
-        return this.get<WellnessCharacter>('myCharacter');
+    async getMyCharacter(): Promise<Character> {
+        return this.get<Character>('myCharacter');
     }
 
     async getCharacterHomeData(): Promise<HomeData> {
@@ -474,20 +600,20 @@ class ApiService {
         experience_progress: number;
         wellness_average: number;
         equipped_tools_count: number;
-        character_config: CharacterConfig;
+        character_config: Character;
     }> {
         return this.get('characterStats');
     }
 
-    async updateCharacterCustomization(characterId: number, customizationData: Partial<CharacterConfig>): Promise<{
+    async updateCharacterCustomization(characterId: number, customizationData: Partial<Character>): Promise<{
         message: string;
-        character: WellnessCharacter;
-        character_config: CharacterConfig;
+        character: Character;
+        character_config: Character;
     }> {
         return this.patch('characters', customizationData, { urlSuffix: `${characterId}/` });
     }
 
-    async gainExperience(characterId: number, experience: number, source?: string): Promise<WellnessCharacter & {
+    async gainExperience(characterId: number, experience: number, source?: string): Promise<Character & {
         experience_gained: number;
         source: string;
         level_up?: boolean;
@@ -502,7 +628,7 @@ class ApiService {
         resilience: number;
         connection: number;
         balance: number;
-    }>): Promise<WellnessCharacter & {
+    }>): Promise<Character & {
         wellness_gained: Record<string, number>;
         new_values: Record<string, number>;
         message: string;
@@ -510,7 +636,7 @@ class ApiService {
         return this.post('gainWellness', wellnessGains, { urlSuffix: `${characterId}/gain-wellness/` });
     }
 
-    async getCustomizationOptions(): Promise<CharacterConfig & { option_limits: Record<string, number> }> {
+    async getCustomizationOptions(): Promise<Character & { option_limits: Record<string, number> }> {
         return this.get('customizationOptions');
     }
 
@@ -579,44 +705,29 @@ class ApiService {
         };
     }> {
         return this.get('toolUsageStats');
+    }    // ===== JOURNAL & CODEX METHODS (matching your Django backend) =====
+    async getJournalPrompts(): Promise<JournalPrompt[]> {
+        return this.get<JournalPrompt[]>('journalPrompts');
     }
 
-    // ===== NEW REFLECTION METHODS =====
-    async getMyReflections(): Promise<ReflectionEntry[]> {
-        return this.get<ReflectionEntry[]>('myReflections');
+    async getMyCodexEntries(): Promise<CodexEntry[]> {
+        return this.get<CodexEntry[]>('myCodexEntries');
     }
 
-    async getRecentReflections(): Promise<ReflectionEntry[]> {
-        return this.get<ReflectionEntry[]>('recentReflections');
+    async getAllCodexEntries(): Promise<CodexEntry[]> {
+        return this.get<CodexEntry[]>('codexEntries');
     }
 
-    async createReflection(reflectionData: {
-        entry_type: 'memory' | 'insight' | 'skill' | 'challenge' | 'growth';
-        title: string;
-        passages: string;
-        prompt: string;
-        skill_category?: string;
-        map_area?: string;
-        difficulty?: string;
-        wellness_gains?: Record<string, number>;
-        tools_unlocked_ids?: number[];
-    }): Promise<ReflectionEntry> {
-        return this.post<ReflectionEntry>('reflections', reflectionData);
-    }
-
-    async quickReflect(reflectionData: {
-        title: string;
-        passages: string;
-        prompt: string;
-    }): Promise<{ message: string; reflection: ReflectionEntry }> {
-        return this.post('quickReflect', reflectionData);
-    }
-
-    async getReflectionsByType(type: string): Promise<ReflectionEntry[]> {
-        return this.get<ReflectionEntry[]>('reflectionsByType', { urlSuffix: `?type=${type}` });
-    }
-
-    // ===== NEW GEAR METHODS =====
+    async createCodexEntry(entryData: {
+        prompt_id: string;
+        entry_type: 'journal' | 'draw' | 'voice';
+        content: string;
+        skill_category: string;
+        map_area: string;
+        difficulty: string;
+    }): Promise<CodexEntry> {
+        return this.post<CodexEntry>('codexEntries', entryData);
+    }    // ===== NEW GEAR METHODS =====
     async getAvailableGear(): Promise<any[]> {
         return this.get<any[]>('availableGear');
     }
@@ -668,143 +779,507 @@ class ApiService {
 
     async updateGameData(gameData: Partial<GameData>): Promise<GameData> {
         return this.patch<GameData>('gameData', gameData);
-    }
-
-    async getJournalPrompts(): Promise<Prompt[]> {
-        return this.get<Prompt[]>('journalPrompts');
-    }
-
-    // ===== STORY METHODS (UPDATED FOR NEW BACKEND STRUCTURE) =====
-    
-    // Get story catalog
-    async getNewStoryCatalog(): Promise<any[]> {
-        return this.get<any[]>('storyCatalog');
-    }
-
-    // Get chapters for a specific story
-    async getNewStoryChapters(storyId: number): Promise<any[]> {
-        return this.get<any[]>('storyChaptersList', { urlSuffix: `${storyId}/chapters/` });
-    }
-
-    // Get passages for a specific chapter
-    async getNewChapterPassages(chapterId: number): Promise<any[]> {
-        return this.get<any[]>('chapterPassages', { urlSuffix: `${chapterId}/passages/` });
-    }
-
-    // Get specific passage passages
-    async getNewPassagepassages(storyId: number, passageId: string): Promise<any> {
-        return this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${encodeURIComponent(passageId)}/` });
-    }
-
-    // Get story progress
-    async getNewStoryProgress(storyId: number): Promise<any> {
-        return this.get<any>('storyProgressGet', { urlSuffix: `${storyId}/progress/` });
-    }
-
-    // Start a story
-    async startNewStory(storyId: number): Promise<any> {
-        return this.post<any>('storyStart', {}, { urlSuffix: `${storyId}/start/` });
-    }
-
-    // Make a choice in the story
-    async makeNewStoryChoice(choiceId: string, choiceData?: any): Promise<any> {
-        return this.post<any>('choiceSelect', choiceData || {}, { urlSuffix: `${choiceId}/select/` });
-    }
-
-    // Complete a story
-    async completeNewStory(storyId: number, completionData: any): Promise<any> {
-        return this.post<any>('storyComplete', completionData, { urlSuffix: `${storyId}/complete/` });
-    }
-
-    // ===== LEGACY STORY METHODS (KEEP FOR COMPATIBILITY) =====
-    async getStoryRoot(): Promise<{
-        stories: string;
-        catalog: string;
-        'game-data': string;
-        progress: string;
-    }> {
-        return this.get('storyRoot');
-    }
-
-    async getStories(): Promise<any[]> {
-        return this.get<any[]>('stories');
-    }
-
-    async getStorypassages(storyId: string): Promise<any> {
-        return this.get<any>('storypassages', { urlSuffix: `${storyId}/` });
-    }
-
-    async getStoryPassage(storyId: string, passageId: string): Promise<any> {
-        return this.get<any>('storypassages', { urlSuffix: `${storyId}/passage/${passageId}/` });
-    }
-
-    async makeStoryChoice(storyId: string, choiceId: string, choiceData?: any): Promise<any> {
-        return this.post<any>('storypassages', choiceData || {}, { urlSuffix: `${storyId}/choice/${choiceId}/` });
-    }
-
-    async getStoryDetailedProgress(storyId: string): Promise<any> {
-        return this.get<any>('storypassages', { urlSuffix: `${storyId}/progress/` });
-    }
-
-    async restartStory(storyId: string): Promise<any> {
-        return this.post<any>('storypassages', {}, { urlSuffix: `${storyId}/restart/` });
-    }
-
-    async completeSpecificStory(storyId: string, completionData: any): Promise<any> {
-        return this.post<any>('storypassages', completionData, { urlSuffix: `${storyId}/complete/` });
-    }
-
-    async getStoryGameData(characterId: string): Promise<any> {
-        return this.get<any>('storyGameData');
-    }
-
-    async updateStoryGameData(characterId: string, gameData: any): Promise<any> {
-        return this.patch<any>('storyGameData', gameData, { urlSuffix: `${characterId}/` });
-    }
-
-    // ===== TESTING METHODS =====
-    async testBackendEndpoints(): Promise<void> {
-        console.log('=== TESTING BACKEND ENDPOINTS ===');
-        
+    }    // Enhanced journal prompt methods for better filtering
+    async getFilteredJournalPrompts(options?: {
+        category?: string;
+        difficulty?: string;
+        skillCategory?: string;
+        mapArea?: string;
+        isActive?: boolean;
+    }): Promise<JournalPrompt[]> {
         try {
-            // Test 1: Get user profile
-            console.log('Test 1: Getting user profile...');
-            const profile = await this.getProfile();
-            console.log('User profile:', profile);
+            // Get all journal prompts from the base endpoint
+            const allPrompts = await this.get<JournalPrompt[]>('journalPrompts');
             
-            // Test 2: Try to update profile directly
-            console.log('Test 2: Trying to update profile...');
-            try {
-                const updatedProfile = await this.patch<UserProfile>('userProfile', {
-                    has_completed_onboarding: true,
-                    completion_type: 'character'
-                });
-                console.log('Profile updated successfully:', updatedProfile);
-            } catch (updateError) {
-                console.log('Profile update failed:', updateError);
+            // Filter client-side based on the provided options
+            let filteredPrompts = allPrompts;
+            
+            if (options?.isActive !== undefined) {
+                filteredPrompts = filteredPrompts.filter(prompt => prompt.is_active === options.isActive);
             }
             
-            // Test 3: Try different endpoints
-            console.log('Test 3: Testing different endpoints...');
-            const endpoints = [
-                'users/me/',
-                'users/',
-                'users/complete_onboarding/',
-                'users/1/'
-            ];
+            if (options?.category) {
+                filteredPrompts = filteredPrompts.filter(prompt => prompt.category === options.category);
+            }
             
-            for (const endpoint of endpoints) {
-                try {
-                    console.log(`Testing endpoint: ${endpoint}`);
-                    const response = await apiClient.get(endpoint);
-                    console.log(`Endpoint ${endpoint} success:`, response.data);
-                } catch (error: any) {
-                    console.log(`Endpoint ${endpoint} failed:`, error.response?.status, error.response?.data);
+            if (options?.difficulty) {
+                filteredPrompts = filteredPrompts.filter(prompt => prompt.difficulty === options.difficulty);
+            }
+            
+            if (options?.skillCategory) {
+                filteredPrompts = filteredPrompts.filter(prompt => prompt.skill_category === options.skillCategory);
+            }
+            
+            if (options?.mapArea) {
+                filteredPrompts = filteredPrompts.filter(prompt => prompt.map_area === options.mapArea);
+            }
+            
+            return filteredPrompts;
+        } catch (error) {
+            console.error('Error fetching journal prompts:', error);
+            return [];
+        }
+    }
+
+    // Get one prompt per category with smart difficulty selection
+    async getPromptsByCategory(unlockedAreas: string[], completedStories: string[]): Promise<{
+        journal: JournalPrompt | null;
+        draw: JournalPrompt | null;
+        voice: JournalPrompt | null;
+    }> {
+        try {
+            // Get all active prompts
+            const allPrompts = await this.getFilteredJournalPrompts({ isActive: true });
+            
+            // Filter prompts by unlocked areas (always include 'entrance')
+            const accessibleAreas = ['entrance', ...unlockedAreas];
+            const accessiblePrompts = allPrompts.filter(prompt => 
+                accessibleAreas.includes(prompt.map_area)
+            );
+
+            // Determine preferred skill categories based on completed stories
+            const preferredSkills = this.getPreferredSkillCategories(completedStories);
+
+            // Select one prompt per category
+            const result = {
+                journal: this.selectBestPrompt(accessiblePrompts, 'journal', preferredSkills),
+                draw: this.selectBestPrompt(accessiblePrompts, 'draw', preferredSkills),
+                voice: this.selectBestPrompt(accessiblePrompts, 'voice', preferredSkills)
+            };
+
+            return result;
+        } catch (error) {
+            console.error('Error fetching prompts by category:', error);
+            return { journal: null, draw: null, voice: null };
+        }
+    }
+
+    // Helper method to determine preferred skill categories based on completed stories
+    private getPreferredSkillCategories(completedStories: string[]): string[] {
+        // This should map to your story completion logic
+        // For now, return a default progression
+        const skillProgression = [
+            'Emotional Awareness',     // Beginner
+            'Stress Management',       // Early
+            'Self-Compassion',         // Intermediate  
+            'Social Connection',       // Advanced
+            'Personal Growth'          // Expert
+        ];
+
+        // Return skills based on how many stories completed
+        const numCompleted = completedStories.length;
+        if (numCompleted <= 2) return ['Emotional Awareness', 'Stress Management'];
+        if (numCompleted <= 5) return ['Stress Management', 'Self-Compassion', 'Emotional Awareness'];
+        if (numCompleted <= 8) return ['Self-Compassion', 'Social Connection', 'Stress Management'];
+        return skillProgression; // All skills unlocked
+    }    // Helper method to select the best prompt for a category
+    private selectBestPrompt(
+        prompts: JournalPrompt[], 
+        category: string, 
+        preferredSkills: string[]
+    ): JournalPrompt | null {
+        const categoryPrompts = prompts.filter(p => p.category === category);
+        if (categoryPrompts.length === 0) return null;
+
+        // Try to find a prompt with preferred skill first
+        for (const skill of preferredSkills) {
+            const skillPrompts = categoryPrompts.filter(p => p.skill_category === skill);
+            if (skillPrompts.length > 0) {
+                // Return random prompt from this skill category
+                return skillPrompts[Math.floor(Math.random() * skillPrompts.length)];
+            }
+        }
+
+        // Fallback: return random prompt from category
+        return categoryPrompts[Math.floor(Math.random() * categoryPrompts.length)];
+    }    // ===== STORY METHODS (UPDATED FOR DJANGO BACKEND STRUCTURE) =====
+    
+    // Get all available stories
+    async getStoryCatalog(): Promise<Story[]> {
+        return this.get<Story[]>('storyCatalog');
+    }
+
+    // Get all stories (alias for catalog)
+    async getStories(): Promise<Story[]> {
+        return this.getStoryCatalog();
+    }
+
+    // Get passages for a specific story
+    async getStoryPassages(storyId: number): Promise<Passage[]> {
+        // Get chapters first, then get passages from each chapter
+        const chapters = await this.get<Chapter[]>('storyChapters', { urlSuffix: `${storyId}/chapters/` });
+        const allPassages: Passage[] = [];
+        
+        for (const chapter of chapters) {
+            const chapterPassages = await this.get<Passage[]>('chapterPassages', { urlSuffix: `${chapter.id}/passages/` });
+            allPassages.push(...chapterPassages);
+        }
+        
+        return allPassages;
+    }
+
+    // Get a specific passage in a story
+    async getStoryPassage(storyId: number, passageId: string): Promise<Passage> {
+        // Use the story passage endpoint
+        return this.get<Passage>('storyPassage', { urlSuffix: `${storyId}/passage/${encodeURIComponent(passageId)}/` });
+    }
+
+    // Get choices for a specific passage
+    async getPassageChoices(passageId: number): Promise<Choice[]> {
+        return this.get<Choice[]>('passagesCRUD', { urlSuffix: `${passageId}/choices/` });
+    }
+
+    // Start a specific story
+    async startStory(storyId: number): Promise<StoryProgress> {
+        return this.post<StoryProgress>('startStory', null, { urlSuffix: `${storyId}/start/` }); 
+    }
+
+    // Select a choice in a story
+    async selectChoice(choiceId: number, storyProgressId?: number): Promise<{
+        story_progress: StoryProgress;
+        next_passage: Passage;
+        effects_applied: Record<string, any>;
+    }> {
+        return this.post('choicesCRUD', { 
+            story_progress_id: storyProgressId 
+        }, { urlSuffix: `${choiceId}/select/` });
+    }
+
+    // Get story progress for current user
+    async getStoryProgress(storyId: number): Promise<StoryProgress | null> {
+        try {
+            return this.get<StoryProgress>('storyProgress', { urlSuffix: `${storyId}/progress/` }); 
+        } catch (error) {
+            // Return null if no progress found
+            return null;
+        }
+    }
+
+
+
+    // Update story progress
+    async updateStoryProgress(storyId: number): Promise<StoryProgress> {
+        return this.patch<StoryProgress>('storyProgress', {}, { urlSuffix: `${storyId}/progress/` }); 
+    }
+
+    // Set story variable
+    async setStoryVariable(storyId: number, variableName: string, value: any): Promise<StoryVariable> {
+        return this.post<StoryVariable>('storyVariables', {
+            story: storyId,
+            variable_name: variableName,
+            variable_value: value
+        });
+    }
+
+    // Get story variables
+    async getStoryVariables(storyId: number): Promise<StoryVariable[]> {
+        return this.get<StoryVariable[]>('storyVariables', { 
+            urlSuffix: `?story=${storyId}` 
+        });
+    }
+
+    // Get all NPCs
+    async getNPCs(): Promise<NPC[]> {
+        return this.get<NPC[]>('npcsCRUD');
+    }
+
+    // Get specific NPC
+    async getNPC(npcId: number): Promise<NPC> {
+        return this.get<NPC>('npcsCRUD', { urlSuffix: `${npcId}/` });
+    }
+
+    // Complete story
+    async completeStory(storyId: number, completionType?: string): Promise<StoryProgress> {
+        const progress = await this.getStoryProgress(storyId);
+        if (!progress) {
+            throw new Error('No story progress found');
+        }
+
+        return this.patch<StoryProgress>('storyProgressCRUD', {
+            is_completed: true,
+            completion_type: completionType,
+            completed_at: new Date().toISOString()
+        }, { urlSuffix: `${progress.id}/` });
+    }
+
+    // ===== LEGACY STORY METHODS (DEPRECATED - kept for compatibility) =====
+    
+    async getNewStoryCatalog(): Promise<Story[]> {
+        return this.getStoryCatalog();
+    }
+
+    async getNewStoryChapters(storyId: number): Promise<any[]> {
+        // Your Django model doesn't have chapters, so return passages grouped by story
+        console.warn('getNewStoryChapters is deprecated - your Django model uses passages directly');
+        return this.getStoryPassages(storyId);
+    }
+
+    async getNewChapterPassages(chapterId: number): Promise<any[]> {
+        console.warn('getNewChapterPassages is deprecated - your Django model uses passages directly');
+        return [];
+    }
+
+    async startNewStory(storyId: number): Promise<StoryProgress> {
+        return this.startStory(storyId);
+    }
+
+    async getNewStoryPassage(storyId: number, passageId: string): Promise<Passage> {
+        return this.getStoryPassage(storyId, passageId);
+    }
+
+    async selectNewChoice(choiceId: number): Promise<any> {
+        return this.selectChoice(choiceId);
+    }
+
+    async getNewStoryProgress(storyId: number): Promise<StoryProgress | null> {
+        return this.getStoryProgress(storyId);
+    }
+
+    // Legacy aliases
+    async getStoryChapters(storyId: number): Promise<any[]> {
+        return this.getNewStoryChapters(storyId);
+    }
+
+    async getChapterPassages(chapterId: number): Promise<any[]> {
+        return this.getNewChapterPassages(chapterId);
+    }
+
+    // ===== STORY UTILITY METHODS =====
+    
+    // Navigate to next passage in story flow
+    async navigateToPassage(storyId: number, passageId: string, choiceId?: number): Promise<{
+        passage: Passage;
+        choices: Choice[];
+        storyProgress: StoryProgress;
+    }> {
+        try {
+            // Get the passage
+            const passage = await this.getStoryPassage(storyId, passageId);
+            
+            // Get choices for this passage
+            const choices = await this.getPassageChoices(passage.id);
+            
+            // Update or create story progress
+            let storyProgress = await this.getStoryProgress(storyId);
+            
+            if (!storyProgress) {
+                // Start the story if no progress exists
+                storyProgress = await this.startStory(storyId);
+            } else {
+                // Update current passage
+                storyProgress = await this.updateStoryProgress(storyProgress.id);
+            }
+
+            // Apply passage effects if any
+            if (passage.story_effects && Object.keys(passage.story_effects).length > 0) {
+                await this.applyPassageEffects(passage.story_effects, storyProgress);
+            }
+
+            return {
+                passage,
+                choices: choices.filter(choice => this.isChoiceAvailable(choice, storyProgress)),
+                storyProgress
+            };
+        } catch (error) {
+            console.error('Error navigating to passage:', error);
+            throw error;
+        }
+    }
+
+    // Make a choice and navigate to the next passage
+    async makeChoice(choiceId: number, storyProgressId: number): Promise<{
+        nextPassage: Passage;
+        choices: Choice[];
+        storyProgress: StoryProgress;
+        effectsApplied: Record<string, any>;
+    }> {
+        try {
+            // Select the choice and get results
+            const choiceResult = await this.selectChoice(choiceId, storyProgressId);
+            
+            // Get choices for the next passage
+            const choices = await this.getPassageChoices(choiceResult.next_passage.id);
+            
+            return {
+                nextPassage: choiceResult.next_passage,
+                choices: choices.filter(choice => 
+                    this.isChoiceAvailable(choice, choiceResult.story_progress)
+                ),
+                storyProgress: choiceResult.story_progress,
+                effectsApplied: choiceResult.effects_applied
+            };
+        } catch (error) {
+            console.error('Error making choice:', error);
+            throw error;
+        }
+    }
+
+    // Check if a choice should be available to the player
+    private isChoiceAvailable(choice: Choice, storyProgress: StoryProgress): boolean {
+        // Check basic required conditions
+        if (!choice.required_conditions || Object.keys(choice.required_conditions).length === 0) {
+            return true;
+        }
+
+        // Check level requirements
+        if (choice.required_conditions.level) {
+            // You'd get character level from somewhere
+            // For now, assume available
+        }
+
+        // Check story variables
+        if (choice.required_conditions.variables) {
+            for (const [varName, requiredValue] of Object.entries(choice.required_conditions.variables)) {
+                const currentValue = storyProgress.story_variables[varName];
+                if (currentValue !== requiredValue) {
+                    return false;
                 }
             }
-            
+        }
+
+        return true;
+    }
+
+    // Apply effects from passages (experience, items, story variables, etc.)
+    private async applyPassageEffects(effects: Record<string, any>, storyProgress: StoryProgress): Promise<void> {
+        try {
+            // Apply experience gains
+            if (effects.experience) {
+                const character = await this.getMyCharacter();
+                await this.gainExperience(character.id, effects.experience, 'story_passage');
+            }
+
+            // Apply wellness gains
+            const wellnessGains: Record<string, number> = {};
+            if (effects.awareness) wellnessGains.awareness = effects.awareness;
+            if (effects.resilience) wellnessGains.resilience = effects.resilience;
+            if (effects.connection) wellnessGains.connection = effects.connection;
+            if (effects.balance) wellnessGains.balance = effects.balance;
+
+            if (Object.keys(wellnessGains).length > 0) {
+                const character = await this.getMyCharacter();
+                await this.gainWellness(character.id, wellnessGains);
+            }
+
+            // Apply story variables
+            if (effects.set_variables) {
+                const updatedVariables = { ...storyProgress.story_variables, ...effects.set_variables };
+                await this.updateStoryProgress(storyProgress.id);
+            }
+
+            // Add items to inventory (if you have an inventory system)
+            if (effects.add_items) {
+                // Implement item addition logic
+                console.log('Adding items:', effects.add_items);
+            }
+
         } catch (error) {
-            console.error('Backend endpoint test failed:', error);
+            console.error('Error applying passage effects:', error);
+            // Don't throw - effects failing shouldn't break story flow
+        }
+    }
+
+    // Get available stories for character (filtered by level, etc.)
+    async getAvailableStories(): Promise<Story[]> {
+        try {
+            const character = await this.getMyCharacter();
+            const level = character.level || 1;
+            
+            // Use the available stories endpoint that filters by level
+            return await this.get<Story[]>('storyCatalog', { 
+                params: { level } 
+            });
+        } catch (error) {
+            console.error('Error getting available stories:', error);
+            // Fallback to getting all stories and filtering client-side
+            try {
+                const allStories = await this.getStoryCatalog();
+                const character = await this.getMyCharacter();
+                
+                return allStories.filter(story => {
+                    // Check level requirement
+                    if (story.min_level > character.level) {
+                        return false;
+                    }
+                    // Add other filtering logic as needed
+                    return true;
+                });
+            } catch (fallbackError) {
+                console.error('Error in fallback story loading:', fallbackError);
+                throw error; // Throw original error
+            }
+        }
+    }
+
+    // Get story completion status for current user
+    async getStoryCompletionStatus(): Promise<Record<number, {
+        isCompleted: boolean;
+        completionType?: string;
+        currentPassageId?: string;
+        progressPercentage: number;
+    }>> {
+        try {
+            const [allStories, allProgress] = await Promise.all([
+                this.getStoryCatalog(),
+                this.get<any[]>('storyProgressCRUD')
+            ]);
+
+            const status: Record<number, any> = {};
+
+            for (const story of allStories) {
+                const progress = allProgress.find((p: any) => p.story === story.id);
+                
+                if (!progress) {
+                    status[story.id] = {
+                        isCompleted: false,
+                        progressPercentage: 0
+                    };
+                } else {
+                    // Calculate progress percentage based on passages visited
+                    const storyPassages = await this.getStoryPassages(story.id);
+                    const progressPercentage = Math.round(
+                        (progress.passages_visited.length / storyPassages.length) * 100
+                    );
+
+                    status[story.id] = {
+                        isCompleted: progress.is_completed,
+                        completionType: progress.completion_type,
+                        currentPassageId: progress.current_passage_id,
+                        progressPercentage
+                    };
+                }
+            }
+
+            return status;
+        } catch (error) {
+            console.error('Error getting story completion status:', error);
+            throw error;
+        }
+    }
+
+    // Reset story progress (for repeatable stories)
+    async resetStoryProgress(storyId: number): Promise<StoryProgress> {
+        try {
+            const currentProgress = await this.getStoryProgress(storyId);
+            if (!currentProgress) {
+                throw new Error('No story progress found to reset');
+            }
+
+            const story = await this.get<Story>('storyCatalog', { urlSuffix: `${storyId}/` });
+            
+            return await this.patch<StoryProgress>('storyProgressCRUD', {
+                current_passage_id: story.starting_passage_id,
+                passages_visited: [],
+                choices_made: [],
+                story_variables: {},
+                is_completed: false,
+                completion_type: undefined,
+                completed_at: undefined,
+                last_played: new Date().toISOString()
+            }, { urlSuffix: `${currentProgress.id}/` });
+        } catch (error) {
+            console.error('Error resetting story progress:', error);
+            throw error;
         }
     }
 }

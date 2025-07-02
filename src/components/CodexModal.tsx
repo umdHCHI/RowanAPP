@@ -5,41 +5,36 @@ import {
   Dimensions,
   ImageBackground,
   Modal,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { useTheme } from "../context/ThemeContext";
-import { apiService } from "../services/apiService";
+import { useMasterState } from "../context/MasterStateContext";
 import { createGlobalStyles } from "../styles/globalStyles";
-import { CodexModalProps, Prompt } from "../types/journal";
+import { CodexModalProps, JournalPrompt } from "../types";
 import DrawingCanvas from "./DrawingCanvas";
-
 const { width, height } = Dimensions.get("window");
-
 const CodexModal = ({
   visible,
   onClose,
   onSave,
   unlockedAreas,
 }: CodexModalProps) => {
-  const { theme } = useTheme();
-  const globalStyles = createGlobalStyles(theme);
+  const { wellness, archive, theme } = useMasterState();
+  const globalStyles = createGlobalStyles(theme.theme);
 
   const parchmentSource =
-    theme.archiveMode === "dark"
+    theme.theme.archiveMode === "dark"
       ? require("../../assets/textures/journal_page-dark.png")
       : require("../../assets/textures/journal_page-light.png");
 
   const [selectedType, setSelectedType] = useState<
     "journal" | "draw" | "voice"
   >("journal");
-  const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
+  const [selectedPrompt, setSelectedPrompt] = useState<JournalPrompt | null>(null);
   const [passages, setpassages] = useState("");
   const [drawingPaths, setDrawingPaths] = useState<any[]>([]);
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [loading, setLoading] = useState(false);
   const [completedPrompts, setCompletedPrompts] = useState<string[]>([]);
 
@@ -47,17 +42,20 @@ const CodexModal = ({
     if (!visible) return;
     setLoading(true);
 
-    // Load prompts
-    apiService
-      .getJournalPrompts()
-      .then((promptsData) => {
-        setPrompts(promptsData.filter((p) => p.is_active));
-      })
-      .catch(() => {
-        setPrompts([]);
-      })
-      .finally(() => setLoading(false));
-  }, [visible]);
+    // Load category-specific prompts using the new system
+    const loadPrompts = async () => {
+      try {
+        const completedStoriesArray = Array.from(archive.completedStories);
+        await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
+      } catch (error) {
+        console.error('Error loading prompts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPrompts();
+  }, [visible, unlockedAreas, archive.completedStories, wellness]);
 
   const handleSave = async () => {
     if (selectedPrompt && passages) {
@@ -67,9 +65,7 @@ const CodexModal = ({
           "Entry Saved",
           "Your journal entry has been saved to your Codex.",
           [{ text: "OK" }]
-        );
-
-        // Call the original onSave
+        );        // Call the original onSave
         onSave({
           type: selectedType,
           passages,
@@ -78,6 +74,10 @@ const CodexModal = ({
           mapArea: selectedPrompt.map_area,
           difficulty: selectedPrompt.difficulty,
         });
+
+        // Refresh prompts to potentially get new ones
+        const completedStoriesArray = Array.from(archive.completedStories);
+        await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
 
         // Clear the form
         setpassages("");
@@ -94,14 +94,18 @@ const CodexModal = ({
       }
     }
   };
+  // Get the current prompt for the selected type from the category prompts
+  const currentPrompt = wellness.categoryPrompts[selectedType];
+  const hasPromptForCategory = currentPrompt !== null;
 
-  // Filter prompts based on completion status
-  const filteredPrompts = prompts.filter(
-    (p) =>
-      p.category === selectedType &&
-      (unlockedAreas.includes(p.map_area) || p.map_area === "entrance") &&
-      !completedPrompts.includes(p.prompt_id)
-  );
+  // Set the selected prompt when switching categories
+  useEffect(() => {
+    if (hasPromptForCategory && !selectedPrompt) {
+      setSelectedPrompt(currentPrompt);
+    } else if (!hasPromptForCategory) {
+      setSelectedPrompt(null);
+    }
+  }, [selectedType, currentPrompt, hasPromptForCategory, selectedPrompt]);
 
   return (
     <Modal
@@ -121,13 +125,13 @@ const CodexModal = ({
               <View
                 style={[
                   globalStyles.codexHeader,
-                  { borderBottomColor: theme.archiveBorder },
+                  { borderBottomColor: theme.theme.archiveBorder },
                 ]}
               >
                 <Text
                   style={[
                     globalStyles.codexTitle,
-                    { color: theme.archiveText },
+                    { color: theme.theme.archiveText },
                   ]}
                 >
                   📖 The Codex
@@ -136,7 +140,7 @@ const CodexModal = ({
                   onPress={onClose}
                   style={globalStyles.codexCloseButton}
                 >
-                  <Ionicons name="close" size={24} color={theme.archiveText} />
+                  <Ionicons name="close" size={24} color={theme.theme.archiveText} />
                 </TouchableOpacity>
               </View>
 
@@ -152,7 +156,7 @@ const CodexModal = ({
                   <Text
                     style={[
                       globalStyles.codexTypeText,
-                      { color: theme.archiveText },
+                      { color: theme.theme.archiveText },
                     ]}
                   >
                     📝 Journal
@@ -168,7 +172,7 @@ const CodexModal = ({
                   <Text
                     style={[
                       globalStyles.codexTypeText,
-                      { color: theme.archiveText },
+                      { color: theme.theme.archiveText },
                     ]}
                   >
                     🎨 Draw
@@ -184,7 +188,7 @@ const CodexModal = ({
                   <Text
                     style={[
                       globalStyles.codexTypeText,
-                      { color: theme.archiveText },
+                      { color: theme.theme.archiveText },
                     ]}
                   >
                     🎤 Voice
@@ -192,65 +196,73 @@ const CodexModal = ({
                 </TouchableOpacity>
               </View>
 
-              <View style={globalStyles.codexpassagesContainer}>
-                <View style={globalStyles.codexPromptSection}>
+              <View style={globalStyles.codexpassagesContainer}>                <View style={globalStyles.codexPromptSection}>
                   <Text
                     style={[
                       globalStyles.codexSectionTitle,
-                      { color: theme.archiveText },
+                      { color: theme.theme.archiveText },
                     ]}
                   >
-                    Choose Your Quest
+                    Your Quest
                   </Text>
-                  <ScrollView style={globalStyles.codexPromptList}>
-                    {filteredPrompts.map((prompt) => (
+                  <View style={globalStyles.codexPromptList}>
+                    {hasPromptForCategory ? (
                       <TouchableOpacity
-                        key={prompt.prompt_id}
                         style={[
                           globalStyles.codexPromptItem,
-                          selectedPrompt?.prompt_id === prompt.prompt_id &&
-                            globalStyles.codexSelectedPrompt,
-                          completedPrompts.includes(prompt.prompt_id) &&
-                            globalStyles.codexCompletedPrompt,
+                          globalStyles.codexSelectedPrompt,
                         ]}
-                        onPress={() => setSelectedPrompt(prompt)}
+                        onPress={() => setSelectedPrompt(currentPrompt)}
                       >
                         <Text
                           style={[
                             globalStyles.codexPromptText,
-                            { color: theme.archiveText },
+                            { color: theme.theme.archiveText },
                           ]}
                         >
-                          {prompt.text}
+                          {currentPrompt?.text}
                         </Text>
                         <View style={globalStyles.codexPromptMeta}>
                           <Text
                             style={[
                               globalStyles.codexSkillCategory,
-                              { color: theme.archiveAccent },
+                              { color: theme.theme.archiveAccent },
                             ]}
                           >
-                            {prompt.skill_category}
+                            {currentPrompt?.skill_category}
                           </Text>
                           <Text
                             style={[
                               globalStyles.codexDifficulty,
-                              { color: theme.archiveSubtext },
+                              { color: theme.theme.archiveSubtext },
                             ]}
                           >
-                            {prompt.difficulty}
+                            {currentPrompt?.difficulty}
                           </Text>
                         </View>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                    ) : (
+                      <View style={globalStyles.codexPromptItem}>
+                        <Text
+                          style={[
+                            globalStyles.codexPromptText,
+                            { color: theme.theme.archiveSubtext },
+                          ]}
+                        >
+                          {loading 
+                            ? "Loading your quest..." 
+                            : `No ${selectedType} quest available yet. Explore more stories to unlock new prompts!`                          }
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
 
                 <View style={globalStyles.codexInputSection}>
                   <Text
                     style={[
                       globalStyles.codexSectionTitle,
-                      { color: theme.archiveText },
+                      { color: theme.theme.archiveText },
                     ]}
                   >
                     Your Chronicle
@@ -259,12 +271,12 @@ const CodexModal = ({
                     <TextInput
                       style={[
                         globalStyles.codexJournalInput,
-                        { color: theme.archiveText },
+                        { color: theme.theme.archiveText },
                       ]}
                       multiline
                       placeholder="Write your thoughts here..."
                       placeholderTextColor={
-                        theme.archiveMode === "dark" ? "#e0d6c3" : "#7a5c2e"
+                        theme.theme.archiveMode === "dark" ? "#e0d6c3" : "#7a5c2e"
                       }
                       value={passages}
                       onChangeText={setpassages}
@@ -287,12 +299,12 @@ const CodexModal = ({
                       <Ionicons
                         name="mic"
                         size={48}
-                        color={theme.archiveText}
+                        color={theme.theme.archiveText}
                       />
                       <Text
                         style={[
                           globalStyles.codexVoiceText,
-                          { color: theme.archiveText },
+                          { color: theme.theme.archiveText },
                         ]}
                       >
                         Voice recording coming soon...
@@ -308,9 +320,9 @@ const CodexModal = ({
                   (!selectedPrompt || !passages) &&
                     globalStyles.codexDisabledButton,
                   {
-                    borderColor: theme.archiveBorder,
+                    borderColor: theme.theme.archiveBorder,
                     backgroundColor:
-                      theme.archiveMode === "dark"
+                      theme.theme.archiveMode === "dark"
                         ? "rgba(0,0,0,0.1)"
                         : "rgba(255,255,255,0.1)",
                   },
@@ -321,7 +333,7 @@ const CodexModal = ({
                 <Text
                   style={[
                     globalStyles.codexSaveButtonText,
-                    { color: theme.archiveText },
+                    { color: theme.theme.archiveText },
                   ]}
                 >
                   Save to Codex

@@ -7,7 +7,7 @@ import { AuthContextType } from '../types/user';
 
 
 const TEST_USER_TOKEN = Constants.expoConfig?.extra?.TEST_USER_TOKEN as string;
-const FALLBACK_TEST_TOKEN = 'f1cc174d83a2101bc328075957300f2407b68324';
+const FALLBACK_TEST_TOKEN = '8a71299900898a32febbca89ef5638a406475348';
 
 // Debug logging for test token
 console.log('AuthContext - Test token configured:', TEST_USER_TOKEN ? 'Yes' : 'No');
@@ -24,21 +24,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
+        // Initialize the API service first
+        await apiService.initialize();
+        
         const storedToken = await AsyncStorage.getItem('authToken');
         const storedCharacterId = await AsyncStorage.getItem('characterId');
+        
+        console.log('AuthContext: Loaded stored token:', storedToken ? 'Present' : 'Not found');
+        console.log('AuthContext: Loaded stored character ID:', storedCharacterId);
+        
         setAuthToken(storedToken);
         setCharacterId(storedCharacterId);
         setIsTestUser(storedToken === TEST_USER_TOKEN || storedToken === FALLBACK_TEST_TOKEN);
+        
+        // Only try to get user profile if we have a valid token
         if (storedToken) {
-          // Get user profile from service
+          console.log('AuthContext: Attempting to fetch user profile with stored token');
           try {
             const profile = await apiService.getProfile();
             setUser({ username: profile.username });
-          } catch {
-            setUser(null);
+            console.log('AuthContext: Successfully loaded user profile');
+          } catch (error: any) {
+            console.error('AuthContext: Failed to fetch user profile:', error);
+            // If it's a 404 error, the endpoint might not exist - that's okay
+            if (error.response?.status === 404) {
+              console.log('AuthContext: User profile endpoint not found (404) - this is expected if the endpoint is not implemented');
+              setUser(null);
+            } else {
+              console.error('AuthContext: Unexpected error fetching user profile:', error);
+              setUser(null);
+            }
           }
+        } else {
+          console.log('AuthContext: No stored token, skipping profile fetch');
         }
-      } catch {
+      } catch (error) {
+        console.error('AuthContext: Error loading stored auth data:', error);
         setAuthToken(null);
         setCharacterId(null);
         setIsTestUser(false);
@@ -48,23 +69,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadStoredAuth();
   }, []);
 
-  const login = async (token: string, charId: string) => {
+  const login = async (token: string, charId: string, userData?: any) => {
+    console.log('AuthContext: Login called with token:', token ? 'Present' : 'Not found');
+    console.log('AuthContext: Login called with character ID:', charId);
+    console.log('AuthContext: Login called with user data:', userData);
+    
     // Token is already stored by apiService.login(), so we don't need to store it again
     // Just update the state
     setAuthToken(token);
     setCharacterId(charId);
     setIsTestUser(token === TEST_USER_TOKEN || token === FALLBACK_TEST_TOKEN);
     
-    // Add a small delay to ensure the axios interceptor picks up the token
-    setTimeout(async () => {
-      try {
-        const profile = await apiService.getProfile();
-        setUser({ username: profile.username });
-      } catch (error) {
-        console.error('Failed to fetch user profile after login:', error);
-        setUser(null);
-      }
-    }, 100);
+    // Use user data from login response if provided, otherwise fetch it
+    if (userData) {
+      console.log('AuthContext: Using provided user data');
+      setUser({ username: userData.username });
+    } else {
+      console.log('AuthContext: No user data provided, fetching profile');
+      // Fallback: try to fetch user profile
+      setTimeout(async () => {
+        try {
+          const profile = await apiService.getProfile();
+          setUser({ username: profile.username });
+          console.log('AuthContext: Successfully fetched user profile after login');
+        } catch (error: any) {
+          console.error('AuthContext: Failed to fetch user profile after login:', error);
+          // If it's a 404 error, the endpoint might not exist - that's okay
+          if (error.response?.status === 404) {
+            console.log('AuthContext: User profile endpoint not found (404) - this is expected if the endpoint is not implemented');
+            setUser(null);
+          } else {
+            console.error('AuthContext: Unexpected error fetching user profile after login:', error);
+            setUser(null);
+          }
+        }
+      }, 100);
+    }
   };
 
   const logout = async () => {

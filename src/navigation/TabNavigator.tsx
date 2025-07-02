@@ -1,17 +1,18 @@
 import { FontAwesome } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { useTheme } from '../context/ThemeContext';
+import React from 'react';
+import { useMasterState } from '../context/MasterStateContext';
 
 export default function TabNavigator() {
-  const { theme } = useTheme();
+  const { theme } = useMasterState();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.tabBarInactive,
+        tabBarActiveTintColor: theme.theme.primary,
+        tabBarInactiveTintColor: theme.theme.tabBarInactive,
         tabBarStyle: {
-          backgroundColor: theme.tabBar,
+          backgroundColor: theme.theme.tabBar,
         },
         headerShown: false,
       }}>
