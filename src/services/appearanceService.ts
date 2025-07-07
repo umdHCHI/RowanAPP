@@ -1,15 +1,7 @@
 import { Character } from '../types';
 import { apiService } from './apiService';
 
-export interface FrontendCharacterData {
-  baseIndex: number;
-  skinIndex: number;
-  hairIndex: number;
-  eyesIndex: number;
-  mouthIndex: number;
-  clothesIndex: number;
-  backgroundIndex: number;
-}
+
 
 class AppearanceService {
   // ===== IMPROVED CHARACTER CREATION FLOW =====

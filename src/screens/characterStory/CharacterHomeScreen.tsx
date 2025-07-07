@@ -1,3 +1,4 @@
+import EquipmentModal from "../../components/EquipmentModal";
 import { useMasterState } from "../../context/MasterStateContext";
 import {
   Alert,
@@ -5,6 +6,8 @@ import {
   CharacterPreview,
   CodexModal,
   Dimensions,
+  EquipmentItem,
+  EquippedItems,
   Icon,
   Image,
   LinearGradient,
@@ -16,15 +19,12 @@ import {
   TouchableOpacity,
   View,
   useEffect,
-  useState,
+  useState
 } from "../../imports";
-
 // Import StoryScreen directly to avoid circular dependency issues
-import StoryScreen from "./StoryScreen";
-// Import ChapterScreen for chapter selection
+import { apiService } from "../../services/apiService";
 import ChapterScreen from "./ChapterScreen";
-// Import archive service for backend operations
-import { archiveService } from "../../services/archiveService";
+import StoryScreen from "./StoryScreen";
 
 const { width, height } = Dimensions.get("window");
 
@@ -50,27 +50,33 @@ const ArchiveInterface: React.FC = () => {
   const [isChapterScreenVisible, setIsChapterScreenVisible] = useState(false);
   const [selectedStory, setSelectedStory] = useState<any>(null);
 
-  // Load stories from backend on mount
-  useEffect(() => {
-    const loadStories = async () => {
-      setIsLoadingStories(true);
-      try {
-        const backendStories = await archiveService.getAvailableStories();
-        if (backendStories && backendStories.length > 0) {
-          setStories(backendStories);
-          ui.setMemoryStorys(backendStories);
-        } else {
-          setStories([]);
-          ui.setMemoryStorys([]);
-        }
-      } catch (error) {
+  const [showEquipmentModal, setShowEquipmentModal] = useState(false);
+
+  // Equipment state is now managed by the MasterStateContext
+  // The backend gear data is loaded automatically on mount
+
+  // Load stories from backend
+  const loadStories = async () => {
+    setIsLoadingStories(true);
+    try {
+      const backendStories = await apiService.getAvailableStories();
+      if (backendStories && backendStories.length > 0) {
+        setStories(backendStories);
+        ui.setMemoryStorys(backendStories);
+      } else {
         setStories([]);
         ui.setMemoryStorys([]);
-      } finally {
-        setIsLoadingStories(false);
       }
-    };
+    } catch (error) {
+      setStories([]);
+      ui.setMemoryStorys([]);
+    } finally {
+      setIsLoadingStories(false);
+    }
+  };
 
+  // Load stories from backend on mount
+  useEffect(() => {
     loadStories();
   }, []);
 
@@ -107,16 +113,54 @@ const ArchiveInterface: React.FC = () => {
       console.log("Story data:", Story);
       console.log("Story ID:", Story?.id);
       console.log("Story title:", Story?.title);
-      console.log("Chapter count:", Story?.chapter_count);
 
-      // Check if story has chapters
-      if (Story?.chapter_count && Story.chapter_count > 0) {
-        // Chapter-based story - show chapter selection
+      // First, check if this story has chapters
+      try {
+        console.log("Checking for chapters in story:", Story.id);
+        const chapters = await apiService.getChapters(String(Story.id));
+        console.log("Chapters found:", chapters);
+        
+        if (chapters && chapters.length > 0) {
+          console.log("Story has chapters, showing chapter selection");
+          // Story has chapters, show chapter selection
+          setSelectedStory(Story);
+          setIsChapterScreenVisible(true);
+          return;
+        }
+      } catch (chapterError) {
+        console.warn("Could not get chapters, assuming no chapters:", chapterError);
+      }
+
+      // No chapters or chapter check failed, proceed with direct story opening
+      console.log("No chapters found, opening story directly");
+      
+      // Start the story using the new backend
+      const startResult = await apiService.startNewStory(Story.id);
+      console.log('Story started:', startResult);
+      
+      // Try to get the current passage, but handle errors gracefully
+      let currentPassageResult = null;
+      try {
+        currentPassageResult = await apiService.getCurrentPassage(Story.id);
+        console.log('Current passage:', currentPassageResult);
+      } catch (error) {
+        console.warn('Could not get current passage, using start result:', error);
+        // Use the start result if it contains passage data
+        if (startResult?.passage) {
+          currentPassageResult = startResult;
+        }
+      }
+      
+      if (currentPassageResult?.passage) {
+        // Set up the story screen with the current passage
         setSelectedStory(Story);
-        setIsChapterScreenVisible(true);
+        ui.setSelectedStory(Story);
+        ui.setIsStoryVisible(true);
       } else {
-        // Non-chapter story - open directly
-        await handleDirectStoryOpen(Story);
+        console.error('No passage data received from backend');
+        Alert.alert("Error", "No passage data available for this story.", [
+          { text: "OK", style: "default" },
+        ]);
       }
     } catch (error) {
       console.error("Error in handleOpenStory:", error);
@@ -138,11 +182,106 @@ const ArchiveInterface: React.FC = () => {
         return;
       }
       
-      // Get story passages from backend
-      const storypassages = await archiveService.getStorypassages(Story.id);
+      console.log("=== handleDirectStoryOpen called ===");
+      console.log("Story ID:", Story.id);
+      console.log("Chapter count:", Story.chapter_count);
+      
+      // For non-chapter stories, try to get passages directly
+      if (Story.chapter_count === 0) {
+        console.log("Non-chapter story, getting passages directly");
+        try {
+          // Try to get passages directly from the story
+          const passages = await apiService.get<any[]>('storyRoot', { urlSuffix: `stories/${Story.id}/passages/` });
+          console.log("Direct passages for story:", passages);
+          
+          if (passages && passages.length > 0) {
+            // Transform to frontend format
+            const storypassages = {
+              id: Story.id.toString(),
+              title: Story.title || 'Unknown Story',
+              subtitle: 'main',
+              atmosphere: 'Mysterious',
+              difficulty: 'Intermediate',
+              rarity: 'Common',
+              skillFocus: ['General'],
+              passages: passages.map((passage: any) => ({
+                id: passage.id,
+                passage_id: passage.passage_id,
+                content: passage.content,
+                passage_type: passage.passage_type,
+                speaker: passage.speaker,
+                required_conditions: passage.required_conditions || {},
+                story_effects: passage.story_effects || {},
+                mood: passage.mood,
+                background_music: passage.background_music,
+                background_image: passage.background_image,
+                order: passage.order,
+                choices: [] // Will be populated per passage
+              })),
+              currentPassage: passages[0] ? {
+                id: passages[0].id,
+                passage_id: passages[0].passage_id,
+                content: passages[0].content,
+                passage_type: passages[0].passage_type,
+                speaker: passages[0].speaker,
+                required_conditions: passages[0].required_conditions || {},
+                story_effects: passages[0].story_effects || {},
+                mood: passages[0].mood,
+                background_music: passages[0].background_music,
+                background_image: passages[0].background_image,
+                order: passages[0].order,
+                choices: []
+              } : null,
+              progress: {
+                passagesVisited: 0,
+                isCompleted: false,
+                progressPercentage: 0
+              },
+              isChapterBased: false,
+              chapterId: null,
+              chapterTitle: null
+            };
+            
+            // Get user's progress for this story
+            const progressRecords = await apiService.getStoryProgressRecords(String(Story.id));
+            console.log("User progress for story:", progressRecords);
+            
+            // Calculate exploration percentage based on progress
+            let exploration = 0;
+            if (progressRecords.length > 0) {
+              // Count unique passages visited
+              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
+              const totalPassages = storypassages.passages?.length || 1;
+              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
+            }
+            
+            // Update story with progress information
+            const storyWithProgress = {
+              ...Story,
+              passages: storypassages,
+              exploration: exploration
+            };
+            
+            ui.openStory(storyWithProgress);
+            return;
+          }
+        } catch (directError: any) {
+          console.error("Failed to get direct passages:", directError);
+          console.error("Direct error details:", {
+            message: directError.message,
+            status: directError.response?.status,
+            data: directError.response?.data,
+            url: directError.config?.url
+          });
+        }
+      }
+      
+      // Fallback: try the original getStorypassages method
+      console.log("Trying fallback getStorypassages method");
+      const storypassages = await apiService.getStorypassages(Story.id);
       if (storypassages) {
         // Get user's progress for this story
-        const progressRecords = await archiveService.getStoryProgressRecords(String(Story.id));
+        const progressRecords = await apiService.getStoryProgressRecords(String(Story.id));
         console.log("User progress for story:", progressRecords);
         
         // Calculate exploration percentage based on progress
@@ -170,7 +309,7 @@ const ArchiveInterface: React.FC = () => {
           [{ text: "OK", style: "default" }]
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error opening story:", error);
       Alert.alert("Error", "Failed to load story passages. Please try again.", [
         { text: "OK", style: "default" },
@@ -199,7 +338,11 @@ const ArchiveInterface: React.FC = () => {
         );
 
         // Get story passages from the selected chapter
-        const storypassages = await archiveService.getStorypassagesFromChapter(
+        console.log("Calling getStorypassagesFromChapter with:", {
+          storyId: selectedStory.id,
+          chapterId: chapterId
+        });
+        const storypassages = await apiService.getStorypassagesFromChapter(
           selectedStory.id,
           chapterId
         );
@@ -219,7 +362,7 @@ const ArchiveInterface: React.FC = () => {
           );
 
           // Get user's progress for this story
-          const progressRecords = await archiveService.getStoryProgressRecords(String(selectedStory.id));
+          const progressRecords = await apiService.getStoryProgressRecords(String(selectedStory.id));
           console.log("User progress for story:", progressRecords);
           
           // Calculate exploration percentage based on progress
@@ -235,6 +378,7 @@ const ArchiveInterface: React.FC = () => {
           const storyWithChapter = {
             ...selectedStory,
             passages: storypassages, // Pass the entire storypassages object directly
+            chapterId: chapterId, // Add the chapter ID to the story object
             exploration: exploration
           };
           console.log(
@@ -285,59 +429,47 @@ const ArchiveInterface: React.FC = () => {
     totalStatGains: { [key: string]: number };
   }) => {
     try {
-      // Close modal
-      ui.closeStory();
+      console.log("=== handleStoryCompleteLocal called ===");
+      console.log("Completion data:", completionData);
 
-      // Update progress using the master state
+      // Call the backend to complete the story
+      await apiService.completeStory(
+        completionData.StoryId,
+        completionData.finalRewards,
+        completionData.skillsLearned,
+        completionData.totalStatGains
+      );
+
+      // Update local archive progress
       archive.handleStoryComplete(completionData.StoryId);
-
-      // Try to save completion to backend
-      if (auth.characterId) {
-        await archiveService.completeStory(
-          auth.characterId,
-          completionData.StoryId,
-          {
-            finalRewards: completionData.finalRewards,
-            skillsLearned: completionData.skillsLearned,
-            totalStatGains: completionData.totalStatGains,
-          }
-        );
-      }
-
-      // Add final rewards as artifacts
-      const newArtifacts = completionData.finalRewards.map((reward, index) => ({
-        name: reward,
-        type: "Completion Reward",
-        equipped: false,
-        resonance: 85 + index * 5,
-        description: `Awarded for completing the Story journey`,
-        rarity: "Epic" as const,
-      }));
-      archive.setFinalRewardsArtifacts([
-        ...archive.finalRewardsArtifacts,
-        ...newArtifacts,
-      ]);
-
-      // Add learned skills
       archive.handleSkillLearned(completionData.skillsLearned);
 
-      // Show completion alert
+      // Show completion message
       Alert.alert(
-        "📚 Story Mastered! ✨",
-        `Your journey has transformed your understanding.`,
-        [{ text: "Continue Exploring", style: "default" }]
+        "🎉 Story Completed!",
+        "You have successfully completed this story and gained new insights.",
+        [
+          {
+            text: "Continue Exploring",
+            onPress: () => {
+              handleCloseStory();
+              // Optionally refresh the story list
+              loadStories();
+            },
+          },
+        ]
       );
     } catch (error) {
-      // Still show completion alert even if backend save fails
+      console.error("Error completing story:", error);
       Alert.alert(
-        "📚 Story Mastered! ✨",
-        `Your journey has transformed your understanding.`,
-        [{ text: "Continue Exploring", style: "default" }]
+        "Error",
+        "Failed to complete story. Your progress has been saved locally.",
+        [{ text: "OK", style: "default" }]
       );
     }
   };
 
-  // Codex handlers
+  // Codex handlers -- needs to update to backend functionality 
   const handleCodexEntrySubmit = (entry: {
     type: string;
     passages: string;
@@ -377,6 +509,44 @@ const ArchiveInterface: React.FC = () => {
     }
   };
 
+  //Equipment handlers - now using backend gear system
+  const handleEquip = async (item: EquipmentItem) => {
+    try {
+      // Find the corresponding backend gear item
+      const backendGearItem = equipment.backendGear.find(gear => 
+        gear.gear_type.name === item.name
+      );
+      
+      if (backendGearItem) {
+        await equipment.equipBackendGear(backendGearItem.id);
+      } else {
+        // Fallback to local equipment system
+        equipment.equipItem(item.type, item);
+      }
+    } catch (error) {
+      console.error('Error equipping item:', error);
+      Alert.alert('Error', 'Failed to equip item. Please try again.');
+    }
+  };
+  
+  const handleUnequip = async (item: EquipmentItem) => {
+    try {
+      // Find the corresponding backend gear item
+      const backendGearItem = equipment.backendGear.find(gear => 
+        gear.gear_type.name === item.name
+      );
+      
+      if (backendGearItem) {
+        await equipment.unequipBackendGear(backendGearItem.id);
+      } else {
+        // Fallback to local equipment system
+        equipment.unequipItem(item.type);
+      }
+    } catch (error) {
+      console.error('Error unequipping item:', error);
+      Alert.alert('Error', 'Failed to unequip item. Please try again.');
+    }
+  };
   // Tab button component
   const TabButton: React.FC<{
     title: string;
@@ -530,6 +700,31 @@ const ArchiveInterface: React.FC = () => {
             </Text>
           </LinearGradient>
         </View>
+
+        {/* Manage Equipment Button */}
+        <TouchableOpacity 
+          onPress={() => setShowEquipmentModal(true)}
+          style={{
+            marginTop: 16,
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+            backgroundColor: 'rgba(139, 92, 246, 0.8)',
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: 'rgba(139, 92, 246, 0.3)',
+            alignSelf: 'center'
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={{
+            color: '#FCD34D',
+            fontSize: 14,
+            fontWeight: '600',
+            textAlign: 'center'
+          }}>
+            Manage Equipment
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -729,27 +924,29 @@ const ArchiveInterface: React.FC = () => {
 
                   </View>
 
-                  {/* Main Character Display with Gear  Gear here needs to be updated to use the gear/type from the equipment state */}
+                  {/* Main Character Display with Gear - Updated for Backend Integration */}
                   <View style={theme.styles.characterDisplaySection}>
                     {/* Left Gear Column */}
                     <View style={theme.styles.gearColumn}>
                       {[
                         {
-                          type: "focus" as keyof typeof equipment.equippedItems,
-                          label: "Clarity Relic",
+                          type: "focus" as keyof EquippedItems,
+                          label: "Focus Item",
                           icon: "🔮",
+                          slot: "weapon" as const,
                         },
                         {
-                          type: "comfort" as keyof typeof equipment.equippedItems,
-                          label: "Sanctuary Codex",
+                          type: "comfort" as keyof EquippedItems,
+                          label: "Comfort Layer",
                           icon: "📜",
+                          slot: "armor" as const,
                         },
                       ].map((slot, i) => (
                         <TouchableOpacity
                           key={i}
                           style={theme.styles.gearSlot}
                           onPress={() => {
-                            /* Open equipment modal */
+                            setShowEquipmentModal(true);
                           }}
                           activeOpacity={0.8}
                         >
@@ -775,6 +972,14 @@ const ArchiveInterface: React.FC = () => {
                                 </Text>
                                 <Text style={theme.styles.gearSlotLabel}>
                                   {slot.label}
+                                </Text>
+                                <Text style={{
+                                  color: '#6B7280',
+                                  fontSize: 6,
+                                  textAlign: 'center',
+                                  marginTop: 2
+                                }}>
+                                  Locked
                                 </Text>
                               </View>
                             )}
@@ -790,21 +995,23 @@ const ArchiveInterface: React.FC = () => {
                     <View style={theme.styles.gearColumn}>
                       {[
                         {
-                          type: "shield" as keyof typeof equipment.equippedItems,
-                          label: "Guardian Ward",
+                          type: "shield" as keyof EquippedItems,
+                          label: "Mind Shield",
                           icon: "🛡️",
+                          slot: "helmet" as const,
                         },
                         {
-                          type: "ground" as keyof typeof equipment.equippedItems,
-                          label: "Foundation Stone",
+                          type: "ground" as keyof EquippedItems,
+                          label: "Ground Stone",
                           icon: "⚓",
+                          slot: "boots" as const,
                         },
                       ].map((slot, i) => (
                         <TouchableOpacity
                           key={i}
                           style={theme.styles.gearSlot}
                           onPress={() => {
-                            /* Open equipment modal */
+                            setShowEquipmentModal(true);
                           }}
                           activeOpacity={0.8}
                         >
@@ -830,6 +1037,14 @@ const ArchiveInterface: React.FC = () => {
                                 </Text>
                                 <Text style={theme.styles.gearSlotLabel}>
                                   {slot.label}
+                                </Text>
+                                <Text style={{
+                                  color: '#6B7280',
+                                  fontSize: 6,
+                                  textAlign: 'center',
+                                  marginTop: 2
+                                }}>
+                                  Locked
                                 </Text>
                               </View>
                             )}
@@ -1085,12 +1300,19 @@ const ArchiveInterface: React.FC = () => {
                 </View>
               ) : stories.length > 0 ? (
                 stories.map((Story, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={theme.styles.chronicleCard}
-                    onPress={() => handleOpenStory(Story)}
-                    activeOpacity={0.8}
-                  >
+                                        <TouchableOpacity
+                        key={index}
+                        style={theme.styles.chronicleCard}
+                        onPress={() => {
+                          console.log("=== STORY CARD CLICKED ===");
+                          console.log("Story:", Story);
+                          console.log("Story ID:", Story.id);
+                          console.log("Story title:", Story.title);
+                          console.log("Chapter count:", Story.chapter_count);
+                          handleOpenStory(Story);
+                        }}
+                        activeOpacity={0.8}
+                      >
                     <LinearGradient
                       colors={
                         [
@@ -1340,42 +1562,6 @@ const ArchiveInterface: React.FC = () => {
             </View>
           )}
 
-        {/* Memory Map Tab (currently disabled)
-        {ui.activeTab === "map" && (
-          <View style={theme.styles.tabpassagesArea}>
-            <View style={theme.styles.centeredMessageContainer}>
-              <Icon
-                name="map"
-                size={40}
-                color="#06B6D4"
-                style={{ marginBottom: 16 }}
-              />
-              <Text style={theme.styles.centeredMessageTitle}>
-                Memory Map
-              </Text>
-              <Text style={theme.styles.centeredMessageText}>
-                Explore the vast archive of your mind, unlock new areas, and
-                discover hidden wisdom.
-              </Text>
-              <TouchableOpacity
-                style={theme.styles.primaryButton}
-                onPress={() => ui.setIsMapVisible(true)}
-              >
-                <LinearGradient
-                  colors={["#06B6D4", "#3B82F6"]}
-                  style={theme.styles.primaryButtonGradient}
-                >
-                  <Icon name="map" size={18} color="#E0E7FF" />
-                  <Text style={theme.styles.primaryButtonText}>
-                    Explore the Map
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        */}
-
           {/* Restoration Tab - Updated to use home_data archive_metrics */}
           {ui.activeTab === "restoration" && (
             <View style={theme.styles.archiveTabpassagesArea}>
@@ -1452,11 +1638,11 @@ const ArchiveInterface: React.FC = () => {
           onClose={handleCloseStory}
           story={ui.selectedStory as any}
           chapter={{ 
-            id: 1, 
+            id: (ui.selectedStory as any)?.chapterId || 1, 
             title: ui.selectedStory?.title || "Chapter 1",
             content: ui.selectedStory?.description || "",
-            chapter_number: 1,
-            is_starting_chapter: true,
+            chapter_number: (ui.selectedStory as any)?.chapterId || 1,
+            is_starting_chapter: (ui.selectedStory as any)?.chapterId === 1,
             variables: {},
             requirements: {},
             rewards: {},
@@ -1501,7 +1687,14 @@ const ArchiveInterface: React.FC = () => {
           handleMiniGameCompleteSubmit("thoughtDefender", data)
         }
       />
-
+      <EquipmentModal
+        visible={showEquipmentModal}
+        onClose={() => setShowEquipmentModal(false)}
+        onEquip={handleEquip}
+        onUnequip={handleUnequip}
+        inventory={equipment.inventory ?? []}
+        equippedItems={equipment.equippedItems}
+      />
 
     </View>
   );

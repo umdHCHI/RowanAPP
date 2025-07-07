@@ -1,4 +1,5 @@
 import { ImageSourcePropType } from 'react-native';
+import { PersonalityTrait } from '../imports';
 export interface LoginResponse {
     token: string;
     user: {
@@ -39,15 +40,66 @@ export interface UserProfile {
     first_name: string;
     last_name: string;
     profile: {
-        research_group?: any;
+        research_group?: {
+            id: number;
+            name: string | null;
+            condition: string;
+            description: string;
+            created_at: string;
+        };
         has_completed_onboarding?: boolean;
         completion_type?: string | null;
         completion_data_id?: number | null;
-        character?: Character;
+        character?: Character; //pulling in the character object
         created_at?: string;
         updated_at?: string;
     } | null;
-    personality_profile: any;
+    personality_profile?: {
+        id: number;
+        user: number;
+        openness: number;
+        conscientiousness: number;
+        extraversion: number;
+        agreeableness: number;
+        neuroticism: number;
+        profile_summary?: {
+            dominant_trait: string;
+            scores: {
+                openness: number;
+                conscientiousness: number;
+                extraversion: number;
+                agreeableness: number;
+                neuroticism: number;
+            };
+            last_updated: string;
+        };
+        last_updated: string;
+    } | null;
+    is_test_user?: boolean;
+    story_progress?: StoryProgress[];
+    equipped_gear?: any | null;
+    survey?: any | null;
+}
+
+export interface StoryProgress {
+    id: number;
+    user: number;
+    user_username: string;
+    story: number;
+    story_title: string;
+    story_category: string;
+    current_passage_id: string;
+    passages_visited: string[];
+    passages_visited_count: number;
+    choices_made: any[];
+    choices_made_count: number;
+    story_variables: Record<string, any>;
+    is_completed: boolean;
+    completion_type: string;
+    started_at: string;
+    last_played: string;
+    completed_at: string | null;
+    progress_percentage: number;
 }
 
 export interface ResearchGroup {
@@ -82,15 +134,15 @@ export interface Character {
     name: string;
     level: number;
     experience: number;
-    awareness: number;
+    awareness: number; //
     resilience: number;
     connection: number;
     balance: number;
     coins: number;
     crystals: number;
-    memories_explored: number;
-    coping_skills_learned: number;
-    insights_discovered: number;
+    memories_explored: number; //this should align with stories explored
+    coping_skills_learned: number; //this should align with rewards from stories
+    insights_discovered: number; //this should align with insights from stories
     selected_base_model: number;
     selected_skin_color: number;
     selected_hair_style: number;
@@ -102,13 +154,13 @@ export interface Character {
     selected_mouth_type: number;
     selected_shirt_type: number;
     selected_background_type: number;
-    personality_traits?: any[];
-    coping_tools?: any[];
-    equipped_gear?: any[];
-    experience_needed_for_next_level?: number;
-    experience_progress_percentage?: number;
-    wellness_average?: number;
-    memory_progress?: string;
+    personality_traits?: any[]; //needs to change to personality model???
+    coping_tools?: any[]; //needs to pull in equiptmnet 
+    equipped_gear?: any[]; //what the character has on rn 
+    experience_needed_for_next_level?: number; //overall level progression 
+    experience_progress_percentage?: number; //under the character percentage 
+    wellness_average?: number; //of all skills? 
+    memory_progress?: string; //total of all stories explore
     wellness_stats?: Array<{
         icon: string;
         label: string;
@@ -130,6 +182,7 @@ export interface Character {
     };
     created_at: string;
     updated_at: string;
+    personality_profile?: PersonalityTrait[]; // might be able to handle this not sure
 }
 
 export interface CharacterCreateData {

@@ -92,14 +92,14 @@ import {
   hairOptionsWhite,
   mouthOptions,
 } from "../assets/characterOptions";
-import { sampleInventory } from "../data/sampleEquipment";
 import { apiService, appearanceService } from "../services";
 import {
+  CharacterGear,
   CharacterTool,
   CopingTool,
   HomeData,
 } from "../services/apiService";
-import { Character, CodexEntry, EquipmentItem, EquippedItems, JournalPrompt, MiniGameProgress, Story } from "../types";
+import { Character, CodexEntry, EquipmentItem, EquipmentSubtype, EquippedItems, JournalPrompt, MiniGameProgress, Story } from "../types";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
 
@@ -161,7 +161,6 @@ interface MasterStateContextType {
     researchGroup: string | null;
     characterAppearance: Character | undefined;
     isLoading: boolean;
-    completeSurvey: () => void;
     completeCharacter: () => Promise<void>;
     setAssignedPath: (path: "survey" | "character" | null) => void;
     setCharacterAppearance: (appearance: Character) => void;
@@ -270,6 +269,7 @@ interface MasterStateContextType {
     loadAvailablePrompts: () => Promise<void>;
     loadCategoryPrompts: (unlockedAreas: string[], completedStories: string[]) => Promise<void>;
     refreshPrompts: () => Promise<void>;
+    markPromptInactive: (promptId: string) => Promise<void>;
 
     // Home data
     loadHomeData: () => Promise<void>;
@@ -279,12 +279,17 @@ interface MasterStateContextType {
   equipment: {
     inventory: EquipmentItem[];
     equippedItems: EquippedItems;
+    backendGear: CharacterGear[];
+    equippedGear: CharacterGear[];
     setInventory: (items: EquipmentItem[]) => void;
     setEquippedItems: (items: EquippedItems) => void;
     equipItem: (type: keyof EquippedItems, item: EquipmentItem) => void;
     unequipItem: (type: keyof EquippedItems) => void;
     getItemIcon: (item: EquipmentItem) => any;
     getRarityColors: (rarity: string) => string[];
+    loadBackendGear: () => Promise<void>;
+    equipBackendGear: (gearId: number) => Promise<void>;
+    unequipBackendGear: (gearId: number) => Promise<void>;
   };
 
   // ===== ARCHIVE PROGRESS STATE =====
@@ -407,23 +412,24 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [characterAppearance, setCharacterAppearance] = useState<Character | undefined>(undefined);
   const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
 
-  const completeSurvey = () => {
-    setIsComplete(true);
-    setAssignedPath("survey");
-    setResearchGroup("B");
-  };
+
 
   const completeCharacter = async () => {
+    console.log('=== COMPLETE CHARACTER ONBOARDING STARTED ===');
     try {
       // Call the backend to mark onboarding as complete with character path
+      console.log('Calling apiService.completeOnboarding...');
       await apiService.completeOnboarding('character');
+      console.log('apiService.completeOnboarding completed');
       
       // Update local state
+      console.log('Updating local onboarding state...');
       setIsComplete(true);
       setAssignedPath("character");
       setResearchGroup("A");
+      console.log('Local onboarding state updated');
     } catch (error) {
-      console.error('Failed to complete onboarding:', error);
+      console.error('Backend onboarding completion failed, updating local state anyway:', error);
       // Still update local state even if backend call fails
       setIsComplete(true);
       setAssignedPath("character");
@@ -449,47 +455,33 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
 
     try {
-      console.log('MasterStateContext: Loading user onboarding status');
-      const profile = await apiService.getProfile();
-      
-      const hasCompletedOnboarding = profile.profile?.has_completed_onboarding;
-      const completionType = profile.profile?.completion_type;
-      const isAdminUser = profile.username === 'admin';
-
-      console.log('MasterStateContext: User onboarding status:', {
-        username: profile.username,
-        isAdminUser,
-        hasCompletedOnboarding,
-        completionType
-      });
+      const status = await apiService.checkOnboardingStatus();
 
       // Handle different onboarding states
-      if (hasCompletedOnboarding) {
+      if (status.isOnboarded) {
         // User has completed onboarding
         setIsComplete(true);
         
-        if (completionType) {
+        if (status.completionType) {
           // User has a proper completion type
-          setAssignedPath(completionType as "survey" | "character");
+          setAssignedPath(status.completionType as "survey" | "character");
           
           // Set research group based on completion type
-          if (completionType === 'character') {
+          if (status.completionType === 'character') {
             setResearchGroup("A");
-          } else if (completionType === 'survey') {
+          } else if (status.completionType === 'survey') {
             setResearchGroup("B");
           } else {
             setResearchGroup("A"); // Default fallback
           }
         } else {
           // User completed onboarding but no completion type
-          if (isAdminUser) {
-            // For admin users, default to character path for testing
-            console.log('MasterStateContext: Admin user completed onboarding but no completion type, defaulting to character path for testing');
+          if (status.isTestUser) {
+            // For test users, default to character path for testing
             setAssignedPath("character");
             setResearchGroup("A");
           } else {
             // For regular users, they need to complete onboarding properly
-            console.log('MasterStateContext: Regular user completed onboarding but no completion type, requiring re-onboarding');
             setIsComplete(false);
             setAssignedPath(null);
             setResearchGroup("A");
@@ -502,16 +494,13 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         setResearchGroup("A"); // Default to A
       }
     } catch (error: any) {
-      console.error('MasterStateContext: Failed to load user onboarding status:', error);
       // If it's a 404 error, the endpoint might not exist - that's okay
       if (error.response?.status === 404) {
-        console.log('MasterStateContext: User profile endpoint not found (404) - this is expected if the endpoint is not implemented');
         // On 404 error, default to incomplete onboarding
         setIsComplete(false);
         setAssignedPath(null);
         setResearchGroup("A");
       } else {
-        console.error('MasterStateContext: Unexpected error loading user onboarding status:', error);
         // On other errors, default to incomplete onboarding
         setIsComplete(false);
         setAssignedPath(null);
@@ -560,8 +549,10 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   });
 
   // ===== EQUIPMENT STATE =====
-  const [inventory, setInventory] = useState<EquipmentItem[]>(sampleInventory);
+  const [inventory, setInventory] = useState<EquipmentItem[]>([]);
   const [equippedItems, setEquippedItems] = useState<EquippedItems>({});
+  const [backendGear, setBackendGear] = useState<CharacterGear[]>([]);
+  const [equippedGear, setEquippedGear] = useState<CharacterGear[]>([]);
 
   // ===== ARCHIVE PROGRESS STATE =====
   const [completedStories, setCompletedStories] = useState<Set<string>>(
@@ -818,7 +809,118 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     });
   };
 
-  // ===== ARCHIVE PROGRESS CALCULATIONS (UNCHANGED) =====
+  // ===== BACKEND GEAR INTEGRATION =====
+  const loadBackendGear = async () => {
+    try {
+      const [myGear, equippedGearData] = await Promise.all([
+        apiService.getMyGear(),
+        apiService.getEquippedGear()
+      ]);
+      
+      setBackendGear(myGear);
+      setEquippedGear(equippedGearData);
+      
+      // Convert backend gear to frontend equipment format
+      const convertedInventory: EquipmentItem[] = myGear.map(gear => ({
+        id: gear.id.toString(),
+        name: gear.gear_type.name,
+        type: mapBackendSlotToFrontendType(gear.gear_type.slot),
+        subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot),
+        description: gear.gear_type.description,
+        unlockCondition: 'Unlocked through story completion',
+        wellnessStats: gear.gear_type.stat_bonuses,
+        effect: `Provides ${Object.entries(gear.gear_type.stat_bonuses).map(([stat, value]) => `${stat} +${value}`).join(', ')}`,
+        rarity: 'common',
+        level: 1
+      }));
+      
+      setInventory(convertedInventory);
+      
+      // Convert equipped gear to frontend format
+      const convertedEquippedItems: EquippedItems = {};
+      equippedGearData.forEach(gear => {
+        const frontendType = mapBackendSlotToFrontendType(gear.gear_type.slot);
+        convertedEquippedItems[frontendType] = {
+          id: gear.id.toString(),
+          name: gear.gear_type.name,
+          type: frontendType,
+          subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot),
+          description: gear.gear_type.description,
+          unlockCondition: 'Unlocked through story completion',
+          wellnessStats: gear.gear_type.stat_bonuses,
+          effect: `Provides ${Object.entries(gear.gear_type.stat_bonuses).map(([stat, value]) => `${stat} +${value}`).join(', ')}`,
+          rarity: 'common',
+          level: 1
+        };
+      });
+      
+      setEquippedItems(convertedEquippedItems);
+    } catch (error) {
+      // Keep empty state if backend fails
+    }
+  };
+
+  const mapBackendSlotToFrontendType = (slot: 'weapon' | 'armor' | 'helmet' | 'boots'): keyof EquippedItems => {
+    switch (slot) {
+      case 'weapon': return 'focus';
+      case 'armor': return 'comfort';
+      case 'helmet': return 'shield';
+      case 'boots': return 'ground';
+      default: return 'focus';
+    }
+  };
+
+  const mapBackendGearToSubtype = (gearName: string, slot: 'weapon' | 'armor' | 'helmet' | 'boots'): EquipmentSubtype => {
+    const name = gearName.toLowerCase();
+    
+    switch (slot) {
+      case 'weapon':
+        if (name.includes('meditation') || name.includes('breathing')) return 'meditation';
+        if (name.includes('journal')) return 'journaling';
+        return 'meditation'; // default for focus items
+        
+      case 'armor':
+        if (name.includes('social') || name.includes('friend')) return 'social';
+        if (name.includes('hobby') || name.includes('activity')) return 'hobby';
+        if (name.includes('nature') || name.includes('outdoor')) return 'nature';
+        return 'social'; // default for comfort items
+        
+      case 'helmet':
+        if (name.includes('boundary') || name.includes('limit')) return 'boundary';
+        if (name.includes('affirmation') || name.includes('positive')) return 'affirmation';
+        if (name.includes('routine') || name.includes('habit')) return 'routine';
+        return 'boundary'; // default for shield items
+        
+      case 'boots':
+        if (name.includes('exercise') || name.includes('movement')) return 'exercise';
+        if (name.includes('sleep') || name.includes('rest')) return 'sleep';
+        if (name.includes('nutrition') || name.includes('food')) return 'nutrition';
+        return 'exercise'; // default for ground items
+        
+      default:
+        return 'meditation';
+    }
+  };
+
+  const equipBackendGear = async (gearId: number) => {
+    try {
+      const result = await apiService.equipGear(gearId);
+      await loadBackendGear(); // Reload gear data
+    } catch (error) {
+      Alert.alert('Error', 'Failed to equip gear. Please try again.');
+    }
+  };
+
+  const unequipBackendGear = async (gearId: number) => {
+    try {
+      const result = await apiService.unequipGear(gearId);
+      await loadBackendGear(); // Reload gear data
+    } catch (error) {
+      Alert.alert('Error', 'Failed to unequip gear. Please try again.');
+    }
+  };
+
+  // ===== ARCHIVE PROGRESS CALCULATIONS ===== needs to be iplemeted with story progress
   const calculateFoundationValues = useMemo(() => {
     const baseValues = {
       "Sight Beyond Sight": 2,
@@ -829,8 +931,8 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
     // Add points from completed stories
     completedStories.forEach((storyId) => {
-      const story = memoryStorys.find((g: Story) => g.id === storyId);
-      if (story) {
+      const story = memoryStorys.find((g: Story) => g.id === Number(storyId));
+      if (story && story.skillFocus) {
         story.skillFocus.forEach((skill: string) => {
           if (
             skill.includes("Mindful") ||
@@ -915,7 +1017,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return baseValues;
   }, [completedStories, codexEntries, miniGameProgress, memoryStorys]);
 
-  const getNextUnlock = (foundationLabel: string, currentValue: number) => {
+  const getNextUnlock = (foundationLabel: string, currentValue: number) => { // needs to be implemented with story progress
     const nextLevel = Math.floor(currentValue / 5) + 1;
     const unlocks = {
       "Sight Beyond Sight": [
@@ -948,7 +1050,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return foundationUnlocks?.[nextLevel - 1] || "Mastery achieved";
   };
 
-  const archiveFoundations = useMemo(() => {
+  const archiveFoundations = useMemo(() => { // needs to be implemented with story progress
     const newValues = calculateFoundationValues;
 
     return [
@@ -1047,11 +1149,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   );
 
   // ===== ARCHIVE PROGRESS HANDLERS =====
-  const handleStoryComplete = (StoryId: string) => {
+  const handleStoryComplete = (StoryId: string) => { //handle for story completetion here - story end set yo end
     setCompletedStories((prev) => new Set([...prev, StoryId]));
   };
 
-  const handleCodexEntry = (entry: Omit<CodexEntry, "id" | "timestamp">) => {
+  const handleCodexEntry = (entry: Omit<CodexEntry, "id" | "timestamp">) => { //needs to be extended for awards 
     const newEntry = {
       id: Date.now().toString(),
       ...entry,
@@ -1060,7 +1162,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     setCodexEntries((prev) => [...prev, newEntry]);
   };
 
-  const handleMiniGameComplete = (
+  const handleMiniGameComplete = ( //mini game rewards
     gameType: "thoughtDefender" | "drawing",
     data: any
   ) => {
@@ -1086,7 +1188,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  const handleArtifactUnlock = (artifact: MentalArtifact) => {
+  const handleArtifactUnlock = (artifact: MentalArtifact) => { // gear unlock and rewrds - gained from story/journal
     if (
       !discoveredArtifacts.find((a) => a.name === artifact.name) &&
       !finalRewardsArtifacts.find((a) => a.name === artifact.name)
@@ -1095,17 +1197,21 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  const handleSkillLearned = (skills: string[]) => {
+  const handleSkillLearned = (skills: string[]) => { //skills learned from story/journal
     setLearnedSkills((prev) => [...new Set([...prev, ...skills])]);
   };
 
   // ===== NEW CHARACTER CREATION HANDLERS (UPDATED FOR NEW BACKEND) =====
-  const createCharacter = async () => {
+  const createCharacter = async () => {//character creation
+    console.log('=== MASTER STATE: CREATE CHARACTER STARTED ===');
+    console.log('Auth token present:', !!authToken);
+    
     if (!authToken) {
       setError("No authentication token");
       return;
     }
 
+    console.log('Setting loading state to true...');
     setIsLoading(true);
     setError(null);
 
@@ -1128,20 +1234,25 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         }
       );
 
+      console.log('Character created successfully:', createdCharacter);
       setBackendCharacter(createdCharacter);
 
-      // Complete onboarding
-      completeCharacter();
+      // Complete onboarding - await this to ensure it completes before continuing
+      console.log('Calling completeCharacter...');
+      await completeCharacter();
+      console.log('completeCharacter completed');
 
       // Load additional data (temporarily disabled until backend endpoints are implemented)
       // await memoizedLoadHomeData();
       // await memoizedLoadAvailableTools();
       // await memoizedLoadMyTools();
     } catch (error: any) {
+      console.error('Character creation failed:', error);
       setError(
         "Failed to create character: " + (error?.message || "Unknown error")
       );
     } finally {
+      console.log('Setting loading state to false...');
       setIsLoading(false);
     }
   };
@@ -1335,29 +1446,27 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   // ===== JOURNAL PROMPT METHODS =====
-  const loadAvailablePrompts = async () => {
+  const memoizedLoadAvailablePrompts = useCallback(async () => {
     try {
       const prompts = await apiService.getFilteredJournalPrompts({ isActive: true });
       setAvailablePrompts(prompts);
     } catch (error: any) {
-      console.error('Error loading available prompts:', error);
       // Handle 401 and 404 errors gracefully - these endpoints might not be implemented yet
       if (error?.response?.status === 401 || error?.response?.status === 404) {
-        console.log('Journal prompts endpoint not available (401/404) - this is expected if the endpoint is not implemented');
+        // Journal prompts endpoint not available
       }
       setAvailablePrompts([]);
     }
-  };
+  }, []);
 
   const loadCategoryPrompts = async (unlockedAreas: string[], completedStories: string[]) => {
     try {
       const prompts = await apiService.getPromptsByCategory(unlockedAreas, completedStories);
       setCategoryPrompts(prompts);
     } catch (error: any) {
-      console.error('Error loading category prompts:', error);
       // Handle 401 and 404 errors gracefully - these endpoints might not be implemented yet
       if (error?.response?.status === 401 || error?.response?.status === 404) {
-        console.log('Category prompts endpoint not available (401/404) - this is expected if the endpoint is not implemented');
+        // Category prompts endpoint not available
       }
       setCategoryPrompts({
         journal: null,
@@ -1367,7 +1476,24 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  const refreshPrompts = async () => {
+  const memoizedLoadCategoryPrompts = useCallback(async (unlockedAreas: string[], completedStories: string[]) => {
+    try {
+      const prompts = await apiService.getPromptsByCategory(unlockedAreas, completedStories);
+      setCategoryPrompts(prompts);
+    } catch (error: any) {
+      // Handle 401 and 404 errors gracefully - these endpoints might not be implemented yet
+      if (error?.response?.status === 401 || error?.response?.status === 404) {
+        // Category prompts endpoint not available
+      }
+      setCategoryPrompts({
+        journal: null,
+        draw: null,
+        voice: null,
+      });
+    }
+  }, []);
+
+  const memoizedRefreshPrompts = useCallback(async () => {
     try {
       // Get current unlocked areas and completed stories from the archive state
       const unlockedAreas = Array.from(completedStories); // You may need to adjust this logic
@@ -1375,13 +1501,13 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       
       // Reload both available prompts and category-specific prompts
       await Promise.all([
-        loadAvailablePrompts(),
+        memoizedLoadAvailablePrompts(),
         loadCategoryPrompts(unlockedAreas, completedStoriesArray)
       ]);
     } catch (error) {
-      console.error('Error refreshing prompts:', error);
+      // Error refreshing prompts
     }
-  };
+  }, [completedStories]);
 
   // ===== ARCHIVE PROGRESS PERSISTENCE =====
   const loadArchiveProgress = async () => {
@@ -1507,9 +1633,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     } catch (error: any) {
       // Don't set error state for load failures as they might be expected
       if (error.response?.status === 404) {
-        console.log('MasterStateContext: Character endpoint not found (404) - this is expected if the endpoint is not implemented');
+        // Character endpoint not found (404) - this is expected if the endpoint is not implemented
       } else {
-        console.error('MasterStateContext: Error loading character:', error);
+        // Error loading character
       }
     } finally {
       setIsLoading(false);
@@ -1523,9 +1649,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     } catch (error: any) {
       // Handle error silently
       if (error.response?.status === 404) {
-        console.log('MasterStateContext: Available tools endpoint not found (404) - this is expected if the endpoint is not implemented');
+        // Available tools endpoint not found (404) - this is expected if the endpoint is not implemented
       } else {
-        console.error('MasterStateContext: Error loading available tools:', error);
+        // Error loading available tools
       }
     }
   }, []);
@@ -1538,9 +1664,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     } catch (error: any) {
       // Handle error silently
       if (error.response?.status === 404) {
-        console.log('MasterStateContext: My tools endpoint not found (404) - this is expected if the endpoint is not implemented');
+        // My tools endpoint not found (404) - this is expected if the endpoint is not implemented
       } else {
-        console.error('MasterStateContext: Error loading my tools:', error);
+        // Error loading my tools
       }
     }
   }, []);
@@ -1552,9 +1678,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     } catch (error: any) {
       // Handle error silently
       if (error.response?.status === 404) {
-        console.log('MasterStateContext: Recent codex entries endpoint not found (404) - this is expected if the endpoint is not implemented');
+        // Recent codex entries endpoint not found (404) - this is expected if the endpoint is not implemented
       } else {
-        console.error('MasterStateContext: Error loading recent codex entries:', error);
+        // Error loading recent codex entries
       }
     }
   }, []);
@@ -1566,26 +1692,39 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     } catch (error: any) {
       // Handle error silently
       if (error.response?.status === 404) {
-        console.log('MasterStateContext: Home data endpoint not found (404) - this is expected if the endpoint is not implemented');
+        // Home data endpoint not found (404) - this is expected if the endpoint is not implemented
       } else {
-        console.error('MasterStateContext: Error loading home data:', error);
+        // Error loading home data
       }
+    }
+  }, []);
+
+  const memoizedMarkPromptInactive = useCallback(async (promptId: string) => {
+    try {
+      await apiService.markJournalPromptInactive(promptId);
+    } catch (error) {
+      throw error;
     }
   }, []);
 
   // Update the useEffect to use memoized functions
   useEffect(() => {
-    if (authToken) {
+    // Don't automatically load data on startup with stored token
+    // Wait for explicit user action like login
+    // The login flow will call these functions when needed
+    if (authToken && user) {  // Only load if we have both token AND user data (indicating fresh login)
       loadUserOnboardingStatus();
       memoizedLoadCharacter();
       // Load home data for character display
       memoizedLoadHomeData();
+      // Load backend gear data
+      loadBackendGear();
       // Temporarily disable these calls until backend endpoints are implemented
       // memoizedLoadAvailableTools();
       // memoizedLoadMyTools();
       // memoizedLoadRecentCodexEntries();
     }
-  }, [authToken, loadUserOnboardingStatus, memoizedLoadCharacter, memoizedLoadHomeData]);
+  }, [authToken, user, loadUserOnboardingStatus, memoizedLoadCharacter, memoizedLoadHomeData, loadBackendGear]);
 
   // ===== CONTEXT VALUE =====
   const value: MasterStateContextType = {
@@ -1603,7 +1742,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       researchGroup,
       characterAppearance,
       isLoading: isOnboardingLoading,
-      completeSurvey,
       completeCharacter,
       setAssignedPath,
       setCharacterAppearance,
@@ -1681,20 +1819,26 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       loadRecentCodexEntries: memoizedLoadRecentCodexEntries,
       createCodexEntry,
       quickJournalEntry,
-      loadAvailablePrompts,
-      loadCategoryPrompts,
-      refreshPrompts,
+      loadAvailablePrompts: memoizedLoadAvailablePrompts,
+      loadCategoryPrompts: memoizedLoadCategoryPrompts,
+      refreshPrompts: memoizedRefreshPrompts,
+      markPromptInactive: memoizedMarkPromptInactive,
       loadHomeData: memoizedLoadHomeData,
     },
     equipment: {
       inventory,
       equippedItems,
+      backendGear,
+      equippedGear,
       setInventory,
       setEquippedItems,
       equipItem,
       unequipItem,
       getItemIcon,
       getRarityColors,
+      loadBackendGear,
+      equipBackendGear,
+      unequipBackendGear,
     },
     archive: {
       completedStories,

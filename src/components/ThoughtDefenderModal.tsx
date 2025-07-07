@@ -10,7 +10,7 @@ import {
   View
 } from "react-native";
 import { GameState, PowerUp, Projectile, Thought } from "../types";
-import PixelButton from "./PixelButton";
+
 
 // Simple custom button component for the game
 const GameButton = ({ title, onPress, style, color = "darkBrown" }: any) => (
@@ -922,14 +922,14 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
             </View>
           )}
 
-          <PixelButton>
+         
             <GameButton
               title="🚪 EXIT GAME"
               color="darkBrown"
               onPress={onClose}
               style={{ width: 150 }}
             />
-          </PixelButton>
+         
         </View>
       </View>
     </Modal>

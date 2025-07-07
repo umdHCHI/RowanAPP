@@ -14,7 +14,9 @@ import { useMasterState } from "../context/MasterStateContext";
 import { createGlobalStyles } from "../styles/globalStyles";
 import { CodexModalProps, JournalPrompt } from "../types";
 import DrawingCanvas from "./DrawingCanvas";
+import VoiceMemoRecorder from './VoiceMemoRecorder';
 const { width, height } = Dimensions.get("window");
+const isMobile = width < 600;
 const CodexModal = ({
   visible,
   onClose,
@@ -38,34 +40,50 @@ const CodexModal = ({
   const [loading, setLoading] = useState(false);
   const [completedPrompts, setCompletedPrompts] = useState<string[]>([]);
 
+  // Load prompts only when modal becomes visible
   useEffect(() => {
-    if (!visible) return;
-    setLoading(true);
+    if (visible) {
+      console.log('🔄 Loading prompts for CodexModal...');
+      setLoading(true);
+      
+      const loadPrompts = async () => {
+        try {
+          const completedStoriesArray = Array.from(archive.completedStories);
+          await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
+          console.log('✅ Prompts loaded successfully');
+        } catch (error) {
+          console.error('Error loading prompts:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadPrompts();
+    }
+  }, [visible]); // Only depend on visible state
 
-    // Load category-specific prompts using the new system
-    const loadPrompts = async () => {
-      try {
-        const completedStoriesArray = Array.from(archive.completedStories);
-        await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
-      } catch (error) {
-        console.error('Error loading prompts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    loadPrompts();
-  }, [visible, unlockedAreas, archive.completedStories, wellness]);
 
   const handleSave = async () => {
     if (selectedPrompt && passages) {
       try {
+        // Mark the prompt as inactive (completed)
+        try {
+          await wellness.markPromptInactive(selectedPrompt.prompt_id);
+          console.log(`Marked prompt ${selectedPrompt.prompt_id} as inactive`);
+        } catch (deactivateError) {
+          console.error('Error marking prompt as inactive:', deactivateError);
+          // Continue with save even if deactivation fails
+        }
+
         // Show success alert
         Alert.alert(
           "Entry Saved",
           "Your journal entry has been saved to your Codex.",
           [{ text: "OK" }]
-        );        // Call the original onSave
+        );
+
+        // Call the original onSave
         onSave({
           type: selectedType,
           passages,
@@ -75,7 +93,7 @@ const CodexModal = ({
           difficulty: selectedPrompt.difficulty,
         });
 
-        // Refresh prompts to potentially get new ones
+        // Refresh prompts to get a new one (since the current one is now inactive)
         const completedStoriesArray = Array.from(archive.completedStories);
         await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
 
@@ -100,32 +118,34 @@ const CodexModal = ({
 
   // Set the selected prompt when switching categories
   useEffect(() => {
+    console.log(`🔄 Type changed to: ${selectedType}, hasPrompt: ${hasPromptForCategory}`);
     if (hasPromptForCategory && !selectedPrompt) {
       setSelectedPrompt(currentPrompt);
     } else if (!hasPromptForCategory) {
       setSelectedPrompt(null);
     }
-  }, [selectedType, currentPrompt, hasPromptForCategory, selectedPrompt]);
+  }, [selectedType, hasPromptForCategory]); // Remove currentPrompt dependency
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      transparent={!isMobile}
       onRequestClose={onClose}
     >
-      <View style={globalStyles.codexModalOverlay}>
-        <View style={globalStyles.codexModalpassages}>
+      <View style={isMobile ? { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)' } : globalStyles.codexModalOverlay}>
+        <View style={isMobile ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start' } : globalStyles.codexModalpassages}>
           <ImageBackground
             source={parchmentSource}
-            style={globalStyles.codexPixelBorder}
+            style={isMobile ? { flex: 1, padding: 0 } : globalStyles.codexPixelBorder}
             imageStyle={globalStyles.codexTextureOverlay}
           >
-            <View style={globalStyles.codexInnerpassages}>
+            <View style={isMobile ? { flex: 1, padding: 0 } : globalStyles.codexInnerpassages}>
               <View
                 style={[
                   globalStyles.codexHeader,
                   { borderBottomColor: theme.theme.archiveBorder },
+                  isMobile && { paddingTop: 32, paddingHorizontal: 16 },
                 ]}
               >
                 <Text
@@ -196,7 +216,8 @@ const CodexModal = ({
                 </TouchableOpacity>
               </View>
 
-              <View style={globalStyles.codexpassagesContainer}>                <View style={globalStyles.codexPromptSection}>
+              <View style={isMobile ? { flex: 1, flexDirection: 'column', minHeight: 0 } : globalStyles.codexpassagesContainer}>
+                <View style={isMobile ? { padding: 12, paddingBottom: 0 } : globalStyles.codexPromptSection}>
                   <Text
                     style={[
                       globalStyles.codexSectionTitle,
@@ -258,15 +279,7 @@ const CodexModal = ({
                   </View>
                 </View>
 
-                <View style={globalStyles.codexInputSection}>
-                  <Text
-                    style={[
-                      globalStyles.codexSectionTitle,
-                      { color: theme.theme.archiveText },
-                    ]}
-                  >
-                    Your Chronicle
-                  </Text>
+                <View style={isMobile ? { flex: 1, minHeight: 0, minWidth: 0, justifyContent: 'center' } : globalStyles.codexInputSection}>
                   {selectedPrompt && selectedType === "journal" && (
                     <TextInput
                       style={[
@@ -283,33 +296,26 @@ const CodexModal = ({
                     />
                   )}
                   {selectedPrompt && selectedType === "draw" && (
-                    <DrawingCanvas
-                      onSave={(paths) => {
-                        setDrawingPaths(paths);
-                        setpassages(JSON.stringify(paths));
-                      }}
-                      onCancel={() => {
-                        setDrawingPaths([]);
-                        setpassages("");
-                      }}
-                    />
+                    <View style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+                      <DrawingCanvas
+                        onSave={(paths) => {
+                          setDrawingPaths(paths);
+                          setpassages(JSON.stringify(paths));
+                        }}
+                        onCancel={() => {
+                          setDrawingPaths([]);
+                          setpassages("");
+                        }}
+                      />
+                    </View>
                   )}
                   {selectedPrompt && selectedType === "voice" && (
-                    <View style={globalStyles.codexVoicePlaceholder}>
-                      <Ionicons
-                        name="mic"
-                        size={48}
-                        color={theme.theme.archiveText}
-                      />
-                      <Text
-                        style={[
-                          globalStyles.codexVoiceText,
-                          { color: theme.theme.archiveText },
-                        ]}
-                      >
-                        Voice recording coming soon...
-                      </Text>
-                    </View>
+                    <VoiceMemoRecorder
+                      onSave={(audioUri) => {
+                        setpassages(audioUri);
+                      }}
+                      theme={theme.theme}
+                    />
                   )}
                 </View>
               </View>

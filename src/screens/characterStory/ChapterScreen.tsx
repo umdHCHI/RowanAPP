@@ -17,7 +17,8 @@ import {
 
 // Import useTheme directly to avoid circular dependency issues
 import { useMasterState } from "../../context/MasterStateContext";
-import { archiveService, ChapterSummary } from "../../services/archiveService";
+import { apiService } from "../../services/apiService";
+import { ChapterSummary } from "../../types/story";
 
 const { width, height } = Dimensions.get("window");
 
@@ -52,7 +53,7 @@ const ChapterScreen = ({
       setError(null);
 
       try {
-        const backendChapters = await archiveService.getChapters(storyId);
+        const backendChapters = await apiService.getChapters(storyId);
 
         if (backendChapters && backendChapters.length > 0) {
           setChapters(backendChapters);

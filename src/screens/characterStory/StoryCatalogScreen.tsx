@@ -1,48 +1,30 @@
 import {
-  BlurView,
-  createGlobalStyles,
-  darkTheme,
-  Dimensions,
-  Icon,
-  LinearGradient,
-  Modal,
-  React,
-  ScrollView,
-  Story,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useEffect,
-  useState,
-  View
+    BlurView,
+    createGlobalStyles,
+    Dimensions,
+    Icon,
+    LinearGradient,
+    Modal,
+    React,
+    ScrollView,
+    Story,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useEffect,
+    useState,
+    View
 } from "../../imports";
 
-// Import archive service for backend operations
-import { archiveService } from "../../services/archiveService";
+import { useMasterState } from "../../context/MasterStateContext";
+import { apiService } from "../../services/apiService";
 // Import test function
 // Import ChapterScreen for chapter selection - temporarily disabled
 // import ChapterScreen from './ChapterScreen';
 
 const { width } = Dimensions.get("window");
 
-/*export type Story = {
-  id: string;
-  title: string;
-  category: string;
-  description: string;
-  difficulty: string;
-  timeToComplete: string;
-  exploration: number;
-  revelations: number;
-  rarity: "Common" | "Rare" | "Epic" | "Legendary";
-  skillFocus: string[];
-  atmosphere: string;
-  statBoosts: string[];
-  unlockLevel: number;
-  isLocked?: boolean;
-  passages?: any[];
-  image?: string;
-};*/
+
 
 type StoryCatalogModalProps = {
   visible: boolean;
@@ -55,13 +37,14 @@ const StoryCatalogModal = ({
   onClose,
   onSelectStory,
 }: StoryCatalogModalProps) => {
-  const [Storys, setStorys] = useState<Story[]>([]);
+  const { theme } = useMasterState();
+  const globalStyles = createGlobalStyles(theme.theme);
+
+  const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const globalStyles = createGlobalStyles(darkTheme);
-
-  // Load Storys from backend on mount
+  // Load stories when modal becomes visible
   useEffect(() => {
     const loadStorys = async () => {
       if (!visible) return;
@@ -70,21 +53,16 @@ const StoryCatalogModal = ({
       setError(null);
 
       try {
-        console.log("Loading Storys from backend...");
-        const backendStorys = await archiveService.getAvailableStories();
-        console.log("Backend Storys response:", backendStorys);
+        const backendStorys = await apiService.getAvailableStories();
 
         if (backendStorys && backendStorys.length > 0) {
-          console.log("Setting Storys:", backendStorys);
-          setStorys(backendStorys);
+          setStories(backendStorys);
         } else {
-          console.log("No Storys returned from backend");
-          setStorys([]);
+          setStories([]);
         }
       } catch (error) {
-        console.error("Failed to load Storys from the Archive:", error);
-        setError("Failed to load Storys from the Archive");
-        setStorys([]);
+        setError("Failed to load stories from the Archive");
+        setStories([]);
       } finally {
         setIsLoading(false);
       }
@@ -137,7 +115,7 @@ const StoryCatalogModal = ({
         <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
           {/* Rarity Border */}
           <LinearGradient
-            colors={getRarityColors(Story.rarity ? Story.rarity : "Common")}
+            colors={getRarityColors(Story.rarity || "Common")}
             style={globalStyles.StoryRarityBorder}
           />
 
@@ -152,7 +130,7 @@ const StoryCatalogModal = ({
                 <Text
                   style={[globalStyles.StoryLockText, { color: "#A855F7" }]}
                 >
-                  Level {Story.unlockLevel} Required
+                  Level {Story.unlockLevel || 1} Required
                 </Text>
               </LinearGradient>
             </View>
@@ -173,11 +151,11 @@ const StoryCatalogModal = ({
 
             <View style={globalStyles.StoryRarityBadge}>
               <LinearGradient
-                colors={getRarityColors(Story.rarity? Story.rarity : "Common")}
+                colors={getRarityColors(Story.rarity || "Common")}
                 style={globalStyles.StoryRarityBadgeGradient}
               >
                 <Text style={globalStyles.StoryRarityBadgeText}>
-                  {Story.rarity}
+                  {Story.rarity || "Common"}
                 </Text>
               </LinearGradient>
             </View>
@@ -224,7 +202,7 @@ const StoryCatalogModal = ({
             </Text>
           </View>
 
-          {/* Skill Focus Tags  - Might not be used */}
+          {/* Skill Focus Tags */}
           <View style={globalStyles.StorySkillFocusContainer}>
             <Text
               style={[globalStyles.StorySkillFocusLabel, { color: "#9CA3AF" }]}
@@ -232,7 +210,7 @@ const StoryCatalogModal = ({
               Coping Skills:
             </Text>
             <View style={globalStyles.StorySkillTags}>
-              {(Story.skillFocus || []).slice(0, 2).map((skill, index) => (
+              {(Story.skillFocus || ["General Wellness"]).slice(0, 2).map((skill, index) => (
                 <View key={index} style={globalStyles.StorySkillTag}>
                   <Text style={globalStyles.StorySkillTagText}>{skill}</Text>
                 </View>
@@ -255,7 +233,7 @@ const StoryCatalogModal = ({
               Strengthens:
             </Text>
             <View style={globalStyles.StoryStatBoostTags}>
-              {(Story.statBoosts || []).map((stat, index) => (
+              {(Story.statBoosts || ["General Growth"]).map((stat, index) => (
                 <View key={index} style={globalStyles.StoryStatBoostTag}>
                   <Icon name="trending-up" size={8} color="#10B981" />
                   <Text
@@ -278,7 +256,7 @@ const StoryCatalogModal = ({
               <Text
                 style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
               >
-                {Story.timeToComplete || "Unknown time"}
+                {Story.timeToComplete || "10-15 min"}
               </Text>
             </View>
             <View style={globalStyles.StoryFooterStat}>
@@ -286,7 +264,7 @@ const StoryCatalogModal = ({
               <Text
                 style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
               >
-                {Story.revelations || 0} revelations
+                {Story.revelations || 1} revelations
               </Text>
             </View>
             <View style={globalStyles.StoryFooterStat}>
@@ -294,7 +272,7 @@ const StoryCatalogModal = ({
               <Text
                 style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
               >
-                {Story.difficulty || "Unknown"}
+                {Story.difficulty || "Intermediate"}
               </Text>
             </View>
           </View>
@@ -490,8 +468,8 @@ const StoryCatalogModal = ({
                   contentContainerStyle={globalStyles.StoryGrid}
                   showsVerticalScrollIndicator={false}
                 >
-                  {Storys.length > 0 ? (
-                    Storys.map((Story) => (
+                  {stories.length > 0 ? (
+                    stories.map((Story) => (
                       <StoryCard key={Story.id} Story={Story} />
                     ))
                   ) : (
@@ -548,7 +526,7 @@ const runComprehensiveTest = async () => {
   try {
     // Test 1: Get story catalog
     console.log("1. Testing story catalog...");
-    const catalog = await archiveService.getAvailableStories();
+    const catalog = await apiService.getAvailableStories();
     console.log("Story catalog result:", catalog);
     console.log("Catalog length:", catalog?.length);
 
@@ -558,7 +536,7 @@ const runComprehensiveTest = async () => {
 
       // Test 2: Get chapters for first story
       console.log("2. Testing chapters for story:", firstStory.id);
-      const chapters = await archiveService.getChapters(firstStory.id);
+      const chapters = await apiService.getChapters(firstStory.id);
       console.log("Chapters result:", chapters);
 
       if (chapters && chapters.length > 0) {
@@ -567,7 +545,7 @@ const runComprehensiveTest = async () => {
 
         // Test 3: Get story passages from chapter
         console.log("3. Testing story passages from chapter:", firstChapter.id);
-        const storypassages = await archiveService.getStorypassagesFromChapter(
+        const storypassages = await apiService.getStorypassagesFromChapter(
           firstStory.id,
           firstChapter.id
         );

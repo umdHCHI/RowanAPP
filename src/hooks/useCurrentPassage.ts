@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { archiveService } from "../services/archiveService";
+import { apiService } from "../services/apiService";
 import { StoryProgress } from "../types/story";
 
 export const usePassageFetcher = (
@@ -20,8 +20,8 @@ export const usePassageFetcher = (
     console.log("=== FETCHING PASSAGE ===");
     console.log("Story ID:", storyId);
     console.log("Passage ID:", passageId);
-      archiveService
-      .getPassage(storyId, passageId)
+      apiService
+      .getPassage(parseInt(storyId), passageId)
       .then((res) => {
         console.log("Passage fetch response:", res);
         console.log("Response type:", typeof res);

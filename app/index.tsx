@@ -44,7 +44,7 @@ export default function Index() {
     researchGroup: onboarding.researchGroup
   });
   console.log('Research group:', onboarding.researchGroup);
-  console.log('Is test user:', auth.authToken === '8a71299900898a32febbca89ef5638a406475348');
+  console.log('Is test user:', auth.isTestUser);
   
   // Route based on research condition
   if (onboarding.researchGroup === 'A') {

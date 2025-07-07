@@ -1,236 +1,180 @@
-import { useState, useCallback, useEffect } from 'react';
-import { apiService, Story, Passage, Choice, StoryProgress } from '../services/apiService';
+import { useCallback, useEffect, useState } from 'react';
+import { apiService } from '../services/apiService';
 
-interface StoryNavigationState {
-    currentStory: Story | null;
-    currentPassage: Passage | null;
-    availableChoices: Choice[];
-    storyProgress: StoryProgress | null;
-    isLoading: boolean;
-    error: string | null;
+interface UseSimplifiedStoryLoaderProps {
+  storyId: string;
+  chapterId?: number;
 }
 
-interface StoryNavigationActions {
-    loadStory: (storyId: number, passageId?: string) => Promise<void>;
-    makeChoice: (choiceId: number) => Promise<void>;
-    resetStory: (storyId: number) => Promise<void>;
-    startStory: (storyId: number) => Promise<void>;
-    clearError: () => void;
-}
+export const useSimplifiedStoryLoader = ({ storyId, chapterId }: UseSimplifiedStoryLoaderProps) => {
+  const [storyData, setStoryData] = useState<any>(null);
+  const [currentPassage, setCurrentPassage] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-export function useStoryNavigation(): StoryNavigationState & StoryNavigationActions {
-    const [state, setState] = useState<StoryNavigationState>({
-        currentStory: null,
-        currentPassage: null,
-        availableChoices: [],
-        storyProgress: null,
-        isLoading: false,
-        error: null,
-    });
+  // Initialize story using new backend structure
+  useEffect(() => {
+    const initializeStory = async () => {
+      if (!storyId || isInitialized) return;
 
-    const setLoading = (isLoading: boolean) => {
-        setState(prev => ({ ...prev, isLoading }));
+      setLoading(true);
+      setError(null);
+
+      try {
+        console.log('🎬 Starting story using new backend:', storyId);
+
+        // Start the story first
+        const startResult = await apiService.startNewStory(parseInt(storyId));
+        console.log('✅ Story started:', startResult);
+
+        // Get the current passage
+        const currentPassageResult = await apiService.getCurrentPassage(parseInt(storyId));
+        console.log('✅ Current passage loaded:', currentPassageResult);
+
+        if (!currentPassageResult) {
+          throw new Error('Failed to load current passage');
+        }
+
+        // Set the current passage
+        setCurrentPassage(currentPassageResult.passage || currentPassageResult);
+        setStoryData({
+          id: storyId,
+          currentPassage: currentPassageResult.passage || currentPassageResult
+        });
+
+        setIsInitialized(true);
+      } catch (err: any) {
+        console.error('❌ Failed to initialize story:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const setError = (error: string | null) => {
-        setState(prev => ({ ...prev, error, isLoading: false }));
-    };
+    initializeStory();
+  }, [storyId, chapterId, isInitialized]);
 
-    const clearError = useCallback(() => {
-        setError(null);
-    }, []);
+  // Navigate to a specific passage using your existing getPassage method
+  const navigateToPassage = useCallback(async (passageId: string): Promise<void> => {
+    if (!storyData) return;
 
-    const loadStory = useCallback(async (storyId: number, passageId?: string) => {
+    try {
+      setLoading(true);
+      console.log(`📄 Navigating to passage: ${passageId}`);
+
+      // Use your existing getPassage method
+      const passage = await apiService.getPassage(parseInt(storyId), passageId);
+      
+      if (passage) {
+        setCurrentPassage(passage);
+        console.log(`✅ Navigated to: ${passageId}`);
+      } else {
+        throw new Error(`Passage not found: ${passageId}`);
+      }
+    } catch (error: any) {
+      console.error('Navigation failed:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [storyData, storyId]);
+
+  // Handle choice selection using new backend structure
+  const handleChoice = useCallback(async (choice: any): Promise<void> => {
+    if (!storyData || !currentPassage) return;
+
+    try {
+      console.log('🎯 Handling choice:', choice.text);
+      console.log('Choice object:', choice);
+
+      // Use the new backend make_choice endpoint
+      if (choice.id) {
         try {
-            setLoading(true);
-            setError(null);
-
-            // Get the story details
-            const story = await apiService.get<Story>('storyCatalog', { urlSuffix: `${storyId}/` });
-            
-            // Get or create story progress
-            let progress = await apiService.getStoryProgress(storyId);
-            
-            // Determine which passage to load
-            const targetPassageId = passageId || progress?.current_passage_id || story.starting_passage_id;
-            
-            // Navigate to the passage
-            const result = await apiService.navigateToPassage(storyId, targetPassageId);
-
-            setState(prev => ({
-                ...prev,
-                currentStory: story,
-                currentPassage: result.passage,
-                availableChoices: result.choices,
-                storyProgress: result.storyProgress,
-                isLoading: false,
-                error: null,
-            }));
-
-        } catch (error: any) {
-            console.error('Error loading story:', error);
-            setError(error.message || 'Failed to load story');
-        }
-    }, []);
-
-    const startStory = useCallback(async (storyId: number) => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            // Start the story from the beginning
-            const story = await apiService.get<Story>('storyCatalog', { urlSuffix: `${storyId}/` });
-            await loadStory(storyId, story.starting_passage_id);
-
-        } catch (error: any) {
-            console.error('Error starting story:', error);
-            setError(error.message || 'Failed to start story');
-        }
-    }, [loadStory]);
-
-    const makeChoice = useCallback(async (choiceId: number) => {
-        if (!state.storyProgress) {
-            setError('No story progress found');
+          const choiceResult = await apiService.makeChoice(choice.id.toString());
+          console.log('Choice result:', choiceResult);
+          
+          // Check if story is completed
+          if (choiceResult?.story_completed) {
+            console.log('🏁 Story completed!');
+            setCurrentPassage({
+              ...currentPassage,
+              content: 'Story Complete! 🎉',
+              choices: []
+            });
             return;
-        }
-
-        try {
-            setLoading(true);
-            setError(null);
-
-            const result = await apiService.makeChoice(choiceId, state.storyProgress.id);
-
-            setState(prev => ({
-                ...prev,
-                currentPassage: result.nextPassage,
-                availableChoices: result.choices,
-                storyProgress: result.storyProgress,
-                isLoading: false,
-                error: null,
-            }));
-
-            // Check if story is completed
-            if (result.storyProgress.is_completed) {
-                console.log('Story completed!', {
-                    completionType: result.storyProgress.completion_type,
-                    effectsApplied: result.effectsApplied
-                });
-            }
-
-        } catch (error: any) {
-            console.error('Error making choice:', error);
-            setError(error.message || 'Failed to make choice');
-        }
-    }, [state.storyProgress]);
-
-    const resetStory = useCallback(async (storyId: number) => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            await apiService.resetStoryProgress(storyId);
-            await loadStory(storyId); // Reload from the beginning
-
-        } catch (error: any) {
-            console.error('Error resetting story:', error);
-            setError(error.message || 'Failed to reset story');
-        }
-    }, [loadStory]);
-
-    return {
-        ...state,
-        loadStory,
-        makeChoice,
-        resetStory,
-        startStory,
-        clearError,
-    };
-}
-
-// Hook for getting available stories
-export function useAvailableStories() {
-    const [stories, setStories] = useState<Story[]>([]);
-    const [completionStatus, setCompletionStatus] = useState<Record<number, any>>({});
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const loadStories = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            setError(null);
-
-            const [availableStories, status] = await Promise.all([
-                apiService.getAvailableStories(),
-                apiService.getStoryCompletionStatus()
-            ]);
-
-            setStories(availableStories);
-            setCompletionStatus(status);
-
-        } catch (error: any) {
-            console.error('Error loading stories:', error);
-            setError(error.message || 'Failed to load stories');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadStories();
-    }, [loadStories]);
-
-    return {
-        stories,
-        completionStatus,
-        isLoading,
-        error,
-        refresh: loadStories,
-    };
-}
-
-// Hook for managing story variables
-export function useStoryVariables(storyId: number) {
-    const [variables, setVariables] = useState<Record<string, any>>({});
-    const [isLoading, setIsLoading] = useState(false);
-
-    const setVariable = useCallback(async (name: string, value: any) => {
-        try {
-            setIsLoading(true);
-            await apiService.setStoryVariable(storyId, name, value);
-            setVariables(prev => ({ ...prev, [name]: value }));
+          }
+          
+          // If the backend returns the next passage, use it
+          if (choiceResult?.passage) {
+            console.log('Backend returned next passage:', choiceResult.passage);
+            setCurrentPassage(choiceResult.passage);
+            return; // Exit early since backend handled navigation
+          }
         } catch (error) {
-            console.error('Error setting story variable:', error);
-        } finally {
-            setIsLoading(false);
+          console.warn('Backend choice failed:', error);
+          setError('Failed to make choice. Please try again.');
         }
-    }, [storyId]);
+      } else {
+        console.warn('No choice ID found:', choice);
+        setError('Invalid choice selection');
+      }
+    } catch (error: any) {
+      console.error('Choice handling failed:', error);
+      setError(error.message);
+    }
+  }, [storyData, currentPassage]);
 
-    const loadVariables = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const storyVars = await apiService.getStoryVariables(storyId);
-            const variableMap = storyVars.reduce((acc, sv) => {
-                acc[sv.variable_name] = sv.variable_value;
-                return acc;
-            }, {} as Record<string, any>);
-            setVariables(variableMap);
-        } catch (error) {
-            console.error('Error loading story variables:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [storyId]);
+  // Get next passage for tap-to-continue
+  const getNextPassage = useCallback((): string | null => {
+    if (!storyData?.passages || !currentPassage) return null;
 
-    useEffect(() => {
-        if (storyId) {
-            loadVariables();
-        }
-    }, [storyId, loadVariables]);
+    const currentIndex = storyData.passages.findIndex(
+      (p: any) => p.passage_id === currentPassage.passage_id
+    );
+    
+    if (currentIndex === -1 || currentIndex >= storyData.passages.length - 1) {
+      return null;
+    }
+    
+    return storyData.passages[currentIndex + 1]?.passage_id || null;
+  }, [storyData, currentPassage]);
 
-    return {
-        variables,
-        setVariable,
-        isLoading,
-        refresh: loadVariables,
-    };
-}
+  // Handle tap-to-continue for narration passages
+  const handleTapToContinue = useCallback(async (): Promise<void> => {
+    const nextPassageId = getNextPassage();
+    if (nextPassageId) {
+      await navigateToPassage(nextPassageId);
+    }
+  }, [getNextPassage, navigateToPassage]);
+
+  // Calculate progress
+  const progress = {
+    current: storyData?.passages ? 
+      storyData.passages.findIndex((p: any) => p.passage_id === currentPassage?.passage_id) + 1 : 0,
+    total: storyData?.passages?.length || 0,
+    percentage: storyData?.passages ? 
+      Math.round(((storyData.passages.findIndex((p: any) => p.passage_id === currentPassage?.passage_id) + 1) / storyData.passages.length) * 100) : 0
+  };
+
+  return {
+    // Data
+    storyData,
+    currentPassage,
+    loading,
+    error,
+    isInitialized,
+    progress,
+
+    // Actions
+    navigateToPassage,
+    handleChoice,
+    handleTapToContinue,
+
+    // Utils
+    hasChoices: currentPassage?.choices?.length > 0,
+    canContinue: !!getNextPassage(),
+    isComplete: !getNextPassage() && (!currentPassage?.choices || currentPassage.choices.length === 0),
+    isNarration: currentPassage?.passage_type === 'narration' || currentPassage?.passageType === 'narration'
+  };
+};

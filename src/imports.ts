@@ -2,25 +2,25 @@
 
 // ===== React & React Native Core =====
 export {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity, useColorScheme, View
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity, useColorScheme, View
 } from 'react-native';
 
 export {
-    createContext, ReactNode, useCallback, useContext,
-    useEffect,
-    useState
+  createContext, ReactNode, useCallback, useContext,
+  useEffect,
+  useState
 } from 'react';
 
 export { default as React } from 'react';
@@ -39,17 +39,13 @@ export { default as Icon } from 'react-native-vector-icons/Feather';
 
 // ===== Services =====
 export {
-    API_ENDPOINTS,
-    apiBaseUrl,
-    apiService,
-    appearanceService,
-    archiveService,
-    completeOnboarding,
-    createProfile,
-    getApiUrl,
-    getProfile,
-    researchGroupService,
-    updateProfile
+  API_ENDPOINTS,
+  apiBaseUrl,
+  apiService,
+  appearanceService,
+
+
+  getApiUrl
 } from './services';
 
 // ===== Components =====
@@ -59,8 +55,7 @@ export { default as CharacterPreview } from './components/CharacterPreview';
 export { default as CodexModal } from './components/CodexModal';
 export { default as DrawingCanvas } from './components/DrawingCanvas';
 export { default as EquipmentModal } from './components/EquipmentModal';
-export { HauntedLibraryBG } from './components/HauntedLibrary';
-export { default as PixelButton } from './components/PixelButton';
+
 export { default as ThoughtDefenderModal } from './components/ThoughtDefenderModal';
 
 // ===== Character Creator Components =====
@@ -72,17 +67,15 @@ export { StyleControls } from './components/CharacterCreator/StyleControls';
 
 // ===== Assets =====
 export {
-    // Character options
-    baseOptions,
-    bgOptions,
-    // Frame assets
-    characterCreatorAssets,
-    // Equipment
-    ComfortType, equipmentIcons,
-    equipmentTypeLabels, FocusType,
-    GroundType, mouthOptions,
-    rarityColors,
-    sampleHeadBar, ShieldType
+  // Equipment
+  // Character options
+  baseOptions,
+  bgOptions,
+  // Frame assets
+  characterCreatorAssets, equipmentIcons,
+  equipmentTypeLabels, mouthOptions,
+  rarityColors,
+  sampleHeadBar
 } from './assets';
 
 // ===== Data =====
@@ -101,33 +94,33 @@ export { darkTheme, lightTheme, ThemeColors } from './styles/theme';
 
 // ===== Types =====
 export type {
-    ArchiveProgress, AuthContextType, Chapter, ChapterPassage, ChapterSummary,
-    //UserCharacter System
-    Character, CharacterCreateData, CharacterCustomizationData,
-    // Equipment
-    CharacterGear, Choice, CodexEntry,
-    // Journal
-    CodexModalProps, EquipmentItem,
-    EquipmentSubtype,
-    EquipmentType,
-    EquippedItems,
-    // Game
-    ExtendedGameData,
-    GameAchievement,
-    //User Game Data - Persistent Game Data
-    GameData, GameSession, GameState,
-    // Wellness system
-    GearItem,
-    GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
-    LoginResponse,
-    // MiniGame Types 
-    MiniGameProgress, MiniGameResult, NPC, Passage, PowerUp, Projectile,
-    //User Research Group
-    ResearchGroup, SavedRewards, Skill, StatGains,
-    //story imports 
-    Story, StoryDetail, StoryGains, StoryProgress, StoryProgression, StoryScreenProps, Thought,
-    // User Profile
-    UserProfile, WellnessStats
+  ArchiveProgress, AuthContextType, Chapter, ChapterPassage, ChapterSummary,
+  //UserCharacter System
+  Character, CharacterCreateData, CharacterCustomizationData,
+  // Equipment
+  CharacterGear, Choice, CodexEntry,
+  // Journal
+  CodexModalProps, EquipmentItem,
+  EquipmentSubtype,
+  EquipmentType,
+  EquippedItems,
+  // Game
+  ExtendedGameData,
+  GameAchievement,
+  //User Game Data - Persistent Game Data
+  GameData, GameSession, GameState,
+  // Wellness system
+  GearItem,
+  GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
+  LoginResponse,
+  // MiniGame Types 
+  MiniGameProgress, MiniGameResult, NPC, Passage, PowerUp, Projectile,
+  //User Research Group
+  ResearchGroup, SavedRewards, Skill, StatGains,
+  //story imports 
+  Story, StoryDetail, StoryGains, StoryProgress, StoryProgression, StoryScreenProps, Thought,
+  // User Profile
+  UserProfile, WellnessStats
 } from './types';
 
 
@@ -135,8 +128,282 @@ export type {
 // ===== Context Types =====
 export type { PersonalityTrait } from './context/PersonalityContext';
 
+// ===== Personality Types =====
+export type PersonalityKey = "Openness" | "Conscientiousness" | "Extraversion" | "Agreeableness" | "Neuroticism";
 
+// ===== Personality Constants =====
+export const PersonalityConfigs = {
+  Openness: {
+    avatar: "🔮",
+    gameTitle: "Chronicles of the Infinite Mind",
+    scholarClass: "Sage Explorer",
+    journeyDesc: "Wandering through endless corridors of possibility...",
+    curatorNote: "The Curator whispers of hidden knowledge...",
+    theme: {
+      primary: '#4ee6e6',
+      secondary: '#9d4edd',
+      accent: '#f72585',
+      background: '#0a0b0f',
+    },
+    backgroundRunes: ["🌌", "✨", "🎭"],
+    mindStates: [
+      { icon: "🎭", label: "Curiosity", key: "curiosity" },
+      { icon: "🎨", label: "Creativity", key: "creativity" },
+      { icon: "🚀", label: "Adventure", key: "adventure" },
+    ],
+    archiveSection: "The Dreamscape Library",
+    mysticalElements: {
+      borderGlow: '#9d4edd',
+      avatarGlow: '#f72585',
+    },
+    archiveTab: { key: 'dreamscape', icon: '🌌', label: 'Dreamscape' },
+    adventureTab: { key: 'journeys', icon: '🗺️', label: 'Journeys' },
+  },
+  
+  Conscientiousness: {
+    avatar: "⚖️",
+    gameTitle: "The Methodical Codex",
+    scholarClass: "Order Keeper",
+    journeyDesc: "Cataloging the sacred texts of self-mastery...",
+    curatorNote: "The Curator commends your dedication...",
+    theme: {
+      primary: '#4ee6e6',
+      secondary: '#2a9d8f',
+      accent: '#f4a261',
+      background: '#0a0b0f',
+    },
+    backgroundRunes: ["📏", "⚙️", "🏛️"],
+    mindStates: [
+      { icon: "🎯", label: "Focus", key: "focus" },
+      { icon: "🛡️", label: "Resilience", key: "resilience" },
+      { icon: "📈", label: "Progress", key: "progress" },
+    ],
+    archiveSection: "The Structured Sanctum",
+    mysticalElements: {
+      borderGlow: '#2a9d8f',
+      avatarGlow: '#f4a261',
+    },
+    archiveTab: { key: 'sanctum', icon: '🏛️', label: 'Sanctum' },
+    adventureTab: { key: 'quests', icon: '📜', label: 'Quests' },
+  },
+  
+  Extraversion: {
+    avatar: "🌟",
+    gameTitle: "Tales of the Connected Soul",
+    scholarClass: "Social Catalyst",
+    journeyDesc: "Gathering wisdom from the fellowship of minds...",
+    curatorNote: "The Curator celebrates your vibrant spirit...",
+    theme: {
+      primary: '#4ee6e6',
+      secondary: '#f72585',
+      accent: '#ffd60a',
+      background: '#0a0b0f',
+    },
+    backgroundRunes: ["🎪", "🌈", "🎉"],
+    mindStates: [
+      { icon: "⚡", label: "Energy", key: "energy" },
+      { icon: "🤝", label: "Connection", key: "connection" },
+      { icon: "🎭", label: "Expression", key: "expression" },
+    ],
+    archiveSection: "The Grand Assembly Hall",
+    mysticalElements: {
+      borderGlow: '#f72585',
+      avatarGlow: '#ffd60a',
+    },
+    archiveTab: { key: 'assembly', icon: '🎪', label: 'Assembly' },
+    adventureTab: { key: 'tales', icon: '📖', label: 'Tales' },
+  },
+  
+  Agreeableness: {
+    avatar: "🕊️",
+    gameTitle: "The Harmony Archives",
+    scholarClass: "Peace Weaver",
+    journeyDesc: "Seeking balance in the chambers of understanding...",
+    curatorNote: "The Curator feels your gentle wisdom...",
+    theme: {
+      primary: '#4ee6e6',
+      secondary: '#06ffa5',
+      accent: '#ffffb3',
+      background: '#0a0b0f',
+    },
+    backgroundRunes: ["🌸", "🕯️", "🤲"],
+    mindStates: [
+      { icon: "💚", label: "Empathy", key: "empathy" },
+      { icon: "☮️", label: "Harmony", key: "harmony" },
+      { icon: "🌱", label: "Growth", key: "growth" },
+    ],
+    archiveSection: "The Healing Gardens",
+    mysticalElements: {
+      borderGlow: '#06ffa5',
+      avatarGlow: '#ffffb3',
+    },
+    archiveTab: { key: 'gardens', icon: '🌸', label: 'Gardens' },
+    adventureTab: { key: 'legends', icon: '📚', label: 'Legends' },
+  },
+  
+  Neuroticism: {
+    avatar: "🌙",
+    gameTitle: "Depths of the Inner Sanctum",
+    scholarClass: "Shadow Walker",
+    journeyDesc: "Delving deep into the shadowed alcoves of the psyche...",
+    curatorNote: "The Curator understands your profound depths...",
+    theme: {
+      primary: '#4ee6e6',
+      secondary: '#7209b7',
+      accent: '#a663cc',
+      background: '#0a0b0f',
+    },
+    backgroundRunes: ["🌑", "🔍", "⚗️"],
+    mindStates: [
+      { icon: "🧘", label: "Awareness", key: "awareness" },
+      { icon: "💎", label: "Depth", key: "depth" },
+      { icon: "🌊", label: "Flow", key: "flow" },
+    ],
+    archiveSection: "The Reflection Chambers",
+    mysticalElements: {
+      borderGlow: '#7209b7',
+      avatarGlow: '#a663cc',
+    },
+    archiveTab: { key: 'chambers', icon: '🌙', label: 'Chambers' },
+    adventureTab: { key: 'odysseys', icon: '🌀', label: 'Odysseys' },
+  }
+};
 
+export const PERSONALITY_TABS: Record<PersonalityKey, Array<{ key: string; label: string; icon: string }>> = {
+  Openness: [
+    { key: "entrance", label: "Dreamscape", icon: "🌌" },
+    { key: "storys", label: "Chronicles", icon: "📖" },
+    { key: "codex", label: "Wisdom", icon: "🔮" },
+    { key: "defender", label: "Curiosity", icon: "🎭" },
+    { key: "restoration", label: "Growth", icon: "🌱" },
+  ],
+  Conscientiousness: [
+    { key: "entrance", label: "Sanctum", icon: "🏛️" },
+    { key: "storys", label: "Archives", icon: "📚" },
+    { key: "codex", label: "Order", icon: "⚖️" },
+    { key: "defender", label: "Discipline", icon: "🛡️" },
+    { key: "restoration", label: "Growth", icon: "📈" },
+  ],
+  Extraversion: [
+    { key: "entrance", label: "Assembly", icon: "🎪" },
+    { key: "storys", label: "Tales", icon: "📖" },
+    { key: "codex", label: "Connection", icon: "🤝" },
+    { key: "defender", label: "Empathy", icon: "💚" },
+    { key: "restoration", label: "Growth", icon: "🌟" },
+  ],
+  Agreeableness: [
+    { key: "entrance", label: "Gardens", icon: "🌸" },
+    { key: "storys", label: "Harmony", icon: "🕊️" },
+    { key: "codex", label: "Peace", icon: "☮️" },
+    { key: "defender", label: "Empathy", icon: "💚" },
+    { key: "restoration", label: "Growth", icon: "🌱" },
+  ],
+  Neuroticism: [
+    { key: "entrance", label: "Chambers", icon: "🌙" },
+    { key: "storys", label: "Depths", icon: "🔍" },
+    { key: "codex", label: "Reflection", icon: "💎" },
+    { key: "defender", label: "Awareness", icon: "🧘" },
+    { key: "restoration", label: "Growth", icon: "🌊" },
+  ],
+};
+
+export const PERSONALITY_BUILDS: Record<PersonalityKey, {
+  title: string;
+  class: string;
+  description: string;
+  baseStats: {
+    awareness: number;
+    resilience: number;
+    connection: number;
+    balance: number;
+  };
+  storyCategories: string[];
+  storyThemes: string[];
+}> = {
+  Openness: {
+    title: "The Sage Explorer",
+    class: "Creative Pathfinder",
+    description: "Masters the art of perspective and boundless curiosity",
+    baseStats: { awareness: 8, resilience: 6, connection: 6, balance: 5 },
+    storyCategories: ["Mystery", "Discovery", "Innovation", "Exploration"],
+    storyThemes: ["curiosity", "imagination", "new experiences", "creative thinking"],
+  },
+  Conscientiousness: {
+    title: "The Methodical Guardian",
+    class: "Structured Keeper",
+    description: "Builds strength through order and disciplined practice",
+    baseStats: { awareness: 6, resilience: 8, connection: 5, balance: 7 },
+    storyCategories: ["Challenge", "Growth", "Achievement", "Structure"],
+    storyThemes: ["goal-setting", "organization", "perseverance", "self-discipline"],
+  },
+  Extraversion: {
+    title: "The Social Catalyst",
+    class: "Community Builder",
+    description: "Draws power from connection and shared experiences",
+    baseStats: { awareness: 6, resilience: 6, connection: 8, balance: 6 },
+    storyCategories: ["Adventure", "Cooperation", "Leadership", "Social"],
+    storyThemes: ["teamwork", "communication", "social connection", "collaboration"],
+  },
+  Agreeableness: {
+    title: "The Harmonious Healer",
+    class: "Empathic Guide",
+    description: "Transforms conflict into understanding and growth",
+    baseStats: { awareness: 7, resilience: 5, connection: 8, balance: 7 },
+    storyCategories: ["Healing", "Relationships", "Harmony", "Empathy"],
+    storyThemes: ["compassion", "understanding", "conflict resolution", "emotional intelligence"],
+  },
+  Neuroticism: {
+    title: "The Depth Walker",
+    class: "Emotional Alchemist",
+    description: "Transforms sensitivity into profound wisdom",
+    baseStats: { awareness: 8, resilience: 5, connection: 6, balance: 5 },
+    storyCategories: ["Transformation", "Inner Journey", "Resilience", "Emotional Depth"],
+    storyThemes: ["emotional awareness", "self-reflection", "coping strategies", "personal growth"],
+  },
+};
+
+export const PersonalityWellnessAttributes = {
+  Openness: {
+    attributes: [
+      { icon: "🎯", label: "Focus", value: 5, color: "#9d4edd", description: "Channeling creative energy into purposeful action" },
+      { icon: "🌱", label: "Grounding", value: 5, color: "#06ffa5", description: "Staying centered while exploring new possibilities" },
+      { icon: "🧩", label: "Integration", value: 5, color: "#4cc9f0", description: "Connecting diverse ideas into meaningful wholes" },
+      { icon: "⚡", label: "Clarity", value: 5, color: "#f72585", description: "Seeing through complexity to find simple truths" }
+    ]
+  },
+  Conscientiousness: {
+    attributes: [
+      { icon: "🌊", label: "Flexibility", value: 5, color: "#2a9d8f", description: "Adapting plans while maintaining core values" },
+      { icon: "💝", label: "Self-Compassion", value: 5, color: "#f4a261", description: "Being kind to yourself when standards aren't met" },
+      { icon: "⚖️", label: "Balance", value: 5, color: "#e76f51", description: "Harmonizing work, rest, and personal needs" },
+      { icon: "🔥", label: "Sustainable Drive", value: 5, color: "#264653", description: "Maintaining motivation without burning out" }
+    ]
+  },
+  Extraversion: {
+    attributes: [
+      { icon: "🛡️", label: "Boundaries", value: 5, color: "#f72585", description: "Protecting your energy while staying connected" },
+      { icon: "🎭", label: "Authenticity", value: 5, color: "#ffd60a", description: "Being true to yourself in social situations" },
+      { icon: "🔋", label: "Energy Management", value: 5, color: "#4cc9f0", description: "Balancing social engagement with personal recharge" },
+      { icon: "🌟", label: "Confident Expression", value: 5, color: "#f77f00", description: "Sharing your thoughts and feelings with confidence" }
+    ]
+  },
+  Agreeableness: {
+    attributes: [
+      { icon: "🦁", label: "Assertiveness", value: 5, color: "#06ffa5", description: "Standing up for yourself with kindness" },
+      { icon: "🚪", label: "Healthy Boundaries", value: 5, color: "#ffffb3", description: "Saying no while maintaining relationships" },
+      { icon: "💪", label: "Self-Advocacy", value: 5, color: "#4cc9f0", description: "Speaking up for your needs and values" },
+      { icon: "🌸", label: "Conflict Resolution", value: 5, color: "#f72585", description: "Navigating disagreements with grace and wisdom" }
+    ]
+  },
+  Neuroticism: {
+    attributes: [
+      { icon: "🧘", label: "Emotional Regulation", value: 5, color: "#7209b7", description: "Managing intense emotions with skillful awareness" },
+      { icon: "🌊", label: "Resilience", value: 5, color: "#a663cc", description: "Bouncing back from setbacks with renewed strength" },
+      { icon: "☮️", label: "Inner Calm", value: 5, color: "#4cc9f0", description: "Finding peace within the storm of thoughts" },
+      { icon: "🔍", label: "Perspective", value: 5, color: "#06ffa5", description: "Seeing situations from multiple angles" }
+    ]
+  }
+};
 
 // ===== Context Exports =====
 export { useAuth } from './context/AuthContext';

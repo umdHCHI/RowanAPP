@@ -10,13 +10,8 @@ export { API_ENDPOINTS, apiBaseUrl, getApiUrl } from './apiConfig';
 export { appearanceService } from './appearanceService';
 
 // Archive service
-export { archiveService } from './archiveService';
 
-// Onboarding service functions
-export {
-    completeOnboarding, createProfile, getProfile, updateProfile
-} from './onboardingService';
 
-// Research group service
-export { researchGroupService } from './researchGroupService';
+
+
 

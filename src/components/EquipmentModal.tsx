@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { EquipmentItem, EquippedItems } from "../types/equipment";
 
@@ -118,7 +118,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           <ScrollView style={styles.passages}>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Equipped</Text>
-              {Object.values(equippedItems).map((item) =>
+              {Object.values(equippedItems || {}).map((item) =>
                 renderItem(item, true)
               )}
             </View>

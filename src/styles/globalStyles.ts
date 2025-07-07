@@ -1623,7 +1623,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       marginLeft: 10,
     },
 
-    // ===== Story/STORY SCREEN STYLES =====
+    // ===== STORY/STORY SCREEN STYLES =====
     StoryModalOverlay: {
       flex: 1,
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(0, 0, 0, 0.95)' : 'rgba(255,255,255,0.95)',
@@ -1848,7 +1848,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       marginVertical: 10,
     },
 
-    // ===== Story CATALOG STYLES =====
+    // ===== STORY CATALOG STYLES =====
     StoryCard: {
       backgroundColor: theme.archiveCard,
       borderRadius: 16,
@@ -2047,7 +2047,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       color: '#E0E7FF',
     },
 
-    // ===== Story MODAL STYLES =====
+    // ===== STORY MODAL STYLES =====
     StoryModalGradient: {
       flex: 1,
       borderRadius: 16,
@@ -2290,6 +2290,14 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     drawingCanvasContainer: {
       flex: 1,
       backgroundColor: theme.archiveMode === 'dark' ? '#1A2332' : '#F8FAFC',
+      minHeight: 300,
+    },
+    drawingCanvasContainerMobile: {
+      flex: 1,
+      backgroundColor: theme.archiveMode === 'dark' ? '#1A2332' : '#F8FAFC',
+      minHeight: 0,
+      minWidth: 0,
+      padding: 0,
     },
     drawingCanvasToolbar: {
       flexDirection: 'row',
@@ -2299,6 +2307,39 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
       borderBottomWidth: 1,
       borderBottomColor: theme.archiveBorder,
+    },
+    drawingCanvasToolbarMobile: {
+      padding: 8,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    drawingCanvasCanvas: {
+      flex: 1,
+      backgroundColor: theme.archiveMode === 'dark' ? '#0F172A' : '#FFFFFF',
+      minHeight: 200,
+    },
+    drawingCanvasCanvasMobile: {
+      flex: 1,
+      minHeight: 0,
+      minWidth: 0,
+      backgroundColor: theme.archiveMode === 'dark' ? '#0F172A' : '#FFFFFF',
+    },
+    drawingCanvasBottomBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      padding: 16,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
+      borderTopWidth: 1,
+      borderTopColor: theme.archiveBorder,
+    },
+    drawingCanvasBottomBarMobile: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      padding: 12,
+      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.95)' : 'rgba(243, 244, 246, 0.95)',
+      borderTopWidth: 1,
+      borderTopColor: theme.archiveBorder,
     },
     drawingCanvasColorPicker: {
       flexDirection: 'row',
@@ -2336,18 +2377,6 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       padding: 8,
       borderRadius: 6,
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)',
-    },
-    drawingCanvasCanvas: {
-      flex: 1,
-      backgroundColor: theme.archiveMode === 'dark' ? '#0F172A' : '#FFFFFF',
-    },
-    drawingCanvasBottomBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      padding: 16,
-      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
-      borderTopWidth: 1,
-      borderTopColor: theme.archiveBorder,
     },
     drawingCanvasCancelButton: {
       paddingVertical: 12,
@@ -2439,6 +2468,10 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       width: '100%',
       height: '100%',
       resizeMode: 'stretch',
+     
+     
+     
+     
       zIndex: 0,
     },
     characterCreatorSectionTitle: {
@@ -2657,35 +2690,1458 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       textAlign: 'center',
     },
 
-    // ===== LOGIN SCREEN STYLES =====
-    loginContainer: {
-      justifyContent: 'center',
-      padding: 20,
+    // ===== PERSONALITY HOME SCREEN STYLES =====
+    personalityCentered: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "#181A20",
     },
-    loginErrorText: {
-      color: '#ff4444',
+    personalityTabBar: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      backgroundColor: "#23242b",
+      borderBottomWidth: 1,
+      borderColor: "#333",
+      paddingVertical: 8,
+    },
+    personalityTabButton: {
+      alignItems: "center",
+      flex: 1,
+      paddingVertical: 4,
+    },
+    personalityTabButtonActive: {
+      borderBottomWidth: 2,
+      borderBottomColor: "#4ee6e6",
+    },
+    personalitySectionTitle: {
+      color: "#fff",
+      fontWeight: "bold",
+      fontSize: 18,
       marginBottom: 10,
-      textAlign: 'center',
+      marginTop: 10,
     },
-    loginButtonDisabled: {
-      opacity: 0.7,
+    personalityTraitRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 12,
     },
-
-    // ===== WELCOME SCREEN STYLES =====
-    welcomeContainer: {
-      justifyContent: 'center',
+    personalityTraitCard: {
+      backgroundColor: "#23242b",
+      borderRadius: 10,
+      padding: 10,
+      alignItems: "center",
+      flex: 1,
+      marginHorizontal: 4,
+      borderWidth: 1,
+      borderColor: "#333",
+    },
+    personalityPrimaryTraitCard: {
+      borderColor: "#4ee6e6",
+      borderWidth: 2,
+      backgroundColor: "#2a2d35",
+    },
+    personalityTraitName: {
+      color: "#4ee6e6",
+      fontWeight: "bold",
+      fontSize: 12,
+      marginBottom: 2,
+    },
+    personalityTraitScore: {
+      color: "#ffe066",
+      fontWeight: "bold",
+      fontSize: 16,
+    },
+    personalityPrimaryIndicator: {
+      color: "#4ee6e6",
+      fontSize: 10,
+      fontWeight: "bold",
+      marginTop: 2,
+    },
+    personalityMoodBubble: {
+      backgroundColor: "#f5e6c4",
+      borderRadius: 12,
+      padding: 16,
+      marginVertical: 15,
+      borderWidth: 2,
+      borderColor: "#e2c48d",
+      alignItems: "center",
+    },
+    personalityMoodText: {
+      color: "#5a4a2c",
+      fontSize: 14,
+      fontStyle: "italic",
+      textAlign: "center",
+    },
+    personalityProfileStatus: {
+      marginTop: 20,
+    },
+    personalityStatusCard: {
+      backgroundColor: "#23242b",
+      borderRadius: 10,
+      padding: 15,
+      borderWidth: 1,
+      borderColor: "#333",
+    },
+    personalityStatusText: {
+      color: "#fff",
+      fontSize: 14,
+      fontWeight: "bold",
+      marginBottom: 5,
+    },
+    personalityStatusSubtext: {
+      color: "#ccc",
+      fontSize: 12,
+      lineHeight: 16,
+    },
+    personalityRetryButton: {
+      backgroundColor: "#4ee6e6",
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    personalityStoryHeader: {
+      marginBottom: 20,
+    },
+    personalityStorySubtitle: {
+      color: "#4ee6e6",
+      fontSize: 14,
+      fontStyle: "italic",
+    },
+    personalityCenteredMessage: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 40,
+    },
+    personalityCenteredMessageTitle: {
+      color: "#fff",
+      fontSize: 18,
+      fontWeight: "bold",
+      marginBottom: 10,
+    },
+    personalityCenteredMessageText: {
+      color: "#ccc",
+      fontSize: 14,
+      textAlign: "center",
+      lineHeight: 20,
+    },
+    personalityErrorText: {
+      color: "#ff6b6b",
+      fontSize: 14,
+      textAlign: "center",
+      marginBottom: 16,
+    },
+    personalityStoryCard: {
+      backgroundColor: "rgba(35, 36, 43, 0.3)",
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: "rgba(51, 51, 51, 0.5)",
+      borderLeftWidth: 4,
+      borderLeftColor: "rgba(78, 230, 230, 0.6)",
+    },
+    personalityStoryCardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 12,
+    },
+    personalityStoryTitle: {
+      color: "#fff",
+      fontSize: 18,
+      fontWeight: "bold",
+      flex: 1,
+      marginRight: 10,
+    },
+    personalityStoryBadges: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    personalityCategoryBadge: {
+      backgroundColor: "#4ee6e6",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    personalityCategoryBadgeText: {
+      color: "#000",
+      fontSize: 10,
+      fontWeight: "bold",
+    },
+    personalityDifficultyBadge: {
+      backgroundColor: "#ffe066",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    personalityDifficultyBadgeText: {
+      color: "#000",
+      fontSize: 10,
+      fontWeight: "bold",
+    },
+    personalityStoryDescription: {
+      color: "#ccc",
+      fontSize: 14,
+      lineHeight: 20,
+      marginBottom: 12,
+    },
+    personalityStoryFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    personalityStoryStats: {
+      flexDirection: "row",
+      gap: 16,
+    },
+    personalityStoryStat: {
+      flexDirection: 'row',
       alignItems: 'center',
+      gap: 4,
     },
-    welcomeSubtitle: {
+    personalityStoryStatText: {
+      color: '#9CA3AF',
+      fontSize: 12,
+    },
+    personalityMatch: {
+      backgroundColor: "rgba(78, 230, 230, 0.05)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    personalityMatchText: {
+      color: "#4ee6e6",
+      fontSize: 11,
+      fontWeight: "bold",
+    },
+    personalityFilterInfo: {
+      backgroundColor: "#23242b",
+      borderRadius: 10,
+      padding: 15,
+      marginTop: 20,
+      borderWidth: 1,
+      borderColor: "#333",
+    },
+    personalityFilterInfoTitle: {
+      color: "#4ee6e6",
+      fontSize: 14,
+      fontWeight: "bold",
+      marginBottom: 8,
+    },
+    personalityFilterInfoText: {
+      color: "#ccc",
+      fontSize: 12,
+      lineHeight: 16,
+    },
+    personalityTypeCard: {
+      backgroundColor: "#23242b",
+      borderRadius: 15,
+      padding: 20,
+      marginBottom: 20,
+      borderWidth: 2,
+      borderColor: "#4ee6e6",
+      shadowColor: "#4ee6e6",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    personalityTypeHeader: {
+      alignItems: "center",
+      marginBottom: 10,
+    },
+    personalityTypeLabel: {
+      color: "#4ee6e6",
+      fontSize: 14,
+      fontWeight: "bold",
+      marginBottom: 2,
+    },
+    personalityTypeName: {
+      color: "#ffe066",
+      fontSize: 18,
+      fontWeight: "bold",
+    },
+    personalityTypeClass: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "bold",
+    },
+    personalityTypeContent: {
+      alignItems: "center",
+    },
+    personalityTypeDescription: {
+      color: "#ccc",
+      fontSize: 14,
+      textAlign: "center",
+      marginBottom: 10,
+    },
+    personalityDominantTraitInfo: {
+      alignItems: "center",
+      marginBottom: 10,
+    },
+    personalityDominantTraitLabel: {
+      color: "#4ee6e6",
+      fontSize: 12,
+      fontWeight: "bold",
+      marginBottom: 2,
+    },
+    personalityDominantTraitScore: {
+      color: "#ffe066",
+      fontSize: 16,
+      fontWeight: "bold",
+    },
+    personalityLastUpdatedText: {
+      color: "#ccc",
+      fontSize: 12,
+      fontStyle: "italic",
+      marginTop: 5,
+    },
+    personalitySectionSubtitle: {
+      color: '#9CA3AF',
+      fontSize: 14,
       marginBottom: 20,
       textAlign: 'center',
     },
-    welcomeButton: {
-      width: '80%',
-      marginVertical: 10,
+    personalityStoryCardGradient: {
+      padding: 16,
+      borderRadius: 12,
+      backgroundColor: "rgba(35, 36, 43, 0.2)",
     },
-    welcomeButtonDisabled: {
-      opacity: 0.7,
+    personalityStoryCardTitle: {
+      color: "#fff",
+      fontSize: 18,
+      fontWeight: "bold",
+      marginBottom: 4,
+    },
+    personalityStoryCardCategory: {
+      color: "#ccc",
+      fontSize: 12,
+      fontWeight: "500",
+    },
+    personalityStoryInfo: {
+      flex: 1,
+    },
+    personalityStoryDescriptionContainer: {
+      marginBottom: 16,
+    },
+    personalityStoryAtmosphere: {
+      color: '#06B6D4',
+      fontSize: 12,
+      fontStyle: 'italic',
+      textAlign: 'center',
+    },
+    personalityExplorationContainer: {
+      marginBottom: 16,
+    },
+    personalityExplorationHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    personalityExplorationLabel: {
+      color: '#06B6D4',
+      fontSize: 14,
+      fontWeight: 'bold',
+      flex: 1,
+      marginLeft: 8,
+    },
+    personalityExplorationValue: {
+      color: '#06B6D4',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    personalityExplorationBar: {
+      height: 6,
+      backgroundColor: 'rgba(6, 182, 212, 0.2)',
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    personalityExplorationFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    personalityExplorationFooter: {
+      color: '#9CA3AF',
+      fontSize: 12,
+      textAlign: 'center',
+    },
+
+    // Additional styles for personality story catalog
+    personalityStoryCatalogContainer: {
+      flex: 1,
+    },
+    personalityStoryCatalogHeader: {
+      marginBottom: 20,
+    },
+    personalityStoryHeaderContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    personalityStoryCatalogTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginLeft: 12,
+    },
+    personalityStoryCatalogSubtitle: {
+      fontSize: 14,
+      lineHeight: 20,
+      marginLeft: 36,
+    },
+    personalityStoryScrollView: {
+      flex: 1,
+    },
+    personalityStoryGrid: {
+      paddingBottom: 20,
+    },
+    personalityStoryCardBlur: {
+      borderRadius: 12,
+      backgroundColor: "rgba(35, 36, 43, 0.1)",
+    },
+    personalityStoryRarityBorder: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: 12,
+      borderWidth: 2,
+    },
+    personalityStoryLockOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: 12,
+      zIndex: 10,
+    },
+    personalityStoryLockGradient: {
+      flex: 1,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    personalityStoryLockText: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginTop: 8,
+    },
+    personalityStoryTitleSection: {
+      flex: 1,
+    },
+    personalityStoryRarityBadge: {
+      marginLeft: 8,
+    },
+    personalityStoryRarityBadgeGradient: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    personalityStoryRarityBadgeText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    personalityStoryProgressSection: {
+      marginBottom: 12,
+    },
+    personalityStoryProgressHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    personalityStoryProgressLabel: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginLeft: 6,
+    },
+    personalityStoryProgressBar: {
+      height: 4,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      borderRadius: 2,
+      overflow: 'hidden',
+    },
+    personalityStoryProgressFill: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    personalityStoryAtmosphereContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+    },
+    personalityStoryAtmosphereText: {
+      fontSize: 12,
+      fontStyle: 'italic',
+      marginLeft: 6,
+    },
+    personalityStorySkillFocusContainer: {
+      marginBottom: 12,
+    },
+    personalityStorySkillFocusLabel: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginBottom: 6,
+    },
+    personalityStorySkillTags: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    personalityStorySkillTag: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    personalityStorySkillTagText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    personalityStoryStatBoostsContainer: {
+      marginBottom: 12,
+    },
+    personalityStoryStatBoostsLabel: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginBottom: 6,
+    },
+    personalityStoryStatBoostTags: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    personalityStoryStatBoostTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    personalityStoryStatBoostText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      marginLeft: 4,
+    },
+    personalityStoryFooterStat: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    personalityStoryFooterStatText: {
+      fontSize: 11,
+      marginLeft: 4,
+    },
+    personalityStoryActionButton: {
+      marginTop: 8,
+    },
+    personalityStoryActionButtonGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    personalityStoryActionButtonText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginLeft: 6,
+    },
+
+    // ===== RPG UI COMPONENTS STYLES =====
+    
+    // Daily Curator Message Styles
+    personalityCuratorMessageCard: {
+      backgroundColor: '#2a2d35',
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: '#4ee6e6',
+      shadowColor: '#4ee6e6',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+      marginBottom: 16,
+    },
+    personalityCuratorHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    personalityCuratorAvatar: {
+      fontSize: 32,
+      marginRight: 12,
+    },
+    personalityCuratorInfo: {
+      flex: 1,
+    },
+    personalityCuratorName: {
+      color: '#4ee6e6',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    personalityCuratorTitle: {
+      color: '#ccc',
+      fontSize: 12,
+      fontStyle: 'italic',
+    },
+    personalityDailyLabel: {
+      color: '#ffe066',
+      fontSize: 10,
+      fontWeight: 'bold',
+      backgroundColor: 'rgba(255, 224, 102, 0.2)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    personalityMessageContent: {
+      marginBottom: 8,
+    },
+    personalityPersonalizedGreeting: {
+      color: '#4ee6e6',
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    personalityCuratorMessage: {
+      color: '#fff',
+      fontSize: 14,
+      fontStyle: 'italic',
+      lineHeight: 20,
+    },
+    personalityExpandedContent: {
+      borderTopWidth: 1,
+      borderTopColor: '#444',
+      paddingTop: 12,
+      marginTop: 8,
+    },
+    personalityExpandedHint: {
+      color: '#ccc',
+      fontSize: 12,
+      marginBottom: 8,
+    },
+    personalityExpandedFooter: {
+      color: '#999',
+      fontSize: 10,
+      fontStyle: 'italic',
+      textAlign: 'right',
+    },
+
+    // Character Progression Styles
+    personalityProgressionCard: {
+      backgroundColor: '#23242b',
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: '#ffe066',
+      marginBottom: 16,
+    },
+    personalityProgressionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    personalityProgressionTitle: {
+      color: '#ffe066',
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    personalityLevelBadge: {
+      backgroundColor: '#4ee6e6',
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    personalityLevelText: {
+      color: '#000',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    personalityLevelTitle: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '600',
+      marginBottom: 12,
+    },
+    personalityExperienceSection: {
+      marginBottom: 16,
+    },
+    personalityExperienceBar: {
+      height: 20,
+      backgroundColor: '#333',
+      borderRadius: 10,
+      overflow: 'hidden',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    personalityExperienceProgress: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      height: '100%',
+      backgroundColor: '#4ee6e6',
+      borderRadius: 10,
+    },
+    personalityExperienceText: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 'bold',
+      zIndex: 1,
+    },
+    personalityProgressStats: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    personalityProgressStat: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    personalityStatIcon: {
+      fontSize: 20,
+      marginBottom: 4,
+    },
+    personalityStatLabel: {
+      color: '#ccc',
+      fontSize: 10,
+      marginBottom: 2,
+    },
+    personalityStatValue: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    personalityNextLevelPreview: {
+      backgroundColor: '#333',
+      padding: 12,
+      borderRadius: 8,
+      marginTop: 8,
+    },
+    personalityNextLevelLabel: {
+      color: '#4ee6e6',
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    personalityNextLevelBenefit: {
+      color: '#fff',
+      fontSize: 14,
+      fontStyle: 'italic',
+    },
+
+    // Quest Achievements Styles
+    personalityQuestsContainer: {
+      marginBottom: 16,
+    },
+    personalityQuestsTitle: {
+      color: '#4ee6e6',
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    personalityQuestsSubtitle: {
+      color: '#ccc',
+      fontSize: 14,
+      marginBottom: 16,
+    },
+    personalityQuestCard: {
+      backgroundColor: '#23242b',
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: '#444',
+    },
+    personalityQuestCompleted: {
+      borderColor: '#4ee6e6',
+      backgroundColor: '#2a2d35',
+    },
+    personalityQuestHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    personalityQuestTitle: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: 'bold',
+      flex: 1,
+    },
+    personalityQuestRewardBadge: {
+      backgroundColor: '#333',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    personalityQuestReward: {
+      color: '#ffe066',
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    personalityQuestDescription: {
+      color: '#ccc',
+      fontSize: 12,
+      marginBottom: 8,
+    },
+    personalityQuestProgress: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    personalityQuestProgressBar: {
+      flex: 1,
+      height: 6,
+      backgroundColor: '#333',
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    personalityQuestProgressFill: {
+      height: '100%',
+      backgroundColor: '#4ee6e6',
+      borderRadius: 3,
+    },
+    personalityQuestProgressCompleted: {
+      backgroundColor: '#2ECC71',
+    },
+    personalityQuestProgressText: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    personalityQuestExpanded: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: '#444',
+    },
+    personalityQuestHint: {
+      color: '#ccc',
+      fontSize: 11,
+      fontStyle: 'italic',
+    },
+
+    // Coping Tools Styles
+    personalityToolsContainer: {
+      marginBottom: 16,
+    },
+    personalityToolsTitle: {
+      color: '#4ee6e6',
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    personalityToolsCounter: {
+      color: '#ccc',
+      fontSize: 12,
+      marginBottom: 12,
+    },
+    personalityToolsScroll: {
+      marginHorizontal: -16,
+      paddingHorizontal: 16,
+    },
+    personalityToolCard: {
+      backgroundColor: '#23242b',
+      borderRadius: 8,
+      padding: 12,
+      marginRight: 12,
+      width: 120,
+      borderWidth: 1,
+      borderColor: '#4ee6e6',
+      alignItems: 'center',
+    },
+    personalityToolLocked: {
+      borderColor: '#666',
+      backgroundColor: '#1a1a1a',
+    },
+    personalityToolIcon: {
+      fontSize: 24,
+      marginBottom: 8,
+    },
+    personalityToolIconLocked: {
+      opacity: 0.5,
+    },
+    personalityToolName: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 4,
+    },
+    personalityToolNameLocked: {
+      color: '#666',
+    },
+    personalityToolDescription: {
+      color: '#ccc',
+      fontSize: 10,
+      textAlign: 'center',
+      lineHeight: 14,
+    },
+    personalityToolDescriptionLocked: {
+      color: '#666',
+    },
+
+    // ===== WELLNESS ATTRIBUTES (ECHOES OF THE SELF) STYLES =====
+    personalityAttributesContainer: {
+      marginBottom: 16,
+    },
+    personalityEchoesTitle: {
+      color: '#4ee6e6',
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 4,
+      textAlign: 'center',
+    },
+    personalityAttributesGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    personalityAttributeCardParchment: {
+      backgroundColor: '#2a2d35',
+      borderRadius: 12,
+      padding: 16,
+      width: '48%',
+      borderWidth: 1,
+      borderColor: '#4ee6e6',
+      shadowColor: '#4ee6e6',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    personalityAttributeLabel: {
+      color: '#4ee6e6',
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    personalityAttributeBarMagic: {
+      height: 8,
+      backgroundColor: '#333',
+      borderRadius: 4,
+      overflow: 'hidden',
+      marginBottom: 8,
+    },
+    personalityAttributeProgressMagic: {
+      height: '100%',
+      borderRadius: 4,
+    },
+    personalityAttributeValue: {
+      color: '#ffe066',
+      fontSize: 12,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    personalityCuratorNote: {
+      color: '#ccc',
+      fontSize: 10,
+      fontStyle: 'italic',
+      textAlign: 'center',
+    },
+    personalityCuratorNoteText: {
+      color: '#fff',
+      fontStyle: 'normal',
+    },
+
+    // ===== RPG CONTAINER STYLES =====
+    personalityRpgContainer: {
+      flex: 1,
+      padding: 16,
+      gap: 16,
+    },
+
+
+
+
+
+    // ===== PERSONALITY HEADER STYLES =====
+    personalityHeaderContainer: {
+      paddingTop: 45,
+      paddingBottom: 20,
+      paddingHorizontal: 20,
+      position: 'relative',
+      borderBottomWidth: 2,
+      borderBottomColor: '#4ee6e6',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+      backgroundColor: '#0a0b0f',
+    },
+    personalityBackgroundElements: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      opacity: 0.1,
+    },
+    personalityBackgroundRune: {
+      fontSize: 60,
+      transform: [{ rotate: '15deg' }],
+      color: '#4ee6e6',
+    },
+    personalityHeaderContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 15,
+      zIndex: 1,
+    },
+    personalityLeftSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    personalityAvatarContainer: {
+      position: 'relative',
+      marginRight: 15,
+    },
+    personalityAvatarIcon: {
+      fontSize: 48,
+      zIndex: 2,
+    },
+    personalityAvatarGlow: {
+      position: 'absolute',
+      top: -5,
+      left: -5,
+      right: -5,
+      bottom: -5,
+      borderRadius: 35,
+      opacity: 0.3,
+      zIndex: 1,
+      backgroundColor: '#4ee6e6',
+    },
+    personalityScholarInfo: {
+      flex: 1,
+    },
+    personalityScholarRank: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      letterSpacing: 1,
+      marginBottom: 2,
+      color: '#4ee6e6',
+    },
+    personalityScholarClass: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 2,
+      color: '#ffe066',
+    },
+    personalityScholarLevel: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    personalityRightSection: {
+      flex: 1,
+      alignItems: 'flex-end',
+    },
+    personalityGameInfo: {
+      alignItems: 'flex-end',
+    },
+    personalityArchiveLabel: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      letterSpacing: 2,
+      marginBottom: 2,
+      color: '#4ee6e6',
+    },
+    personalityGameTitle: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
+      textAlign: 'right',
+      marginBottom: 2,
+    },
+    personalityArchiveSection: {
+      color: '#ccc',
+      fontSize: 12,
+      fontWeight: '600',
+      textAlign: 'right',
+      marginBottom: 4,
+    },
+    personalityHeaderCuratorNote: {
+      color: '#ccc',
+      fontSize: 11,
+      fontStyle: 'italic',
+      textAlign: 'right',
+    },
+    personalityJourneySection: {
+      marginTop: 10,
+    },
+    personalityJourneyIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 15,
+      padding: 10,
+      borderRadius: 8,
+      borderLeftWidth: 3,
+      backgroundColor: 'rgba(78, 230, 230, 0.2)',
+      borderLeftColor: '#4ee6e6',
+    },
+    personalityJourneyIcon: {
+      fontSize: 16,
+      marginRight: 10,
+    },
+    personalityJourneyText: {
+      color: '#ccc',
+      fontSize: 13,
+      fontStyle: 'italic',
+      flex: 1,
+    },
+    personalityMindStateContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    personalityMindState: {
+      alignItems: 'center',
+      flex: 1,
+      marginHorizontal: 5,
+    },
+    personalityMindStateIcon: {
+      fontSize: 18,
+      marginBottom: 4,
+    },
+    personalityMindStateLabel: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      marginBottom: 6,
+      color: '#4ee6e6',
+    },
+    personalityMindStateBar: {
+      width: '100%',
+      height: 4,
+      backgroundColor: 'rgba(78, 230, 230, 0.2)',
+      borderRadius: 2,
+      overflow: 'hidden',
+    },
+    personalityMindStateProgress: {
+      height: '100%',
+      borderRadius: 2,
+      backgroundColor: '#4ee6e6',
+    },
+    personalityMysticalBorder: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 2,
+      backgroundColor: '#4ee6e6',
+    },
+    personalityDevToggle: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      width: 40,
+      height: 40,
+      backgroundColor: 'rgba(78, 230, 230, 0.1)',
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    personalitySwitcher: {
+      position: 'absolute',
+      top: 60,
+      right: 10,
+      backgroundColor: '#23242b',
+      borderRadius: 8,
+      padding: 10,
+      borderWidth: 1,
+      borderColor: '#4ee6e6',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    personalitySwitcherTitle: {
+      color: '#4ee6e6',
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    personalitySwitcherButton: {
+      backgroundColor: '#2a2d35',
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 6,
+      marginVertical: 2,
+      borderWidth: 1,
+      borderColor: '#444',
+    },
+    personalitySwitcherButtonText: {
+      color: '#fff',
+      fontSize: 11,
+      textAlign: 'center',
+    },
+
+    // ===== PERSONALITY TAB STYLES =====
+    personalityMindStateTabBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      backgroundColor: '#23242b',
+      borderBottomWidth: 1,
+      borderColor: '#333',
+      paddingVertical: 8,
+      marginTop: 15,
+    },
+    personalityMindStateTab: {
+      alignItems: 'center',
+      flex: 1,
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+    },
+    personalityMindStateTabActive: {
+      borderBottomWidth: 2,
+      borderBottomColor: '#4ee6e6',
+    },
+    personalityMindStateTabIcon: {
+      fontSize: 16,
+      marginBottom: 4,
+    },
+    personalityMindStateTabLabel: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: '#ccc',
+    },
+    personalityMindStateTabLabelActive: {
+      color: '#4ee6e6',
+    },
+    personalityDevToggleText: {
+      color: '#4ee6e6',
+      fontSize: 8,
+      fontWeight: 'bold',
+    },
+    personalitySwitcherButtonActive: {
+      borderColor: '#4ee6e6',
+      backgroundColor: '#2a2d35',
+    },
+
+    // Archive Stories Section Styles
+    personalityArchiveStoriesContainer: {
+      flex: 1,
+      padding: 16,
+    },
+    personalityCuratorIntroCard: {
+      backgroundColor: 'rgba(78, 230, 230, 0.1)',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#4ee6e6',
+      padding: 16,
+      marginBottom: 20,
+    },
+    personalityCuratorIntroHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    personalityCuratorIntroAvatar: {
+      fontSize: 32,
+      marginRight: 12,
+      marginTop: 4,
+    },
+    personalityCuratorIntroContent: {
+      flex: 1,
+    },
+    personalityCuratorIntroTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      color: '#4ee6e6',
+    },
+    personalityCuratorIntroText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: '#ccc',
+      fontStyle: 'italic',
+    },
+
+    // Loading States
+    personalityArchiveLoadingContainer: {
+      alignItems: 'center',
+      padding: 40,
+      backgroundColor: 'rgba(78, 230, 230, 0.05)',
+      borderRadius: 12,
+      marginBottom: 20,
+    },
+    personalityArchiveLoadingIcon: {
+      fontSize: 48,
+      marginBottom: 16,
+    },
+    personalityArchiveLoadingText: {
+      fontSize: 16,
+      fontWeight: '600',
+      marginTop: 16,
+      textAlign: 'center',
+    },
+    personalityArchiveLoadingSubtext: {
+      fontSize: 12,
+      color: '#999',
+      marginTop: 8,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+
+    // Error States
+    personalityArchiveErrorContainer: {
+      alignItems: 'center',
+      padding: 40,
+      backgroundColor: 'rgba(255, 107, 107, 0.1)',
+      borderRadius: 12,
+      marginBottom: 20,
+    },
+    personalityArchiveErrorIcon: {
+      fontSize: 48,
+      marginBottom: 16,
+    },
+    personalityArchiveErrorTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#ff6b6b',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    personalityArchiveErrorText: {
+      fontSize: 14,
+      color: '#ccc',
+      marginBottom: 20,
+      textAlign: 'center',
+    },
+    personalityArchiveRetryButton: {
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+      backgroundColor: '#4ee6e6',
+    },
+    personalityArchiveRetryText: {
+      color: '#1a1d23',
+      fontSize: 14,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+
+    // Stories List
+    personalityArchiveStoriesScroll: {
+      flex: 1,
+    },
+
+    // Archive Story Card Styles
+    personalityArchiveStoryCard: {
+      backgroundColor: 'rgba(78, 230, 230, 0.08)',
+      borderRadius: 12,
+      marginBottom: 16,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(78, 230, 230, 0.2)',
+    },
+    personalityArchiveStoryCardHeader: {
+      padding: 16,
+      paddingBottom: 12,
+    },
+    personalityArchiveStoryCardTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#fff',
+      marginBottom: 8,
+    },
+    personalityArchiveStoryCardMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    personalityArchiveStoryCardBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      marginRight: 8,
+    },
+    personalityArchiveStoryCardBadgeText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: '#1a1d23',
+    },
+    personalityArchiveStoryCardDifficulty: {
+      fontSize: 12,
+      color: '#999',
+      marginLeft: 'auto',
+    },
+    personalityArchiveStoryCardDescription: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: '#ccc',
+      marginBottom: 12,
+    },
+    personalityArchiveStoryCardCuratorNote: {
+      backgroundColor: 'rgba(78, 230, 230, 0.1)',
+      padding: 12,
+      borderRadius: 8,
+      borderLeftWidth: 3,
+      borderLeftColor: '#4ee6e6',
+    },
+    personalityArchiveStoryCardCuratorText: {
+      fontSize: 12,
+      fontStyle: 'italic',
+      color: '#4ee6e6',
+      lineHeight: 16,
+    },
+    personalityArchiveStoryCardFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      paddingTop: 12,
+      backgroundColor: 'rgba(78, 230, 230, 0.05)',
+    },
+    personalityArchiveStoryCardStats: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    personalityArchiveStoryCardStat: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    personalityArchiveStoryCardStatIcon: {
+      fontSize: 12,
+      marginRight: 4,
+    },
+    personalityArchiveStoryCardStatText: {
+      fontSize: 11,
+      color: '#999',
+    },
+    personalityArchiveStoryCardEnterButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 6,
+      backgroundColor: '#4ee6e6',
+    },
+    personalityArchiveStoryCardEnterText: {
+      color: '#1a1d23',
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginRight: 4,
+    },
+    personalityArchiveStoryCardEnterIcon: {
+      fontSize: 12,
+      color: '#1a1d23',
     },
   });
-}; 
+};

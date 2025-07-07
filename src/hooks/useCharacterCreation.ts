@@ -18,6 +18,10 @@ export const useCharacterCreation = ({
   }, []);
 
   const handleCharacterCreation = useCallback(async () => {
+    console.log('=== CHARACTER CREATION STARTED ===');
+    console.log('Character name:', characterName);
+    console.log('Name validation passed:', validateCharacterName(characterName));
+    
     if (!validateCharacterName(characterName)) {
       Alert.alert(
         'Character Name Required',
@@ -28,8 +32,10 @@ export const useCharacterCreation = ({
     }
     
     try {
+      console.log('Calling createCharacter...');
+      // Only call createCharacter - it already calls completeCharacter internally
       await createCharacter();
-      await completeCharacter();
+      console.log('createCharacter completed successfully');
       
       // Navigate immediately after successful character creation and onboarding completion
       console.log('Character created and onboarding completed, navigating to character home...');
@@ -52,7 +58,7 @@ export const useCharacterCreation = ({
         [{ text: 'OK', style: 'default' }]
       );
     }
-  }, [characterName, createCharacter, completeCharacter, validateCharacterName]);
+  }, [characterName, createCharacter, validateCharacterName]);
 
   return {
     handleCharacterCreation,
