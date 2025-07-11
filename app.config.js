@@ -1,19 +1,50 @@
-import { config } from 'dotenv';
-import { resolve } from 'path';
+import { withAndroidManifest, withDangerousMod } from '@expo/config-plugins';
+import fs from 'fs';
+import path from 'path';
 
-// Load .env file
-config({ path: resolve(__dirname, '.env') });
+// This is the upgraded custom plugin function
+const withCustomAndroidModifications = (config) => {
+  // First, modify the AndroidManifest.xml
+  config = withAndroidManifest(config, async (config) => {
+    const androidManifest = config.modResults;
+    const application = androidManifest.manifest.application[0];
+    application.$['android:usesCleartextTraffic'] = 'true';
+    application.$['android:networkSecurityConfig'] = '@xml/network_security_config';
+    return config;
+  });
 
-// Validate required environment variables
-const requiredEnvVars = ['API_BASE_URL'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  // Second, copy the network_security_config.xml file
+  return withDangerousMod(config, [
+    'android',
+    async (config) => {
+      const projectRoot = config.modRequest.projectRoot;
+      const resPath = path.join(projectRoot, 'android', 'app', 'src', 'main', 'res');
+      const xmlPath = path.join(resPath, 'xml');
+      
+      // Ensure the 'xml' directory exists
+      if (!fs.existsSync(xmlPath)) {
+        fs.mkdirSync(xmlPath, { recursive: true });
+      }
 
-if (missingEnvVars.length > 0) {
-    console.warn(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
-}
+      const sourcePath = path.join(projectRoot, 'resources', 'network_security_config.xml');
+      const destPath = path.join(xmlPath, 'network_security_config.xml');
 
-export default {
-  expo: {
+      // Copy the file
+      fs.copyFileSync(sourcePath, destPath);
+      
+      return config;
+    },
+  ]);
+};
+
+// This is your updated expo configuration
+export default ({ config }) => {
+  // Apply the custom plugin
+  config = withCustomAndroidModifications(config);
+
+  // Return the final modified config
+  return {
+    ...config,
     name: "TheArchive",
     slug: "thearchivethesisproject",
     version: "1.0.0",
@@ -22,41 +53,48 @@ export default {
     scheme: "thearchive",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
-    ios: {
-      supportsTablet: true
-    },
-    android: {
-      adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
-      },
-      edgeToEdgeEnabled: true,
-      package: "com.roesorcerer.thearchivethesisproject"
-    },
-    web: {
-      bundler: "metro",
-      output: "static",
-      favicon: "./assets/images/favicon.png"
-    },
     plugins: [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/archive.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff"
+          backgroundColor: "#000000"
         }
-      ]
+      ],
     ],
+    ios: {
+      supportsTablet: true
+    },
+    android: {
+      package: "com.roesorcerer.thearchivethesisproject",
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/icon.png",
+        backgroundColor: "#ffffff"
+      },
+      edgeToEdgeEnabled: true,
+      permissions: [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ]
+    },
+    web: {
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/icon.png"
+    },
     experiments: {
       typedRoutes: true
     },
     extra: {
-      API_BASE_URL: process.env.API_BASE_URL,
+      API_BASE_URL: process.env.API_BASE_URL || "http://131.212.41.8/api/",
       TEST_USER_TOKEN: process.env.TEST_USER_TOKEN,
       router: {},
+      eas: {
+        projectId: "5ffee148-6440-4876-bb7d-7fed0cc5346b"
+      }
     }
-  }
-}; 
+  };
+};

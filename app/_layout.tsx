@@ -13,8 +13,8 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(onboarding)" />
-            <Stack.Screen name="(character)/character" />
-            <Stack.Screen name="(personality)/personality" />
+            <Stack.Screen name="(character)" />
+            <Stack.Screen name="(personality)" />
             <Stack.Screen name="profile" />
             <Stack.Screen name="settings" />
           </Stack>

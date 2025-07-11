@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiService } from '../services/apiService';
+import { apiService } from '../imports';
 
 interface ProgressivePassageLoaderOptions {
   storyId: string;

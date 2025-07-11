@@ -1,12 +1,11 @@
-import axios from "axios";
 import React, {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
+    createContext,
+    ReactNode,
+    useContext,
+    useEffect,
+    useState,
 } from "react";
-import { apiBaseUrl } from "../services/apiConfig";
+import { apiService } from "../services/apiService"; // Fixed import for apiService
 import { useAuth } from "./AuthContext";
 import { useMasterState } from "./MasterStateContext";
 
@@ -578,48 +577,54 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
   // Initialize personality data
   useEffect(() => {
     const initializePersonality = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+      setIsLoading(true);
+      setError(null);
 
-        // Check if user has completed character creation
-        if (
-          onboarding.assignedPath === "character" ||
-          onboarding.researchGroup === "A"
-        ) {
+      try {
+        console.log('PersonalityContext: Initializing personality data...');
+        console.log('Auth token present:', !!authToken);
+        console.log('Onboarding complete:', onboarding.isComplete);
+        console.log('Assigned path:', onboarding.assignedPath);
+        
+        // Check if user has completed onboarding
+        if (!onboarding.isComplete) {
+          console.log('PersonalityContext: Onboarding not complete, setting user type to unknown');
+          setUserType("unknown");
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if user is assigned to personality path
+        if (onboarding.assignedPath !== "survey") {
+          console.log('PersonalityContext: User assigned to character path, setting user type to character');
           setUserType("character");
-          // For character users, use balanced personality or default
-          const balanced: PersonalityScores = {
-            Openness: 6,
-            Conscientiousness: 6,
-            Extraversion: 6,
-            Agreeableness: 6,
-            Neuroticism: 4,
-          };
-          setPersonalityScores(balanced);
-          setPrimaryTrait("Openness"); // Default for character users
           setIsLoading(false);
           return;
         }
 
         // Try to fetch personality profile
         if (authToken) {
-          const response = await axios.get(`${apiBaseUrl}users/me/`, {
-            headers: { Authorization: `Token ${authToken}` },
-          });
-
-          const personalityProfile = response.data.personality_profile;
-
-          if (personalityProfile) {
+          console.log('PersonalityContext: Fetching personality profile...');
+          
+          // Initialize API service
+          await apiService.initialize();
+          
+          // Try to get survey data
+          const surveyData = await apiService.getMostRecentSurvey();
+          
+          if (surveyData && surveyData.big_five_scores) {
+            console.log('PersonalityContext: Found survey data:', surveyData);
             setUserType("personality");
+            
             const scores: PersonalityScores = {
-              Openness: personalityProfile.openness,
-              Conscientiousness: personalityProfile.conscientiousness,
-              Extraversion: personalityProfile.extraversion,
-              Agreeableness: personalityProfile.agreeableness,
-              Neuroticism: personalityProfile.neuroticism,
+              Openness: surveyData.big_five_scores.openness || 5,
+              Conscientiousness: surveyData.big_five_scores.conscientiousness || 5,
+              Extraversion: surveyData.big_five_scores.extraversion || 5,
+              Agreeableness: surveyData.big_five_scores.agreeableness || 5,
+              Neuroticism: surveyData.big_five_scores.neuroticism || 5,
             };
 
+            console.log('PersonalityContext: Setting personality scores:', scores);
             setPersonalityScores(scores);
 
             // Find primary trait
@@ -629,14 +634,18 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
                 : b
             )[0] as PersonalityTrait;
 
+            console.log('PersonalityContext: Setting primary trait:', primary);
             setPrimaryTrait(primary);
           } else {
-            // No personality profile found
+            console.log('PersonalityContext: No survey data found, setting user type to unknown');
             setUserType("unknown");
           }
+        } else {
+          console.log('PersonalityContext: No auth token, setting user type to unknown');
+          setUserType("unknown");
         }
       } catch (err) {
-        console.error("Error initializing personality:", err);
+        console.error("PersonalityContext: Error initializing personality:", err);
         setError("Failed to load personality data");
         setUserType("unknown");
       } finally {
@@ -645,7 +654,7 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
     };
 
     initializePersonality();
-  }, [authToken, onboarding.assignedPath, onboarding.researchGroup]);
+  }, [authToken, onboarding.assignedPath, onboarding.isComplete]);
 
   // Helper functions
   const isPersonalityUser = () => userType === "personality";

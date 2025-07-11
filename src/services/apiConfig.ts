@@ -3,34 +3,22 @@ import { Platform } from 'react-native';
 
 // Get API URLs from environment configuration
 const envApiBaseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
-//const envApiLocalUrl = Constants.expoConfig?.extra?.API_LOCAL_URL;
 
 // Determine which API URL to use based on platform and environment
 const getApiBaseUrl = (): string => {
-    console.log('Environment variables:', { envApiBaseUrl });
-    console.log('Platform:', Platform.OS, 'DEV mode:', __DEV__);
+
+    const baseUrl = envApiBaseUrl || 'http://131.212.41.8/api/';
     
-    // For web platform, always prefer the remote API for now
-    if (Platform.OS === 'web') {
-        // Always use the remote API URL for web to avoid CORS issues with localhost
-        if (envApiBaseUrl) {
-            console.log('Web platform: Using remote API URL:', envApiBaseUrl);
-            return envApiBaseUrl;
-        }
-        
-        // Last resort fallback
-        console.warn('Web platform: No API URL configured, using remote fallback');
-        return 'http://131.212.41.8/api/'; //this needs to be removed to .env file 
-    } else {
-        // For mobile platforms, prefer the main API URL
-        if (envApiBaseUrl) {
-            console.log('Mobile platform: Using base API URL:', envApiBaseUrl);
-            return envApiBaseUrl;
-        }
-        
-        console.error('Mobile platform: No API URL configured');
-        throw new Error('API_BASE_URL is not configured');
+    
+    if (baseUrl.includes(':8000')) {
+        return baseUrl;
     }
+    
+    
+    const url = new URL(baseUrl);
+    url.port = '8000';
+    return url.href;
+    
 };
 
 export const apiBaseUrl = getApiBaseUrl();
@@ -71,10 +59,10 @@ export const API_ENDPOINTS = {
     customizationOptions: 'characters/characters/customization_options/', // Character customization options
     
     // Character actions -standerize to one endpoint
-    gainExperience: 'characters/characters/', // {id}/gain_experience/
-    gainWellness: 'characters/characters/', // {id}/gain_wellness/
-    updateCustomization: 'characters/characters/', // {id}/update_customization/
-    
+    gainExperience: 'characters/characters/', // {id}/gain_experience/ USE ME
+    gainWellness: 'characters/characters/', // {id}/gain_wellness/ USE ME
+    updateCustomization: 'characters/characters/', // {id}/update_customization/ USE ME
+
     // User survey endpoints - now handled directly via updateUserProfile
     // postUserSurvey: 'users/update_profile/', // Removed - using updateUserProfile directly
     

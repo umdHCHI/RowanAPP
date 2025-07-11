@@ -16,74 +16,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
-        // Initialize the API service first
-        await apiService.initialize();
+        console.log('AuthContext: Loading stored authentication data...');
+        const [storedToken, storedCharId, storedUserData] = await Promise.all([
+          AsyncStorage.getItem('authToken'),
+          AsyncStorage.getItem('characterId'),
+          AsyncStorage.getItem('userData')
+        ]);
         
-        const storedToken = await AsyncStorage.getItem('authToken');
-        const storedCharacterId = await AsyncStorage.getItem('characterId');
+        console.log('AuthContext: Stored token present:', !!storedToken);
+        console.log('AuthContext: Stored character ID present:', !!storedCharId);
+        console.log('AuthContext: Stored user data present:', !!storedUserData);
         
-        console.log('AuthContext: Loaded stored token:', storedToken ? 'Present' : 'Not found');
-        console.log('AuthContext: Loaded stored character ID:', storedCharacterId);
-        
-        setAuthToken(storedToken);
-        setCharacterId(storedCharacterId);
-        setIsTestUser(false); // Remove test user logic
-        
-        // Only try to get user profile if we have a valid token
-        if (storedToken) {
-          console.log('AuthContext: Found stored token, but deferring profile fetch until login');
-          // Don't automatically fetch profile on startup to avoid 401 errors
-          // Let the login flow handle profile fetching
-          setUser(null);
+        if (storedToken && storedCharId) {
+          console.log('AuthContext: Restoring authentication from storage');
+          setAuthToken(storedToken);
+          setCharacterId(storedCharId);
+          
+          if (storedUserData) {
+            try {
+              const userData = JSON.parse(storedUserData);
+              setUser({ username: userData.username });
+              const isTestOrAdmin = userData.username === 'admin' || userData.profile?.completion_type === 'test';
+              setIsTestUser(isTestOrAdmin);
+            } catch (parseError) {
+              console.error('AuthContext: Failed to parse stored user data:', parseError);
+            }
+          }
         } else {
-          console.log('AuthContext: No stored token, skipping profile fetch');
+          console.log('AuthContext: No stored authentication data found');
         }
       } catch (error) {
         console.error('AuthContext: Error loading stored auth data:', error);
-        setAuthToken(null);
-        setCharacterId(null);
-        setIsTestUser(false);
-        setUser(null);
       }
     };
+    
     loadStoredAuth();
   }, []);
-
+  
   const login = async (token: string, charId: string, userData?: any) => {
-    console.log('=== AUTHCONTEXT LOGIN ===');
-    console.log('AuthContext: Login called with token:', token ? 'Present' : 'Not found');
-    console.log('AuthContext: Login called with character ID:', charId);
-    console.log('AuthContext: Login called with user data:', userData);
-    console.log('Token preview:', token ? `${token.substring(0, 10)}...` : 'null');
-    
-    // Verify the token is actually stored in AsyncStorage
     try {
-      const storedToken = await AsyncStorage.getItem('authToken');
-      console.log('AuthContext: Token already stored:', storedToken ? 'Yes' : 'No');
-      console.log('AuthContext: Stored token matches provided:', storedToken === token);
-      
+      const storedToken = await AsyncStorage.getItem('authToken'); 
       if (!storedToken || storedToken !== token) {
-        console.log('AuthContext: Token mismatch, storing provided token...');
         await AsyncStorage.setItem('authToken', token);
         await AsyncStorage.setItem('characterId', charId);
-        
         // Verify storage worked
         const verifyToken = await AsyncStorage.getItem('authToken');
-        console.log('AuthContext: Token storage verification:', verifyToken === token);
       }
     } catch (error) {
       console.error('AuthContext: Error verifying/storing token:', error);
-    }
-    
+    } 
     // Update the state
     setAuthToken(token);
     setCharacterId(charId);
-    setIsTestUser(false); // Remove test user logic
     
     // Use user data from login response if provided, otherwise fetch it
     if (userData) {
-      console.log('AuthContext: Using provided user data');
       setUser({ username: userData.username });
+      // Check if this is a test/admin user
+      const isTestOrAdmin = userData.username === 'admin' || userData.profile?.completion_type === 'test';
+      setIsTestUser(isTestOrAdmin);
+      
     } else {
       console.log('AuthContext: No user data provided, fetching profile');
       // Fallback: try to fetch user profile
@@ -91,16 +83,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const profile = await apiService.getProfile();
           setUser({ username: profile.username });
-          console.log('AuthContext: Successfully fetched user profile after login');
+          
+          // Check if this is a test/admin user
+          const isTestOrAdmin = profile.username === 'admin' || profile.profile?.completion_type === 'test';
+          setIsTestUser(isTestOrAdmin);      
         } catch (error: any) {
           console.error('AuthContext: Failed to fetch user profile after login:', error);
           // If it's a 404 error, the endpoint might not exist - that's okay
-          if (error.response?.status === 404) {
-            console.log('AuthContext: User profile endpoint not found (404) - this is expected if the endpoint is not implemented');
+          if (error.response?.status === 404) {      
             setUser(null);
+            setIsTestUser(false);
           } else {
             console.error('AuthContext: Unexpected error fetching user profile after login:', error);
             setUser(null);
+            setIsTestUser(false);
           }
         }
       }, 100);

@@ -1,11 +1,33 @@
 import { Redirect } from 'expo-router';
-import { useMasterState } from '../src/imports';
+import { useEffect, useState } from 'react';
+import { Text, useMasterState, View } from '../src/imports';
 
 export default function Index() {
   const { auth, onboarding } = useMasterState();
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  console.log('=== INDEX COMPONENT RENDERED ===');
+  console.log('Component state:', { isInitialized });
+
+  // Wait for auth context to fully initialize
+  useEffect(() => {
+    console.log('=== SETTING UP INITIALIZATION TIMER ===');
+    const timer = setTimeout(() => {
+      console.log('=== INITIALIZATION TIMER COMPLETE ===');
+      setIsInitialized(true);
+    }, 500); // Give auth context time to load from AsyncStorage
+    
+    return () => {
+      console.log('=== CLEANING UP INITIALIZATION TIMER ===');
+      clearTimeout(timer);
+    };
+  }, []);
 
   console.log('=== INDEX ROUTING DEBUG ===');
+  console.log('Is initialized:', isInitialized);
   console.log('Auth token:', auth.authToken ? 'Present' : 'Missing');
+  console.log('Auth token preview:', auth.authToken ? `${auth.authToken.substring(0, 10)}...` : 'null');
+  console.log('User data:', auth.user ? `Present (${auth.user.username})` : 'Missing');
   console.log('Onboarding state:', {
     isComplete: onboarding.isComplete,
     assignedPath: onboarding.assignedPath,
@@ -15,49 +37,43 @@ export default function Index() {
   console.log('Assigned path:', onboarding.assignedPath);
   console.log('Research group:', onboarding.researchGroup);
 
-  // If not authenticated, redirect to login
+  // Don't make routing decisions until initialized
+  if (!isInitialized) {
+    console.log('Waiting for initialization...');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0b0f' }}>
+        <Text style={{ color: '#4ee6e6', fontSize: 16 }}>Initializing...</Text>
+      </View>
+    );
+  }
+
+  // If not authenticated, redirect to login FIRST
   if (!auth.authToken) {
     console.log('Redirecting to login - no auth token');
     return <Redirect href="/(auth)/login" />;
   }
 
-  // If authenticated but onboarding not complete, redirect to onboarding
+  // TEMPORARY: Force login screen for testing (remove this when ready for production)
+  // Uncomment the line below to force login screen
+  console.log('=== FORCING LOGIN SCREEN FOR TESTING ===');
+  return <Redirect href="/(auth)/login" />;
+
+  // If authenticated but onboarding is not complete, redirect to onboarding
   if (!onboarding.isComplete) {
-    console.log('Onboarding not complete, redirecting to onboarding');
-    if (onboarding.assignedPath === 'character') {
-      console.log('Redirecting to character creator');
-      return <Redirect href="/(onboarding)/character-creator" />;
-    } else if (onboarding.assignedPath === 'survey') {
-      console.log('Redirecting to personality test');
-      return <Redirect href="/(onboarding)/personality-test" />;
-    } else {
-      console.log('Redirecting to general onboarding');
-      return <Redirect href="/(onboarding)/onboarding" />;
-    }
+    console.log('Redirecting to onboarding - onboarding not complete');
+    return <Redirect href="/(onboarding)/onboarding" />;
   }
 
-  // If authenticated and onboarding complete, redirect to appropriate screen based on research condition
-  console.log('Onboarding complete, redirecting to appropriate screen');
-  console.log('Current onboarding state:', {
-    isComplete: onboarding.isComplete,
-    assignedPath: onboarding.assignedPath,
-    researchGroup: onboarding.researchGroup
-  });
-  console.log('Research group:', onboarding.researchGroup);
-  console.log('Is test user:', auth.isTestUser);
-  
-  // Route based on research condition
-  if (onboarding.researchGroup === 'A') {
-    // Character Creator path - Research Condition A
-    console.log('Redirecting to CharacterHomeScreen (Research Condition A)');
+  // If authenticated and onboarding is complete, redirect based on assigned path
+  if (onboarding.assignedPath === 'character') {
+    console.log('Redirecting to character path');
     return <Redirect href="/(character)/character" />;
-  } else if (onboarding.researchGroup === 'B') {
-    // Personality Test path - Research Condition B
-    console.log('Redirecting to PersonalityHomeScreen (Research Condition B)');
+  } else if (onboarding.assignedPath === 'survey') {
+    console.log('Redirecting to personality path');
     return <Redirect href="/(personality)/personality" />;
   } else {
-    // Fallback - if no research group is set, default to character path
-    console.log('No research group set, defaulting to character path');
-    return <Redirect href="/(character)/character" />;
+    // Fallback - should not happen if onboarding is complete
+    console.log('Fallback redirect to onboarding');
+    return <Redirect href="/(onboarding)/onboarding" />;
   }
 }

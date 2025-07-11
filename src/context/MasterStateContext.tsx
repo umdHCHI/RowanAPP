@@ -187,6 +187,7 @@ interface MasterStateContextType {
     // UI state for character creator (local only)
     characterName: string;
     selectedBaseModel: number;
+    selectedBaseColor: number; //color index for base model
     selectedHairStyle: number;
     selectedHairColor: number;
     selectedEyeType: number;
@@ -202,6 +203,7 @@ interface MasterStateContextType {
     // Methods
     setCharacterName: (name: string) => void;
     setSelectedBaseModel: (index: number) => void;
+    setSelectedBaseColor: (index: number) => void;
     setSelectedHairStyle: (index: number) => void;
     setSelectedHairColor: (index: number) => void;
     setSelectedEyeType: (index: number) => void;
@@ -213,6 +215,7 @@ interface MasterStateContextType {
     setSelectedClothesColor: (index: number) => void;
     setSelectedBackgroundType: (index: number) => void;
     setSelectedBackgroundColor: (index: number) => void;
+    getBaseIndex: () => number;
     getHairIndex: () => number;
     getClothesIndex: () => number;
     getEyesIndex: () => number;
@@ -458,9 +461,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     try {
       const status = await apiService.checkOnboardingStatus();
 
+      // Check if this is a test/admin user
+      const isTestOrAdmin = status.isTestUser || status.username === 'admin' || isTestUser;
+
       // Handle different onboarding states
-      if (status.isOnboarded) {
-        // User has completed onboarding
+      if (status.isOnboarded && !isTestOrAdmin) {
+        // Regular user has completed onboarding - they should NOT see onboarding again
         setIsComplete(true);
         
         if (status.completionType) {
@@ -476,20 +482,14 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
             setResearchGroup("A"); // Default fallback
           }
         } else {
-          // User completed onboarding but no completion type
-          if (status.isTestUser) {
-            // For test users, default to character path for testing
-            setAssignedPath("character");
-            setResearchGroup("A");
-          } else {
-            // For regular users, they need to complete onboarding properly
-            setIsComplete(false);
-            setAssignedPath(null);
-            setResearchGroup("A");
-          }
+          // User completed onboarding but no completion type - treat as incomplete
+          setIsComplete(false);
+          setAssignedPath(null);
+          setResearchGroup("A");
         }
       } else {
-        // User hasn't completed onboarding
+        // User hasn't completed onboarding OR is a test/admin user
+        // Test/admin users should ALWAYS go through onboarding (for testing purposes)
         setIsComplete(false);
         setAssignedPath(null);
         setResearchGroup("A"); // Default to A
@@ -508,7 +508,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         setResearchGroup("A");
       }
     }
-  }, [authToken]);
+  }, [authToken, isTestUser]);
 
   // ===== CHARACTER STATE (UPDATED FOR NEW BACKEND) =====
   const [backendCharacter, setBackendCharacter] =
@@ -517,6 +517,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   // Local UI state for character creator (keeps your existing component working)
   const [characterName, setCharacterName] = useState("");
   const [selectedBaseModel, setSelectedBaseModel] = useState(0);
+  const [selectedBaseColor, setSelectedBaseColor] = useState(0); // color index for base model
   const [selectedHairStyle, setSelectedHairStyle] = useState(0);
   const [selectedHairColor, setSelectedHairColor] = useState(0);
   const [selectedEyeType, setSelectedEyeType] = useState(0);
@@ -607,6 +608,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // ===== CHARACTER HELPER FUNCTIONS =====
+  const getBaseIndex = () => {
+    const baseModel = backendCharacter?.character_config?.selected_base_model ?? selectedBaseModel;
+    const baseColor = backendCharacter?.character_config?.selected_base_color ?? selectedBaseColor; // only one base model
+    return baseModel + baseColor * 12;
+  };
+
   const getHairIndex = () => {
     const hairStyle = backendCharacter?.character_config?.selected_hair_style ?? selectedHairStyle;
     const hairColor = backendCharacter?.character_config?.selected_hair_color ?? selectedHairColor;
@@ -1778,21 +1785,34 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   // Update the useEffect to use memoized functions
   useEffect(() => {
+    // Only load data when we have both token AND user data AND this is from a fresh login
     // Don't automatically load data on startup with stored token
-    // Wait for explicit user action like login
-    // The login flow will call these functions when needed
-    if (authToken && user) {  // Only load if we have both token AND user data (indicating fresh login)
+    console.log('MasterStateContext: useEffect triggered');
+    console.log('Auth token present:', !!authToken);
+    console.log('User data present:', !!user);
+    
+    // Initialize the API service
+    const initializeApiService = async () => {
+      try {
+        console.log('MasterStateContext: Initializing API service...');
+        await apiService.initialize();
+        console.log('MasterStateContext: API service initialized');
+      } catch (error) {
+        console.error('MasterStateContext: Failed to initialize API service:', error);
+      }
+    };
+    
+    // Always initialize the API service
+    initializeApiService();
+    
+    // Load onboarding status if we have an auth token
+    if (authToken) {
+      console.log('MasterStateContext: Loading onboarding status...');
       loadUserOnboardingStatus();
-      memoizedLoadCharacter();
-      // Load home data for character display
-      memoizedLoadHomeData();
-      // Load backend gear data
-      loadBackendGear();
-      // Temporarily disable these calls until backend endpoints are implemented
-      // memoizedLoadAvailableTools();
-      // memoizedLoadMyTools();
-      // memoizedLoadRecentCodexEntries();
+    } else {
+      console.log('MasterStateContext: No auth token, skipping data load');
     }
+    
   }, [authToken, user, loadUserOnboardingStatus, memoizedLoadCharacter, memoizedLoadHomeData, loadBackendGear]);
 
   // ===== CONTEXT VALUE =====
@@ -1830,6 +1850,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       backendCharacter,
       characterName,
       selectedBaseModel,
+      selectedBaseColor,
       selectedHairStyle,
       selectedHairColor,
       selectedEyeType,
@@ -1843,6 +1864,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       selectedBackgroundColor,
       setCharacterName,
       setSelectedBaseModel,
+      setSelectedBaseColor,
       setSelectedHairStyle,
       setSelectedHairColor,
       setSelectedEyeType,
@@ -1854,6 +1876,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       setSelectedClothesColor,
       setSelectedBackgroundType,
       setSelectedBackgroundColor,
+      getBaseIndex,
       getHairIndex,
       getClothesIndex,
       getEyesIndex,

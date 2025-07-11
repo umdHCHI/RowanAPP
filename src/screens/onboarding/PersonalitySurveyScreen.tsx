@@ -2,11 +2,11 @@ import { useTheme } from "@/src/imports";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  Modal,
-  SafeAreaView,
-  Text,
-  TouchableOpacity,
-  View
+    Modal,
+    SafeAreaView,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { useMasterState } from "../../context/MasterStateContext";
 import { apiService } from "../../services/apiService";
@@ -236,6 +236,34 @@ export default function PersonalitySurveyScreen() {
   const [traitAverages, setTraitAverages] = React.useState<TraitAverages | null>(null);
   const [startTime] = React.useState<Date>(new Date());
   const [currentPrimaryTrait, setCurrentPrimaryTrait] = React.useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = React.useState(true);
+
+  // Check authentication status
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      console.log('PersonalitySurveyScreen: Checking authentication...');
+      console.log('Auth token present:', !!authToken);
+      console.log('Character ID present:', !!characterId);
+      console.log('User present:', !!user);
+      
+      if (authToken && characterId) {
+        console.log('PersonalitySurveyScreen: Authentication confirmed');
+        setIsAuthLoading(false);
+      } else {
+        // Wait a bit for auth context to load
+        setTimeout(() => {
+          if (!authToken) {
+            console.log('PersonalitySurveyScreen: No auth token found, redirecting to login');
+            router.replace('/(auth)/login');
+          } else {
+            setIsAuthLoading(false);
+          }
+        }, 1000);
+      }
+    };
+    
+    checkAuth();
+  }, [authToken, characterId, user, router]);
 
   const calculateTraitAverages = (answers: SurveyAnswer[]): TraitAverages => {
     const traitSums = {
@@ -501,13 +529,16 @@ export default function PersonalitySurveyScreen() {
         app_version: '1.0.0'
       };
   
-      console.log('Comprehensive survey data to submit:', comprehensiveSurveyData);
-  
+            console.log('Comprehensive survey data to submit:', comprehensiveSurveyData);
+
+      let surveyResult: any = null;
+      
       try {
         // Submit survey data and complete onboarding via API service
         console.log('=== CALLING API SERVICE COMPLETE SURVEY ONBOARDING ===');
         
         const result = await apiService.completeSurveyOnboarding(comprehensiveSurveyData);
+        surveyResult = result;
         
         console.log('Survey onboarding completed successfully:', result);
         console.log('Survey result:', result.surveyResult);
@@ -534,8 +565,29 @@ export default function PersonalitySurveyScreen() {
       console.log("=== NAVIGATING TO PERSONALITY SCREEN ===");
       console.log("Final auth token check:", authToken ? "Present" : "Missing");
       
-      // Navigate to personality home screen
-      router.replace('/(personality)/personality');
+      // Pass the survey data directly to the personality screen via navigation params
+      // Convert trait names to capitalized format for frontend
+      const traitMap: Record<string, string> = {
+        'openness': 'Openness',
+        'conscientiousness': 'Conscientiousness', 
+        'extraversion': 'Extraversion',
+        'agreeableness': 'Agreeableness',
+        'neuroticism': 'Neuroticism'
+      };
+      
+      const surveyData = {
+        big_five_scores: calculatedAverages,
+        primary_trait: traitMap[primaryTrait] || primaryTrait,
+        survey_id: surveyResult?.surveyResult?.id
+      };
+      
+      console.log("Passing survey data to personality screen:", surveyData);
+      
+      // Navigate to personality home screen with survey data
+      router.replace({
+        pathname: '/(personality)/personality',
+        params: { surveyData: JSON.stringify(surveyData) }
+      });
       
     } catch (error: any) {
       console.error('Failed to submit survey:', error);
@@ -582,113 +634,126 @@ export default function PersonalitySurveyScreen() {
 
   return (
     <SafeAreaView style={globalStyles.container}>
-      {/* Modal Intro */}
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={globalStyles.modalOverlay}>
-        <View style={[globalStyles.card, { margin: 20, maxWidth: 400 }]}>
-            <Text style={globalStyles.title}>Discovering Your Path</Text>
-            <Text style={globalStyles.text}>
-              To create your personalized journey, answer a few metaphorical questions. There are no right or wrong answers—just insights into your unique story.
-            </Text>
-            <TouchableOpacity style={globalStyles.button} onPress={() => setModalVisible(false)}>
-              <Text style={globalStyles.buttonText}>Start</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Loading Screen */}
+      {isAuthLoading && (
+        <View style={[globalStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={globalStyles.title}>Loading...</Text>
+          <Text style={globalStyles.text}>Preparing your personalized survey</Text>
         </View>
-      </Modal>
+      )}
 
-      {/* Question Card */}
-      <View style={globalStyles.container}>
-        <Text style={[globalStyles.text, { marginBottom: 8 }]}>Question {currentQuestion + 1} of {QUESTIONS.length}</Text>
-        <View style={globalStyles.progressBar}>
-          <View style={[globalStyles.progressBarFill, { width: `${((currentQuestion + 1) / QUESTIONS.length) * 100}%` }]} />
-        </View>
-        
-        {/* Current Primary Trait Indicator */}
-        {currentPrimaryTrait && answers.length > 0 && (
-          <View style={[globalStyles.card, { marginBottom: 16, padding: 12, backgroundColor: theme.card }]}>
-            <Text style={[globalStyles.text, { fontSize: 14, color: theme.tabBarInactive }]}>
-              Current Primary Trait:
-            </Text>
-            <Text style={[globalStyles.subtitle, { color: theme.primary, marginTop: 4 }]}>
-              {traitToArchetype[currentPrimaryTrait]} ({currentPrimaryTrait})
-            </Text>
+      {/* Survey Content - Only show when authenticated */}
+      {!isAuthLoading && (
+        <>
+          {/* Modal Intro */}
+          <Modal visible={modalVisible} transparent animationType="fade">
+            <View style={globalStyles.modalOverlay}>
+            <View style={[globalStyles.card, { margin: 20, maxWidth: 400 }]}>
+                <Text style={globalStyles.title}>Discovering Your Path</Text>
+                <Text style={globalStyles.text}>
+                  To create your personalized journey, answer a few metaphorical questions. There are no right or wrong answers—just insights into your unique story.
+                </Text>
+                <TouchableOpacity style={globalStyles.button} onPress={() => setModalVisible(false)}>
+                  <Text style={globalStyles.buttonText}>Start</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Question Card */}
+          <View style={globalStyles.container}>
+            <Text style={[globalStyles.text, { marginBottom: 8 }]}>Question {currentQuestion + 1} of {QUESTIONS.length}</Text>
+            <View style={globalStyles.progressBar}>
+              <View style={[globalStyles.progressBarFill, { width: `${((currentQuestion + 1) / QUESTIONS.length) * 100}%` }]} />
+            </View>
             
-            {/* Debug: Show all trait scores */}
-            {(() => {
-              const averages = calculateTraitAverages(answers);
-              return (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={[globalStyles.text, { fontSize: 12, color: theme.tabBarInactive, marginBottom: 4 }]}>
-                    All Trait Scores:
-                  </Text>
-                  {Object.entries(averages).map(([trait, score]) => (
-                    <Text key={trait} style={[
-                      globalStyles.text, 
-                      { 
-                        fontSize: 11, 
-                        color: trait === currentPrimaryTrait ? theme.primary : theme.text,
-                        fontWeight: trait === currentPrimaryTrait ? 'bold' : 'normal'
-                      }
-                    ]}>
-                      {trait}: {score.toFixed(2)}
-                    </Text>
-                  ))}
-                </View>
-              );
-            })()}
+            {/* Current Primary Trait Indicator */}
+            {currentPrimaryTrait && answers.length > 0 && (
+              <View style={[globalStyles.card, { marginBottom: 16, padding: 12, backgroundColor: theme.card }]}>
+                <Text style={[globalStyles.text, { fontSize: 14, color: theme.tabBarInactive }]}>
+                  Current Primary Trait:
+                </Text>
+                <Text style={[globalStyles.subtitle, { color: theme.primary, marginTop: 4 }]}>
+                  {traitToArchetype[currentPrimaryTrait]} ({currentPrimaryTrait})
+                </Text>
+                
+                {/* Debug: Show all trait scores */}
+                {(() => {
+                  const averages = calculateTraitAverages(answers);
+                  return (
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={[globalStyles.text, { fontSize: 12, color: theme.tabBarInactive, marginBottom: 4 }]}>
+                        All Trait Scores:
+                      </Text>
+                      {Object.entries(averages).map(([trait, score]) => (
+                        <Text key={trait} style={[
+                          globalStyles.text, 
+                          { 
+                            fontSize: 11, 
+                            color: trait === currentPrimaryTrait ? theme.primary : theme.text,
+                            fontWeight: trait === currentPrimaryTrait ? 'bold' : 'normal'
+                          }
+                        ]}>
+                          {trait}: {score.toFixed(2)}
+                        </Text>
+                      ))}
+                    </View>
+                  );
+                })()}
+              </View>
+            )}
+            <View style={[globalStyles.card, { maxWidth: 400, width: '100%' }] }>
+              <Text style={globalStyles.subtitle}>{QUESTIONS[currentQuestion].question}</Text>
+              {QUESTIONS[currentQuestion].options.map((option, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={[
+                    globalStyles.button,
+                    { 
+                      alignItems: 'flex-start', 
+                      backgroundColor: isOptionSelected(idx) ? theme.primary : theme.card, 
+                      borderColor: theme.border, 
+                      borderWidth: 1, 
+                      marginVertical: 4,
+                      opacity: isSubmitting ? 0.5 : 1
+                    },
+                  ]}
+                  onPress={() => handleOptionSelect(idx)}
+                  disabled={isSubmitting}
+                >
+                  <Text style={[globalStyles.text, { color: isOptionSelected(idx) ? '#fff' : theme.text }]}>{option.text}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', maxWidth: 400, marginTop: 16 }}>
+              <TouchableOpacity onPress={handleSkip} disabled={isSubmitting}>
+                <Text style={[globalStyles.text, { color: theme.tabBarInactive, textDecorationLine: 'underline' }]}>Skip for now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  globalStyles.button, 
+                  { 
+                    opacity: (answers[currentQuestion] === undefined || isSubmitting) ? 0.5 : 1, 
+                    marginLeft: 16, 
+                    backgroundColor: theme.primary 
+                  }
+                ]}
+                onPress={handleNext}
+                disabled={answers[currentQuestion] === undefined || isSubmitting}
+              >
+                <Text style={globalStyles.buttonText}>
+                  {currentQuestion === QUESTIONS.length - 1 ? 'Submit' : 'Next'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {error && (
+              <Text style={[globalStyles.text, { color: theme.notification, marginTop: 16 }]}>
+                {error}
+              </Text>
+            )}
           </View>
-        )}
-        <View style={[globalStyles.card, { maxWidth: 400, width: '100%' }] }>
-          <Text style={globalStyles.subtitle}>{QUESTIONS[currentQuestion].question}</Text>
-          {QUESTIONS[currentQuestion].options.map((option, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[
-                globalStyles.button,
-                { 
-                  alignItems: 'flex-start', 
-                  backgroundColor: isOptionSelected(idx) ? theme.primary : theme.card, 
-                  borderColor: theme.border, 
-                  borderWidth: 1, 
-                  marginVertical: 4,
-                  opacity: isSubmitting ? 0.5 : 1
-                },
-              ]}
-              onPress={() => handleOptionSelect(idx)}
-              disabled={isSubmitting}
-            >
-              <Text style={[globalStyles.text, { color: isOptionSelected(idx) ? '#fff' : theme.text }]}>{option.text}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', maxWidth: 400, marginTop: 16 }}>
-          <TouchableOpacity onPress={handleSkip} disabled={isSubmitting}>
-            <Text style={[globalStyles.text, { color: theme.tabBarInactive, textDecorationLine: 'underline' }]}>Skip for now</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              globalStyles.button, 
-              { 
-                opacity: (answers[currentQuestion] === undefined || isSubmitting) ? 0.5 : 1, 
-                marginLeft: 16, 
-                backgroundColor: theme.primary 
-              }
-            ]}
-            onPress={handleNext}
-            disabled={answers[currentQuestion] === undefined || isSubmitting}
-          >
-            <Text style={globalStyles.buttonText}>
-              {currentQuestion === QUESTIONS.length - 1 ? 'Submit' : 'Next'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {error && (
-          <Text style={[globalStyles.text, { color: theme.notification, marginTop: 16 }]}>
-            {error}
-          </Text>
-        )}
-      </View>
+        </>
+      )}
     </SafeAreaView>
   );
 }

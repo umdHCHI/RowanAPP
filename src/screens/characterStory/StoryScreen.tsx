@@ -1,28 +1,28 @@
 import { useRef } from "react";
 import { useMasterState } from "../../context/MasterStateContext";
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  Icon,
-  Modal,
-  React,
-  Text,
-  TouchableOpacity,
-  useEffect,
-  useState,
-  View
+    Alert,
+    Animated,
+    apiService,
+    Dimensions,
+    Icon,
+    Modal,
+    React,
+    Text,
+    TouchableOpacity,
+    useEffect,
+    useState,
+    View
 } from "../../imports";
-import { apiService } from "../../services/apiService";
 
 import FloatingRewardNotification from "../../components/FloatingRewardNotification";
 import { useProgressivePassageLoader } from "../../hooks/useProgressivePassageLoader";
 import { createGlobalStyles } from "../../styles/globalStyles";
 import {
-  Chapter,
-  SavedRewards,
-  Story,
-  StoryScreenProps
+    Chapter,
+    SavedRewards,
+    Story,
+    StoryScreenProps
 } from "../../types/story";
 import { StoryRewardManager } from "../../utils/storyRewardIntegration";
 const { width, height } = Dimensions.get("window");
@@ -266,31 +266,33 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 
   // fetch and store the coping tool mapping and saved rewards in your component's state
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const mapping = await apiService.getAvailableCopingTools();
-        // Convert CopingTool[] to Record<string, number>
-        const toolMapping: Record<string, number> = {};
-        mapping.forEach((tool: any) => {
-          toolMapping[tool.name] = tool.id;
-        });
-        setCopingToolMapping(toolMapping);
+    // TEMPORARY: Disabled to prevent unnecessary API calls before login
+    console.log('StoryScreen: Skipping data loading - forcing login screen');
+    // const loadData = async () => {
+    //   try {
+    //     const mapping = await apiService.getAvailableCopingTools();
+    //     // Convert CopingTool[] to Record<string, number>
+    //     const toolMapping: Record<string, number> = {};
+    //     mapping.forEach((tool: any) => {
+    //       toolMapping[tool.name] = tool.id;
+    //     });
+    //     setCopingToolMapping(toolMapping);
 
-        // Load saved rewards from backend
-        if (characterId) {
-          const rewards = await apiService.getCharacterRewards(characterId);
-          if (rewards) {
-            setSavedRewards(rewards as SavedRewards);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading data:", error);
-      }
-    };
+    //     // Load saved rewards from backend
+    //     if (characterId) {
+    //       const rewards = await apiService.getCharacterRewards(characterId);
+    //       if (rewards) {
+    //         setSavedRewards(rewards as SavedRewards);
+    //       }
+    //     }
+    //   } catch (error) {
+    //     console.error("Error loading data:", error);
+    //   }
+    // };
 
-    if (characterId) {
-      loadData();
-    }
+    // if (characterId) {
+    //   loadData();
+    // }
   }, [characterId]);
 
 
@@ -1178,7 +1180,7 @@ useEffect(() => {
       // Make a direct API call to get the specific passage
       console.log("Fetching passage directly from API:", nextPassageId);
       console.log("Story ID:", StoryID);
-      const passageResponse = await apiService.getNewStoryPassage(StoryID, nextPassageId);
+      const passageResponse = await apiService.getPassage(StoryID, nextPassageId);
       console.log("Direct API response:", passageResponse);
       console.log("Passage response structure:", Object.keys(passageResponse || {}));
       

@@ -140,16 +140,16 @@ const PersonalityStoryCatalog = ({
       setError(null);
 
       try {
-        console.log("Loading stories from backend...");
+        console.log("Loading stories for personality type:", primaryTrait);
+        
+        // Fetch stories from backend
         const backendStories = await apiService.getAvailableStories();
-        console.log("Backend stories response:", backendStories);
-        console.log("Backend stories count:", backendStories?.length);
+        console.log("Backend stories loaded:", backendStories?.length || 0);
         
         if (backendStories && backendStories.length > 0) {
-          console.log("Setting stories:", backendStories);
+          // For now, show all available stories
           setStories(backendStories);
         } else {
-          console.log("No stories returned from backend");
           setStories([]);
         }
       } catch (error) {
@@ -162,7 +162,7 @@ const PersonalityStoryCatalog = ({
     };
 
     loadStories();
-  }, []);
+  }, [primaryTrait]);
   const getRarityColors = (rarity: string): readonly [string, string] => {
     const colors = theme.rarityColors[rarity as keyof typeof theme.rarityColors] || theme.rarityColors.Common;
     return [colors[0], colors[1]] as const;

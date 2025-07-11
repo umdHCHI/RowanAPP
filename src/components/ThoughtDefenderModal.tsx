@@ -119,12 +119,14 @@ interface ThoughtDefenderModalProps {
     level: number;
     won: boolean;
   }) => void;
+  isFullScreen?: boolean;
 }
 
 const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   visible,
   onClose,
   onScoreUpdate,
+  isFullScreen = false,
 }) => {
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
@@ -686,11 +688,11 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
+      transparent={!isFullScreen}
+      animationType={isFullScreen ? "none" : "fade"}
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
+      <View style={isFullScreen ? { flex: 1, backgroundColor: '#0a0b0f' } : styles.modalContainer}>
         <View style={styles.modalpassages}>
           {/* Header */}
           <View style={styles.header}>

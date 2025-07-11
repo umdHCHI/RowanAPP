@@ -1,7 +1,80 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
 import React, { useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+// Web API type declarations
+declare global {
+  interface Window {
+    setInterval: (callback: () => void, delay: number) => number;
+  }
+  
+  interface MediaStreamConstraints {
+    audio?: boolean | MediaTrackConstraints;
+    video?: boolean | MediaTrackConstraints;
+  }
+  
+  interface MediaTrackConstraints {
+    [key: string]: any;
+  }
+  
+  interface Navigator {
+    mediaDevices: {
+      getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
+    };
+  }
+  
+  interface MediaRecorder {
+    state: string;
+    start: () => void;
+    stop: () => void;
+    ondataavailable: ((event: BlobEvent) => void) | null;
+    onstop: (() => void) | null;
+  }
+  
+  interface MediaRecorderConstructor {
+    new (stream: MediaStream): MediaRecorder;
+  }
+  
+  interface BlobEvent {
+    data: Blob;
+  }
+  
+  interface MediaStream {
+    getTracks: () => MediaStreamTrack[];
+  }
+  
+  interface MediaStreamTrack {
+    stop: () => void;
+  }
+  
+  interface AudioContext {
+    decodeAudioData: (arrayBuffer: ArrayBuffer) => Promise<AudioBuffer>;
+    createBufferSource: () => AudioBufferSourceNode;
+    destination: AudioDestinationNode;
+  }
+  
+  interface AudioBuffer {
+    duration: number;
+  }
+  
+  interface AudioBufferSourceNode {
+    buffer: AudioBuffer | null;
+    connect: (destination: AudioDestinationNode) => void;
+    start: (when?: number) => void;
+    stop: () => void;
+    onended: (() => void) | null;
+  }
+  
+  interface AudioDestinationNode {}
+  
+  var MediaRecorder: MediaRecorderConstructor;
+  var AudioContext: {
+    new (): AudioContext;
+  };
+  var window: Window;
+  var navigator: Navigator;
+  var alert: (message: string) => void;
+}
 
 interface VoiceMemoRecorderProps {
   onSave: (audioUri: string) => void;
@@ -9,12 +82,10 @@ interface VoiceMemoRecorderProps {
 }
 
 const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) => {
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
   const [intervalId, setIntervalId] = useState<number | null>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
@@ -58,9 +129,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
   // Cleanup on unmount
   React.useEffect(() => {
     return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
       if (intervalId) {
         clearInterval(intervalId);
       }
@@ -79,7 +147,7 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         mediaRecorderRef.current = mediaRecorder;
         audioChunksRef.current = [];
 
-        mediaRecorder.ondataavailable = (event) => {
+        mediaRecorder.ondataavailable = (event: BlobEvent) => {
           audioChunksRef.current.push(event.data);
         };
 
@@ -88,24 +156,14 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
           const audioUrl = URL.createObjectURL(audioBlob);
           setRecordingUri(audioUrl);
           onSave(audioUrl);
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
         };
 
         mediaRecorder.start();
         setIsRecording(true);
       } else {
-        // Mobile implementation using expo-av
-        const { status } = await Audio.requestPermissionsAsync();
-        if (status !== 'granted') {
-          alert('Permission to access microphone is required!');
-          return;
-        }
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-        const rec = new Audio.Recording();
-        await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-        await rec.startAsync();
-        setRecording(rec);
-        setIsRecording(true);
+        // Mobile not supported - show message
+        alert('Voice recording is not available on mobile devices');
       }
     } catch (err) {
       alert('Failed to start recording: ' + err);
@@ -119,14 +177,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
           mediaRecorderRef.current.stop();
         }
         setIsRecording(false);
-      } else {
-        if (!recording) return;
-        await recording.stopAndUnloadAsync();
-        const uri = recording.getURI();
-        setRecording(null);
-        setIsRecording(false);
-        setRecordingUri(uri);
-        if (uri) onSave(uri);
       }
     } catch (err) {
       alert('Failed to stop recording: ' + err);
@@ -164,30 +214,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         source.start(0);
         setIsPlaying(true);
         setPlaybackDuration(audioBuffer.duration);
-      } else {
-        // Mobile playback using expo-av
-        if (sound) {
-          await sound.unloadAsync();
-        }
-        
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: recordingUri },
-          { shouldPlay: true }
-        );
-        
-        setSound(newSound);
-        setIsPlaying(true);
-        
-        newSound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded) {
-            setPlaybackPosition(status.positionMillis / 1000);
-            setPlaybackDuration(status.durationMillis ? status.durationMillis / 1000 : 0);
-            if (status.didJustFinish) {
-              setIsPlaying(false);
-              setPlaybackPosition(0);
-            }
-          }
-        });
       }
     } catch (err) {
       alert('Failed to play recording: ' + err);
@@ -203,14 +229,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         }
         setIsPlaying(false);
         setPlaybackPosition(0);
-      } else {
-        if (sound) {
-          await sound.stopAsync();
-          await sound.unloadAsync();
-          setSound(null);
-        }
-        setIsPlaying(false);
-        setPlaybackPosition(0);
       }
     } catch (err) {
       console.error('Failed to stop playback:', err);
@@ -221,10 +239,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
     if (Platform.OS === 'web' && recordingUri) {
       URL.revokeObjectURL(recordingUri);
     }
-    if (sound) {
-      sound.unloadAsync();
-      setSound(null);
-    }
     setRecordingUri(null);
     setIsPlaying(false);
     setPlaybackPosition(0);
@@ -233,6 +247,17 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
 
   // Format timer as mm:ss
   const formatTime = (t: number) => `${Math.floor(t / 60).toString().padStart(2, '0')}:${(t % 60).toString().padStart(2, '0')}`;
+
+  // Don't render on mobile platforms
+  if (Platform.OS !== 'web') {
+    return (
+      <View style={styles.container}>
+        <Text style={[styles.timer, { color: theme.archiveText }]}>
+          Voice recording not available on mobile
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -276,16 +301,22 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         </View>
       )}
       
-      {recordingUri && !isRecording && (
-        <View style={styles.playbackInfo}>
-          <Text style={[styles.playbackText, { color: theme.archiveText }]}>
-            {isPlaying ? 'Playing...' : 'Ready to play'}
+      {recordingUri && (
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressBar, { backgroundColor: theme.archiveBorder }]}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { 
+                  backgroundColor: theme.archiveAccent,
+                  width: `${(playbackPosition / playbackDuration) * 100}%`
+                }
+              ]} 
+            />
+          </View>
+          <Text style={[styles.progressText, { color: theme.archiveText }]}>
+            {formatTime(playbackPosition)} / {formatTime(playbackDuration)}
           </Text>
-          {playbackDuration > 0 && (
-            <Text style={[styles.playbackTime, { color: theme.archiveSubtext }]}>
-              {formatTime(playbackPosition)} / {formatTime(playbackDuration)}
-            </Text>
-          )}
         </View>
       )}
     </View>
@@ -334,16 +365,23 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 16
   },
-  playbackInfo: {
+  progressContainer: {
     alignItems: 'center',
     marginTop: 16
   },
-  playbackText: {
-    fontSize: 14,
-    marginBottom: 4
+  progressBar: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden'
   },
-  playbackTime: {
-    fontSize: 12
+  progressFill: {
+    height: '100%',
+    borderRadius: 4
+  },
+  progressText: {
+    fontSize: 12,
+    marginTop: 4
   }
 });
 

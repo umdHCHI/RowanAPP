@@ -144,20 +144,16 @@ export default function ArchiveLoginScreen() {
       const onboardingType = loginResponse.onboarding_type;
       const isAdminUser = userProfile.username === 'admin';
 
-   //   console.log('=== LOGIN FLOW DEBUG ===');
-   //   console.log('Username:', userProfile.username);
-   //   console.log('Is admin user:', isAdminUser);
-   //   console.log('Needs onboarding (backend):', needsOnboarding);
-   //   console.log('Onboarding type (backend):', onboardingType);
-   //   console.log('Has completed onboarding:', hasCompletedOnboarding);
-   //   console.log('Completion type:', completionType);
+
       
       // Determine if user should go through onboarding
       let shouldRedirectToOnboarding = false;
       let assignedPath: 'character' | 'survey' | null = null;
       
-      if (isAdminUser) {
-        // Admin users should always go through onboarding (for testing)
+      const isTestUser = userProfile.username === 'admin' || userProfile.profile?.completion_type === 'test';
+      
+      if (isTestUser) {
+        // Test users and admin users should always go through onboarding (for testing)
         shouldRedirectToOnboarding = true;
         assignedPath = null; // Let them choose
       } else if (needsOnboarding) {
@@ -183,8 +179,7 @@ export default function ArchiveLoginScreen() {
         assignedPath = null;
       }
       
-   //   console.log('Should redirect to onboarding:', shouldRedirectToOnboarding);
-   //   console.log('Assigned path:', assignedPath);
+
       
       if (shouldRedirectToOnboarding) {
         // User needs to complete onboarding
@@ -229,7 +224,10 @@ export default function ArchiveLoginScreen() {
       const response = await apiService.login('admin', 'admin');
       const testUserId = String(response.user.id);
       
+      // Mark as test user and ensure they go through onboarding
       await login(response.token, testUserId, response.user);
+      
+      // Always redirect to onboarding for admin/test users
       router.replace('/(onboarding)/onboarding');
     } catch (err) {
       setError('Curator access denied');

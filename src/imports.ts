@@ -2,25 +2,25 @@
 
 // ===== React & React Native Core =====
 export {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Image,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity, useColorScheme, View
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    Image,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity, View, useColorScheme
 } from 'react-native';
 
 export {
-  createContext, ReactNode, useCallback, useContext,
-  useEffect,
-  useState
+    ReactNode, createContext, useCallback, useContext,
+    useEffect,
+    useState
 } from 'react';
 
 export { default as React } from 'react';
@@ -30,7 +30,7 @@ export { FontAwesome } from '@expo/vector-icons';
 export { BlurView } from 'expo-blur';
 export { default as Constants } from 'expo-constants';
 export { LinearGradient } from 'expo-linear-gradient';
-export { router, Tabs, useRouter } from 'expo-router';
+export { Tabs, router, useRouter } from 'expo-router';
 
 // ===== Third Party Libraries =====
 export { default as AsyncStorage } from '@react-native-async-storage/async-storage';
@@ -39,13 +39,13 @@ export { default as Icon } from 'react-native-vector-icons/Feather';
 
 // ===== Services =====
 export {
-  API_ENDPOINTS,
-  apiBaseUrl,
-  apiService,
-  appearanceService,
+    API_ENDPOINTS,
+    apiBaseUrl,
+    apiService,
+    appearanceService,
 
 
-  getApiUrl
+    getApiUrl
 } from './services';
 
 // ===== Components =====
@@ -55,6 +55,7 @@ export { default as CharacterPreview } from './components/CharacterPreview';
 export { default as CodexModal } from './components/CodexModal';
 export { default as DrawingCanvas } from './components/DrawingCanvas';
 export { default as EquipmentModal } from './components/EquipmentModal';
+export { default as PersonalizedArchiveHeader } from './components/PersonalizedArchiveHeader';
 
 export { default as ThoughtDefenderModal } from './components/ThoughtDefenderModal';
 
@@ -67,15 +68,15 @@ export { StyleControls } from './components/CharacterCreator/StyleControls';
 
 // ===== Assets =====
 export {
-  // Equipment
-  // Character options
-  baseOptions,
-  bgOptions,
-  // Frame assets
-  characterCreatorAssets, equipmentIcons,
-  equipmentTypeLabels, mouthOptions,
-  rarityColors,
-  sampleHeadBar
+    // Equipment
+    // Character options
+    baseOptions,
+    bgOptions,
+    // Frame assets
+    characterCreatorAssets, equipmentIcons,
+    equipmentTypeLabels, mouthOptions,
+    rarityColors,
+    sampleHeadBar
 } from './assets';
 
 // ===== Data =====
@@ -89,37 +90,39 @@ export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Styles =====
 export { createGlobalStyles } from './styles/globalStyles';
-export { darkTheme, lightTheme, ThemeColors } from './styles/theme';
+export { ThemeColors, darkTheme, lightTheme } from './styles/theme';
 
 // ===== Types =====
 export type {
-  ArchiveProgress, AuthContextType, Chapter, ChapterPassage, ChapterSummary,
-  //UserCharacter System
-  Character, CharacterCreateData, CharacterCustomizationData,
-  // Equipment
-  CharacterGear, Choice, CodexEntry,
-  // Journal
-  CodexModalProps, EquipmentItem,
-  EquipmentSubtype,
-  EquipmentType,
-  EquippedItems,
-  // Game
-  ExtendedGameData,
-  GameAchievement,
-  //User Game Data - Persistent Game Data
-  GameData, GameSession, GameState,
-  // Wellness system
-  GearItem,
-  GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
-  LoginResponse,
-  // MiniGame Types 
-  MiniGameProgress, MiniGameResult, NPC, Passage, PowerUp, Projectile,
-  //User Research Group
-  ResearchGroup, SavedRewards, Skill, StatGains,
-  //story imports 
-  Story, StoryDetail, StoryGains, StoryProgress, StoryProgression, StoryScreenProps, Thought,
-  // User Profile
-  UserProfile, WellnessStats
+    ArchiveProgress, AuthContextType, Chapter, ChapterPassage, ChapterSummary,
+    //UserCharacter System
+    Character, CharacterCreateData, CharacterCustomizationData,
+    // Equipment
+    CharacterGear, Choice, CodexEntry,
+    // Journal
+    CodexModalProps,
+    //Personality Types
+    DailyCuratorMessages, EquipmentItem,
+    EquipmentSubtype,
+    EquipmentType,
+    EquippedItems,
+    // Game
+    ExtendedGameData,
+    GameAchievement,
+    //User Game Data - Persistent Game Data
+    GameData, GameSession, GameState,
+    // Wellness system
+    GearItem,
+    GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
+    LoginResponse,
+    // MiniGame Types 
+    MiniGameProgress, MiniGameResult, NPC, Passage, PersonalityQuests, PowerUp, Projectile,
+    //User Research Group
+    ResearchGroup, SavedRewards, Skill, StatGains,
+    //story imports 
+    Story, StoryDetail, StoryGains, StoryProgress, StoryProgression, StoryScreenProps, Thought,
+    // User Profile
+    UserProfile, WellnessStats
 } from './types';
 
 
@@ -131,142 +134,7 @@ export type { PersonalityTrait } from './context/PersonalityContext';
 export type PersonalityKey = "Openness" | "Conscientiousness" | "Extraversion" | "Agreeableness" | "Neuroticism";
 
 // ===== Personality Constants =====
-export const PersonalityConfigs = {
-  Openness: {
-    avatar: "🔮",
-    gameTitle: "Chronicles of the Infinite Mind",
-    scholarClass: "Sage Explorer",
-    journeyDesc: "Wandering through endless corridors of possibility...",
-    curatorNote: "The Curator whispers of hidden knowledge...",
-    theme: {
-      primary: '#4ee6e6',
-      secondary: '#9d4edd',
-      accent: '#f72585',
-      background: '#0a0b0f',
-    },
-    backgroundRunes: ["🌌", "✨", "🎭"],
-    mindStates: [
-      { icon: "🎭", label: "Curiosity", key: "curiosity" },
-      { icon: "🎨", label: "Creativity", key: "creativity" },
-      { icon: "🚀", label: "Adventure", key: "adventure" },
-    ],
-    archiveSection: "The Dreamscape Library",
-    mysticalElements: {
-      borderGlow: '#9d4edd',
-      avatarGlow: '#f72585',
-    },
-    archiveTab: { key: 'dreamscape', icon: '🌌', label: 'Dreamscape' },
-    adventureTab: { key: 'journeys', icon: '🗺️', label: 'Journeys' },
-  },
-  
-  Conscientiousness: {
-    avatar: "⚖️",
-    gameTitle: "The Methodical Codex",
-    scholarClass: "Order Keeper",
-    journeyDesc: "Cataloging the sacred texts of self-mastery...",
-    curatorNote: "The Curator commends your dedication...",
-    theme: {
-      primary: '#4ee6e6',
-      secondary: '#2a9d8f',
-      accent: '#f4a261',
-      background: '#0a0b0f',
-    },
-    backgroundRunes: ["📏", "⚙️", "🏛️"],
-    mindStates: [
-      { icon: "🎯", label: "Focus", key: "focus" },
-      { icon: "🛡️", label: "Resilience", key: "resilience" },
-      { icon: "📈", label: "Progress", key: "progress" },
-    ],
-    archiveSection: "The Structured Sanctum",
-    mysticalElements: {
-      borderGlow: '#2a9d8f',
-      avatarGlow: '#f4a261',
-    },
-    archiveTab: { key: 'sanctum', icon: '🏛️', label: 'Sanctum' },
-    adventureTab: { key: 'quests', icon: '📜', label: 'Quests' },
-  },
-  
-  Extraversion: {
-    avatar: "🌟",
-    gameTitle: "Tales of the Connected Soul",
-    scholarClass: "Social Catalyst",
-    journeyDesc: "Gathering wisdom from the fellowship of minds...",
-    curatorNote: "The Curator celebrates your vibrant spirit...",
-    theme: {
-      primary: '#4ee6e6',
-      secondary: '#f72585',
-      accent: '#ffd60a',
-      background: '#0a0b0f',
-    },
-    backgroundRunes: ["🎪", "🌈", "🎉"],
-    mindStates: [
-      { icon: "⚡", label: "Energy", key: "energy" },
-      { icon: "🤝", label: "Connection", key: "connection" },
-      { icon: "🎭", label: "Expression", key: "expression" },
-    ],
-    archiveSection: "The Grand Assembly Hall",
-    mysticalElements: {
-      borderGlow: '#f72585',
-      avatarGlow: '#ffd60a',
-    },
-    archiveTab: { key: 'assembly', icon: '🎪', label: 'Assembly' },
-    adventureTab: { key: 'tales', icon: '📖', label: 'Tales' },
-  },
-  
-  Agreeableness: {
-    avatar: "🕊️",
-    gameTitle: "The Harmony Archives",
-    scholarClass: "Peace Weaver",
-    journeyDesc: "Seeking balance in the chambers of understanding...",
-    curatorNote: "The Curator feels your gentle wisdom...",
-    theme: {
-      primary: '#4ee6e6',
-      secondary: '#06ffa5',
-      accent: '#ffffb3',
-      background: '#0a0b0f',
-    },
-    backgroundRunes: ["🌸", "🕯️", "🤲"],
-    mindStates: [
-      { icon: "💚", label: "Empathy", key: "empathy" },
-      { icon: "☮️", label: "Harmony", key: "harmony" },
-      { icon: "🌱", label: "Growth", key: "growth" },
-    ],
-    archiveSection: "The Healing Gardens",
-    mysticalElements: {
-      borderGlow: '#06ffa5',
-      avatarGlow: '#ffffb3',
-    },
-    archiveTab: { key: 'gardens', icon: '🌸', label: 'Gardens' },
-    adventureTab: { key: 'legends', icon: '📚', label: 'Legends' },
-  },
-  
-  Neuroticism: {
-    avatar: "🌙",
-    gameTitle: "Depths of the Inner Sanctum",
-    scholarClass: "Shadow Walker",
-    journeyDesc: "Delving deep into the shadowed alcoves of the psyche...",
-    curatorNote: "The Curator understands your profound depths...",
-    theme: {
-      primary: '#4ee6e6',
-      secondary: '#7209b7',
-      accent: '#a663cc',
-      background: '#0a0b0f',
-    },
-    backgroundRunes: ["🌑", "🔍", "⚗️"],
-    mindStates: [
-      { icon: "🧘", label: "Awareness", key: "awareness" },
-      { icon: "💎", label: "Depth", key: "depth" },
-      { icon: "🌊", label: "Flow", key: "flow" },
-    ],
-    archiveSection: "The Reflection Chambers",
-    mysticalElements: {
-      borderGlow: '#7209b7',
-      avatarGlow: '#a663cc',
-    },
-    archiveTab: { key: 'chambers', icon: '🌙', label: 'Chambers' },
-    adventureTab: { key: 'odysseys', icon: '🌀', label: 'Odysseys' },
-  }
-};
+export { PersonalityConfigs } from './constants/personality';
 
 export const PERSONALITY_TABS: Record<PersonalityKey, Array<{ key: string; label: string; icon: string }>> = {
   Openness: [

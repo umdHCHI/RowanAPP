@@ -168,7 +168,8 @@ export interface Character {
         color: string;
     }>;
     character_config?: {
-        selected_base_model: number;
+        selected_base_model: number; //only one base model
+        selected_base_color?: number; // color index for base model
         selected_skin_color: number;
         selected_hair_style: number;
         selected_hair_color: number;
@@ -233,6 +234,7 @@ export interface CategoryConfig {
 }
 export interface CharacterCustomizationData {
     selected_base_model: number;
+    selected_base_color?: number; // color index for base model
     selected_skin_color: number;
     selected_hair_style: number;
     selected_hair_color: number;
@@ -261,6 +263,7 @@ export const createCharacterCreatorCategories = (
     selectedShirtType: number;
     selectedBackgroundType: number;
     selectedBaseModel: number;
+    selectedBaseColor: number;
     selectedHairColor: number;
     selectedEyeColor: number;
     selectedEyebrowColor: number;
@@ -275,6 +278,7 @@ export const createCharacterCreatorCategories = (
     setSelectedShirtType: (value: number) => void;
     setSelectedBackgroundType: (value: number) => void;
     setSelectedBaseModel: (value: number) => void;
+    setSelectedBaseColor: (value: number) => void; // color index for base model
     setSelectedHairColor: (value: number) => void;
     setSelectedEyeColor: (value: number) => void;
     setSelectedEyebrowColor: (value: number) => void;
@@ -283,6 +287,7 @@ export const createCharacterCreatorCategories = (
   }
 ): CharacterCreatorCategories => {
   const styleCategories: CategoryConfig[] = [
+    { label: 'Base Model', options: 1, current: character.selectedBaseModel, setter: setters.setSelectedBaseModel },
     { label: 'Hair Style', options: 12, current: character.selectedHairStyle, setter: setters.setSelectedHairStyle },
     { label: 'Eyes', options: 12, current: character.selectedEyeType, setter: setters.setSelectedEyeType },
     { label: 'Eyebrow Style', options: 12, current: character.selectedEyebrowStyle, setter: setters.setSelectedEyebrowStyle },
@@ -292,7 +297,7 @@ export const createCharacterCreatorCategories = (
   ];
 
   const colorCategories: CategoryConfig[] = [
-    { label: 'Skin Color', options: 16, current: character.selectedBaseModel, setter: setters.setSelectedBaseModel },
+    { label: 'Skin Color', options: 16, current: character.selectedBaseColor, setter: setters.setSelectedBaseColor },
     { label: 'Hair Color', options: 16, current: character.selectedHairColor, setter: setters.setSelectedHairColor },
     { label: 'Eye Color', options: 16, current: character.selectedEyeColor, setter: setters.setSelectedEyeColor },
     { label: 'Eyebrow Color', options: 16, current: character.selectedEyebrowColor, setter: setters.setSelectedEyebrowColor },

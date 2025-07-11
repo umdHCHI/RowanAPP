@@ -2,5 +2,4 @@ import PersonalitySurveyScreen from '../../src/screens/onboarding/PersonalitySur
 
 export default function PersonalityTest() {
   return <PersonalitySurveyScreen />;
-}
-
+} 

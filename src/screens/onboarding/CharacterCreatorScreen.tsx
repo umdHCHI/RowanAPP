@@ -200,6 +200,7 @@ export default function ArchiveCharacterCreatorScreen() {
           selectedShirtType: character.selectedShirtType,
           selectedBackgroundType: character.selectedBackgroundType,
           selectedBaseModel: character.selectedBaseModel,
+          selectedBaseColor: character.selectedBaseColor,
           selectedHairColor: character.selectedHairColor,
           selectedEyeColor: character.selectedEyeColor,
           selectedEyebrowColor: character.selectedEyebrowColor,
@@ -214,6 +215,7 @@ export default function ArchiveCharacterCreatorScreen() {
           setSelectedShirtType: character.setSelectedShirtType,
           setSelectedBackgroundType: character.setSelectedBackgroundType,
           setSelectedBaseModel: character.setSelectedBaseModel,
+          setSelectedBaseColor: character.setSelectedBaseColor,
           setSelectedHairColor: character.setSelectedHairColor,
           setSelectedEyeColor: character.setSelectedEyeColor,
           setSelectedEyebrowColor: character.setSelectedEyebrowColor,
@@ -305,12 +307,13 @@ export default function ArchiveCharacterCreatorScreen() {
     
     // Map style category index to color category index
     const styleToColorIndexMap: { [key: number]: number } = {
-      0: 1, // Hair Style → Hair Color
-      1: 2, // Eyes → Eye Color  
-      2: 3, // Eyebrow Style → Eyebrow Color
-      3: -1, // Mouth → No color equivalent
-      4: 4, // Clothes → Clothes Color
-      5: 5, // Background → Background Color
+      0: 0, // Base Model → Skin Color
+      1: 1, // Hair Style → Hair Color
+      2: 2, // Eyes → Eye Color
+      3: 3, // Eyebrow Style → Eyebrow Color
+      4: -1, // Mouth → No color equivalent
+      5: 4, // Clothes → Clothes Color
+      6: 5, // Background → Background Color
     };
     
     const colorIndex = styleToColorIndexMap[selectedCategory];

@@ -1,25 +1,25 @@
 import EquipmentModal from "../../components/EquipmentModal";
 import { useMasterState } from "../../context/MasterStateContext";
 import {
-  Alert,
-  BlurView,
-  CharacterPreview,
-  CodexModal,
-  Dimensions,
-  EquipmentItem,
-  EquippedItems,
-  Icon,
-  Image,
-  LinearGradient,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  ThoughtDefenderModal,
-  TouchableOpacity,
-  View,
-  useEffect,
-  useState
+    Alert,
+    BlurView,
+    CharacterPreview,
+    CodexModal,
+    Dimensions,
+    EquipmentItem,
+    EquippedItems,
+    Icon,
+    Image,
+    LinearGradient,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    ThoughtDefenderModal,
+    TouchableOpacity,
+    View,
+    useEffect,
+    useState
 } from "../../imports";
 // Import StoryScreen directly to avoid circular dependency issues
 import { apiService } from "../../services/apiService";
@@ -77,33 +77,37 @@ const ArchiveInterface: React.FC = () => {
 
   // Load stories from backend on mount
   useEffect(() => {
-    loadStories();
+    // TEMPORARY: Disabled to prevent unnecessary API calls before login
+    console.log('CharacterHomeScreen: Skipping story loading - forcing login screen');
+    // loadStories();
   }, []);
 
   // Load home data and journal prompts on mount (only once)
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load home data for character display
-        await wellness.loadHomeData();
+    // TEMPORARY: Disabled to prevent unnecessary API calls before login
+    console.log('CharacterHomeScreen: Skipping data loading - forcing login screen');
+    // const loadData = async () => {
+    //   try {
+    //     // Load home data for character display
+    //     await wellness.loadHomeData();
         
-        // Load available prompts first
-        await wellness.loadAvailablePrompts();
+    //     // Load available prompts first
+    //     await wellness.loadAvailablePrompts();
         
-        // Then load category-specific prompts based on current progress
-        const unlockedAreas = ["entrance"]; // Start with entrance, add more based on progress
-        const completedStoriesArray = Array.from(archive.completedStories);
-        await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
-      } catch (error: any) {
-        console.error('Error loading data:', error);
-        // Don't retry on 404 errors - the endpoint might not be implemented yet
-        if (error?.response?.status === 404) {
-          console.log('Some endpoints not found (404) - this is expected if the endpoints are not implemented');
-        }
-      }
-    };
+    //     // Then load category-specific prompts based on current progress
+    //     const unlockedAreas = ["entrance"]; // Start with entrance, add more based on progress
+    //     const completedStoriesArray = Array.from(archive.completedStories);
+    //     await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
+    //   } catch (error: any) {
+    //     console.error('Error loading data:', error);
+    //     // Don't retry on 404 errors - the endpoint might not be implemented yet
+    //     if (error?.response?.status === 404) {
+    //       console.log('Some endpoints not found (404) - this is expected if the endpoints are not implemented');
+    //     }
+    //   }
+    // };
 
-    loadData();
+    // loadData();
   }, []); // Empty dependency array - only run once on mount
 
   // Story handlers

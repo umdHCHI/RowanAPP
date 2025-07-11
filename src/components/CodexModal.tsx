@@ -1,14 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Dimensions,
-  ImageBackground,
-  Modal,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    ImageBackground,
+    Modal,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { useMasterState } from "../context/MasterStateContext";
 import { createGlobalStyles } from "../styles/globalStyles";
@@ -22,7 +22,8 @@ const CodexModal = ({
   onClose,
   onSave,
   unlockedAreas,
-}: CodexModalProps) => {
+  isFullScreen = false,
+}: CodexModalProps & { isFullScreen?: boolean }) => {
   const { wellness, archive, theme } = useMasterState();
   const globalStyles = createGlobalStyles(theme.theme);
 
@@ -129,12 +130,12 @@ const CodexModal = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      transparent={!isMobile}
+      animationType={isFullScreen ? "none" : "slide"}
+      transparent={!isMobile && !isFullScreen}
       onRequestClose={onClose}
     >
-      <View style={isMobile ? { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)' } : globalStyles.codexModalOverlay}>
-        <View style={isMobile ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start' } : globalStyles.codexModalpassages}>
+      <View style={isFullScreen ? { flex: 1, backgroundColor: '#0a0b0f' } : (isMobile ? { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)' } : globalStyles.codexModalOverlay)}>
+        <View style={isFullScreen ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start' } : (isMobile ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start' } : globalStyles.codexModalpassages)}>
           <ImageBackground
             source={parchmentSource}
             style={isMobile ? { flex: 1, padding: 0 } : globalStyles.codexPixelBorder}

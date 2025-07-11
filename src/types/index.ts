@@ -38,3 +38,4 @@ export type { ArchiveProgress, Chapter, ChapterPassage, ChapterSummary, Choice, 
 // MiniGame types
 export type { GameState, PowerUp, Projectile, Thought } from './thoughtGame';
 
+export type { DailyCuratorMessages, PersonalityKey, PersonalityQuests } from './personality';
