@@ -314,6 +314,7 @@ interface MasterStateContextType {
     ) => void;
     handleArtifactUnlock: (artifact: MentalArtifact) => void;
     handleSkillLearned: (skills: string[]) => void;
+    handleStoryRewardTracker: (rewardTracker: any) => void;
     setFinalRewardsArtifacts: (artifacts: MentalArtifact[]) => void;
     loadArchiveProgress: () => Promise<void>;
     saveArchiveProgress: () => Promise<void>;
@@ -875,23 +876,53 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     
     switch (slot) {
       case 'weapon':
+        // Story reward items
+        if (name.includes('ancient scroll')) return 'meditation';
+        if (name.includes('clarity lens')) return 'meditation';
+        if (name.includes('explorer') && name.includes('notebook')) return 'journaling';
+        if (name.includes('intuition compass')) return 'meditation';
+        if (name.includes('empathy conduit')) return 'meditation';
+        if (name.includes('toolkit story')) return 'meditation';
+        
+        // Generic weapon types
         if (name.includes('meditation') || name.includes('breathing')) return 'meditation';
         if (name.includes('journal')) return 'journaling';
         return 'meditation'; // default for focus items
         
       case 'armor':
+        // Story reward items
+        if (name.includes('personal style cloak')) return 'social';
+        if (name.includes('cultural wisdom wrap')) return 'social';
+        if (name.includes('adaptation shield')) return 'social';
+        if (name.includes('sanctuary shroud')) return 'social';
+        
+        // Generic armor types
         if (name.includes('social') || name.includes('friend')) return 'social';
         if (name.includes('hobby') || name.includes('activity')) return 'hobby';
         if (name.includes('nature') || name.includes('outdoor')) return 'nature';
         return 'social'; // default for comfort items
         
       case 'helmet':
+        // Story reward items
+        if (name.includes('reality filter')) return 'boundary';
+        if (name.includes('growth mindset crown')) return 'affirmation';
+        if (name.includes('authenticity guard')) return 'boundary';
+        if (name.includes('guardian ward')) return 'boundary';
+        
+        // Generic helmet types
         if (name.includes('boundary') || name.includes('limit')) return 'boundary';
         if (name.includes('affirmation') || name.includes('positive')) return 'affirmation';
         if (name.includes('routine') || name.includes('habit')) return 'routine';
         return 'boundary'; // default for shield items
         
       case 'boots':
+        // Story reward items
+        if (name.includes('personal values foundation')) return 'exercise';
+        if (name.includes('support network roots')) return 'exercise';
+        if (name.includes('self-compassion stone')) return 'exercise';
+        if (name.includes('foundation stone')) return 'exercise';
+        
+        // Generic boot types
         if (name.includes('exercise') || name.includes('movement')) return 'exercise';
         if (name.includes('sleep') || name.includes('rest')) return 'sleep';
         if (name.includes('nutrition') || name.includes('food')) return 'nutrition';
@@ -1185,6 +1216,44 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         ...prev,
         drawingEntries: prev.drawingEntries + 1,
       }));
+    }
+  };
+
+  // ===== NEW REWARD SYSTEM HANDLERS =====
+  const handleStoryRewardTracker = (rewardTracker: any) => {
+    // This will be called when a story is completed with accumulated rewards
+    console.log('=== HANDLING STORY REWARD TRACKER ===');
+    console.log('Reward tracker:', rewardTracker);
+    
+    // Update archive progress with the rewards
+    if (rewardTracker.totalStatGains) {
+      // Apply stat gains to character
+      Object.entries(rewardTracker.totalStatGains).forEach(([stat, value]) => {
+        if (typeof value === 'number' && value > 0) {
+          // Update character stats through the backend
+          if (backendCharacter) {
+            gainExperience(value, `story_${rewardTracker.storyId}`);
+          }
+        }
+      });
+    }
+    
+    // Handle final rewards and skills
+    if (rewardTracker.finalRewards && rewardTracker.finalRewards.length > 0) {
+      rewardTracker.finalRewards.forEach((reward: string) => {
+        handleArtifactUnlock({ 
+          name: reward, 
+          type: 'story_reward', 
+          equipped: false, 
+          resonance: 1, 
+          description: `Earned from story completion`, 
+          rarity: 'Common' as any 
+        });
+      });
+    }
+    
+    if (rewardTracker.skillsLearned && rewardTracker.skillsLearned.length > 0) {
+      handleSkillLearned(rewardTracker.skillsLearned);
     }
   };
 
@@ -1854,6 +1923,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       handleMiniGameComplete,
       handleArtifactUnlock,
       handleSkillLearned,
+      handleStoryRewardTracker,
       setFinalRewardsArtifacts,
       loadArchiveProgress,
       saveArchiveProgress,

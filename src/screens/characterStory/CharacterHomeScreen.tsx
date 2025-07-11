@@ -444,6 +444,26 @@ const ArchiveInterface: React.FC = () => {
       archive.handleStoryComplete(completionData.StoryId);
       archive.handleSkillLearned(completionData.skillsLearned);
 
+      // ✅ Refresh character data to reflect new stats
+      console.log("=== REFRESHING CHARACTER DATA AFTER STORY COMPLETION ===");
+      try {
+        // Refresh home data (includes character stats and wellness)
+        await wellness.loadHomeData();
+        console.log("Home data refreshed successfully");
+        
+        // Refresh character stats specifically
+        await character.loadCharacter();
+        console.log("Character data refreshed successfully");
+        
+        // Refresh equipment/gear data
+        await equipment.loadBackendGear();
+        console.log("Equipment data refreshed successfully");
+        
+      } catch (refreshError) {
+        console.error("Error refreshing character data:", refreshError);
+        // Don't fail the story completion if refresh fails
+      }
+
       // Show completion message
       Alert.alert(
         "🎉 Story Completed!",
@@ -512,14 +532,23 @@ const ArchiveInterface: React.FC = () => {
   //Equipment handlers - now using backend gear system
   const handleEquip = async (item: EquipmentItem) => {
     try {
+      console.log('=== EQUIPPING ITEM ===');
+      console.log('Item to equip:', item);
+      console.log('Available backend gear:', equipment.backendGear);
+      
       // Find the corresponding backend gear item
       const backendGearItem = equipment.backendGear.find(gear => 
         gear.gear_type.name === item.name
       );
       
+      console.log('Found backend gear item:', backendGearItem);
+      
       if (backendGearItem) {
+        console.log('Equipping backend gear item with ID:', backendGearItem.id);
         await equipment.equipBackendGear(backendGearItem.id);
+        console.log('✅ Item equipped successfully');
       } else {
+        console.log('No backend gear item found, using fallback');
         // Fallback to local equipment system
         equipment.equipItem(item.type, item);
       }
@@ -945,7 +974,9 @@ const ArchiveInterface: React.FC = () => {
                         <TouchableOpacity
                           key={i}
                           style={theme.styles.gearSlot}
-                          onPress={() => {
+                          onPress={async () => {
+                            // Refresh gear data before opening modal
+                            await equipment.loadBackendGear();
                             setShowEquipmentModal(true);
                           }}
                           activeOpacity={0.8}
@@ -1010,7 +1041,9 @@ const ArchiveInterface: React.FC = () => {
                         <TouchableOpacity
                           key={i}
                           style={theme.styles.gearSlot}
-                          onPress={() => {
+                          onPress={async () => {
+                            // Refresh gear data before opening modal
+                            await equipment.loadBackendGear();
                             setShowEquipmentModal(true);
                           }}
                           activeOpacity={0.8}

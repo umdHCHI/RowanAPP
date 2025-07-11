@@ -65,16 +65,15 @@ export const API_ENDPOINTS = {
     
     // Character endpoints - updated to match actual backend structure
     characters: 'characters/characters/', // Base character endpoint for POST/GET
-    characterCharacters: 'characters/characters/', // Character model operations
     myCharacter: 'characters/characters/my_character/', // Get specific character data
     characterHomeData: 'characters/characters/home_data/', // Character home data endpoint
     characterStats: 'characters/characters/stats/', // Character stats endpoint
     customizationOptions: 'characters/characters/customization_options/', // Character customization options
     
-    // Character actions 
-    gainExperience: 'users/update_profile/', // {id}/gain_experience/
-    gainWellness: 'users/update_profile/', // {id}/gain_wellness/
-    updateCustomization: 'users/update_profile/', // {id}/update_customization/
+    // Character actions -standerize to one endpoint
+    gainExperience: 'characters/characters/', // {id}/gain_experience/
+    gainWellness: 'characters/characters/', // {id}/gain_wellness/
+    updateCustomization: 'characters/characters/', // {id}/update_customization/
     
     // User survey endpoints - now handled directly via updateUserProfile
     // postUserSurvey: 'users/update_profile/', // Removed - using updateUserProfile directly
@@ -85,8 +84,7 @@ export const API_ENDPOINTS = {
     copingToolsByType: 'characters/coping-tools/by-type/',
     
     // Character Tools 
-    myTools: 'characters/character-tools/',
-    //myTools: 'characters/character-tools/my-tools/',
+    myTools: 'characters/character-tools/my-tools/',
     equippedTools: 'characters/character-tools/equipped/',
     equipTool: 'characters/character-tools/', // {id}/equip/
     unequipTool: 'characters/character-tools/', // {id}/unequip/
@@ -101,11 +99,12 @@ export const API_ENDPOINTS = {
     // Gear
     gearTypes: 'characters/gear-types/',
     characterGear: 'characters/character-gear/',
-    myGear: 'characters/character-tools/',
+    myGear: 'characters/character-gear/my_gear/',
     availableGear: 'characters/gear-types/',
     equippedGear: 'characters/character-gear/equipped/',
     equipGear: 'characters/character-gear/', // {id}/equip/
     unequipGear: 'characters/character-gear/', // {id}/unequip/
+    acquireGear: 'characters/character-gear/',
     
     // Personality & Survey endpoints
     personalityTraits: 'personality/traits/',

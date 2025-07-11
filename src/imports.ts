@@ -85,7 +85,6 @@ export { sampleInventory } from './data/sampleEquipment';
 export { CHARACTER_CREATOR_CONSTANTS } from './constants/characterCreator';
 
 // ===== Hooks =====
-export { useArchiveProgress } from './hooks/useArchiveProgress';
 export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Styles =====

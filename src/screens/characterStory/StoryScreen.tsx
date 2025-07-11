@@ -15,6 +15,7 @@ import {
 } from "../../imports";
 import { apiService } from "../../services/apiService";
 
+import FloatingRewardNotification from "../../components/FloatingRewardNotification";
 import { useProgressivePassageLoader } from "../../hooks/useProgressivePassageLoader";
 import { createGlobalStyles } from "../../styles/globalStyles";
 import {
@@ -23,6 +24,7 @@ import {
   Story,
   StoryScreenProps
 } from "../../types/story";
+import { StoryRewardManager } from "../../utils/storyRewardIntegration";
 const { width, height } = Dimensions.get("window");
 
 const artifactDatabase = {
@@ -161,6 +163,18 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   >({});
   const [savedRewards, setSavedRewards] = useState<SavedRewards>({});
 
+  // Floating notification state
+  const [notificationQueue, setNotificationQueue] = useState<Array<{
+    id: string;
+    message: string;
+    type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact';
+  }>>([]);
+  const [currentNotification, setCurrentNotification] = useState<{
+    message: string;
+    type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact';
+  } | null>(null);
+  const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(null);
+
   // Debug: Force process if we have template syntax but no choices
   const [debugProcessedCurrent, setDebugProcessedCurrent] = useState<any>(null);
 
@@ -196,6 +210,59 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   const PassageChoices = passage?.choices || choices || [];
   const PassageImage = passage?.background_image || null; // Add if you have this field
   const PassageOrder = passage?.order || 0;
+
+  // Initialize reward manager when story changes
+  useEffect(() => {
+    if (story?.id && characterId) {
+      console.log('=== INITIALIZING REWARD MANAGER ===');
+      console.log('Story ID:', story.id);
+      console.log('Character ID:', characterId);
+      
+      const manager = new StoryRewardManager(
+        story.id.toString(),
+        (message: string, type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact') => {
+          console.log('=== SHOWING FLOATING NOTIFICATION ===');
+          console.log('Message:', message);
+          console.log('Type:', type);
+          showFloatingNotification(message, type);
+        },
+        (completionData: any) => {
+          console.log('=== STORY COMPLETION CALLBACK ===');
+          console.log('Completion data:', completionData);
+          onStoryComplete(completionData);
+        },
+        apiService,
+        parseInt(characterId, 10)
+      );
+      
+      console.log('Reward manager created:', manager);
+      setRewardManager(manager);
+    } else {
+      console.log('Cannot initialize reward manager - missing story ID or character ID');
+      console.log('Story ID:', story?.id);
+      console.log('Character ID:', characterId);
+    }
+  }, [story?.id, characterId]);
+
+  // Notification queue management
+  useEffect(() => {
+    if (notificationQueue.length > 0 && !currentNotification) {
+      const nextNotification = notificationQueue[0];
+      setCurrentNotification(nextNotification);
+      setNotificationQueue(prev => prev.slice(1));
+    }
+  }, [notificationQueue, currentNotification]);
+
+  // Show floating notification
+  const showFloatingNotification = (message: string, type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact') => {
+    const notificationId = Date.now().toString();
+    setNotificationQueue(prev => [...prev, { id: notificationId, message, type }]);
+  };
+
+  // Hide current notification
+  const hideCurrentNotification = () => {
+    setCurrentNotification(null);
+  };
 
   // fetch and store the coping tool mapping and saved rewards in your component's state
   useEffect(() => {
@@ -291,16 +358,72 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       const foundPassage = loadedPassages.find(p => p.passage_id === currentId);
       if (foundPassage && foundPassage.isLoaded) {
         setCurrentPassage(foundPassage);
+        
+        // Track passage rewards when passage is loaded
+        if (rewardManager && foundPassage) {
+          // Convert to proper Passage type
+          const passageData: any = {
+            ...foundPassage,
+            chapter: chapter?.id || 1,
+            passage_id: foundPassage.passage_id,
+            content: foundPassage.content,
+            passage_type: foundPassage.passage_type,
+            speaker: foundPassage.speaker,
+            required_conditions: foundPassage.required_conditions || {},
+            story_effects: foundPassage.story_effects || {},
+            mood: foundPassage.mood,
+            background_music: foundPassage.background_music,
+            background_image: foundPassage.background_image,
+            order: foundPassage.order,
+            choices: foundPassage.choices || []
+          };
+          rewardManager.handlePassageVisit(passageData).catch(error => {
+            console.error('Error handling passage rewards:', error);
+          });
+        }
       } else if (foundPassage && !foundPassage.isLoaded) {
         // Load the passage if it's not loaded yet
         getPassage(currentId).then(passage => {
           if (passage) {
             setCurrentPassage(passage);
+            
+            // Track passage rewards when passage is loaded
+            if (rewardManager && passage) {
+              console.log('=== PASSAGE DATA FOR REWARD TRACKING ===');
+              console.log('Raw passage data:', passage);
+              console.log('Passage story_effects:', passage.story_effects);
+              console.log('Passage effects type:', typeof passage.story_effects);
+              console.log('Passage effects keys:', passage.story_effects ? Object.keys(passage.story_effects) : 'null');
+              
+              // Convert to proper Passage type
+              const passageData: any = {
+                ...passage,
+                chapter: chapter?.id || 1,
+                passage_id: passage.passage_id,
+                content: passage.content,
+                passage_type: passage.passage_type,
+                speaker: passage.speaker,
+                required_conditions: passage.required_conditions || {},
+                story_effects: passage.story_effects || {},
+                mood: passage.mood,
+                background_music: passage.background_music,
+                background_image: passage.background_image,
+                order: passage.order,
+                choices: passage.choices || []
+              };
+              
+              console.log('Converted passage data:', passageData);
+              console.log('Converted story_effects:', passageData.story_effects);
+              
+              rewardManager.handlePassageVisit(passageData).catch(error => {
+                console.error('Error handling passage rewards:', error);
+              });
+            }
           }
         });
       }
     }
-  }, [currentId, loadedPassages, getPassage]);
+  }, [currentId, loadedPassages, getPassage, rewardManager]);
   // Debug logging for current passage
   useEffect(() => {
     console.log("=== CURRENT PASSAGE DEBUG ===");
@@ -615,6 +738,12 @@ useEffect(() => {
       console.log("Ending passage ID:", endingPassageId);
       console.log("Total stat gains:", totalStatGains);
       
+      // First, handle reward manager completion to save accumulated rewards
+      if (rewardManager) {
+        console.log('=== HANDLING REWARD MANAGER COMPLETION ===');
+        await rewardManager.handleStoryCompletion(savedRewards);
+      }
+      
       // Use the ending passage ID if provided, otherwise use current passage ID
       const passageIdForCompletion = endingPassageId || currentId;
       
@@ -650,6 +779,12 @@ useEffect(() => {
           // Story was already completed - show a simple completion message and close
           console.log('=== STORY ALREADY COMPLETED ===');
           console.log('Showing already completed message and closing modal');
+          
+          // Even for already completed stories, we should still save any accumulated rewards
+          console.log('=== SAVING REWARDS FOR ALREADY COMPLETED STORY ===');
+          if (rewardManager) {
+            await rewardManager.handleStoryCompletion(savedRewards);
+          }
           
           // For already completed stories, close immediately without alert
           console.log('=== ALREADY COMPLETED - CLOSING MODAL IMMEDIATELY ===');
@@ -771,6 +906,16 @@ useEffect(() => {
       }
     } catch (error) {
       console.error("Error handling story completion:", error);
+      
+      // Even if story completion API fails, try to save accumulated rewards
+      console.log('=== SAVING REWARDS DESPITE API ERROR ===');
+      if (rewardManager) {
+        try {
+          await rewardManager.handleStoryCompletion(savedRewards);
+        } catch (rewardError) {
+          console.error('Error saving rewards despite API error:', rewardError);
+        }
+      }
       
       // Show error message but still allow user to continue
       console.log('=== ERROR CASE - CLOSING MODAL IMMEDIATELY ===');
@@ -1007,6 +1152,19 @@ useEffect(() => {
       console.log("Choice next_passage_info:", choice.next_passage_info);
       console.log("=== END CHOICE DEBUG ===");
 
+      // Track choice rewards
+      if (rewardManager && currentPassage) {
+        console.log('=== CHOICE DATA FOR REWARD TRACKING ===');
+        console.log('Choice data:', choice);
+        console.log('Choice effects:', choice.effects);
+        console.log('Choice effects type:', typeof choice.effects);
+        console.log('Choice effects keys:', choice.effects ? Object.keys(choice.effects) : 'null');
+        
+        rewardManager.handleChoiceMade(choice, currentPassage.passage_id).catch(error => {
+          console.error('Error handling choice rewards:', error);
+        });
+      }
+
       // Check if choice has next passage info
       if (!choice.next_passage_info || !choice.next_passage_info.passage_id) {
         console.error("No next passage defined for this choice");
@@ -1179,6 +1337,13 @@ useEffect(() => {
       onRequestClose={onClose}
       statusBarTranslucent
     >
+      {/* Floating Reward Notification */}
+      <FloatingRewardNotification
+        visible={!!currentNotification}
+        message={currentNotification?.message || ''}
+        type={currentNotification?.type || 'stat'}
+        onHide={hideCurrentNotification}
+      />
       <>
         {!visible || !hasValidStory ? null : !hasValidPassages ? (
           // Error state - no passages available

@@ -1097,7 +1097,7 @@ class ApiService {
         levels_gained?: number;
         message?: string;
     }> {
-        return this.post('gainExperience', { experience, source }, { urlSuffix: `${characterId}/gain-experience/` });
+        return this.post('gainExperience', { experience, source }, { urlSuffix: `${characterId}/gain_experience/` });
     }
 
     async gainWellness(characterId: number, wellnessGains: Partial<{
@@ -1117,7 +1117,7 @@ class ApiService {
         return this.get('customizationOptions');
     }
 
-    // ===== NEW COPING TOOLS METHODS =====
+    // ===== NEW COPING TOOLS METHODS =====delete?
     async getAvailableCopingTools(): Promise<CopingTool[]> {
         return this.get<CopingTool[]>('availableCopingTools');
     }
@@ -1218,7 +1218,14 @@ class ApiService {
     }
 
     async acquireGear(gearTypeId: number): Promise<CharacterGear> {
-        return this.post<CharacterGear>('characterGear', { gear_type_id: gearTypeId });
+        // Backend expects gear_type_id as a single integer value
+        const payload = { 
+            gear_type_id: gearTypeId
+        };
+        console.log('=== ACQUIRE GEAR PAYLOAD ===');
+        console.log('Gear type ID:', gearTypeId);
+        console.log('Payload:', payload);
+        return this.post<CharacterGear>('acquireGear', payload);
     }
 
     async equipGear(gearId: number): Promise<{ message: string; gear: CharacterGear }> {
@@ -1944,25 +1951,34 @@ async completeStory(
     }
 }
 
-// New method to handle story completion from ending passage
+// New method to handle story completion from ending passage with accumulated rewards
 async completeStoryFromEnding(
     storyId: string,
     passageId: string,
     totalStatGains: Record<string, number> = {},
-    journalEntries: string[] = []
+    journalEntries: string[] = [],
+    finalRewards: string[] = [],
+    skillsLearned: string[] = []
 ): Promise<any> {
     try {
         console.log('=== COMPLETING STORY FROM ENDING PASSAGE ===');
         console.log('Story ID:', storyId);
         console.log('Passage ID:', passageId);
         console.log('Total stat gains:', totalStatGains);
+        console.log('Final rewards:', finalRewards);
+        console.log('Skills learned:', skillsLearned);
         console.log('Journal entries:', journalEntries);
         
-        // Call the story completion endpoint with the correct payload structure
-        // Based on the API documentation, it expects story_id as a string
+        // Call the story completion endpoint with comprehensive reward data
         const payload = {
-            story_id: storyId
+            story_id: storyId,
+            passage_id: passageId,
+            stat_gains: totalStatGains,
+            final_rewards: finalRewards,
+            skills_learned: skillsLearned,
+            journal_entries: journalEntries
         };
+        
         console.log('=== API CALL PAYLOAD ===');
         console.log('Endpoint: storyComplete');
         console.log('Payload:', payload);
