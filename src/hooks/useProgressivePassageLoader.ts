@@ -3,7 +3,7 @@ import { apiService } from '../imports';
 
 interface ProgressivePassageLoaderOptions {
   storyId: string;
-  chapterId?: number;
+  chapterId?: number | undefined;
   initialLoadCount?: number; // Default 5
   preloadCount?: number; // Default 3 - how many to preload when getting close to end
 }
@@ -46,48 +46,49 @@ export const useProgressivePassageLoader = ({
       setError(null);
 
       try {
-        console.log('=== PROGRESSIVE LOADER: LOADING PASSAGE LIST ===');
+        console.log('=== PROGRESSIVE LOADER: LOADING CURRENT PASSAGE ===');
         console.log('Story ID:', storyId);
         console.log('Chapter ID:', chapterId);
-        console.log('Initial load count:', initialLoadCount);
-        console.log('Preload count:', preloadCount);
 
-        let passageListData: any[] = [];
+        // The new backend doesn't provide a passage list
+        // Instead, we get the current passage directly
+        console.log('Getting current passage from new backend');
+        const currentPassageResponse = await apiService.getCurrentPassage(storyId);
+        console.log('Current passage response:', currentPassageResponse);
 
-        if (chapterId) {
-          // Chapter-based story
-          passageListData = await apiService.getChapterPassages(storyId, chapterId.toString());
-        } else {
-          // Non-chapter story - get passages directly
-          try {
-            passageListData = await apiService.getChapterPassages(storyId, '1'); // Default to chapter 1
-          } catch (error) {
-            // Fallback: try to get passages directly from story
-            const storyData = await apiService.getStorypassages(parseInt(storyId));
-            passageListData = storyData?.passages || [];
-          }
+        if (!currentPassageResponse?.passage) {
+          throw new Error('No current passage available');
         }
 
-        console.log('Passage list loaded:', passageListData);
-        console.log('Total passages available:', passageListData.length);
+        // Create a single passage entry from the current passage
+        const currentPassage = currentPassageResponse.passage;
+        const passageEntry = {
+          id: parseInt(currentPassage.passage_id) || 0,
+          passage_id: currentPassage.passage_id,
+          content: currentPassage.content,
+          passage_type: currentPassage.passage_type,
+          speaker: currentPassage.speaker,
+          required_conditions: currentPassage.required_conditions,
+          story_effects: currentPassage.story_effects,
+          mood: currentPassage.mood,
+          background_music: currentPassage.background_music,
+          background_image: currentPassage.background_image,
+          order: currentPassage.order || 0,
+          choices: currentPassage.choices || [],
+          isLoaded: true
+        };
 
-        if (!passageListData || passageListData.length === 0) {
-          throw new Error('No passages found for this story/chapter');
-        }
+        console.log('Created passage entry:', passageEntry);
 
-        // Sort passages by order to ensure correct sequence
-        const sortedPassageList = passageListData.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
-        console.log('Sorted passages by order:', sortedPassageList.map((p: any) => ({ id: p.id, order: p.order, passage_id: p.passage_id })));
-        
-        setPassageList(sortedPassageList);
-
-        // Load initial batch of passages
-        await loadInitialPassages(sortedPassageList);
+        // Set the passage list to contain just this current passage
+        setPassageList([passageEntry]);
+        setLoadedPassageIds(new Set([passageEntry.passage_id]));
+        setPassages([passageEntry]);
         setIsInitialized(true);
 
       } catch (err: any) {
-        console.error('Failed to load passage list:', err);
-        setError(err.message || 'Failed to load story passages');
+        console.error('Failed to load current passage:', err);
+        setError(err.message || 'Failed to load current passage');
       } finally {
         setLoading(false);
       }
@@ -96,46 +97,6 @@ export const useProgressivePassageLoader = ({
     loadPassageList();
   }, [storyId, chapterId, isInitialized]);
 
-  // Load initial batch of passages
-  const loadInitialPassages = async (passageListData: any[]) => {
-    console.log('=== LOADING INITIAL PASSAGES ===');
-    console.log('Initial load count:', initialLoadCount);
-    console.log('Total passages available:', passageListData.length);
-
-    const initialPassages = passageListData.slice(0, initialLoadCount);
-    const loadedPassages: PassageData[] = [];
-
-    for (const passageInfo of initialPassages) {
-      try {
-        console.log(`Loading initial passage: ${passageInfo.passage_id} (order: ${passageInfo.order})`);
-        const passageContent = await loadPassageContent(passageInfo);
-        loadedPassages.push(passageContent);
-        setLoadedPassageIds(prev => new Set([...prev, passageInfo.passage_id]));
-      } catch (error) {
-        console.warn(`Failed to load initial passage ${passageInfo.passage_id}:`, error);
-        // Add placeholder passage
-        loadedPassages.push({
-          ...passageInfo,
-          content: 'Content loading failed',
-          choices: [],
-          isLoaded: false
-        });
-      }
-    }
-
-    // Add placeholder entries for remaining passages (don't load content yet)
-    const remainingPassages = passageListData.slice(initialLoadCount).map(passageInfo => ({
-      ...passageInfo,
-      content: '',
-      choices: [],
-      isLoaded: false
-    }));
-
-    setPassages([...loadedPassages, ...remainingPassages]);
-    console.log('Initial passages loaded:', loadedPassages.length);
-    console.log('Passages loaded in order:', loadedPassages.map(p => ({ order: p.order, passage_id: p.passage_id })));
-  };
-
   // Load content for a specific passage
   const loadPassageContent = async (passageInfo: any): Promise<PassageData> => {
     console.log(`=== LOADING PASSAGE CONTENT ===`);
@@ -143,39 +104,45 @@ export const useProgressivePassageLoader = ({
     console.log('Story ID:', storyId);
 
     try {
-      // Get the actual passage content
-      const passageContent = await apiService.getPassage(parseInt(storyId), passageInfo.passage_id);
-      console.log('Passage content loaded:', passageContent);
+      // The new backend doesn't support direct passage fetching
+      // Instead, we need to use getCurrentPassage to get the current state
+      console.log('Using getCurrentPassage instead of direct passage fetching');
+      const currentPassageResponse = await apiService.getCurrentPassage(storyId);
+      console.log('Current passage response:', currentPassageResponse);
 
-      // Get choices for this passage - use the passage_id from the content response
-      let choices: any[] = [];
-      try {
-        // The passage content response should include choices
-        if (passageContent.choices && Array.isArray(passageContent.choices)) {
-          choices = passageContent.choices;
-          console.log('Choices found in passage content:', choices);
-        } else if (passageInfo.id) {
-          // Fallback: try to get choices by numeric ID
-          choices = await apiService.getPassageChoices(passageInfo.id);
-          console.log('Choices loaded by numeric ID:', choices);
-        }
-      } catch (choiceError) {
-        console.warn('Could not load choices for passage:', choiceError);
+      if (!currentPassageResponse?.passage) {
+        throw new Error('No passage data in response');
       }
 
-      return {
-        ...passageInfo,
-        content: passageContent.content || 'No content available',
-        passage_type: passageContent.passage_type || 'narration',
+      // The API response has this structure:
+      // { story: {...}, chapter_title: string, passage: {...}, progress: {...} }
+      const passageContent = currentPassageResponse.passage;
+      const progress = currentPassageResponse.progress;
+      const chapterTitle = currentPassageResponse.chapter_title;
+
+      console.log('Extracted passage content:', passageContent);
+      console.log('Extracted progress:', progress);
+      console.log('Chapter title:', chapterTitle);
+
+      // Transform the response to match our PassageData interface
+      const passageData: PassageData = {
+        id: parseInt(passageContent.passage_id) || 0,
+        passage_id: passageContent.passage_id,
+        content: passageContent.content,
+        passage_type: passageContent.passage_type,
         speaker: passageContent.speaker,
-        required_conditions: passageContent.required_conditions || {},
-        story_effects: passageContent.story_effects || {},
+        required_conditions: passageContent.required_conditions,
+        story_effects: passageContent.story_effects,
         mood: passageContent.mood,
         background_music: passageContent.background_music,
         background_image: passageContent.background_image,
-        choices,
+        order: passageContent.order || 0,
+        choices: passageContent.choices || [],
         isLoaded: true
       };
+
+      console.log('Transformed passage data:', passageData);
+      return passageData;
 
     } catch (error) {
       console.error(`Failed to load content for passage ${passageInfo.passage_id}:`, error);
@@ -185,73 +152,62 @@ export const useProgressivePassageLoader = ({
 
   // Load a specific passage by ID
   const loadPassage = useCallback(async (passageId: string): Promise<PassageData | null> => {
-    if (loadedPassageIds.has(passageId)) {
-      console.log(`Passage ${passageId} already loaded`);
-      return passages.find(p => p.passage_id === passageId) || null;
-    }
-
+    // The new backend doesn't support loading individual passages by ID
+    // Instead, we get the current passage
     console.log(`=== LOADING PASSAGE ${passageId} ===`);
+    console.log('New backend: using getCurrentPassage instead of individual passage loading');
     
-    const passageInfo = passageList.find(p => p.passage_id === passageId);
-    if (!passageInfo) {
-      console.error(`Passage info not found for ID: ${passageId}`);
-      return null;
-    }
-
     try {
-      const passageContent = await loadPassageContent(passageInfo);
+      const currentPassageResponse = await apiService.getCurrentPassage(storyId);
+      console.log('Current passage response:', currentPassageResponse);
       
-      setPassages(prev => prev.map(p => 
-        p.passage_id === passageId ? passageContent : p
-      ));
+      if (!currentPassageResponse?.passage) {
+        console.error('No passage data in response');
+        return null;
+      }
       
-      setLoadedPassageIds(prev => new Set([...prev, passageId]));
+      const passageContent = currentPassageResponse.passage;
+      const passageData: PassageData = {
+        id: parseInt(passageContent.passage_id) || 0,
+        passage_id: passageContent.passage_id,
+        content: passageContent.content,
+        passage_type: passageContent.passage_type,
+        speaker: passageContent.speaker,
+        required_conditions: passageContent.required_conditions,
+        story_effects: passageContent.story_effects,
+        mood: passageContent.mood,
+        background_music: passageContent.background_music,
+        background_image: passageContent.background_image,
+        order: passageContent.order || 0,
+        choices: passageContent.choices || [],
+        isLoaded: true
+      };
       
-      // Preload next few passages if we're getting close to the end
-      await preloadNextPassages(passageId);
+      // Update the passages state
+      setPassages(prev => {
+        const existingIndex = prev.findIndex(p => p.passage_id === passageData.passage_id);
+        if (existingIndex >= 0) {
+          return prev.map(p => p.passage_id === passageData.passage_id ? passageData : p);
+        } else {
+          return [...prev, passageData];
+        }
+      });
       
-      return passageContent;
+      setLoadedPassageIds(prev => new Set([...prev, passageData.passage_id]));
+      
+      return passageData;
     } catch (error) {
       console.error(`Failed to load passage ${passageId}:`, error);
       return null;
     }
-  }, [passageList, loadedPassageIds, passages]);
+  }, [storyId]);
 
   // Preload next few passages
   const preloadNextPassages = async (currentPassageId: string) => {
-    const currentIndex = passageList.findIndex(p => p.passage_id === currentPassageId);
-    if (currentIndex === -1) return;
-
-    // Only preload if we're getting close to the end of loaded content
-    const loadedCount = loadedPassageIds.size;
-    const totalCount = passageList.length;
-    
-    // Only preload if we have less than 3 passages left to load
-    if (loadedCount >= totalCount - 3) {
-      const nextPassages = passageList.slice(currentIndex + 1, currentIndex + 1 + preloadCount);
-      
-      console.log(`=== PRELOADING ${nextPassages.length} PASSAGES ===`);
-      console.log(`Loaded: ${loadedCount}/${totalCount}, preloading to avoid delays`);
-      
-      for (const passageInfo of nextPassages) {
-        if (!loadedPassageIds.has(passageInfo.passage_id)) {
-          try {
-            console.log(`Preloading passage: ${passageInfo.passage_id}`);
-            const passageContent = await loadPassageContent(passageInfo);
-            
-            setPassages(prev => prev.map(p => 
-              p.passage_id === passageInfo.passage_id ? passageContent : p
-            ));
-            
-            setLoadedPassageIds(prev => new Set([...prev, passageInfo.passage_id]));
-          } catch (error) {
-            console.warn(`Failed to preload passage ${passageInfo.passage_id}:`, error);
-          }
-        }
-      }
-    } else {
-      console.log(`Skipping preload - plenty of content loaded (${loadedCount}/${totalCount})`);
-    }
+    // The new backend doesn't support preloading individual passages
+    // Instead, we rely on the choice system to advance through the story
+    console.log('Preloading not supported in new backend - using choice-based progression');
+    return;
   };
 
   // Get a passage by ID (loads if not already loaded)
@@ -267,21 +223,20 @@ export const useProgressivePassageLoader = ({
 
   // Get the next passage ID based on current passage (respects order)
   const getNextPassageId = useCallback((currentPassageId: string): string | null => {
-    const currentIndex = passageList.findIndex(p => p.passage_id === currentPassageId);
-    if (currentIndex === -1 || currentIndex >= passageList.length - 1) {
-      return null; // No next passage
-    }
-    const nextPassage = passageList[currentIndex + 1];
-    console.log(`Next passage by order: ${nextPassage.passage_id} (order: ${nextPassage.order})`);
-    return nextPassage.passage_id;
-  }, [passageList]);
+    // The new backend doesn't provide a passage list, so we can't determine the next passage by order
+    // Instead, we rely on the choice system to advance through the story
+    console.log('Next passage ID not available in new backend - using choice-based progression');
+    return null;
+  }, []);
 
   // Get passage by choice selection
   const getPassageByChoice = useCallback(async (choice: any): Promise<PassageData | null> => {
-    // The backend provides next_passage_info with the correct UUID
-    const nextPassageId = choice.next_passage_info?.passage_id || 
+    // Extract the target passage ID from the choice
+    // The backend provides target_id, not target_passage_id
+    const nextPassageId = choice.target_id || 
+                         choice.target_passage_id ||
+                         choice.next_passage_info?.passage_id || 
                          choice.next_passage_id || 
-                         choice.target_id || 
                          choice.next;
     
     if (!nextPassageId) {
@@ -292,9 +247,46 @@ export const useProgressivePassageLoader = ({
     }
     
     console.log(`Choice selected, next passage ID: ${nextPassageId}`);
-    console.log(`Choice next_passage_info:`, choice.next_passage_info);
-    return await getPassage(nextPassageId);
-  }, [getPassage]);
+    console.log('Story ID:', storyId);
+    
+    try {
+      // Since the backend doesn't have a make_choice endpoint, 
+      // we'll directly fetch the target passage
+      console.log('Backend has no make_choice endpoint, fetching target passage directly');
+      const passageResult = await apiService.getPassage(Number(storyId), nextPassageId);
+      console.log('Target passage result:', passageResult);
+      
+      if (!passageResult?.passage) {
+        console.warn('No passage data in result');
+        return null;
+      }
+      
+      // Transform the response to match our PassageData interface
+      const passageContent = passageResult.passage;
+      const passageData: PassageData = {
+        id: parseInt(passageContent.passage_id) || 0,
+        passage_id: passageContent.passage_id,
+        content: passageContent.content,
+        passage_type: passageContent.passage_type,
+        speaker: passageContent.speaker,
+        required_conditions: passageContent.required_conditions,
+        story_effects: passageContent.story_effects,
+        mood: passageContent.mood,
+        background_music: passageContent.background_music,
+        background_image: passageContent.background_image,
+        order: passageContent.order || 0,
+        choices: passageContent.choices || [],
+        isLoaded: true
+      };
+      
+      console.log('Transformed passage data from choice:', passageData);
+      return passageData;
+      
+    } catch (error) {
+      console.error('Error fetching target passage:', error);
+      throw error;
+    }
+  }, [storyId]);
 
   // Check if a passage is loaded
   const isPassageLoaded = useCallback((passageId: string): boolean => {
@@ -303,22 +295,24 @@ export const useProgressivePassageLoader = ({
 
   // Get loading progress
   const loadingProgress = useMemo(() => {
-    if (passageList.length === 0) return 0;
-    return (loadedPassageIds.size / passageList.length) * 100;
-  }, [loadedPassageIds.size, passageList.length]);
+    // The new backend doesn't provide a passage list, so we can't calculate progress based on loaded vs total
+    // Instead, we return 100 if we have a current passage, 0 otherwise
+    return passages.length > 0 ? 100 : 0;
+  }, [passages.length]);
 
   // Get total passage count
-  const totalPassageCount = passageList.length;
+  const totalPassageCount = passages.length;
 
   // Get loaded passage count
-  const loadedPassageCount = loadedPassageIds.size;
+  const loadedPassageCount = passages.length;
 
   // Get the starting passage (order 0)
   const getStartingPassage = useCallback((): string | null => {
-    if (passageList.length === 0) return null;
-    const startingPassage = passageList.find(p => p.order === 0);
-    return startingPassage?.passage_id || passageList[0]?.passage_id || null;
-  }, [passageList]);
+    // The new backend doesn't provide a passage list, so we can't determine the starting passage by order
+    // Instead, we use the current passage from the backend
+    console.log('Starting passage not available in new backend - using current passage');
+    return passages[0]?.passage_id || null;
+  }, [passages]);
 
   return {
     // State

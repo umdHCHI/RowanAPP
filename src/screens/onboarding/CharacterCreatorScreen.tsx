@@ -31,62 +31,6 @@ interface FloatingElementProps {
   translateY?: number;
 }
 
-interface CharacterArchetypeProps {
-  selectedOptions: CharacterOptions;
-}
-
-interface CharacterOptions {
-  selectedBaseModel: number;
-  selectedHairStyle: number;
-  selectedEyeType: number;
-  selectedMouthType: number;
-  selectedShirtType: number;
-}
-
-// Character Archetypes based on selections
-const CharacterArchetypes = {
-  scholar: {
-    name: "The Contemplative Scholar",
-    description: "A thoughtful seeker who finds wisdom in quiet reflection and careful study.",
-    stressStyle: "Processes stress through methodical analysis and structured thinking.",
-    icon: "📚",
-    color: "#4ee6e6",
-    traits: ["Analytical", "Methodical", "Introspective"]
-  },
-  warrior: {
-    name: "The Resilient Warrior", 
-    description: "A brave soul who faces challenges head-on with courage and determination.",
-    stressStyle: "Confronts stress directly and builds strength through adversity.",
-    icon: "⚔️",
-    color: "#f72585",
-    traits: ["Courageous", "Determined", "Action-Oriented"]
-  },
-  sage: {
-    name: "The Wise Sage",
-    description: "An enlightened guide who understands the deeper patterns of existence.",
-    stressStyle: "Transforms stress into wisdom through mindful awareness.",
-    icon: "🔮",
-    color: "#9d4edd",
-    traits: ["Wise", "Intuitive", "Mindful"]
-  },
-  healer: {
-    name: "The Empathetic Healer",
-    description: "A caring soul who understands emotions and helps others find peace.",
-    stressStyle: "Heals stress through compassion and emotional understanding.",
-    icon: "🕊️",
-    color: "#06ffa5",
-    traits: ["Compassionate", "Empathetic", "Nurturing"]
-  },
-  explorer: {
-    name: "The Curious Explorer",
-    description: "An adventurous spirit who seeks new experiences and creative solutions.",
-    stressStyle: "Alleviates stress through creativity and novel experiences.",
-    icon: "🌟",
-    color: "#ffd60a",
-    traits: ["Creative", "Adventurous", "Innovative"]
-  }
-};
-
 // Floating mystical elements
 const FloatingElement: React.FC<FloatingElementProps> = ({ 
   children, 
@@ -128,65 +72,10 @@ const FloatingElement: React.FC<FloatingElementProps> = ({
   );
 };
 
-// Character Archetype Display Component
-const CharacterArchetypeDisplay: React.FC<CharacterArchetypeProps> = ({ selectedOptions }) => {
-  const getArchetype = (): typeof CharacterArchetypes.scholar => {
-    const { selectedBaseModel, selectedHairStyle, selectedEyeType, selectedMouthType, selectedShirtType } = selectedOptions;
-    const total = selectedBaseModel + selectedHairStyle + selectedEyeType + selectedMouthType + selectedShirtType;
-    
-    if (total % 5 === 0) return CharacterArchetypes.scholar;
-    if (total % 5 === 1) return CharacterArchetypes.warrior;
-    if (total % 5 === 2) return CharacterArchetypes.sage;
-    if (total % 5 === 3) return CharacterArchetypes.healer;
-    return CharacterArchetypes.explorer;
-  };
-
-  const archetype = getArchetype();
-
-  return (
-    <View style={styles.archetypeContainer}>
-      <View style={[styles.archetypeCard, { borderColor: archetype.color }]}>
-        <View style={styles.archetypeHeader}>
-          <Text style={styles.archetypeIcon}>{archetype.icon}</Text>
-          <View style={styles.archetypeInfo}>
-            <Text style={[styles.archetypeName, { color: archetype.color }]}>
-              {archetype.name}
-            </Text>
-            <Text style={styles.archetypeDescription}>
-              {archetype.description}
-            </Text>
-          </View>
-        </View>
-        
-        <View style={styles.archetypeStress}>
-          <Text style={styles.archetypeStressLabel}>Stress Management Style:</Text>
-          <Text style={styles.archetypeStressText}>
-            {archetype.stressStyle}
-          </Text>
-        </View>
-        
-        <View style={styles.archetypeTraits}>
-          <Text style={styles.archetypeTraitsLabel}>Core Traits:</Text>
-          <View style={styles.traitsContainer}>
-            {archetype.traits.map((trait: string, index: number) => (
-              <View key={index} style={[styles.traitBadge, { backgroundColor: `${archetype.color}20`, borderColor: archetype.color }]}>
-                <Text style={[styles.traitText, { color: archetype.color }]}>
-                  {trait}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-};
-
 export default function ArchiveCharacterCreatorScreen() {
   const { theme, character, loading, onboarding, auth } = useMasterState();
   const [selectedCategory, setSelectedCategory] = useState<number>(0);
   const [forgeStep, setForgeStep] = useState<number>(0);
-  const [showArchetype, setShowArchetype] = useState<boolean>(false);
 
   // Create centralized category configurations with memoization - KEEP YOUR BACKEND INTEGRATION
   const { styleCategories, colorCategories } = useMemo(
@@ -231,6 +120,7 @@ export default function ArchiveCharacterCreatorScreen() {
       character.selectedShirtType,
       character.selectedBackgroundType,
       character.selectedBaseModel,
+      character.selectedBaseColor,
       character.selectedHairColor,
       character.selectedEyeColor,
       character.selectedEyebrowColor,
@@ -243,6 +133,7 @@ export default function ArchiveCharacterCreatorScreen() {
       character.setSelectedShirtType,
       character.setSelectedBackgroundType,
       character.setSelectedBaseModel,
+      character.setSelectedBaseColor,
       character.setSelectedHairColor,
       character.setSelectedEyeColor,
       character.setSelectedEyebrowColor,
@@ -270,7 +161,6 @@ export default function ArchiveCharacterCreatorScreen() {
     
     const completedSelections = selections.filter(val => val > 0).length;
     setForgeStep(completedSelections);
-    setShowArchetype(completedSelections >= 3);
   }, [
     character.selectedBaseModel,
     character.selectedHairStyle,
@@ -303,9 +193,11 @@ export default function ArchiveCharacterCreatorScreen() {
 
   // Get the color category that corresponds to the selected style category
   const getCurrentColorCategory = useMemo(() => {
-    if (!currentStyleCategory) return null;
-    
-    // Map style category index to color category index
+    // Always show Skin Color color picker when Base Model is selected
+    if (selectedCategory === 0) {
+      return colorCategories[0]; // Skin Color
+    }
+    // Otherwise, use the normal mapping
     const styleToColorIndexMap: { [key: number]: number } = {
       0: 0, // Base Model → Skin Color
       1: 1, // Hair Style → Hair Color
@@ -315,22 +207,9 @@ export default function ArchiveCharacterCreatorScreen() {
       5: 4, // Clothes → Clothes Color
       6: 5, // Background → Background Color
     };
-    
     const colorIndex = styleToColorIndexMap[selectedCategory];
     return colorIndex !== -1 && colorIndex !== undefined ? colorCategories[colorIndex] : null;
   }, [selectedCategory, colorCategories]);
-
-  // Split style categories into two rows for mobile optimization
-  const firstRowCategories = styleCategories.slice(0, Math.ceil(styleCategories.length / 2));
-  const secondRowCategories = styleCategories.slice(Math.ceil(styleCategories.length / 2));
-
-  const characterOptions: CharacterOptions = {
-    selectedBaseModel: character.selectedBaseModel,
-    selectedHairStyle: character.selectedHairStyle,
-    selectedEyeType: character.selectedEyeType,
-    selectedMouthType: character.selectedMouthType,
-    selectedShirtType: character.selectedShirtType,
-  };
 
   return (
     <View style={styles.container}>
@@ -430,11 +309,6 @@ export default function ArchiveCharacterCreatorScreen() {
               />
             </View>
           </View>
-        )}
-
-        {/* Character Archetype Display */}
-        {showArchetype && (
-          <CharacterArchetypeDisplay selectedOptions={characterOptions} />
         )}
 
         {/* Complete Button - Keep your original structure */}
@@ -624,91 +498,6 @@ const styles = StyleSheet.create({
   
   colorContainer: {
     alignItems: 'center',
-  },
-  
-  // Archetype Section
-  archetypeContainer: {
-    marginBottom: 25,
-  },
-  
-  archetypeCard: {
-    backgroundColor: 'rgba(30, 30, 40, 0.95)',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 2,
-  },
-  
-  archetypeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  
-  archetypeIcon: {
-    fontSize: 28,
-    marginRight: 15,
-  },
-  
-  archetypeInfo: {
-    flex: 1,
-  },
-  
-  archetypeName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  
-  archetypeDescription: {
-    color: '#ccc',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  
-  archetypeStress: {
-    marginBottom: 15,
-  },
-  
-  archetypeStressLabel: {
-    color: '#4ee6e6',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  
-  archetypeStressText: {
-    color: '#fff',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  
-  archetypeTraits: {
-    marginBottom: 10,
-  },
-  
-  archetypeTraitsLabel: {
-    color: '#4ee6e6',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  
-  traitsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  
-  traitBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  
-  traitText: {
-    fontSize: 11,
-    fontWeight: 'bold',
   },
   
   // Complete Section

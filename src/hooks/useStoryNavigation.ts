@@ -88,42 +88,61 @@ export const useSimplifiedStoryLoader = ({ storyId, chapterId }: UseSimplifiedSt
       console.log('🎯 Handling choice:', choice.text);
       console.log('Choice object:', choice);
 
-      // Use the new backend make_choice endpoint
-      if (choice.id) {
-        try {
-          const choiceResult = await apiService.makeChoice(choice.id.toString());
-          console.log('Choice result:', choiceResult);
-          
-          // Check if story is completed
-          if (choiceResult?.story_completed) {
-            console.log('🏁 Story completed!');
-            setCurrentPassage({
-              ...currentPassage,
-              content: 'Story Complete! 🎉',
-              choices: []
-            });
-            return;
-          }
-          
-          // If the backend returns the next passage, use it
-          if (choiceResult?.passage) {
-            console.log('Backend returned next passage:', choiceResult.passage);
-            setCurrentPassage(choiceResult.passage);
-            return; // Exit early since backend handled navigation
-          }
-        } catch (error) {
-          console.warn('Backend choice failed:', error);
-          setError('Failed to make choice. Please try again.');
+      // Extract the target passage ID from the choice
+      // The backend provides target_id, not target_passage_id
+      const targetPassageId = choice.target_id || 
+                             choice.target_passage_id || 
+                             choice.next_passage_info?.passage_id || 
+                             choice.next_passage_id || 
+                             choice.next;
+
+      if (!targetPassageId) {
+        console.error('No target passage ID found in choice:', choice);
+        setError('Invalid choice - no target passage found');
+        return;
+      }
+
+      console.log('🎯 Target passage ID:', targetPassageId);
+
+      // Use the getPassage endpoint since the backend doesn't have a make_choice endpoint
+      try {
+        console.log('Backend has no make_choice endpoint, fetching target passage directly');
+        const passageResult = await apiService.getPassage(parseInt(storyId), targetPassageId);
+        console.log('Target passage result:', passageResult);
+        
+        // Check if story is completed
+        if (passageResult?.progress?.is_completed) {
+          console.log('🏁 Story completed!');
+          setCurrentPassage({
+            ...currentPassage,
+            content: 'Story Complete! 🎉',
+            choices: []
+          });
+          return;
         }
-      } else {
-        console.warn('No choice ID found:', choice);
-        setError('Invalid choice selection');
+        
+        // If the backend returns the next passage, use it
+        if (passageResult?.passage) {
+          console.log('Backend returned next passage:', passageResult.passage);
+          setCurrentPassage(passageResult.passage);
+          return; // Exit early since backend handled navigation
+        }
+
+        // If no passage returned, try to get the current passage
+        console.log('No passage in result, getting current passage');
+        const currentPassageResult = await apiService.getCurrentPassage(parseInt(storyId));
+        if (currentPassageResult?.passage) {
+          setCurrentPassage(currentPassageResult.passage);
+        }
+      } catch (error) {
+        console.warn('Backend choice failed:', error);
+        setError('Failed to make choice. Please try again.');
       }
     } catch (error: any) {
       console.error('Choice handling failed:', error);
       setError(error.message);
     }
-  }, [storyData, currentPassage]);
+  }, [storyData, currentPassage, storyId]);
 
   // Get next passage for tap-to-continue
   const getNextPassage = useCallback((): string | null => {

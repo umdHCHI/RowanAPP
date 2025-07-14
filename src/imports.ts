@@ -2,25 +2,25 @@
 
 // ===== React & React Native Core =====
 export {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity, View, useColorScheme
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity, useColorScheme, View
 } from 'react-native';
 
 export {
-    ReactNode, createContext, useCallback, useContext,
-    useEffect,
-    useState
+  createContext, ReactNode, useCallback, useContext,
+  useEffect,
+  useState
 } from 'react';
 
 export { default as React } from 'react';
@@ -30,7 +30,7 @@ export { FontAwesome } from '@expo/vector-icons';
 export { BlurView } from 'expo-blur';
 export { default as Constants } from 'expo-constants';
 export { LinearGradient } from 'expo-linear-gradient';
-export { Tabs, router, useRouter } from 'expo-router';
+export { router, Tabs, useRouter } from 'expo-router';
 
 // ===== Third Party Libraries =====
 export { default as AsyncStorage } from '@react-native-async-storage/async-storage';
@@ -39,13 +39,13 @@ export { default as Icon } from 'react-native-vector-icons/Feather';
 
 // ===== Services =====
 export {
-    API_ENDPOINTS,
-    apiBaseUrl,
-    apiService,
-    appearanceService,
+  API_ENDPOINTS,
+  apiBaseUrl,
+  apiService,
+  appearanceService,
 
 
-    getApiUrl
+  getApiUrl
 } from './services';
 
 // ===== Components =====
@@ -68,15 +68,15 @@ export { StyleControls } from './components/CharacterCreator/StyleControls';
 
 // ===== Assets =====
 export {
-    // Equipment
-    // Character options
-    baseOptions,
-    bgOptions,
-    // Frame assets
-    characterCreatorAssets, equipmentIcons,
-    equipmentTypeLabels, mouthOptions,
-    rarityColors,
-    sampleHeadBar
+  // Equipment
+  // Character options
+  baseOptions,
+  bgOptions,
+  // Frame assets
+  characterCreatorAssets, equipmentIcons,
+  equipmentTypeLabels, mouthOptions,
+  rarityColors,
+  sampleHeadBar
 } from './assets';
 
 // ===== Data =====
@@ -90,39 +90,39 @@ export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Styles =====
 export { createGlobalStyles } from './styles/globalStyles';
-export { ThemeColors, darkTheme, lightTheme } from './styles/theme';
+export { darkTheme, lightTheme, ThemeColors } from './styles/theme';
 
 // ===== Types =====
 export type {
-    ArchiveProgress, AuthContextType, Chapter, ChapterPassage, ChapterSummary,
-    //UserCharacter System
-    Character, CharacterCreateData, CharacterCustomizationData,
-    // Equipment
-    CharacterGear, Choice, CodexEntry,
-    // Journal
-    CodexModalProps,
-    //Personality Types
-    DailyCuratorMessages, EquipmentItem,
-    EquipmentSubtype,
-    EquipmentType,
-    EquippedItems,
-    // Game
-    ExtendedGameData,
-    GameAchievement,
-    //User Game Data - Persistent Game Data
-    GameData, GameSession, GameState,
-    // Wellness system
-    GearItem,
-    GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
-    LoginResponse,
-    // MiniGame Types 
-    MiniGameProgress, MiniGameResult, NPC, Passage, PersonalityQuests, PowerUp, Projectile,
-    //User Research Group
-    ResearchGroup, SavedRewards, Skill, StatGains,
-    //story imports 
-    Story, StoryDetail, StoryGains, StoryProgress, StoryProgression, StoryScreenProps, Thought,
-    // User Profile
-    UserProfile, WellnessStats
+  ArchiveProgress, AuthContextType, Chapter, ChapterPassage, ChapterSummary,
+  //UserCharacter System
+  Character, CharacterCreateData, CharacterCustomizationData,
+  // Equipment
+  CharacterGear, Choice, CodexEntry,
+  // Journal
+  CodexModalProps,
+  //Personality Types
+  DailyCuratorMessages, EquipmentItem,
+  EquipmentSubtype,
+  EquipmentType,
+  EquippedItems,
+  // Game
+  ExtendedGameData,
+  GameAchievement,
+  //User Game Data - Persistent Game Data
+  GameData, GameSession, GameState,
+  // Wellness system
+  GearItem,
+  GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
+  LoginResponse,
+  // MiniGame Types 
+  MiniGameProgress, MiniGameResult, NPC, Passage, PersonalityQuests, PowerUp, Projectile,
+  //User Research Group
+  ResearchGroup, SavedRewards, Skill, StatGains,
+  //story imports 
+  Story, StoryDetail, StoryGains, StoryProgress, StoryProgression, StoryScreenProps, Thought,
+  // User Profile
+  UserProfile, WellnessStats
 } from './types';
 
 

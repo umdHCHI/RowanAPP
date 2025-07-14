@@ -142,13 +142,69 @@ const PersonalityStoryCatalog = ({
       try {
         console.log("Loading stories for personality type:", primaryTrait);
         
-        // Fetch stories from backend
-        const backendStories = await apiService.getAvailableStories();
-        console.log("Backend stories loaded:", backendStories?.length || 0);
+        // Get user's primary personality trait
+        const userPrimaryTrait = await apiService.getUserPrimaryPersonalityTrait();
+        console.log("User primary personality trait:", userPrimaryTrait);
+        
+        // Try to get personality-filtered stories first
+        let backendStories;
+        try {
+          backendStories = await apiService.getStoriesByPersonality(userPrimaryTrait || undefined, true);
+          console.log("Personality-filtered stories loaded:", backendStories?.length || 0);
+        } catch (personalityError) {
+          console.warn("Personality filtering failed, falling back to catalog:", personalityError);
+          // Fallback to all stories from catalog
+          backendStories = await apiService.getAvailableStories();
+          console.log("Fallback catalog stories loaded:", backendStories?.length || 0);
+        }
         
         if (backendStories && backendStories.length > 0) {
-          // For now, show all available stories
-          setStories(backendStories);
+          // For stories with chapters, try to load their chapter data with passages
+          const storiesWithChapters = await Promise.all(
+            backendStories.map(async (story: any) => {
+              if (story.chapter_count && story.chapter_count > 0) {
+                try {
+                  console.log(`Loading chapters for story ${story.id} (${story.chapter_count} chapters)`);
+                  const chapters = await apiService.getChapters(story.id);
+                  console.log(`Loaded ${chapters?.length || 0} chapters for story ${story.id}`);
+                  
+                  // Load passages for each chapter
+                  const chaptersWithPassages = await Promise.all(
+                    (chapters || []).map(async (chapter: any) => {
+                      try {
+                        console.log(`Loading passages for chapter ${chapter.id}`);
+                        const passages = await apiService.getChapterPassages(story.id, chapter.id);
+                        console.log(`Loaded ${passages?.length || 0} passages for chapter ${chapter.id}`);
+                        
+                        return {
+                          ...chapter,
+                          passages: passages || []
+                        };
+                      } catch (error) {
+                        console.warn(`Failed to load passages for chapter ${chapter.id}:`, error);
+                        return {
+                          ...chapter,
+                          passages: []
+                        };
+                      }
+                    })
+                  );
+                  
+                  return {
+                    ...story,
+                    chapters: chaptersWithPassages
+                  };
+                } catch (error) {
+                  console.warn(`Failed to load chapters for story ${story.id}:`, error);
+                  return story;
+                }
+              }
+              return story;
+            })
+          );
+          
+          console.log('Stories with chapters loaded:', storiesWithChapters.length);
+          setStories(storiesWithChapters);
         } else {
           setStories([]);
         }

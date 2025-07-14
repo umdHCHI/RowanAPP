@@ -11,14 +11,17 @@ export const ColorOptionControls: React.FC<ColorOptionControlsProps> = ({
   category,
   styles
 }) => {
+  console.log('[ColorOptionControls] label:', category.label, 'current:', category.current, 'options:', category.options);
   const cycle = (idx: number, dir: number) => (idx + dir + category.options) % category.options;
 
   const handlePrevious = () => {
-    category.setter(cycle(category.current, -1));
+    const newValue = cycle(category.current, -1);
+    category.setter(newValue);
   };
 
   const handleNext = () => {
-    category.setter(cycle(category.current, 1));
+    const newValue = cycle(category.current, 1);
+    category.setter(newValue);
   };
 
   return (

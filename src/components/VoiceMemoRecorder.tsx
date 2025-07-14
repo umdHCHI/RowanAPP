@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import React, { useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Web API type declarations
 declare global {
@@ -97,6 +99,10 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
+  // Mobile Audio refs
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
   // Animate bar
   React.useEffect(() => {
     if (isRecording) {
@@ -115,7 +121,7 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
   // Timer
   React.useEffect(() => {
     if (isRecording) {
-      const id = window.setInterval(() => setTimer(t => t + 1), 1000);
+      const id = setInterval(() => setTimer(t => t + 1), 1000);
       setIntervalId(id);
     } else if (intervalId) {
       clearInterval(intervalId);
@@ -131,6 +137,10 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
+      }
+      // Cleanup mobile audio
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
       }
     };
   }, []);
@@ -162,11 +172,39 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         mediaRecorder.start();
         setIsRecording(true);
       } else {
-        // Mobile not supported - show message
-        alert('Voice recording is not available on mobile devices');
+        // Mobile implementation using expo-av
+        try {
+          // Request permissions
+          const { status } = await Audio.requestPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permission required', 'Please grant microphone permissions to record audio.');
+            return;
+          }
+
+          // Configure audio mode
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: true,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+
+          // Start recording
+          const { recording } = await Audio.Recording.createAsync(
+            Audio.RecordingOptionsPresets.HIGH_QUALITY
+          );
+          
+          recordingRef.current = recording;
+          setIsRecording(true);
+        } catch (error) {
+          console.error('Failed to start recording:', error);
+          Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
+        }
       }
     } catch (err) {
-      alert('Failed to start recording: ' + err);
+      console.error('Failed to start recording:', err);
+      Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
     }
   };
 
@@ -177,9 +215,23 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
           mediaRecorderRef.current.stop();
         }
         setIsRecording(false);
+      } else {
+        // Mobile implementation
+        if (recordingRef.current) {
+          await recordingRef.current.stopAndUnloadAsync();
+          const uri = recordingRef.current.getURI();
+          recordingRef.current = null;
+          
+          if (uri) {
+            setRecordingUri(uri);
+            onSave(uri);
+          }
+          setIsRecording(false);
+        }
       }
     } catch (err) {
-      alert('Failed to stop recording: ' + err);
+      console.error('Failed to stop recording:', err);
+      Alert.alert('Recording Error', 'Failed to stop recording. Please try again.');
     }
   };
 
@@ -214,9 +266,64 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         source.start(0);
         setIsPlaying(true);
         setPlaybackDuration(audioBuffer.duration);
+      } else {
+        // Mobile playback using expo-av
+        try {
+          if (soundRef.current) {
+            await soundRef.current.unloadAsync();
+          }
+
+          // Configure audio mode for playback
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+
+          console.log('Creating sound with URI:', recordingUri);
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: recordingUri },
+            { 
+              shouldPlay: true,
+              volume: 1.0,
+              isLooping: false
+            }
+          );
+
+          soundRef.current = sound;
+
+          // Get duration
+          const status = await sound.getStatusAsync();
+          console.log('Sound status:', status);
+          if (status.isLoaded) {
+            setPlaybackDuration(status.durationMillis ? status.durationMillis / 1000 : 0);
+          }
+
+          // Set up status update listener
+          sound.setOnPlaybackStatusUpdate((status) => {
+            console.log('Playback status update:', status);
+            if (status.isLoaded) {
+              setIsPlaying(status.isPlaying);
+              setPlaybackPosition(status.positionMillis ? status.positionMillis / 1000 : 0);
+              
+              if (status.didJustFinish) {
+                setIsPlaying(false);
+                setPlaybackPosition(0);
+              }
+            }
+          });
+
+          setIsPlaying(true);
+        } catch (error) {
+          console.error('Failed to play recording:', error);
+          Alert.alert('Playback Error', 'Failed to play recording. Please try again.');
+        }
       }
     } catch (err) {
-      alert('Failed to play recording: ' + err);
+      console.error('Failed to play recording:', err);
+      Alert.alert('Playback Error', 'Failed to play recording. Please try again.');
     }
   };
 
@@ -229,35 +336,48 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         }
         setIsPlaying(false);
         setPlaybackPosition(0);
+      } else {
+        // Mobile implementation
+        if (soundRef.current) {
+          await soundRef.current.stopAsync();
+          setIsPlaying(false);
+          setPlaybackPosition(0);
+        }
       }
     } catch (err) {
       console.error('Failed to stop playback:', err);
     }
   };
 
-  const deleteRecording = () => {
-    if (Platform.OS === 'web' && recordingUri) {
-      URL.revokeObjectURL(recordingUri);
+  const deleteRecording = async () => {
+    try {
+      if (Platform.OS === 'web' && recordingUri) {
+        URL.revokeObjectURL(recordingUri);
+      } else if (Platform.OS !== 'web' && recordingUri) {
+        // Delete file from mobile storage
+        try {
+          await FileSystem.deleteAsync(recordingUri);
+        } catch (error) {
+          console.warn('Failed to delete recording file:', error);
+        }
+      }
+      
+      // Stop playback if playing
+      if (isPlaying) {
+        await stopPlayback();
+      }
+      
+      setRecordingUri(null);
+      setIsPlaying(false);
+      setPlaybackPosition(0);
+      setPlaybackDuration(0);
+    } catch (error) {
+      console.error('Failed to delete recording:', error);
     }
-    setRecordingUri(null);
-    setIsPlaying(false);
-    setPlaybackPosition(0);
-    setPlaybackDuration(0);
   };
 
   // Format timer as mm:ss
   const formatTime = (t: number) => `${Math.floor(t / 60).toString().padStart(2, '0')}:${(t % 60).toString().padStart(2, '0')}`;
-
-  // Don't render on mobile platforms
-  if (Platform.OS !== 'web') {
-    return (
-      <View style={styles.container}>
-        <Text style={[styles.timer, { color: theme.archiveText }]}>
-          Voice recording not available on mobile
-        </Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>

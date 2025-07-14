@@ -350,12 +350,9 @@ class AppearanceService {
    * Create a codex entry
    */
   async createCodexEntry(entryData: {
-    prompt_id: string;
+    prompt: string;
     entry_type: 'journal' | 'draw' | 'voice';
     content: string;
-    skill_category: string;
-    map_area: string;
-    difficulty: string;
   }): Promise<any> {
     try {
       return await apiService.createCodexEntry(entryData);

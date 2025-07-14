@@ -1630,6 +1630,9 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       justifyContent: 'center',
       alignItems: 'center',
       padding: 16,
+      // Ensure proper display on mobile
+      paddingTop: 40,
+      paddingBottom: 40,
     },
     StoryModalpassages: {
       flex: 1,
@@ -1637,9 +1640,13 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       backgroundColor: theme.archiveCard,
       borderRadius: 16,
       padding: 16,
-      maxHeight: '95%',
+      maxHeight: '90%', // Reduce max height for better mobile experience
       borderWidth: 2,
       borderColor: theme.archiveBorder,
+      // Ensure proper layout on mobile
+      minHeight: 300,
+      // Add responsive sizing for mobile
+      maxWidth: 500,
     },
     StoryHeader: {
       flexDirection: 'row',
@@ -1649,6 +1656,8 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       paddingBottom: 12,
       borderBottomWidth: 1,
       borderBottomColor: theme.archiveBorder,
+      // Prevent header from taking too much space on mobile
+      flexShrink: 0,
     },
     StoryHeaderLeft: {
       flex: 1,
@@ -1713,6 +1722,8 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     StoryMainpassages: {
       flex: 1,
+      // Ensure proper layout on mobile
+      minHeight: 0,
     },
     StoryCurrentAtmosphere: {
       marginBottom: 12,
@@ -1726,31 +1737,48 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       justifyContent: 'center',
     },
     StoryPassageContainer: {
-      flex: 1,
+      // Remove flex: 1 to prevent it from taking all available space
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255,255,255,0.9)',
       borderRadius: 12,
       padding: 16,
       marginBottom: 16,
       borderWidth: 1,
       borderColor: theme.archiveBorder,
-      justifyContent: 'center',
+      // Remove justifyContent: 'center' to prevent content from being pushed to center
+      // Add minHeight to ensure proper spacing
+      minHeight: 80,
     },
     StoryPassageText: {
-      fontSize: 14,
+      fontSize: 16, // Slightly larger for better mobile readability
       color: theme.archiveText,
-      lineHeight: 20,
+      lineHeight: 24, // Increase line height for better readability
       textAlign: 'center',
       fontStyle: 'italic',
+      // Add padding for better text spacing
+      paddingHorizontal: 4,
     },
     StoryChoicesContainer: {
       gap: 8,
+      // Ensure choices container is always visible
+      flexShrink: 0,
+      // Add padding to ensure choices don't touch edges
+      paddingHorizontal: 4,
+      // Add margin to separate from passage content
+      marginTop: 8,
+      // Ensure minimum height for visibility
+      minHeight: 50,
     },
     StoryChoiceButton: {
       backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
-      padding: 12,
+      padding: 16, // Increase padding for better mobile touch targets
       borderRadius: 8,
       borderWidth: 1,
       borderColor: theme.archiveBorder,
+      // Ensure buttons are properly sized on mobile
+      minHeight: 50, // Increase minimum height for better touch targets
+      justifyContent: 'center',
+      // Add margin for better spacing
+      marginVertical: 2,
     },
     StoryChoiceRow: {
       flexDirection: 'row',
@@ -1766,6 +1794,8 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       fontWeight: '600',
       color: theme.archiveText,
       lineHeight: 18,
+      // Ensure text is properly aligned
+      textAlign: 'left',
     },
 
     // Story/Story Screen - Notifications & Artifact Unlock

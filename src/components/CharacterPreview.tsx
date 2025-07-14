@@ -9,6 +9,10 @@ const BASE_WIDTH = PREVIEW_WIDTH;
 const BASE_HEIGHT = PREVIEW_HEIGHT;
 const BASE_TOP_OFFSET = 0;
 const BASE_LEFT_OFFSET = 0;
+const SKIN_WIDTH = PREVIEW_WIDTH;
+const SKIN_HEIGHT = PREVIEW_HEIGHT;
+const SKIN_TOP_OFFSET = 0;
+const SKIN_LEFT_OFFSET = 0;
 const HAIR_WIDTH = PREVIEW_WIDTH;
 const HAIR_HEIGHT = PREVIEW_HEIGHT;
 const HAIR_TOP_OFFSET = -35;
@@ -46,13 +50,81 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
 }) => {
   return (
     <View style={styles.previewContainer}>
+      {/* Background layer */}
       <Image source={background} style={styles.baseLayer} />
+      
+      {/* Base character layer (now includes skin color) */}
       <Image source={baseAsset} style={styles.baseLayer} />
-      <Image source={hairSheet} style={styles.hairLayer} />
-      <Image source={clothesSheet} style={styles.clothesLayer} />
-      <Image source={eyesSheet} style={styles.eyesLayer} />
-      <Image source={eyebrowsSheet} style={styles.eyebrowsLayer} />
-      <Image source={mouthSheet} style={styles.mouthLayer} />
+      
+      {/* Hair layer */}
+      <Image 
+        source={hairSheet} 
+        style={[
+          styles.hairLayer,
+          {
+            width: HAIR_WIDTH,
+            height: HAIR_HEIGHT,
+            top: HAIR_TOP_OFFSET,
+            left: HAIR_LEFT_OFFSET,
+          }
+        ]}
+      />
+      
+      {/* Clothes layer */}
+      <Image 
+        source={clothesSheet} 
+        style={[
+          styles.clothesLayer,
+          {
+            width: CLOTHES_WIDTH,
+            height: CLOTHES_HEIGHT,
+            top: CLOTHES_TOP_OFFSET,
+            left: CLOTHES_LEFT_OFFSET,
+          }
+        ]}
+      />
+      
+      {/* Eyes layer */}
+      <Image 
+        source={eyesSheet} 
+        style={[
+          styles.eyesLayer,
+          {
+            width: EYES_WIDTH,
+            height: EYES_HEIGHT,
+            top: EYES_TOP_OFFSET,
+            left: EYES_LEFT_OFFSET,
+          }
+        ]}
+      />
+      
+      {/* Eyebrows layer */}
+      <Image 
+        source={eyebrowsSheet} 
+        style={[
+          styles.eyebrowsLayer,
+          {
+            width: EYEBROWS_WIDTH,
+            height: EYEBROWS_HEIGHT,
+            top: EYEBROWS_TOP_OFFSET,
+            left: EYEBROWS_LEFT_OFFSET,
+          }
+        ]}
+      />
+      
+      {/* Mouth layer */}
+      <Image 
+        source={mouthSheet} 
+        style={[
+          styles.mouthLayer,
+          {
+            width: MOUTH_WIDTH,
+            height: MOUTH_HEIGHT,
+            top: MOUTH_TOP_OFFSET,
+            left: MOUTH_LEFT_OFFSET,
+          }
+        ]}
+      />
     </View>
   );
 };
@@ -72,6 +144,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: BASE_TOP_OFFSET,
     left: BASE_LEFT_OFFSET,
+    resizeMode: "contain",
+  },
+  skinLayer: {
+    width: SKIN_WIDTH,
+    height: SKIN_HEIGHT,
+    position: "absolute",
+    top: SKIN_TOP_OFFSET,
+    left: SKIN_LEFT_OFFSET,
     resizeMode: "contain",
   },
   hairLayer: {

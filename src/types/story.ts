@@ -67,6 +67,8 @@ export interface Choice {
   id: number;
   passage: number;
   text: string;
+  target_id?: string; // Primary field from backend
+  target_passage_id?: string; // Legacy field from API response
   next_passage?: number | null; // From GenericForeignKey
   next_passage_id?: string;
   choice_type: ChoiceType;
@@ -249,5 +251,28 @@ export interface StoryDetail {
     passagesVisited: number;
     isCompleted: boolean;
     progressPercentage: number;
+  };
+}
+
+// New API response structure
+export interface PassageApiResponse {
+  story: {
+    id: number;
+    title: string;
+  };
+  chapter_title: string;
+  passage: {
+    passage_id: string;
+    content: string;
+    passage_type: string;
+    choices: Array<{
+      text: string;
+      target_passage_id: string;
+    }>;
+  };
+  progress: {
+    passages_visited: string[];
+    is_completed: boolean;
+    progress_percentage: number;
   };
 }

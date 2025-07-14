@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
-import { EquipmentItem, EquippedItems } from '../types/equipment';
+import { PersonalityType } from '../types/';
+import { PersonalityStories } from '../types/personality';
 import { Character, CharacterCreateData, GameData, LoginResponse, UserProfile } from '../types/user';
 import { API_ENDPOINTS, apiBaseUrl } from './apiConfig';
 
@@ -514,48 +515,7 @@ class ApiService {
         }
     }
 
-    async testTokenAuth(): Promise<{ tokenVerify: boolean, getProfile: boolean, token: string | null, success: boolean }> {
-        try {
-            const token = await AsyncStorage.getItem('authToken');
-            console.log('🧪 Testing token authentication...');
-            console.log('Token present:', token ? 'Yes' : 'No');
-            
-            if (!token) {
-                return { tokenVerify: false, getProfile: false, token: null, success: false };
-            }
-
-            const results = {
-                tokenVerify: true, // Skip the verify test since endpoint doesn't exist
-                getProfile: false,
-                token: token.substring(0, 20) + '...',
-                success: false
-            };
-
-            // Test: Try to get stored user data first (from login response)
-            try {
-                console.log('🧪 Testing getProfile endpoint with stored data...');
-                const profile = await this.getProfile();
-                if (profile && profile.username) {
-                    results.getProfile = true;
-                    results.success = true;
-                    console.log('✅ getProfile passed using stored data');
-                } else {
-                    console.log('❌ getProfile failed - no valid profile data');
-                    results.getProfile = false;
-                    results.success = false;
-                }
-            } catch (error) {
-                console.log('❌ getProfile failed:', error);
-                results.getProfile = false;
-                results.success = false;
-            }
-
-            return results;
-        } catch (error) {
-            console.error('🧪 testTokenAuth error:', error);
-            return { tokenVerify: false, getProfile: false, token: null, success: false };
-        }
-    }
+    // REMOVED: testTokenAuth() - duplicate of testTokenAuthentication()
 
     /**
      * Test method to verify token storage and retrieval
@@ -622,7 +582,6 @@ class ApiService {
             };
         }
     }
-
     // ===== User Methods =====
     async getProfile(): Promise<UserProfile> {//verified 
         // Always fetch fresh data from backend to get latest survey results
@@ -935,7 +894,7 @@ class ApiService {
             console.log('Submitting survey to personality/surveys/ endpoint...');
             
             try {
-                const surveyResult = await this.submitPersonalitySurvey(surveyData);
+                const surveyResult = await this.submitSurveyData(surveyData);
                 console.log('Survey submitted successfully:', surveyResult);
                 
                 // Update user profile with personality scores from survey
@@ -1137,94 +1096,7 @@ class ApiService {
     }
     
     
-    // Submit to personality survey endpoint (for first-time submissions)
-    async submitPersonalitySurvey(surveyData: any): Promise<any> {
-        try {
-            console.log('=== SUBMIT PERSONALITY SURVEY ===');
-            console.log('Survey data received:', surveyData);
-            console.log('Responses type:', typeof surveyData.responses);
-            console.log('Responses keys:', Object.keys(surveyData.responses || {}));
-            console.log('Personality scores:', surveyData.personality_scores);
-            
-            // Test token storage before making the request
-            console.log('=== TOKEN STORAGE TEST ===');
-            const tokenTest = await this.testTokenStorage();
-            console.log('Token storage test result:', tokenTest);
-            console.log('=== END TOKEN STORAGE TEST ===');
-            
-            // Test token authentication before making the request
-            console.log('=== TOKEN AUTHENTICATION TEST ===');
-            const authTest = await this.testTokenAuthentication();
-            console.log('Token authentication test result:', authTest);
-            console.log('=== END TOKEN AUTHENTICATION TEST ===');
-            
-            // Get the current user ID from the auth context
-            const userProfile = await this.getProfile();
-            const userId = userProfile.id;
-            
-            console.log('Current user ID for survey submission:', userId);
-            
-            // Format data to match the backend structure exactly
-            const formattedSurveyData = {
-                // User ID (required by backend)
-                user: userId,
-                
-                // Raw survey responses (question_id -> answer_value) - convert numeric keys to strings
-                answers: Object.keys(surveyData.responses || {}).reduce((acc, key) => {
-                    acc[String(key)] = surveyData.responses[key];
-                    return acc;
-                }, {} as Record<string, number>),
-                
-                // Big Five scores (calculated from responses)
-                big_five_scores: surveyData.personality_scores,
-                
-                // Mark as completed
-                completed: true
-            };
-            
-            console.log('=== SURVEY SUBMISSION PAYLOAD ===');
-            console.log('Endpoint: personality/surveys/submit/');
-            console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.personalitySurveySubmit}`);
-            console.log('Payload:', JSON.stringify(formattedSurveyData, null, 2));
-            console.log('Expected backend format:', {
-                user: 1, // Example user ID
-                answers: { "1": 2, "2": 5, "3": 1, "4": 3, "5": 4, "6": 5, "7": 1, "8": 2, "9": 2, "10": 1, "11": 4, "12": 5, "13": 4, "14": 4, "15": 5 },
-                big_five_scores: { "openness": 9.17, "neuroticism": 3.33, "extraversion": 8.33, "agreeableness": 10.0, "conscientiousness": 8.33 },
-                completed: true
-            });
-            console.log('================================');
-            
-            const result = await this.post('personalitySurveySubmit', formattedSurveyData);
-            console.log('Survey submission successful:', result);
-            return result;
-            
-        } catch (error: any) {
-            console.error('=== SURVEY SUBMISSION ERROR ===');
-            console.error('Failed to submit personality survey:', error);
-            
-            // Handle network errors specifically
-            if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-                console.error('Network error detected - this is likely a CORS issue on web platform');
-                console.error('Error code:', error.code);
-                console.error('Error message:', error.message);
-                console.error('This usually happens when making HTTP requests from HTTPS contexts or due to CORS restrictions');
-            }
-            
-            if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data);
-                console.error('Response headers:', error.response.headers);
-            }
-            if (error.config) {
-                console.error('Request URL:', error.config.url);
-                console.error('Request method:', error.config.method);
-                console.error('Request headers:', error.config.headers);
-                console.error('Request data:', error.config.data);
-            }
-            console.error('=== END SURVEY SUBMISSION ERROR ===');
-            throw error;
-        }
-    }
+    // REMOVED: submitPersonalitySurvey() - duplicate of submitSurveyData()
     
     // Update personality scores directly (safe for resubmissions)
     async updatePersonalityScores(scores: any): Promise<any> {
@@ -1594,14 +1466,27 @@ class ApiService {
     }
 
     async createCodexEntry(entryData: {
-        prompt_id: string;
+        prompt: string;
         entry_type: 'journal' | 'draw' | 'voice';
         content: string;
-        skill_category: string;
-        map_area: string;
-        difficulty: string;
     }): Promise<CodexEntry> {
-        return this.post<CodexEntry>('createCodexEntry', entryData);
+        console.log('=== CREATING CODEX ENTRY ===');
+        console.log('Entry data:', entryData);
+        console.log('Endpoint:', API_ENDPOINTS.createCodexEntry);
+        console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.createCodexEntry}`);
+        
+        try {
+            const result = await this.post<CodexEntry>('codexEntries', entryData);
+            console.log('Codex entry created successfully:', result);
+            return result;
+        } catch (error: any) {
+            console.error('Failed to create codex entry:', error);
+            if (error.response) {
+                console.error('Response status:', error.response.status);
+                console.error('Response data:', error.response.data);
+            }
+            throw error;
+        }
     }    // ===== NEW GEAR METHODS =====
     async getAvailableGear(): Promise<any[]> {
         return this.get<any[]>('availableGear');
@@ -1635,7 +1520,7 @@ class ApiService {
     }
 
     // ===== EXISTING METHODS (KEEP FOR COMPATIBILITY) =====
-    async getInventory(characterId: string): Promise<EquipmentItem[]> {
+    /* async getInventory(characterId: string): Promise<EquipmentItem[]> {
         return this.get<EquipmentItem[]>('characters', { urlSuffix: `${characterId}/inventory` });
     }
 
@@ -1649,10 +1534,27 @@ class ApiService {
 
     async unequipItem(characterId: string, itemId: string): Promise<void> {
         await this.delete('characters', { urlSuffix: `${characterId}/equipment/${itemId}` });
-    }
+    } */
 
     async getGameData(): Promise<GameData> {
-        return this.get<GameData>('gameData');
+        try {
+            return await this.get<GameData>('gameData');
+        } catch (error: any) {
+            console.warn('Failed to get game data from backend:', error);
+            // Return a default game data structure to prevent cascading failures
+            return {
+                id: 0,
+                user: 1,
+                player_name: 'Default Player',
+                score: 0,
+                level: 1,
+                last_played: new Date().toISOString(),
+                current_story_id: null,
+                current_passage_id: null,
+                completed_prompts: [],
+                total_entries: 0
+            } as GameData;
+        }
     }
 
     async createGameData(gameData: Partial<GameData>): Promise<GameData> {
@@ -1692,7 +1594,8 @@ class ApiService {
             // Remove duplicates and return
             return [...new Set(completedStories)];
         } catch (error) {
-            console.error('Failed to get completed stories from game data:', error);
+            console.warn('Failed to get completed stories from game data, returning empty array:', error);
+            // Return empty array instead of throwing error to prevent cascading failures
             return [];
         }
     }    // Enhanced journal prompt methods for better filtering
@@ -1703,16 +1606,22 @@ class ApiService {
         mapArea?: string;
         isActive?: boolean;
     }): Promise<JournalPrompt[]> {
-        const params = new URLSearchParams();
-        if (options?.category) params.append('category', options.category);
-        if (options?.difficulty) params.append('difficulty', options.difficulty);
-        if (options?.skillCategory) params.append('skill_category', options.skillCategory);
-        if (options?.mapArea) params.append('map_area', options.mapArea);
-        if (options?.isActive !== undefined) params.append('is_active', options.isActive.toString());
-        
-        const queryString = params.toString();
-        const urlSuffix = queryString ? `?${queryString}` : '';
-          return this.get<JournalPrompt[]>('journalPrompts', { urlSuffix });
+        try {
+            const params = new URLSearchParams();
+            if (options?.category) params.append('category', options.category);
+            if (options?.difficulty) params.append('difficulty', options.difficulty);
+            if (options?.skillCategory) params.append('skill_category', options.skillCategory);
+            if (options?.mapArea) params.append('map_area', options.mapArea);
+            if (options?.isActive !== undefined) params.append('is_active', options.isActive.toString());
+            
+            const queryString = params.toString();
+            const urlSuffix = queryString ? `?${queryString}` : '';
+            return await this.get<JournalPrompt[]>('journalPrompts', { urlSuffix });
+        } catch (error) {
+            console.warn('Failed to get filtered journal prompts, returning empty array:', error);
+            // Return empty array instead of throwing error to prevent cascading failures
+            return [];
+        }
     }
 
     // Mark a journal prompt as inactive (completed)
@@ -1729,32 +1638,89 @@ class ApiService {
         try {
             // Get all active prompts
             const allPrompts = await this.getFilteredJournalPrompts({ isActive: true });
-     //       console.log('🔍 All active prompts:', allPrompts);
-     //       console.log('🔍 Prompt categories found:', [...new Set(allPrompts.map(p => p.category))]);
+            console.log('🔍 All active prompts:', allPrompts);
+            console.log('🔍 Prompt categories found:', [...new Set(allPrompts.map(p => p.category))]);
             
             // Show prompts from all areas, not just unlocked ones
             // This allows users to see all available prompts regardless of map progress
             const accessiblePrompts = allPrompts;
-       //     console.log('🔍 All prompts (no area filtering):', accessiblePrompts);
-       //     console.log('🔍 Unlocked areas:', ['entrance', ...unlockedAreas]);
+            console.log('🔍 All prompts (no area filtering):', accessiblePrompts);
+            console.log('🔍 Unlocked areas:', ['entrance', ...unlockedAreas]);
 
             // Determine preferred skill categories based on completed stories
             const preferredSkills = await this.getPreferredSkillCategories(completedStories);
-       //     console.log('🔍 Preferred skills:', preferredSkills);
+            console.log('🔍 Preferred skills:', preferredSkills);
 
             // Select one prompt per category (only one active prompt per category)
             const result = {
-                journal: this.selectOnePrompt(accessiblePrompts, 'journal', preferredSkills),
-                draw: this.selectOnePrompt(accessiblePrompts, 'draw', preferredSkills),
-                voice: this.selectOnePrompt(accessiblePrompts, 'voice', preferredSkills)
+                journal: this.selectOnePrompt(accessiblePrompts, 'journal', preferredSkills, completedStories),
+                draw: this.selectOnePrompt(accessiblePrompts, 'draw', preferredSkills, completedStories),
+                voice: this.selectOnePrompt(accessiblePrompts, 'voice', preferredSkills, completedStories)
             };
 
-       //     console.log('🔍 Final result:', result);
+            console.log('🔍 Final result:', result);
+            
+            // If no prompts from backend, provide fallback prompts
+            if (!result.journal && !result.draw && !result.voice) {
+                console.log('🔍 No prompts from backend, providing fallback prompts');
+                return this.getFallbackPrompts();
+            }
+            
             return result;
         } catch (error) {
-      //      console.error('Error fetching prompts by category:', error);
-            return { journal: null, draw: null, voice: null };
+            console.warn('Error fetching prompts by category, returning fallback prompts:', error);
+            // Return fallback prompts instead of empty prompts
+            return this.getFallbackPrompts();
         }
+    }
+
+    // Provide fallback prompts when backend doesn't have any
+    private getFallbackPrompts(): {
+        journal: JournalPrompt | null;
+        draw: JournalPrompt | null;
+        voice: JournalPrompt | null;
+    } {
+        const fallbackPrompts = {
+            journal: {
+                id: 1,
+                prompt_id: 'fallback-journal-1',
+                text: 'Reflect on a moment today when you felt proud of yourself. What did you accomplish, and how did it make you feel?',
+                category: 'journal' as const,
+                skill_category: 'Self-Compassion' as const,
+                map_area: 'entrance' as const,
+                difficulty: 'Beginner' as const,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            },
+            draw: {
+                id: 2,
+                prompt_id: 'fallback-draw-1',
+                text: 'Draw a symbol that represents your inner strength. What does it look like to you?',
+                category: 'draw' as const,
+                skill_category: 'Emotional Awareness' as const,
+                map_area: 'entrance' as const,
+                difficulty: 'Beginner' as const,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            },
+            voice: {
+                id: 3,
+                prompt_id: 'fallback-voice-1',
+                text: 'Record a voice message about something that made you smile today. Share the details and why it mattered to you.',
+                category: 'voice' as const,
+                skill_category: 'Social Connection' as const,
+                map_area: 'entrance' as const,
+                difficulty: 'Beginner' as const,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            }
+        };
+        
+        console.log('🔍 Using fallback prompts (Beginner only):', fallbackPrompts);
+        return fallbackPrompts;
     }
 
     // Helper method to determine preferred skill categories based on completed stories
@@ -1774,7 +1740,9 @@ class ApiService {
             try {
                 completedStories = await this.getCompletedStories();
             } catch (error) {
-                console.warn('Failed to get completed stories for skill categories:', error);
+                console.warn('Failed to get completed stories for skill categories, using default progression:', error);
+                // Return default progression instead of failing
+                return skillProgression;
             }
         }
 
@@ -1810,87 +1778,191 @@ class ApiService {
     private selectOnePrompt(
         prompts: JournalPrompt[], 
         category: string, 
-        preferredSkills: string[]
+        preferredSkills: string[],
+        completedStories: string[] = []
     ): JournalPrompt | null {
-        //    console.log(`🔍 Selecting prompt for category: ${category}`);
-        //    console.log(`🔍 Available prompts:`, prompts);
-        
         // Fix: Make category comparison case-insensitive
         const categoryPrompts = prompts.filter(p => p.category?.toLowerCase() === category.toLowerCase());
-        //    console.log(`🔍 Prompts for category '${category}':`, categoryPrompts);
         
         if (categoryPrompts.length === 0) {
             return null;
         }
 
+        // Determine available difficulties based on story completion
+        const availableDifficulties = this.getAvailableDifficulties(completedStories);
+        
+        // Filter prompts by available difficulties
+        const availablePrompts = categoryPrompts.filter(p => availableDifficulties.includes(p.difficulty));
+        
+        if (availablePrompts.length === 0) {
+            return null;
+        }
+
         // Try to find a prompt with preferred skill first
         for (const skill of preferredSkills) {
-            const skillPrompts = categoryPrompts.filter(p => p.skill_category === skill);
+            const skillPrompts = availablePrompts.filter(p => p.skill_category === skill);
             if (skillPrompts.length > 0) {
                 // Return random prompt from this skill category
                 return skillPrompts[Math.floor(Math.random() * skillPrompts.length)];
             }
         }
 
-        // Fallback: return random prompt from category
-        return categoryPrompts[Math.floor(Math.random() * categoryPrompts.length)];
+        // Fallback: return random prompt from available difficulties
+        return availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
     }
 
     /**
      * Fetch all available stories from the backend (story catalog)
      */
     async getAvailableStories(): Promise<any[]> {
-        return this.get<any[]>('stories');
+        try {
+            console.log('=== GETTING AVAILABLE STORIES ===');
+            console.log('Endpoint:', API_ENDPOINTS.stories);
+            console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.stories}`);
+            
+            const stories = await this.get<any[]>('stories');
+            console.log('Available stories loaded:', stories?.length || 0);
+            if (stories && stories.length > 0) {
+                console.log('First story structure:', stories[0]);
+                console.log('First story keys:', Object.keys(stories[0]));
+            } else {
+                console.log('No stories returned from catalog endpoint');
+            }
+            return stories;
+        } catch (error: any) {
+            console.error('Failed to load available stories:', error);
+            console.error('Error details:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data,
+                url: error.config?.url
+            });
+            throw error;
+        }
     }
 
     /**
      * Fetch passages for a specific chapter
      */
     async getChapterPassages(storyId: number | string, chapterId: number | string): Promise<any> {
-        // The backend doesn't have a direct chapter-specific endpoint
-        // We need to get all passages for the story and filter by chapter
-        const allPassages = await this.get<any>('storypassages', { urlSuffix: `${storyId}/passages/` });
-        
-        if (allPassages && allPassages.passages) {
-            // Filter passages by chapter if they have chapter information
-            const chapterPassages = allPassages.passages.filter((passage: any) => 
-                passage.chapter === Number(chapterId) || passage.chapter_id === Number(chapterId)
-            );
+        try {
+            console.log('=== GETTING CHAPTER PASSAGES ===');
+            console.log('Story ID:', storyId);
+            console.log('Chapter ID:', chapterId);
+            console.log('Chapter ID type:', typeof chapterId);
+            console.log('Story ID type:', typeof storyId);
             
-            return chapterPassages;
+            // Use the correct endpoint: /story/chapters/{chapterId}/passages/
+            const urlSuffix = `chapters/${chapterId}/passages/`;
+            console.log('URL suffix:', urlSuffix);
+            console.log('Full URL will be:', `${apiBaseUrl}story/${urlSuffix}`);
+            
+            const passages = await this.get<any[]>('storyRoot', { urlSuffix });
+            
+            console.log('Chapter passages loaded:', passages?.length || 0);
+            if (passages && passages.length > 0) {
+                console.log('First passage structure:', passages[0]);
+                console.log('First passage keys:', Object.keys(passages[0]));
+            } else {
+                console.log('No passages returned from API');
+                console.log('Raw response:', passages);
+            }
+            
+            return passages || [];
+        } catch (error: any) {
+            console.error('Failed to get chapter passages:', error);
+            console.error('Error details:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data,
+                url: error.config?.url
+            });
+            return [];
         }
-        
-        return allPassages?.passages || [];
     }
 
     /**
      * Fetch all passages for a story
      */
     async getStorypassages(storyId: number): Promise<any> {
-        return this.get<any>('storypassages', { urlSuffix: `${storyId}/passages/` });
+        try {
+            console.log('=== GETTING ALL STORY PASSAGES ===');
+            console.log('Story ID:', storyId);
+            
+            // Get chapters first
+            const chapters = await this.getChapters(storyId);
+            
+            if (!chapters || chapters.length === 0) {
+                console.log('No chapters found for story');
+                return { passages: [] };
+            }
+            
+            console.log(`Found ${chapters.length} chapters, loading passages for each`);
+            
+            // Load passages for each chapter
+            const allPassages = [];
+            for (const chapter of chapters) {
+                try {
+                    const chapterPassages = await this.getChapterPassages(storyId, chapter.id);
+                    allPassages.push(...chapterPassages);
+                } catch (error) {
+                    console.warn(`Failed to load passages for chapter ${chapter.id}:`, error);
+                }
+            }
+            
+            console.log(`Total passages loaded: ${allPassages.length}`);
+            
+            return {
+                id: storyId.toString(),
+                title: 'Story Passages',
+                passages: allPassages
+            };
+        } catch (error) {
+            console.warn('Failed to get story passages:', error);
+            return { passages: [] };
+        }
     }
 
     /**
      * Fetch passages for a specific chapter within a story
      */
     async getStorypassagesFromChapter(storyId: number, chapterId: number): Promise<any> {
-        // For chapter-based stories, we need to get all passages and filter by chapter
-        // The backend doesn't have a direct chapter-specific endpoint
-        const allPassages = await this.get<any>('storypassages', { urlSuffix: `${storyId}/passages/` });
-        
-        if (allPassages && allPassages.passages) {
-            // Filter passages by chapter if they have chapter information
-            const chapterPassages = allPassages.passages.filter((passage: any) => 
-                passage.chapter === chapterId || passage.chapter_id === chapterId
-            );
+        try {
+            console.log('=== GETTING STORY PASSAGES FROM CHAPTER ===');
+            console.log('Story ID:', storyId);
+            console.log('Chapter ID:', chapterId);
+            
+            // Get the specific chapter first
+            const chapters = await this.getChapters(storyId);
+            const targetChapter = chapters?.find((chapter: any) => chapter.id === chapterId);
+            
+            if (!targetChapter) {
+                console.warn(`Chapter ${chapterId} not found in story ${storyId}`);
+                return {
+                    id: storyId.toString(),
+                    title: `Chapter ${chapterId}`,
+                    passages: []
+                };
+            }
+            
+            // Load passages for this specific chapter
+            const chapterPassages = await this.getChapterPassages(storyId, chapterId);
+            
+            console.log(`Loaded ${chapterPassages.length} passages for chapter ${chapterId}`);
             
             return {
-                ...allPassages,
+                id: storyId.toString(),
+                title: targetChapter.title || `Chapter ${chapterId}`,
                 passages: chapterPassages
             };
+        } catch (error) {
+            console.warn('Failed to get chapter passages:', error);
+            return {
+                id: storyId.toString(),
+                title: `Chapter ${chapterId}`,
+                passages: []
+            };
         }
-        
-        return allPassages;
     }
 
     /**
@@ -1925,11 +1997,38 @@ class ApiService {
      * Fetch chapters for a story
      */
     async getChapters(storyId: number | string): Promise<any[]> {
-        return this.get<any[]>('storyChapters', { urlSuffix: `${storyId}/chapters/` });
+        try {
+            console.log('=== GETTING CHAPTERS FOR STORY ===');
+            console.log('Story ID:', storyId);
+            
+            const chapters = await this.get<any[]>('storyChapters', { urlSuffix: `${storyId}/chapters/` });
+            
+            console.log('Chapters loaded:', chapters?.length || 0);
+            if (chapters && chapters.length > 0) {
+                console.log('First chapter structure:', chapters[0]);
+                console.log('First chapter keys:', Object.keys(chapters[0]));
+                if (chapters[0].passages) {
+                    console.log('First chapter has passages:', chapters[0].passages.length);
+                    console.log('First passage structure:', chapters[0].passages[0]);
+                }
+            }
+            
+            return chapters;
+        } catch (error) {
+            console.error('Failed to get chapters:', error);
+            throw error;
+        }
     }
 
     /**
      * Fetch a specific passage by ID
+     * Returns the new API response structure:
+     * {
+     *   story: { id, title },
+     *   chapter_title: string,
+     *   passage: { passage_id, content, passage_type, choices: [{ text, target_passage_id }] },
+     *   progress: { passages_visited, is_completed, progress_percentage }
+     * }
      */
     async getPassage(storyId: number, passageId: string): Promise<any> {
         return this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${passageId}/` });
@@ -1944,24 +2043,32 @@ class ApiService {
 
     /**
      * Fetch the current passage for a story
+     * Returns the new API response structure:
+     * {
+     *   story: { id, title },
+     *   chapter_title: string,
+     *   passage: { passage_id, content, passage_type, choices: [{ text, target_passage_id }] },
+     *   progress: { passages_visited, is_completed, progress_percentage }
+     * }
      */
     async getCurrentPassage(storyId: number | string): Promise<any> {
         return this.get<any>('getCurrentPassage', { urlSuffix: `${storyId}/current/` });
     }
 
-    /**
-     * Fetch chapter passages (alias for getChapterPassages for compatibility)
-     */
-    async getNewChapterPassages(storyId: number | string, chapterId: number): Promise<any[]> {
-        // Use the same approach as getChapterPassages
-        return this.getChapterPassages(storyId, chapterId);
-    }
+    // REMOVED: getNewChapterPassages() - duplicate of getChapterPassages()
 
     /**
      * Start a new story session
      */
     async startNewStory(storyId: number): Promise<any> {
         return this.post<any>('storyStart', {}, { urlSuffix: `${storyId}/start/` });
+    }
+
+    /**
+     * Restarts a story, clearing old progress and resetting to the starting passage.
+     */
+    async restartStory(storyId: string | number): Promise<any> {
+        return this.post<any>('storyReset', {}, { urlSuffix: `${storyId}/restart/` });
     }
 
     /**
@@ -1980,6 +2087,573 @@ class ApiService {
             journal_entries: journalEntries
         });
     }
+
+    /**
+     * Make a choice in a story using the new backend endpoint
+     * This replaces the old direct passage fetching approach
+     * NOTE: This endpoint doesn't exist on the backend, so we're using getPassage instead
+     */
+    /*
+    async makeChoice(storyId: number | string, targetPassageId: string): Promise<any> {
+        try {
+            console.log('=== MAKING CHOICE ===');
+            console.log('Story ID:', storyId);
+            console.log('Target Passage ID:', targetPassageId);
+            
+            const payload = {
+                story_id: storyId,
+                target_passage_id: targetPassageId
+            };
+            
+            console.log('Choice payload:', payload);
+            
+            // Use the new make_choice endpoint
+            const response = await this.post<any>('makeChoice', payload);
+            
+            console.log('Choice response:', response);
+            return response;
+        } catch (error: any) {
+            console.error('Failed to make choice:', error);
+            if (error.response) {
+                console.error('Response status:', error.response.status);
+                console.error('Response data:', error.response.data);
+            }
+            throw error;
+        }
+    }
+    */
+
+
+/** Personality Based Story API */
+async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {    
+    return this.post<any>('personalityStatus', {});
+  }
+
+  // NEW: Get personality-specific stories (for Research Condition B users)
+  async getPersonalityStories(testPersonality?: string): Promise<PersonalityStories> {
+    try {
+      console.log('=== GETTING PERSONALITY STORIES ===');
+      console.log('Test personality:', testPersonality);
+      
+      const response = await this.get<any>('personalityStories', {
+        urlSuffix: testPersonality ? `?personality=${testPersonality}` : ''
+      });
+      
+      console.log('Personality stories response:', response);
+      return response;
+    } catch (error) {
+      console.error('Failed to get personality stories:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all stories for admin/testing purposes
+   * This endpoint allows admin and test users to see all stories
+   */
+  async getAdminTestStories(): Promise<any> {
+    try {
+      console.log('=== GETTING ADMIN TEST STORIES ===');
+      console.log('Endpoint:', API_ENDPOINTS.adminTestStories);
+      console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.adminTestStories}`);
+      
+      const response = await this.get<any>('adminTestStories');
+      
+      console.log('Admin test stories response:', response);
+      console.log('Response type:', typeof response);
+      console.log('Response keys:', response ? Object.keys(response) : 'No keys');
+      return response;
+    } catch (error: any) {
+      console.error('Failed to get admin test stories:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get stories filtered by personality type
+   * @param userPersonalityType - The user's primary personality trait
+   * @param includeGeneral - Whether to include stories with empty personality_type (general stories)
+   * @returns Filtered array of stories
+   */
+  async getStoriesByPersonality(userPersonalityType?: string, includeGeneral: boolean = true): Promise<any[]> {
+    try {
+      console.log('=== GETTING STORIES BY PERSONALITY ===');
+      console.log('User personality type:', userPersonalityType);
+      console.log('Include general stories:', includeGeneral);
+      
+      // Check if user is admin or test user
+      const profile = await this.getProfile();
+      const isAdminOrTestUser = profile?.username === 'admin' || profile?.is_test_user;
+      
+      console.log('=== ADMIN DETECTION DEBUG ===');
+      console.log('Profile username:', profile?.username);
+      console.log('Profile is_test_user:', profile?.is_test_user);
+      console.log('Is admin or test user:', isAdminOrTestUser);
+      console.log('Full profile:', profile);
+      console.log('=== END ADMIN DETECTION DEBUG ===');
+      
+      // For admin users, always return all stories from catalog
+      if (isAdminOrTestUser) {
+        console.log('Admin/test user detected - returning all stories from catalog');
+        try {
+          const allStories = await this.getAvailableStories();
+          console.log('Admin stories loaded:', allStories?.length || 0);
+          return allStories || [];
+        } catch (catalogError) {
+          console.error('Failed to get catalog stories:', catalogError);
+          return [];
+        }
+      }
+      
+      // For regular users, try personality stories first, then fallback to catalog
+      if (userPersonalityType) {
+        console.log('User has personality type - trying personality stories endpoint');
+        try {
+          const personalityStories = await this.getPersonalityStories(userPersonalityType);
+          console.log('Personality stories response:', personalityStories);
+          
+          // Return stories from the personality endpoint if available
+          if (personalityStories && personalityStories.stories && personalityStories.stories.length > 0) {
+            console.log('Returning personality stories:', personalityStories.stories.length);
+            return personalityStories.stories;
+          }
+        } catch (personalityError) {
+          console.warn('Failed to get personality stories, falling back to catalog:', personalityError);
+        }
+      }
+      
+      // Fallback: Get all available stories from catalog
+      console.log('Using fallback - getting all stories from catalog');
+      const allStories = await this.getAvailableStories();
+      console.log('Total stories available:', allStories?.length || 0);
+      
+      if (!allStories || allStories.length === 0) {
+        console.log('No stories found in catalog either');
+        return [];
+      }
+      
+      // For users with personality type, try to filter but be permissive
+      if (userPersonalityType) {
+        console.log('Filtering stories by personality type (permissive mode)');
+        const filteredStories = allStories.filter((story: any) => {
+          const storyPersonalityType = story.personality_type;
+          console.log(`Story ${story.id} (${story.title}) personality_type:`, storyPersonalityType);
+          
+          // If story has no personality type (empty object), it's a general story
+          if (!storyPersonalityType || Object.keys(storyPersonalityType).length === 0) {
+            console.log(`Story ${story.id} is general story - including`);
+            return includeGeneral;
+          }
+          
+          // Check if story personality type matches user personality type
+          const isMatch = this.doesPersonalityMatch(userPersonalityType, storyPersonalityType);
+          console.log(`Story ${story.id} personality match:`, isMatch);
+          
+          // Be permissive: include if it matches OR if it's a general story
+          return isMatch || includeGeneral;
+        });
+        
+        console.log('Filtered stories count:', filteredStories.length);
+        console.log('Filtered story IDs:', filteredStories.map((s: any) => s.id));
+        
+        // If filtering removed all stories, return all stories instead
+        if (filteredStories.length === 0) {
+          console.log('Filtering removed all stories - returning all stories instead');
+          return allStories;
+        }
+        
+        return filteredStories;
+      }
+      
+      // If no personality type, return all stories
+      console.log('No personality type - returning all stories');
+      return allStories;
+    } catch (error) {
+      console.error('Failed to get stories by personality:', error);
+      // Fallback to all stories if filtering fails
+      try {
+        const fallbackStories = await this.getAvailableStories();
+        console.log('Fallback stories loaded:', fallbackStories?.length || 0);
+        return fallbackStories || [];
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        return [];
+      }
+    }
+  }
+
+  /**
+   * Check if a user's personality type matches a story's personality type
+   * @param userPersonalityType - The user's primary personality trait
+   * @param storyPersonalityType - The story's personality type object
+   * @returns boolean indicating if there's a match
+   */
+  public doesPersonalityMatch(userPersonalityType: string, storyPersonalityType: any): boolean {
+    // Handle different personality type formats
+    
+    // Format 1: Direct string match
+    if (typeof storyPersonalityType === 'string') {
+      return this.normalizePersonalityType(userPersonalityType) === this.normalizePersonalityType(storyPersonalityType);
+    }
+    
+    // Format 2: Object with personality_type field
+    if (storyPersonalityType && typeof storyPersonalityType === 'object') {
+      if (storyPersonalityType.personality_type) {
+        return this.normalizePersonalityType(userPersonalityType) === this.normalizePersonalityType(storyPersonalityType.personality_type);
+      }
+      
+      // Format 3: Object with trait names as keys
+      const normalizedUserType = this.normalizePersonalityType(userPersonalityType);
+      const storyKeys = Object.keys(storyPersonalityType);
+      
+      // Check if any of the story's personality traits match the user's type
+      return storyKeys.some(key => {
+        const normalizedKey = this.normalizePersonalityType(key);
+        return normalizedKey === normalizedUserType;
+      });
+    }
+    
+    // Format 4: Array of personality types
+    if (Array.isArray(storyPersonalityType)) {
+      return storyPersonalityType.some(type => 
+        this.normalizePersonalityType(userPersonalityType) === this.normalizePersonalityType(type)
+      );
+    }
+    
+    return false;
+  }
+
+  /**
+   * Normalize personality type names to handle different naming conventions
+   * @param personalityType - The personality type to normalize
+   * @returns Normalized personality type string
+   */
+  private normalizePersonalityType(personalityType: string): string {
+    if (!personalityType) return '';
+    
+    const normalized = personalityType.toLowerCase().trim();
+    
+    // Map different naming conventions to standard names
+    const typeMappings: Record<string, string> = {
+      // BFI-2-XS names
+      'openmindedness': 'openness',
+      'negativeemotionality': 'neuroticism',
+      
+      // Common variations
+      'open-mindedness': 'openness',
+      'open_mindedness': 'openness',
+      'negative_emotionality': 'neuroticism',
+      'negative-emotionality': 'neuroticism',
+      
+      // Full names
+      'openness to experience': 'openness',
+      'openness to new experiences': 'openness',
+      'emotional stability': 'neuroticism',
+      'emotional instability': 'neuroticism',
+      
+      // Abbreviations
+      'o': 'openness',
+      'c': 'conscientiousness',
+      'e': 'extraversion',
+      'a': 'agreeableness',
+      'n': 'neuroticism'
+    };
+    
+    return typeMappings[normalized] || normalized;
+  }
+
+  /**
+   * Get user's primary personality trait from their profile
+   * @returns The user's primary personality trait or null if not available
+   */
+  async getUserPrimaryPersonalityTrait(): Promise<string | null> {
+    try {
+      const profile = await this.getProfile();
+      
+      if (profile?.profile?.personality_scores) {
+        const scores = profile.profile.personality_scores;
+        const primaryTrait = Object.keys(scores).reduce((a, b) => 
+          scores[a as keyof typeof scores] > scores[b as keyof typeof scores] ? a : b
+        );
+        return primaryTrait;
+      }
+      
+      if (profile?.personality_profile) {
+        const scores = profile.personality_profile;
+        const traitScores = {
+          openness: scores.openness,
+          conscientiousness: scores.conscientiousness,
+          extraversion: scores.extraversion,
+          agreeableness: scores.agreeableness,
+          neuroticism: scores.neuroticism
+        };
+        
+        const primaryTrait = Object.keys(traitScores).reduce((a, b) => 
+          traitScores[a as keyof typeof traitScores] > traitScores[b as keyof typeof traitScores] ? a : b
+        );
+        return primaryTrait;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to get user primary personality trait:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if a story is personality-matched for the current user
+   * @param story - The story object to check
+   * @returns Promise<boolean> - True if the story matches the user's personality
+   */
+  async isStoryPersonalityMatched(story: any): Promise<boolean> {
+    try {
+      const userPrimaryTrait = await this.getUserPrimaryPersonalityTrait();
+      
+      if (!userPrimaryTrait) {
+        // If no personality data, consider it a match (show all stories)
+        return true;
+      }
+      
+      const storyPersonalityType = story.personality_type;
+      
+      // If story has no personality type (empty object), it's a general story
+      if (!storyPersonalityType || Object.keys(storyPersonalityType).length === 0) {
+        return true; // General stories are always available
+      }
+      
+      // Check if story personality type matches user personality type
+      return this.doesPersonalityMatch(userPrimaryTrait, storyPersonalityType);
+    } catch (error) {
+      console.error('Failed to check story personality match:', error);
+      return true; // Default to showing the story if there's an error
+    }
+  }
+
+  // Helper method to determine available difficulties based on story completion
+  private getAvailableDifficulties(completedStories: string[]): string[] {
+      const numCompleted = completedStories.length;
+      
+      if (numCompleted >= 6) {
+          return ['Beginner', 'Intermediate', 'Advanced']; // All difficulties unlocked
+      } else if (numCompleted >= 3) {
+          return ['Beginner', 'Intermediate']; // Intermediate unlocked
+      } else {
+          return ['Beginner']; // Only Beginner available
+      }
+  }
+
+  /**
+   * Debug function to test story loading comprehensively
+   */
+  public async debugStoryLoading(): Promise<{
+    success: boolean;
+    errors: string[];
+    results: {
+      profile?: any;
+      adminStories?: any;
+      catalogStories?: any;
+      personalityStories?: any;
+      filteredStories?: any;
+      userTrait?: string;
+    };
+  }> {
+    const errors: string[] = [];
+    const results: any = {};
+
+    try {
+      console.log('=== COMPREHENSIVE STORY LOADING DEBUG ===');
+
+      // Test 1: Get user profile
+      console.log('\n--- Test 1: User Profile ---');
+      try {
+        const profile = await this.getProfile();
+        results.profile = profile;
+        console.log('✅ Profile loaded successfully');
+        console.log('Username:', profile?.username);
+        console.log('Is test user:', profile?.is_test_user);
+        console.log('Completion type:', profile?.profile?.completion_type);
+        console.log('Research group:', profile?.profile?.research_group?.condition);
+      } catch (error: any) {
+        const errorMsg = `Profile loading failed: ${error.message}`;
+        errors.push(errorMsg);
+        console.error('❌', errorMsg);
+      }
+
+      // Test 2: Get user's primary personality trait
+      console.log('\n--- Test 2: User Primary Trait ---');
+      try {
+        const userTrait = await this.getUserPrimaryPersonalityTrait();
+        results.userTrait = userTrait;
+        console.log('✅ User primary trait:', userTrait);
+      } catch (error: any) {
+        const errorMsg = `Primary trait detection failed: ${error.message}`;
+        errors.push(errorMsg);
+        console.error('❌', errorMsg);
+      }
+
+      // Test 3: Try admin stories endpoint
+      console.log('\n--- Test 3: Admin Stories Endpoint ---');
+      try {
+        const adminStories = await this.getAdminTestStories();
+        results.adminStories = adminStories;
+        console.log('✅ Admin stories loaded:', adminStories?.stories?.length || 0);
+        if (adminStories?.stories?.length > 0) {
+          console.log('First admin story:', adminStories.stories[0]);
+        }
+      } catch (error: any) {
+        const errorMsg = `Admin stories failed: ${error.message}`;
+        errors.push(errorMsg);
+        console.error('❌', errorMsg);
+      }
+
+      // Test 4: Try catalog endpoint
+      console.log('\n--- Test 4: Catalog Endpoint ---');
+      try {
+        const catalogStories = await this.getAvailableStories();
+        results.catalogStories = catalogStories;
+        console.log('✅ Catalog stories loaded:', catalogStories?.length || 0);
+        if (catalogStories?.length > 0) {
+          console.log('First catalog story:', catalogStories[0]);
+          console.log('Story personality_type:', catalogStories[0].personality_type);
+        }
+      } catch (error: any) {
+        const errorMsg = `Catalog stories failed: ${error.message}`;
+        errors.push(errorMsg);
+        console.error('❌', errorMsg);
+      }
+
+      // Test 5: Try personality stories endpoint
+      console.log('\n--- Test 5: Personality Stories Endpoint ---');
+      try {
+        const personalityStories = await this.getPersonalityStories(results.userTrait || 'conscientiousness');
+        results.personalityStories = personalityStories;
+        console.log('✅ Personality stories loaded:', personalityStories?.stories?.length || 0);
+        if (personalityStories?.stories?.length > 0) {
+          console.log('First personality story:', personalityStories.stories[0]);
+        }
+      } catch (error: any) {
+        const errorMsg = `Personality stories failed: ${error.message}`;
+        errors.push(errorMsg);
+        console.error('❌', errorMsg);
+      }
+
+      // Test 6: Try the main filtering method
+      console.log('\n--- Test 6: Main Filtering Method ---');
+      try {
+        const filteredStories = await this.getStoriesByPersonality(results.userTrait, true);
+        results.filteredStories = filteredStories;
+        console.log('✅ Filtered stories loaded:', filteredStories?.length || 0);
+        if (filteredStories?.length > 0) {
+          console.log('First filtered story:', filteredStories[0]);
+        }
+      } catch (error: any) {
+        const errorMsg = `Filtered stories failed: ${error.message}`;
+        errors.push(errorMsg);
+        console.error('❌', errorMsg);
+      }
+
+      console.log('\n=== END COMPREHENSIVE DEBUG ===');
+      console.log('Total errors:', errors.length);
+      console.log('Errors:', errors);
+
+      return {
+        success: errors.length === 0,
+        errors,
+        results
+      };
+
+    } catch (error: any) {
+      const errorMsg = `Debug function failed: ${error.message}`;
+      errors.push(errorMsg);
+      console.error('❌', errorMsg);
+      
+      return {
+        success: false,
+        errors,
+        results
+      };
+    }
+  }
+
+  /**
+   * Simple test function to check basic story loading
+   */
+  public async testBasicStoryLoading(): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      console.log('=== BASIC STORY LOADING TEST ===');
+      
+      // Test 1: Check if we can reach the catalog endpoint
+      console.log('Testing catalog endpoint...');
+      const catalogStories = await this.getAvailableStories();
+      console.log('Catalog stories count:', catalogStories?.length || 0);
+      
+      if (!catalogStories || catalogStories.length === 0) {
+        return {
+          success: false,
+          message: 'No stories found in catalog endpoint'
+        };
+      }
+      
+      // Test 2: Check the structure of the first story
+      const firstStory = catalogStories[0];
+      console.log('First story structure:', {
+        id: firstStory.id,
+        title: firstStory.title,
+        personality_type: firstStory.personality_type,
+        chapter_count: firstStory.chapter_count
+      });
+      
+      // Test 3: Check if we can get user profile
+      console.log('Testing user profile...');
+      const profile = await this.getProfile();
+      console.log('Profile username:', profile?.username);
+      console.log('Profile completion type:', profile?.profile?.completion_type);
+      
+      // Test 4: Test personality filtering
+      console.log('Testing personality filtering...');
+      const userTrait = await this.getUserPrimaryPersonalityTrait();
+      console.log('User primary trait:', userTrait);
+      
+      let filteredStories;
+      try {
+        filteredStories = await this.getStoriesByPersonality(userTrait || undefined, true);
+        console.log('Filtered stories count:', filteredStories?.length || 0);
+      } catch (filterError: any) {
+        console.log('Personality filtering failed:', filterError.message);
+        filteredStories = catalogStories; // Use catalog as fallback
+      }
+      
+      return {
+        success: true,
+        message: `Found ${catalogStories.length} stories in catalog. User: ${profile?.username || 'unknown'}. Personality trait: ${userTrait || 'none'}. Filtered stories: ${filteredStories?.length || 0}`,
+        data: {
+          storyCount: catalogStories.length,
+          firstStory: firstStory,
+          userProfile: profile,
+          userTrait: userTrait,
+          filteredStoryCount: filteredStories?.length || 0
+        }
+      };
+      
+    } catch (error: any) {
+      console.error('Basic story loading test failed:', error);
+      return {
+        success: false,
+        message: `Test failed: ${error.message}`
+      };
+    }
+  }
 }
 
 export const apiService = new ApiService();

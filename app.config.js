@@ -64,6 +64,7 @@ export default ({ config }) => {
           backgroundColor: "#000000"
         }
       ],
+      "expo-av",
     ],
     ios: {
       supportsTablet: true
@@ -77,7 +78,10 @@ export default ({ config }) => {
       edgeToEdgeEnabled: true,
       permissions: [
         "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE"
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE"
       ]
     },
     web: {

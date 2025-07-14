@@ -45,5 +45,6 @@ export type CodexModalProps = {
     mapArea: string;
     difficulty: string;
   }) => void;
-  unlockedAreas: string[];
+  unlockedAreas?: string[]; // Made optional since we're not using it anymore
+  selectedType?: 'journal' | 'draw' | 'voice';
 };

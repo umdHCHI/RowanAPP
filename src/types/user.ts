@@ -51,6 +51,14 @@ export interface UserProfile {
         completion_type?: string | null;
         completion_data_id?: number | null;
         character?: Character; //pulling in the character object
+        personality_scores?: {
+            openness: number;
+            conscientiousness: number;
+            extraversion: number;
+            agreeableness: number;
+            neuroticism: number;
+        };
+        primary_trait?: string;
         created_at?: string;
         updated_at?: string;
     } | null;
@@ -120,7 +128,6 @@ export interface GameData {
     last_played: string;
     current_story_id: string | null;
     current_passage_id: string | null;
-    unlocked_areas: string[];
     completed_prompts: string[];
     total_entries: number;
 }
@@ -297,7 +304,7 @@ export const createCharacterCreatorCategories = (
   ];
 
   const colorCategories: CategoryConfig[] = [
-    { label: 'Skin Color', options: 16, current: character.selectedBaseColor, setter: setters.setSelectedBaseColor },
+    { label: 'Skin Color', options: 9, current: character.selectedBaseColor, setter: setters.setSelectedBaseColor },
     { label: 'Hair Color', options: 16, current: character.selectedHairColor, setter: setters.setSelectedHairColor },
     { label: 'Eye Color', options: 16, current: character.selectedEyeColor, setter: setters.setSelectedEyeColor },
     { label: 'Eyebrow Color', options: 16, current: character.selectedEyebrowColor, setter: setters.setSelectedEyebrowColor },

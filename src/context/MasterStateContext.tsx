@@ -419,21 +419,15 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
 
   const completeCharacter = async () => {
-    console.log('=== COMPLETE CHARACTER ONBOARDING STARTED ===');
     try {
       // Call the backend to mark onboarding as complete with character path
-      console.log('Calling apiService.completeOnboarding...');
       await apiService.completeOnboarding('character');
-      console.log('apiService.completeOnboarding completed');
       
       // Update local state
-      console.log('Updating local onboarding state...');
       setIsComplete(true);
       setAssignedPath("character");
       setResearchGroup("A");
-      console.log('Local onboarding state updated');
     } catch (error) {
-      console.error('Backend onboarding completion failed, updating local state anyway:', error);
       // Still update local state even if backend call fails
       setIsComplete(true);
       setAssignedPath("character");
@@ -518,6 +512,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [characterName, setCharacterName] = useState("");
   const [selectedBaseModel, setSelectedBaseModel] = useState(0);
   const [selectedBaseColor, setSelectedBaseColor] = useState(0); // color index for base model
+
+  const debugSetSelectedBaseColor = (value: number) => {
+    console.log('[setSelectedBaseColor] value:', value);
+    setSelectedBaseColor(value);
+  }
   const [selectedHairStyle, setSelectedHairStyle] = useState(0);
   const [selectedHairColor, setSelectedHairColor] = useState(0);
   const [selectedEyeType, setSelectedEyeType] = useState(0);
@@ -777,8 +776,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const getBaseAsset = () => {
     // Use backend character data if available, otherwise fall back to local state
-    const baseModel = backendCharacter?.character_config?.selected_base_model ?? selectedBaseModel;
-    return baseOptions[baseModel] || baseOptions[0];
+    const baseColor = backendCharacter?.character_config?.selected_base_color ?? selectedBaseColor;
+    console.log('[getBaseAsset] selectedBaseColor:', baseColor);
+    // The base asset should be the skin color - use selectedBaseColor to get the correct base file
+    const asset = baseOptions[baseColor] || baseOptions[0];
+    console.log('[getBaseAsset] using asset:', asset);
+    return asset;
   };
 
   const getMouthAsset = () => {
@@ -1229,8 +1232,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   // ===== NEW REWARD SYSTEM HANDLERS =====
   const handleStoryRewardTracker = (rewardTracker: any) => {
     // This will be called when a story is completed with accumulated rewards
-    console.log('=== HANDLING STORY REWARD TRACKER ===');
-    console.log('Reward tracker:', rewardTracker);
     
     // Update archive progress with the rewards
     if (rewardTracker.totalStatGains) {
@@ -1279,15 +1280,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   // ===== NEW CHARACTER CREATION HANDLERS (UPDATED FOR NEW BACKEND) =====
   const createCharacter = async () => {//character creation
-    console.log('=== MASTER STATE: CREATE CHARACTER STARTED ===');
-    console.log('Auth token present:', !!authToken);
     
     if (!authToken) {
       setError("No authentication token");
       return;
     }
 
-    console.log('Setting loading state to true...');
     setIsLoading(true);
     setError(null);
 
@@ -1310,25 +1308,20 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         }
       );
 
-      console.log('Character created successfully:', createdCharacter);
       setBackendCharacter(createdCharacter);
 
       // Complete onboarding - await this to ensure it completes before continuing
-      console.log('Calling completeCharacter...');
       await completeCharacter();
-      console.log('completeCharacter completed');
 
       // Load additional data (temporarily disabled until backend endpoints are implemented)
       // await memoizedLoadHomeData();
       // await memoizedLoadAvailableTools();
       // await memoizedLoadMyTools();
     } catch (error: any) {
-      console.error('Character creation failed:', error);
       setError(
         "Failed to create character: " + (error?.message || "Unknown error")
       );
     } finally {
-      console.log('Setting loading state to false...');
       setIsLoading(false);
     }
   };
@@ -1482,29 +1475,23 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     try {
       await appearanceService.createCodexEntry(entryData);
       await memoizedLoadRecentCodexEntries(); // Refresh entries
-
-      Alert.alert("📝 Entry Created!", "Your journal entry has been saved.", [
-        { text: "Wonderful!", style: "default" },
-      ]);
     } catch (error: any) {
       setError(
         "Failed to create entry: " + (error?.message || "Unknown error")
       );
+      throw error; // Re-throw so the calling component can handle it
     }
   };
   const quickJournalEntry = async (
-    promptId: string,
+    promptText: string,
     content: string,
     entryType: 'journal' | 'draw' | 'voice'
   ) => {
     try {
       await appearanceService.createCodexEntry({
-        prompt_id: promptId,
+        prompt: promptText,
         entry_type: entryType,
         content: content,
-        skill_category: 'Personal Growth',
-        map_area: 'entrance',
-        difficulty: 'Beginner'
       });
       await memoizedLoadRecentCodexEntries(); // Refresh entries
 
@@ -1787,16 +1774,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   useEffect(() => {
     // Only load data when we have both token AND user data AND this is from a fresh login
     // Don't automatically load data on startup with stored token
-    console.log('MasterStateContext: useEffect triggered');
-    console.log('Auth token present:', !!authToken);
-    console.log('User data present:', !!user);
     
     // Initialize the API service
     const initializeApiService = async () => {
       try {
-        console.log('MasterStateContext: Initializing API service...');
         await apiService.initialize();
-        console.log('MasterStateContext: API service initialized');
       } catch (error) {
         console.error('MasterStateContext: Failed to initialize API service:', error);
       }
@@ -1807,7 +1789,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     
     // Load onboarding status if we have an auth token
     if (authToken) {
-      console.log('MasterStateContext: Loading onboarding status...');
       loadUserOnboardingStatus();
     } else {
       console.log('MasterStateContext: No auth token, skipping data load');
@@ -1864,7 +1845,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       selectedBackgroundColor,
       setCharacterName,
       setSelectedBaseModel,
-      setSelectedBaseColor,
+      setSelectedBaseColor: debugSetSelectedBaseColor,
       setSelectedHairStyle,
       setSelectedHairColor,
       setSelectedEyeType,

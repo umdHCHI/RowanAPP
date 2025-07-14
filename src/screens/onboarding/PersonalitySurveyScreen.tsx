@@ -2,204 +2,217 @@ import { useTheme } from "@/src/imports";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-    Modal,
-    SafeAreaView,
-    Text,
-    TouchableOpacity,
-    View
+  Modal,
+  SafeAreaView,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { useMasterState } from "../../context/MasterStateContext";
 import { apiService } from "../../services/apiService";
 
+/**
+ * BFI-2-XS (Big Five Inventory–2 Extra-Short Form)
+ * Soto, C. J., & John, O. P. (2017). Short and extra-short forms of the Big Five Inventory–2: 
+ * The BFI-2-S and BFI-2-XS. Journal of Research in Personality, 68, 69-81.
+ * 
+ * Scoring Key (R = reverse-keyed items):
+ * Extraversion: 1R, 6, 11
+ * Agreeableness: 2, 7R, 12
+ * Conscientiousness: 3R, 8R, 13
+ * Negative Emotionality: 4, 9, 14R
+ * Open-Mindedness: 5, 10R, 15
+ */
+
 const QUESTIONS = [
   {
-    //Extraversion R 1
+    // Extraversion R - Q1: "Tends to be quiet"
     question: 'I am someone who tends to be quiet',
     trait: 'extraversion',
     options: [
-      { text: 'Strongly disagree', value: 5 },
-      { text: 'Somewhat disagree', value: 4 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 2 },
-      { text: 'Strongly agree', value: 1 },
+      { text: 'Disagree strongly', value: 5 },
+      { text: 'Disagree a little', value: 4 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 2 },
+      { text: 'Agree strongly', value: 1 },
     ],
   },
   {
-    //Agreeableness 2
-    question: 'I am someone who has a soft heart',
+    // Agreeableness - Q2: "Is compassionate, has a soft heart"
+    question: 'I am someone who is compassionate, has a soft heart',
     trait: 'agreeableness',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
   {
-    //Conscientiousness R 3
+    // Conscientiousness R - Q3: "Tends to be disorganized"
     question: 'I am someone who tends to be disorganized',
     trait: 'conscientiousness',
     options: [
-      { text: 'Strongly disagree', value: 5 },
-      { text: 'Somewhat disagree', value: 4 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 2 },
-      { text: 'Strongly agree', value: 1 },
+      { text: 'Disagree strongly', value: 5 },
+      { text: 'Disagree a little', value: 4 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 2 },
+      { text: 'Agree strongly', value: 1 },
     ],
   },
   {
-    //Neuroticism 4
+    // Negative Emotionality - Q4: "Worries a lot"
     question: 'I am someone who worries a lot',
-    trait: 'neuroticism',
+    trait: 'negativeEmotionality',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
   {
-    //Openness to experience 5
+    // Open-Mindedness - Q5: "Is fascinated by art, music, or literature"
     question: 'I am someone who is fascinated by art, music, or literature',
-    trait: 'openness',
+    trait: 'openMindedness',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
   {
-   //Extraversion 6
-    question: 'I am someone acts as a leader',
+    // Extraversion - Q6: "Is dominant, acts as a leader"
+    question: 'I am someone who is dominant, acts as a leader',
     trait: 'extraversion',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
   {
-    //Agreeableness R 7
+    // Agreeableness R - Q7: "Is sometimes rude to others"
     question: 'I am someone who is sometimes rude to others',
     trait: 'agreeableness',
     options: [
-      { text: 'Strongly disagree', value: 5 },
-      { text: 'Somewhat disagree', value: 4 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 2 },
-      { text: 'Strongly agree', value: 1 },
+      { text: 'Disagree strongly', value: 5 },
+      { text: 'Disagree a little', value: 4 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 2 },
+      { text: 'Agree strongly', value: 1 },
     ],
   },
   {
-    //Conscientiousness 8 R
+    // Conscientiousness R - Q8: "Has difficulty getting started on tasks"
     question: 'I am someone who has difficulty getting started on tasks',
     trait: 'conscientiousness',
     options: [
-      { text: 'Strongly disagree', value: 5 },
-      { text: 'Somewhat disagree', value: 4 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 2 },
-      { text: 'Strongly agree', value: 1 },
+      { text: 'Disagree strongly', value: 5 },
+      { text: 'Disagree a little', value: 4 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 2 },
+      { text: 'Agree strongly', value: 1 },
     ],
   },
   {
-    //Neuroticism 9
-    question: 'I am someone who tends to feel depressed',
-    trait: 'neuroticism',
+    // Negative Emotionality - Q9: "Tends to feel depressed, blue"
+    question: 'I am someone who tends to feel depressed, blue',
+    trait: 'negativeEmotionality',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
   {
-    //Openness to experience 10 R
+    // Open-Mindedness R - Q10: "Has little interest in abstract ideas"
     question: 'I am someone who has little interest in abstract ideas',
-    trait: 'openness',
+    trait: 'openMindedness',
     options: [
-      { text: 'Strongly disagree', value: 5 },
-      { text: 'Somewhat disagree', value: 4 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 2 },
-      { text: 'Strongly agree', value: 1 },
+      { text: 'Disagree strongly', value: 5 },
+      { text: 'Disagree a little', value: 4 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 2 },
+      { text: 'Agree strongly', value: 1 },
     ],
   },
   {
-    //Extraversion 11
+    // Extraversion - Q11: "Is full of energy"
     question: 'I am someone who is full of energy',
     trait: 'extraversion',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
   {
-    //agreeableness 12
+    // Agreeableness - Q12: "Assumes the best about people"
     question: 'I am someone who assumes the best about people',
     trait: 'agreeableness',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
   {
-    //conscientiousness 13
-    question: 'I am someone who can always be counted on',
+    // Conscientiousness - Q13: "Is reliable, can always be counted on"
+    question: 'I am someone who is reliable, can always be counted on',
     trait: 'conscientiousness',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
   {
-    //neuroticism 14 R
-    question: 'I am someone who is not easily upset',
-    trait: 'neuroticism',
+    // Negative Emotionality R - Q14: "Is emotionally stable, not easily upset"
+    question: 'I am someone who is emotionally stable, not easily upset',
+    trait: 'negativeEmotionality',
     options: [
-      { text: 'Strongly disagree', value: 5 },
-      { text: 'Somewhat disagree', value: 4 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 2 },
-      { text: 'Strongly agree', value: 1 },
+      { text: 'Disagree strongly', value: 5 },
+      { text: 'Disagree a little', value: 4 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 2 },
+      { text: 'Agree strongly', value: 1 },
     ],
   },
   {
-    //Openness to experience 15
-    question: 'I am someone who comes up with new ideas',
-    trait: 'openness',
+    // Open-Mindedness - Q15: "Is original, comes up with new ideas"
+    question: 'I am someone who is original, comes up with new ideas',
+    trait: 'openMindedness',
     options: [
-      { text: 'Strongly disagree', value: 1 },
-      { text: 'Somewhat disagree', value: 2 },
-      { text: 'Neither agree or disagree', value: 3 },
-      { text: 'Somewhat agree', value: 4 },
-      { text: 'Strongly agree', value: 5 },
+      { text: 'Disagree strongly', value: 1 },
+      { text: 'Disagree a little', value: 2 },
+      { text: 'Neutral; no opinion', value: 3 },
+      { text: 'Agree a little', value: 4 },
+      { text: 'Agree strongly', value: 5 },
     ],
   },
 ];
 
 const traitToArchetype: Record<string, string> = {
-  extraversion: "The Voice",
-  agreeableness: "The Healer",
-  conscientiousness: "The Architect",
-  neuroticism: "The Mirror",
-  openness: "The Seeker"
+  extraversion: "The Social Catalyst",
+  agreeableness: "The Harmonious Healer",
+  conscientiousness: "The Methodical Guardian",
+  negativeEmotionality: "The Depth Walker",
+  openMindedness: "The Sage Explorer"
 };
 
 interface SurveyAnswer {
@@ -212,8 +225,8 @@ interface TraitAverages {
   extraversion: number;
   agreeableness: number;
   conscientiousness: number;
-  neuroticism: number;
-  openness: number;
+  negativeEmotionality: number;
+  openMindedness: number;
 }
 
 const getPrimaryTrait = (averages: TraitAverages): keyof TraitAverages => {
@@ -270,11 +283,14 @@ export default function PersonalitySurveyScreen() {
       extraversion: {total: 0, count: 0},
       agreeableness: {total: 0, count: 0},
       conscientiousness: {total: 0, count: 0},
-      neuroticism: {total: 0, count: 0},
-      openness: {total: 0, count: 0}
+      negativeEmotionality: {total: 0, count: 0},
+      openMindedness: {total: 0, count: 0}
     };
 
-    answers.forEach((answer) => {
+    // Filter out undefined answers and only process valid answers
+    const validAnswers = answers.filter(answer => answer !== undefined);
+    
+    validAnswers.forEach((answer) => {
       const trait = answer.selected_trait as keyof typeof traitSums;
       traitSums[trait].total += answer.answer_value;
       traitSums[trait].count += 1;
@@ -317,40 +333,51 @@ export default function PersonalitySurveyScreen() {
 
   // Test function to verify calculation logic
   const testCalculation = () => {
-    console.log('=== TESTING BIG FIVE CALCULATION ===');
+    console.log('=== TESTING BFI-2-XS CALCULATION ===');
     
-    // Test case 1: High extraversion answers
+    // Test case 1: High extraversion answers (BFI-2-XS format)
     const testAnswers1: SurveyAnswer[] = [
-      { question_id: 1, selected_trait: 'extraversion', answer_value: 5 }, // Strongly disagree with "quiet" (reverse scored)
-      { question_id: 6, selected_trait: 'extraversion', answer_value: 5 }, // Strongly agree with "acts as leader"
-      { question_id: 11, selected_trait: 'extraversion', answer_value: 5 }, // Strongly agree with "full of energy"
+      { question_id: 1, selected_trait: 'extraversion', answer_value: 5 }, // Disagree strongly with "tends to be quiet" (reverse scored)
+      { question_id: 6, selected_trait: 'extraversion', answer_value: 5 }, // Agree strongly with "is dominant, acts as a leader"
+      { question_id: 11, selected_trait: 'extraversion', answer_value: 5 }, // Agree strongly with "is full of energy"
     ];
     
     const result1 = calculateTraitAverages(testAnswers1);
     console.log('Test 1 - High Extraversion:', result1);
     console.log('Primary trait should be extraversion:', getPrimaryTrait(result1));
     
-    // Test case 2: High agreeableness answers
+    // Test case 2: High agreeableness answers (BFI-2-XS format)
     const testAnswers2: SurveyAnswer[] = [
-      { question_id: 2, selected_trait: 'agreeableness', answer_value: 5 }, // Strongly agree with "soft heart"
-      { question_id: 7, selected_trait: 'agreeableness', answer_value: 5 }, // Strongly disagree with "rude" (reverse scored)
-      { question_id: 12, selected_trait: 'agreeableness', answer_value: 5 }, // Strongly agree with "assumes best"
+      { question_id: 2, selected_trait: 'agreeableness', answer_value: 5 }, // Agree strongly with "is compassionate, has a soft heart"
+      { question_id: 7, selected_trait: 'agreeableness', answer_value: 5 }, // Disagree strongly with "is sometimes rude to others" (reverse scored)
+      { question_id: 12, selected_trait: 'agreeableness', answer_value: 5 }, // Agree strongly with "assumes the best about people"
     ];
     
     const result2 = calculateTraitAverages(testAnswers2);
     console.log('Test 2 - High Agreeableness:', result2);
     console.log('Primary trait should be agreeableness:', getPrimaryTrait(result2));
     
-    // Test case 3: Balanced answers (all neutral)
+    // Test case 3: All "Agree strongly" answers (edge case)
     const testAnswers3: SurveyAnswer[] = QUESTIONS.map((q, idx) => ({
       question_id: idx + 1,
       selected_trait: q.trait as keyof TraitAverages,
-      answer_value: 3 // All neutral answers
+      answer_value: 5 // All "Agree strongly" answers
     }));
     
     const result3 = calculateTraitAverages(testAnswers3);
-    console.log('Test 3 - All Neutral Answers:', result3);
-    console.log('Primary trait with neutral answers:', getPrimaryTrait(result3));
+    console.log('Test 3 - All "Agree Strongly" Answers:', result3);
+    console.log('Primary trait with all agree strongly:', getPrimaryTrait(result3));
+    
+    // Test case 4: All "Disagree strongly" answers (edge case)
+    const testAnswers4: SurveyAnswer[] = QUESTIONS.map((q, idx) => ({
+      question_id: idx + 1,
+      selected_trait: q.trait as keyof TraitAverages,
+      answer_value: 1 // All "Disagree strongly" answers
+    }));
+    
+    const result4 = calculateTraitAverages(testAnswers4);
+    console.log('Test 4 - All "Disagree Strongly" Answers:', result4);
+    console.log('Primary trait with all disagree strongly:', getPrimaryTrait(result4));
     
     console.log('=== END TEST ===');
   };
@@ -367,11 +394,14 @@ export default function PersonalitySurveyScreen() {
       extraversion: [],
       agreeableness: [],
       conscientiousness: [],
-      neuroticism: [],
-      openness: []
+      negativeEmotionality: [],
+      openMindedness: []
     };
     
-    answers.forEach(answer => {
+    // Filter out undefined answers
+    const validAnswers = answers.filter(answer => answer !== undefined);
+    
+    validAnswers.forEach(answer => {
       answersByTrait[answer.selected_trait].push(answer);
     });
     
@@ -407,6 +437,30 @@ export default function PersonalitySurveyScreen() {
   // Run test on component mount
   React.useEffect(() => {
     testCalculation();
+    
+    // Additional BFI-2-XS verification
+    console.log('=== BFI-2-XS VERIFICATION ===');
+    console.log('Total questions:', QUESTIONS.length);
+    console.log('Expected: 15 questions');
+    
+    // Verify each trait has exactly 3 questions
+    const traitCounts = QUESTIONS.reduce((acc, q) => {
+      acc[q.trait] = (acc[q.trait] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    console.log('Questions per trait:', traitCounts);
+    console.log('Expected: 3 questions per trait');
+    
+    // Verify reverse scoring is correct
+    const reverseScoredQuestions = [1, 3, 7, 8, 10, 14]; // BFI-2-XS reverse scored questions
+    reverseScoredQuestions.forEach(qNum => {
+      const question = QUESTIONS[qNum - 1];
+      const isReverseScored = question.options[0].value === 5; // First option should be highest value
+      console.log(`Q${qNum} (${question.trait}): ${question.question} - Reverse scored: ${isReverseScored}`);
+    });
+    
+    console.log('=== END BFI-2-XS VERIFICATION ===');
   }, []);
 
   // Analyze answers whenever they change
@@ -416,6 +470,10 @@ export default function PersonalitySurveyScreen() {
 
   const handleOptionSelect = (optionIdx: number) => {
     const updated = [...answers];
+    // Ensure the array has enough elements by filling with undefined if needed
+    if (updated.length <= currentQuestion) {
+      updated.length = currentQuestion + 1;
+    }
     updated[currentQuestion] = {
       question_id: currentQuestion + 1,
       selected_trait: QUESTIONS[currentQuestion].trait as keyof TraitAverages,
@@ -443,7 +501,7 @@ export default function PersonalitySurveyScreen() {
       const primaryTrait = getPrimaryTrait(calculatedAverages);
       
       // Format answers as a dictionary with question_id as key and answer_value as value
-      const formattedAnswers = answers.reduce((acc, answer) => {
+      const formattedAnswers = answers.filter(answer => answer !== undefined).reduce((acc, answer) => {
         acc[answer.question_id] = answer.answer_value;
         return acc;
       }, {} as Record<number, number>);
@@ -467,15 +525,15 @@ export default function PersonalitySurveyScreen() {
           extraversion: calculatedAverages.extraversion,
           agreeableness: calculatedAverages.agreeableness,
           conscientiousness: calculatedAverages.conscientiousness,
-          neuroticism: calculatedAverages.neuroticism,
-          openness: calculatedAverages.openness
+          negativeEmotionality: calculatedAverages.negativeEmotionality,
+          openMindedness: calculatedAverages.openMindedness
         },
         
         // Raw survey responses (question_id -> answer_value)
         responses: formattedAnswers,
         
         // Detailed answer breakdown with full context
-        detailed_answers: answers.map(answer => ({
+        detailed_answers: answers.filter(answer => answer !== undefined).map(answer => ({
           question_id: answer.question_id,
           question_text: QUESTIONS[answer.question_id - 1]?.question,
           trait: answer.selected_trait,
@@ -485,7 +543,7 @@ export default function PersonalitySurveyScreen() {
                             QUESTIONS[answer.question_id - 1]?.question.includes('disorganized') ||
                             QUESTIONS[answer.question_id - 1]?.question.includes('rude') ||
                             QUESTIONS[answer.question_id - 1]?.question.includes('difficulty getting started') ||
-                            QUESTIONS[answer.question_id - 1]?.question.includes('not easily upset') ||
+                            QUESTIONS[answer.question_id - 1]?.question.includes('emotionally stable') ||
                             QUESTIONS[answer.question_id - 1]?.question.includes('little interest in abstract')
         })),
         
@@ -497,25 +555,25 @@ export default function PersonalitySurveyScreen() {
         
         // Additional research metrics
         trait_counts: Object.keys(calculatedAverages).reduce((acc, trait) => {
-          acc[trait] = answers.filter(a => a.selected_trait === trait).length;
+          acc[trait] = answers.filter(a => a !== undefined && a.selected_trait === trait).length;
           return acc;
         }, {} as Record<string, number>),
         
         // Response pattern analysis
         response_distribution: {
-          strongly_disagree: answers.filter(a => a.answer_value === 1).length,
-          somewhat_disagree: answers.filter(a => a.answer_value === 2).length,
-          neutral: answers.filter(a => a.answer_value === 3).length,
-          somewhat_agree: answers.filter(a => a.answer_value === 4).length,
-          strongly_agree: answers.filter(a => a.answer_value === 5).length
+          strongly_disagree: answers.filter(a => a !== undefined && a.answer_value === 1).length,
+          somewhat_disagree: answers.filter(a => a !== undefined && a.answer_value === 2).length,
+          neutral: answers.filter(a => a !== undefined && a.answer_value === 3).length,
+          somewhat_agree: answers.filter(a => a !== undefined && a.answer_value === 4).length,
+          strongly_agree: answers.filter(a => a !== undefined && a.answer_value === 5).length
         },
         
         // Statistical measures
         response_variance: Object.values(calculatedAverages).reduce((sum, avg) => {
           const variance = answers
-            .filter(a => a.selected_trait === Object.keys(calculatedAverages).find(k => calculatedAverages[k as keyof TraitAverages] === avg))
+            .filter(a => a !== undefined && a.selected_trait === Object.keys(calculatedAverages).find(k => calculatedAverages[k as keyof TraitAverages] === avg))
             .reduce((vsum, answer) => vsum + Math.pow(answer.answer_value - avg, 2), 0) / 
-            answers.filter(a => a.selected_trait === Object.keys(calculatedAverages).find(k => calculatedAverages[k as keyof TraitAverages] === avg)).length;
+            answers.filter(a => a !== undefined && a.selected_trait === Object.keys(calculatedAverages).find(k => calculatedAverages[k as keyof TraitAverages] === avg)).length;
           return sum + variance;
         }, 0) / Object.keys(calculatedAverages).length,
         
@@ -559,20 +617,21 @@ export default function PersonalitySurveyScreen() {
         console.log('Continuing to personality screen despite survey onboarding error');
       }
       
-      // Add a small delay to ensure the backend has processed the survey data
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Add a longer delay to ensure the backend has processed the survey data
+      console.log("=== WAITING FOR BACKEND TO PROCESS SURVEY DATA ===");
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       console.log("=== NAVIGATING TO PERSONALITY SCREEN ===");
       console.log("Final auth token check:", authToken ? "Present" : "Missing");
       
       // Pass the survey data directly to the personality screen via navigation params
-      // Convert trait names to capitalized format for frontend
+      // Map BFI-2-XS trait names to frontend trait names
       const traitMap: Record<string, string> = {
-        'openness': 'Openness',
+        'openMindedness': 'Openness', // BFI-2-XS openMindedness maps to frontend Openness
         'conscientiousness': 'Conscientiousness', 
         'extraversion': 'Extraversion',
         'agreeableness': 'Agreeableness',
-        'neuroticism': 'Neuroticism'
+        'negativeEmotionality': 'Neuroticism' // BFI-2-XS negativeEmotionality maps to frontend Neuroticism
       };
       
       const surveyData = {
@@ -582,6 +641,8 @@ export default function PersonalitySurveyScreen() {
       };
       
       console.log("Passing survey data to personality screen:", surveyData);
+      console.log("Original primary trait (BFI-2-XS):", primaryTrait);
+      console.log("Mapped primary trait (Frontend):", traitMap[primaryTrait] || primaryTrait);
       
       // Navigate to personality home screen with survey data
       router.replace({

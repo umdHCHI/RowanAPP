@@ -27,6 +27,27 @@ Welcome to the frontend codebase for **The Archive**, a narrative-based stress m
 
 ---
 
+##  Mobile Features
+
+### Voice Recording
+- **Mobile Support**: Voice recording is now fully supported on mobile devices using `expo-av`
+- **Permissions**: The app will request microphone permissions when needed
+- **File Upload**: Audio files are uploaded to the backend when saving to the Codex
+- **Fallback**: If upload fails, recordings are saved locally
+
+### Drawing Canvas
+- **Mobile Support**: Drawing functionality works on both web and mobile
+- **Touch Input**: Optimized for touch input using PanResponder
+- **File Upload**: Drawing data is uploaded as JSON to the backend
+- **Fallback**: If upload fails, drawings are saved locally as JSON
+
+### Codex Modal
+- **Cross-Platform**: Works on web, iOS, and Android
+- **File Handling**: Automatically handles file uploads for mobile devices
+- **Backend Integration**: Saves entries to the backend with proper file references
+
+---
+
 ##  Folder Structure
 
 ```

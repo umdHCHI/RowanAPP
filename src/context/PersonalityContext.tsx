@@ -1,9 +1,9 @@
 import React, {
-    createContext,
-    ReactNode,
-    useContext,
-    useEffect,
-    useState,
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
 import { apiService } from "../services/apiService"; // Fixed import for apiService
 import { useAuth } from "./AuthContext";
@@ -612,16 +612,20 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
           // Try to get survey data
           const surveyData = await apiService.getMostRecentSurvey();
           
+          console.log('PersonalityContext: Survey data from backend:', surveyData);
+          console.log('PersonalityContext: Survey data big_five_scores:', surveyData?.big_five_scores);
+          
           if (surveyData && surveyData.big_five_scores) {
             console.log('PersonalityContext: Found survey data:', surveyData);
             setUserType("personality");
             
+            // Map BFI-2-XS trait names to frontend trait names
             const scores: PersonalityScores = {
-              Openness: surveyData.big_five_scores.openness || 5,
+              Openness: surveyData.big_five_scores.openMindedness || 5, // BFI-2-XS openMindedness maps to frontend Openness
               Conscientiousness: surveyData.big_five_scores.conscientiousness || 5,
               Extraversion: surveyData.big_five_scores.extraversion || 5,
               Agreeableness: surveyData.big_five_scores.agreeableness || 5,
-              Neuroticism: surveyData.big_five_scores.neuroticism || 5,
+              Neuroticism: surveyData.big_five_scores.negativeEmotionality || 5, // BFI-2-XS negativeEmotionality maps to frontend Neuroticism
             };
 
             console.log('PersonalityContext: Setting personality scores:', scores);

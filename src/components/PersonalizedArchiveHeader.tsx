@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { PersonalityConfigs } from '../constants/personality';
-import { PersonalityKey } from '../imports';
+import { PERSONALITY_BUILDS, PersonalityConfigs, PersonalityKey } from '../imports';
 
 interface PersonalizedArchiveHeaderProps {
   primaryTrait: PersonalityKey;
@@ -22,11 +21,13 @@ const PersonalizedArchiveHeader = ({
   }
   
   const config = PersonalityConfigs[primaryTrait];
+  const personalityBuild = PERSONALITY_BUILDS[primaryTrait];
   
   // Fallback to default config if the specific one is not found
-  if (!config) {
+  if (!config || !personalityBuild) {
     console.log("No config found for primaryTrait:", primaryTrait, "using default");
     const defaultConfig = PersonalityConfigs.Openness;
+    const defaultBuild = PERSONALITY_BUILDS.Openness;
     return (
       <View style={[styles.headerContainer, { backgroundColor: defaultConfig.theme.background }]}>
         <Text style={{ color: '#fff', textAlign: 'center', padding: 20 }}>
@@ -165,7 +166,7 @@ const PersonalizedArchiveHeader = ({
 
           <View style={styles.scholarInfo}>
             <Text style={dynamicStyles.scholarRank}>Archive Scholar</Text>
-            <Text style={dynamicStyles.scholarClass}>{config.scholarClass}</Text>
+            <Text style={dynamicStyles.scholarClass}>{personalityBuild.class}</Text>
             <Text style={styles.scholarLevel}>
               Level {getCharacterLevel()}
             </Text>

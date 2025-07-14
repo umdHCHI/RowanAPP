@@ -28,13 +28,6 @@ export default function PersonalityLayout() {
           title: 'Personality',
         }}
       />
-      <Stack.Screen
-        name="personality-test"
-        options={{
-          title: 'Personality Test',
-          headerRight: () => null,
-        }}
-      />
     </Stack>
   );
 } 

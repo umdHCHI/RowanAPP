@@ -80,9 +80,12 @@ export const API_ENDPOINTS = {
     toolUsageStats: 'characters/character-tools/usage-stats/',
     characterTools: 'characters/character-tools/',    // Journal & Codex (your actual backend structure)
     journalPrompts: 'journal/journal-prompts/',
+    //post to journal 
     codexEntries: 'journal/codex-entries/',
     myCodexEntries: 'journal/codex-entries/my-entries/',
     createCodexEntry: 'journal/codex-entries/',
+    uploadAudio: 'journal/upload-audio/',
+    uploadDrawing: 'journal/upload-drawing/',
     
     // Gear
     gearTypes: 'characters/gear-types/',
@@ -101,6 +104,9 @@ export const API_ENDPOINTS = {
     personalitySurveySubmit: 'personality/surveys/submit/',
     personalitySurveyMySurvey: 'personality/surveys/my_survey/',
     personalitySurveyUpdateScores: 'personality/surveys/update_scores/',
+    personalityStatus: 'story/personality/status/',
+    personalityStories: 'story/personality/',
+    adminTestStories: 'story/admin/test/',
     
     // Research Groups
     researchGroups: 'research/research-groups/',
@@ -111,14 +117,15 @@ export const API_ENDPOINTS = {
     stories: 'story/catalog/', // Get all stories (matches Django story_catalog view)
     
     // Game flow endpoints based on actual backend
+    storyReset: 'story/stories/', // + {storyId}/reset/
     storyStart: 'story/stories/', // + {storyId}/start/
     getCurrentPassage: 'story/stories/',// + {storyId}/current/
-    makeChoice: 'story/choices/',  // + {choiceId}/select/
+    // makeChoice: 'story/make_choice/',  // This endpoint doesn't exist on the backend
     getUserProgress: 'story/progress/user/',
     restartStory: 'story/stories/', // + {storyId}/restart/
     
     // Legacy endpoints (keeping for compatibility)
-    storypassages: 'story/stories/', // Game flow endpoints
+    storypassages: 'story/', // {storyId}/passages/ - Get all passages for a story
     storyChapters: 'story/stories/', // {storyId}/chapters/
     storyProgress: 'story/stories/', // {storyId}/progress/
     storyComplete: 'story/storyComplete/',
@@ -128,7 +135,7 @@ export const API_ENDPOINTS = {
     passageChoices: 'story/passages/', // {passageId}/choices/
     choiceSelect: 'story/choices/', // {choiceId}/select/
     storyProgressGet: 'story/stories/', // {storyId}/progress/
-    chapterPassages: 'story/chapters/', // {chapterId}/passages/
+    chapterPassages: 'story/stories/', // {storyId}/chapters/{chapterId}/passages/
     
     // CRUD Operations endpoints
     storiesCRUD: 'stories/',

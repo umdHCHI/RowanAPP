@@ -1,8 +1,5 @@
 
 
-
-export const PersonalityKey = "Openness" | "Conscientiousness" | "Extraversion" | "Agreeableness" | "Neuroticism";
-
 // 1. DAILY CURATOR MESSAGES
 export const DailyCuratorMessages = {
   Openness: [
@@ -105,3 +102,23 @@ export const PersonalityWellnessAttributes: Record<PersonalityKey, { label: stri
     { label: "Self-Soothing", description: "Develop healthy techniques to comfort yourself during distress.", color: "#16A085" },
   ],
 };
+
+export type PersonalityKey = "Openness" | "Conscientiousness" | "Extraversion" | "Agreeableness" | "Neuroticism";
+
+export type PersonalityType = {
+  personality_type: PersonalityKey;
+  survey_completed: boolean;
+  research_condition: string | null;
+  is_condition_b: boolean;
+  needs_survey: boolean;
+  is_admin_user: boolean;
+}
+
+export type PersonalityStories = {
+  stories: any[];
+  personality_type: string;
+  survey_completed: boolean;
+  is_admin_testing: boolean;
+  includes_main_stories: boolean;
+  total_stories: number;
+}

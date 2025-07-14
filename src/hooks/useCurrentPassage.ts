@@ -20,35 +20,55 @@ export const usePassageFetcher = (
     console.log("=== FETCHING PASSAGE ===");
     console.log("Story ID:", storyId);
     console.log("Passage ID:", passageId);
-      apiService
-      .getPassage(parseInt(storyId), passageId)
-      .then((res) => {
+    
+    const fetchPassage = async () => {
+      try {
+        let res;
+        if (passageId) {
+          // Fetch specific passage
+          res = await apiService.getPassage(parseInt(storyId), passageId);
+        } else {
+          // Get current passage
+          res = await apiService.getCurrentPassage(parseInt(storyId));
+        }
+        
         console.log("Passage fetch response:", res);
         console.log("Response type:", typeof res);
         console.log("Response keys:", res ? Object.keys(res) : "No keys");
         
         // Check what kind of response we got
-        if (res?.content) {
+        if (res?.passage?.content) {
+          console.log("Found content in passage:", res.passage.content?.substring(0, 100) + "...");
+        } else if (res?.content) {
           console.log("Found content in response:", res.content?.substring(0, 100) + "...");
         }
-        if (res?.passage_id) {
+        if (res?.passage?.passage_id) {
+          console.log("Found passage_id:", res.passage.passage_id);
+        } else if (res?.passage_id) {
           console.log("Found passage_id:", res.passage_id);
         }
-        if (res?.choices) {
+        if (res?.passage?.choices) {
+          console.log("Found choices count:", res.passage.choices?.length);
+        } else if (res?.choices) {
           console.log("Found choices count:", res.choices?.length);
         }
         
         setData(res);
         setError(null);
-      })
-      .catch((err) => {
+      } catch (err: any) {
         console.error("Passage fetch error:", err);
         console.error("Error message:", err.message);
         console.error("Error stack:", err.stack);
         setError(`Failed to load passage: ${err.message}`);
-      })
-      .finally(() => setLoading(false));
-  }, [storyId, passageId]);  return {
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPassage();
+  }, [storyId, passageId]);  
+
+  return {
     passage: data?.passage || (data?.content ? data : null) || data?.passages || null,
     story: data?.story || data?.category || null,
     progress: data?.progress || progress?.progress_percentage || null,

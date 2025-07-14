@@ -1,25 +1,25 @@
 import EquipmentModal from "../../components/EquipmentModal";
 import { useMasterState } from "../../context/MasterStateContext";
 import {
-    Alert,
-    BlurView,
-    CharacterPreview,
-    CodexModal,
-    Dimensions,
-    EquipmentItem,
-    EquippedItems,
-    Icon,
-    Image,
-    LinearGradient,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    ThoughtDefenderModal,
-    TouchableOpacity,
-    View,
-    useEffect,
-    useState
+  Alert,
+  BlurView,
+  CharacterPreview,
+  CodexModal,
+  Dimensions,
+  EquipmentItem,
+  EquippedItems,
+  Icon,
+  Image,
+  LinearGradient,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  ThoughtDefenderModal,
+  TouchableOpacity,
+  View,
+  useEffect,
+  useState
 } from "../../imports";
 // Import StoryScreen directly to avoid circular dependency issues
 import { apiService } from "../../services/apiService";
@@ -59,15 +59,70 @@ const ArchiveInterface: React.FC = () => {
   const loadStories = async () => {
     setIsLoadingStories(true);
     try {
+      console.log('=== LOADING STORIES FROM BACKEND ===');
+      
+      // For character users, just get all stories from catalog (no personality filtering)
+      console.log('Character user - loading all stories from catalog');
       const backendStories = await apiService.getAvailableStories();
+      console.log('Backend stories loaded:', backendStories?.length || 0);
+      
       if (backendStories && backendStories.length > 0) {
-        setStories(backendStories);
-        ui.setMemoryStorys(backendStories);
+        console.log('First story details:', backendStories[0]);
+        
+        // For stories with chapters, try to load their chapter data with passages
+        const storiesWithChapters = await Promise.all(
+          backendStories.map(async (story: any) => {
+            if (story.chapter_count && story.chapter_count > 0) {
+              try {
+                console.log(`Loading chapters for story ${story.id} (${story.chapter_count} chapters)`);
+                const chapters = await apiService.getChapters(story.id);
+                console.log(`Loaded ${chapters?.length || 0} chapters for story ${story.id}`);
+                
+                // Load passages for each chapter
+                const chaptersWithPassages = await Promise.all(
+                  (chapters || []).map(async (chapter: any) => {
+                    try {
+                      console.log(`Loading passages for chapter ${chapter.id}`);
+                      const passages = await apiService.getChapterPassages(story.id, chapter.id);
+                      console.log(`Loaded ${passages?.length || 0} passages for chapter ${chapter.id}`);
+                      
+                      return {
+                        ...chapter,
+                        passages: passages || []
+                      };
+                    } catch (error) {
+                      console.warn(`Failed to load passages for chapter ${chapter.id}:`, error);
+                      return {
+                        ...chapter,
+                        passages: []
+                      };
+                    }
+                  })
+                );
+                
+                return {
+                  ...story,
+                  chapters: chaptersWithPassages
+                };
+              } catch (error) {
+                console.warn(`Failed to load chapters for story ${story.id}:`, error);
+                return story;
+              }
+            }
+            return story;
+          })
+        );
+        
+        console.log('Stories with chapters loaded:', storiesWithChapters.length);
+        setStories(storiesWithChapters);
+        ui.setMemoryStorys(storiesWithChapters);
       } else {
+        console.log('No stories found');
         setStories([]);
         ui.setMemoryStorys([]);
       }
     } catch (error) {
+      console.error('Error loading stories:', error);
       setStories([]);
       ui.setMemoryStorys([]);
     } finally {
@@ -77,37 +132,80 @@ const ArchiveInterface: React.FC = () => {
 
   // Load stories from backend on mount
   useEffect(() => {
-    // TEMPORARY: Disabled to prevent unnecessary API calls before login
-    console.log('CharacterHomeScreen: Skipping story loading - forcing login screen');
-    // loadStories();
+    loadStories();
   }, []);
+
+  // Debug function for admin story loading
+  const handleDebugStories = async () => {
+    console.log('=== DEBUG STORIES BUTTON PRESSED ===');
+    try {
+      const debugResult = await apiService.debugStoryLoading();
+      console.log('Debug result:', debugResult);
+      
+      if (debugResult.success) {
+        Alert.alert(
+          "Debug Success", 
+          `All story loading tests passed!\n\nResults:\n- Profile: ✅\n- User Trait: ${debugResult.results.userTrait}\n- Admin Stories: ${debugResult.results.adminStories?.stories?.length || 0}\n- Catalog Stories: ${debugResult.results.catalogStories?.length || 0}\n- Personality Stories: ${debugResult.results.personalityStories?.stories?.length || 0}\n- Filtered Stories: ${debugResult.results.filteredStories?.length || 0}`,
+          [{ text: "OK", style: "default" }]
+        );
+      } else {
+        Alert.alert(
+          "Debug Failed", 
+          `Story loading tests failed:\n\nErrors:\n${debugResult.errors.join('\n')}`,
+          [{ text: "OK", style: "default" }]
+        );
+      }
+    } catch (error) {
+      console.error('Debug function failed:', error);
+      Alert.alert("Debug Error", "Failed to run debug function", [{ text: "OK", style: "default" }]);
+    }
+  };
+
+  // Simple test function
+  const handleSimpleTest = async () => {
+    console.log('=== SIMPLE TEST BUTTON PRESSED ===');
+    try {
+      const testResult = await apiService.testBasicStoryLoading();
+      console.log('Test result:', testResult);
+      
+      Alert.alert(
+        testResult.success ? "Test Success" : "Test Failed",
+        testResult.message,
+        [{ text: "OK", style: "default" }]
+      );
+    } catch (error) {
+      console.error('Simple test failed:', error);
+      Alert.alert("Test Error", "Failed to run simple test", [{ text: "OK", style: "default" }]);
+    }
+  };
 
   // Load home data and journal prompts on mount (only once)
   useEffect(() => {
-    // TEMPORARY: Disabled to prevent unnecessary API calls before login
-    console.log('CharacterHomeScreen: Skipping data loading - forcing login screen');
-    // const loadData = async () => {
-    //   try {
-    //     // Load home data for character display
-    //     await wellness.loadHomeData();
+    const loadData = async () => {
+      try {
+        // Load character data first
+        await character.loadCharacter();
         
-    //     // Load available prompts first
-    //     await wellness.loadAvailablePrompts();
+        // Load home data for character display
+        await wellness.loadHomeData();
         
-    //     // Then load category-specific prompts based on current progress
-    //     const unlockedAreas = ["entrance"]; // Start with entrance, add more based on progress
-    //     const completedStoriesArray = Array.from(archive.completedStories);
-    //     await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
-    //   } catch (error: any) {
-    //     console.error('Error loading data:', error);
-    //     // Don't retry on 404 errors - the endpoint might not be implemented yet
-    //     if (error?.response?.status === 404) {
-    //       console.log('Some endpoints not found (404) - this is expected if the endpoints are not implemented');
-    //     }
-    //   }
-    // };
+        // Load available prompts first
+        await wellness.loadAvailablePrompts();
+        
+        // Then load category-specific prompts based on current progress
+        const unlockedAreas = ["entrance"]; // Start with entrance, add more based on progress
+        const completedStoriesArray = Array.from(archive.completedStories);
+        await wellness.loadCategoryPrompts(unlockedAreas, completedStoriesArray);
+      } catch (error: any) {
+        console.error('Error loading data:', error);
+        // Don't retry on 404 errors - the endpoint might not be implemented yet
+        if (error?.response?.status === 404) {
+          console.log('Some endpoints not found (404) - this is expected if the endpoints are not implemented');
+        }
+      }
+    };
 
-    // loadData();
+    loadData();
   }, []); // Empty dependency array - only run once on mount
 
   // Story handlers
@@ -280,6 +378,54 @@ const ArchiveInterface: React.FC = () => {
         }
       }
       
+      // For chapter-based stories, we need to determine the correct chapter ID
+      // Try to get the first available chapter
+      try {
+        console.log("Chapter-based story, getting first available chapter");
+        const chapters = await apiService.getChapters(String(Story.id));
+        console.log("Available chapters:", chapters);
+        
+        if (chapters && chapters.length > 0) {
+          // Use the first chapter as default
+          const firstChapter = chapters[0];
+          console.log("Using first chapter:", firstChapter);
+          
+          // Get passages for the first chapter
+          const chapterPassages = await apiService.getChapterPassages(Story.id, firstChapter.id);
+          console.log("First chapter passages:", chapterPassages);
+          
+          if (chapterPassages && chapterPassages.length > 0) {
+            // Get user's progress for this story
+            const progressRecords = await apiService.getStoryProgressRecords(String(Story.id));
+            console.log("User progress for story:", progressRecords);
+            
+            // Calculate exploration percentage based on progress
+            let exploration = 0;
+            if (progressRecords.length > 0) {
+              // Count unique passages visited
+              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
+              const totalPassages = chapterPassages.length || 1;
+              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
+            }
+            
+            // Update story with chapter information and progress
+            const storyWithChapter = {
+              ...Story,
+              passages: chapterPassages, // Pass the passages array directly
+              chapterId: firstChapter.id, // Set the actual chapter ID
+              chapterTitle: firstChapter.title || `Chapter ${firstChapter.id}`,
+              exploration: exploration
+            };
+            
+            console.log("Opening story with first chapter:", storyWithChapter);
+            ui.openStory(storyWithChapter);
+            return;
+          }
+        }
+      } catch (chapterError) {
+        console.warn("Could not get chapters, trying fallback method:", chapterError);
+      }
+      
       // Fallback: try the original getStorypassages method
       console.log("Trying fallback getStorypassages method");
       const storypassages = await apiService.getStorypassages(Story.id);
@@ -301,7 +447,8 @@ const ArchiveInterface: React.FC = () => {
         const storyWithProgress = {
           ...Story,
           passages: storypassages,
-          exploration: exploration
+          exploration: exploration,
+          chapterId: null // Fallback - no specific chapter
         };
         
         ui.openStory(storyWithProgress);
@@ -346,6 +493,54 @@ const ArchiveInterface: React.FC = () => {
           storyId: selectedStory.id,
           chapterId: chapterId
         });
+        
+        console.log("=== ATTEMPTING TO LOAD CHAPTER PASSAGES ===");
+        console.log("Story ID:", selectedStory.id);
+        console.log("Chapter ID:", chapterId);
+        console.log("Selected story structure:", selectedStory);
+        
+        // First, let's check if the story already has chapter data with passages
+        if (selectedStory.chapters && selectedStory.chapters.length > 0) {
+          console.log("Story already has chapters data, checking for target chapter");
+          const targetChapter = selectedStory.chapters.find((ch: any) => ch.id === chapterId);
+          
+          if (targetChapter && targetChapter.passages) {
+            console.log("Found target chapter with passages:", targetChapter.passages.length);
+            const storypassages = {
+              id: selectedStory.id.toString(),
+              title: targetChapter.title || `Chapter ${chapterId}`,
+              passages: targetChapter.passages
+            };
+            
+            // Get user's progress for this story
+            const progressRecords = await apiService.getStoryProgressRecords(String(selectedStory.id));
+            console.log("User progress for story:", progressRecords);
+            
+            // Calculate exploration percentage based on progress
+            let exploration = 0;
+            if (progressRecords.length > 0) {
+              // Count unique passages visited
+              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
+              const totalPassages = storypassages.passages?.length || 1;
+              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
+            }
+
+            // Create a modified story object with chapter information and progress
+            const storyWithChapter = {
+              ...selectedStory,
+              passages: storypassages, // Pass the entire storypassages object directly
+              chapterId: chapterId, // Add the chapter ID to the story object
+              exploration: exploration
+            };
+            
+            console.log("Opening story with existing chapter data");
+            ui.openStory(storyWithChapter);
+            return;
+          }
+        }
+        
+        // Fallback: try to get chapters from API
+        console.log("No existing chapter data, fetching from API");
         const storypassages = await apiService.getStorypassagesFromChapter(
           selectedStory.id,
           chapterId
@@ -437,11 +632,11 @@ const ArchiveInterface: React.FC = () => {
       console.log("Completion data:", completionData);
 
       // Call the backend to complete the story
-      await apiService.completeStory(
+      await apiService.completeStoryFromEnding(
         completionData.StoryId,
-        completionData.finalRewards,
-        completionData.skillsLearned,
-        completionData.totalStatGains
+        "end", // Use a default passage ID for completion
+        completionData.totalStatGains,
+        [] // Empty journal entries array
       );
 
       // Update local archive progress
@@ -688,11 +883,11 @@ const ArchiveInterface: React.FC = () => {
               eyesSheet={character.getEyesAsset()}
               eyebrowsSheet={character.getEyebrowsAsset()}
               mouthSheet={character.getMouthAsset()}
-              hairIndex={characterData.character_config?.selected_hair_style || character.getHairIndex()}
-              clothesIndex={characterData.character_config?.selected_shirt_type || character.getClothesIndex()}
-              eyesIndex={characterData.character_config?.selected_eye_type || character.getEyesIndex()}
-              eyebrowsIndex={characterData.character_config?.selected_eyebrow_style || character.getEyebrowsIndex()}
-              mouthIndex={characterData.character_config?.selected_mouth_type || character.selectedMouthType}
+              hairIndex={character.getHairIndex()}
+              clothesIndex={character.getClothesIndex()}
+              eyesIndex={character.getEyesIndex()}
+              eyebrowsIndex={character.getEyebrowsIndex()}
+              mouthIndex={character.selectedMouthType}
             />
 
             {/* Character Level and Status */}
@@ -873,9 +1068,21 @@ const ArchiveInterface: React.FC = () => {
                 />*/}
                 <TabButton
                   title="Restoration"
-                  icon="award"
+                  icon="heart"
                   isActive={ui.activeTab === "restoration"}
                   onPress={() => ui.setActiveTab("restoration")}
+                />
+                <TabButton
+                  title="Debug"
+                  icon="alert-triangle"
+                  isActive={false}
+                  onPress={handleDebugStories}
+                />
+                <TabButton
+                  title="Test"
+                  icon="check"
+                  isActive={false}
+                  onPress={handleSimpleTest}
                 />
               </ScrollView>
             </BlurView>
@@ -1675,11 +1882,11 @@ const ArchiveInterface: React.FC = () => {
           onClose={handleCloseStory}
           story={ui.selectedStory as any}
           chapter={{ 
-            id: (ui.selectedStory as any)?.chapterId || 1, 
-            title: ui.selectedStory?.title || "Chapter 1",
+            id: (ui.selectedStory as any)?.chapterId || null, 
+            title: (ui.selectedStory as any)?.chapterTitle || ui.selectedStory?.title || "Story",
             content: ui.selectedStory?.description || "",
-            chapter_number: (ui.selectedStory as any)?.chapterId || 1,
-            is_starting_chapter: (ui.selectedStory as any)?.chapterId === 1,
+            chapter_number: (ui.selectedStory as any)?.chapterId || null,
+            is_starting_chapter: (ui.selectedStory as any)?.chapterId === 1 || (ui.selectedStory as any)?.chapterId === null,
             variables: {},
             requirements: {},
             rewards: {},
@@ -1714,7 +1921,6 @@ const ArchiveInterface: React.FC = () => {
         visible={ui.isCodexVisible}
         onClose={() => ui.setIsCodexVisible(false)}
         onSave={handleCodexEntrySubmit}
-        unlockedAreas={archive.codexEntries.map((entry) => entry.mapArea)}
       />
 
       <ThoughtDefenderModal
