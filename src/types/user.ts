@@ -160,7 +160,9 @@ export interface Character {
     selected_eyebrow_color: number;
     selected_mouth_type: number;
     selected_shirt_type: number;
+    selected_shirt_color?: number; // color index for shirt
     selected_background_type: number;
+    selected_background_color?: number; // color index for background
     personality_traits?: any[]; //needs to change to personality model???
     coping_tools?: any[]; //needs to pull in equiptmnet 
     equipped_gear?: any[]; //what the character has on rn 
@@ -175,6 +177,7 @@ export interface Character {
         color: string;
     }>;
     character_config?: {
+        selectedName: string;
         selected_base_model: number; //only one base model
         selected_base_color?: number; // color index for base model
         selected_skin_color: number;
@@ -186,28 +189,16 @@ export interface Character {
         selected_eyebrow_color: number;
         selected_mouth_type: number;
         selected_shirt_type: number;
+        selected_shirt_color: number;
         selected_background_type: number;
+        selected_background_color: number;
     };
     created_at: string;
     updated_at: string;
     personality_profile?: PersonalityTrait[]; // might be able to handle this not sure
 }
 
-export interface CharacterCreateData {
-    name: string;
-    // Include all customization fields for initial character creation
-    selected_base_model?: number;
-    selected_skin_color?: number;
-    selected_hair_style?: number;
-    selected_hair_color?: number;
-    selected_eye_type?: number;
-    selected_eye_color?: number;
-    selected_eyebrow_style?: number;
-    selected_eyebrow_color?: number;
-    selected_mouth_type?: number;
-    selected_shirt_type?: number;
-    selected_background_type?: number;
-}
+
 
 export type CharacterFrameProps = {
   children: React.ReactNode;
@@ -216,6 +207,7 @@ export type CharacterFrameProps = {
 };
 
 export type CharacterPreviewProps = {
+  selectedName: string;
   baseAsset: ImageSourcePropType;
   background: ImageSourcePropType;
   hairSheet: ImageSourcePropType;
@@ -228,6 +220,7 @@ export type CharacterPreviewProps = {
   eyesIndex: number;
   eyebrowsIndex: number;
   mouthIndex: number;
+  size?: number; // Optional size prop for responsive sizing
 };
 
 
@@ -240,6 +233,7 @@ export interface CategoryConfig {
   setter: (value: number) => void;
 }
 export interface CharacterCustomizationData {
+    selectedName: string;
     selected_base_model: number;
     selected_base_color?: number; // color index for base model
     selected_skin_color: number;
@@ -260,9 +254,16 @@ export interface CharacterCreatorCategories {
   styleCategories: CategoryConfig[];
   colorCategories: CategoryConfig[];
 }
+
+// Add the missing CharacterCreateData type
+export type CharacterCreateData = 
+  | { name: string } // Simple name-only request
+  | Partial<Character>; // Complete character data for creation
+
 // Utility function to create category configurations
 export const createCharacterCreatorCategories = (
   character: {
+    selectedName: string;
     selectedHairStyle: number;
     selectedEyeType: number;
     selectedEyebrowStyle: number;
@@ -278,6 +279,7 @@ export const createCharacterCreatorCategories = (
     selectedBackgroundColor: number;
   },
   setters: {
+    setSelectedName: (value: string) => void;
     setSelectedHairStyle: (value: number) => void;
     setSelectedEyeType: (value: number) => void;
     setSelectedEyebrowStyle: (value: number) => void;
@@ -313,4 +315,4 @@ export const createCharacterCreatorCategories = (
   ];
 
   return { styleCategories, colorCategories };
-  };
+};

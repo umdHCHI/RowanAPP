@@ -1,4 +1,4 @@
-// ===== PERSONALITY DATA MODELS =====
+// ===== PERSONALITY DATA MODELS ===== needs to be incorperated with the personality.ts file 
 // This file centralizes all personality-related data structures
 
 // Define PersonalityKey type locally since it's not exported as a type

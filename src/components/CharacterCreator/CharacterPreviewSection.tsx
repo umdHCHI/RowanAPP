@@ -1,21 +1,22 @@
 import React from 'react';
 import { View } from 'react-native';
-import CharacterFrame from '../CharacterFrame';
-import CharacterPreview from '../CharacterPreview';
+import CharacterFrame from './CharacterFrame';
+import CharacterPreview from './CharacterPreview';
 
 interface CharacterPreviewSectionProps {
   character: {
-    getCurrentBackgroundAsset: () => any;
-    getBaseAsset: () => any;
-    getHairAsset: () => any;
-    getClothesAsset: () => any;
-    getEyesAsset: () => any;
-    getEyebrowsAsset: () => any;
-    getMouthAsset: () => any;
+    getCurrentBackgroundAsset: (useLocalState?: boolean) => any;
+    getBaseAsset: (useLocalState?: boolean) => any;
+    getHairAsset: (useLocalState?: boolean) => any;
+    getClothesAsset: (useLocalState?: boolean) => any;
+    getEyesAsset: (useLocalState?: boolean) => any;
+    getEyebrowsAsset: (useLocalState?: boolean) => any;
+    getMouthAsset: (useLocalState?: boolean) => any;
     getHairIndex: () => number;
     getClothesIndex: () => number;
     getEyesIndex: () => number;
     getEyebrowsIndex: () => number;
+    getCharacterName: () => string;
     selectedMouthType: number;
   };
   styles: any;
@@ -27,20 +28,22 @@ export const CharacterPreviewSection: React.FC<CharacterPreviewSectionProps> = (
 }) => {
   return (
     <View style={styles.characterCreatorPreviewSection}>
-      <CharacterFrame frame={character.getCurrentBackgroundAsset()} size={250}>
+      <CharacterFrame frame={character.getCurrentBackgroundAsset(true)} size={250}>
         <CharacterPreview
-          baseAsset={character.getBaseAsset()}
-          background={character.getCurrentBackgroundAsset()}
-          hairSheet={character.getHairAsset()}
-          clothesSheet={character.getClothesAsset()}
-          eyesSheet={character.getEyesAsset()}
-          eyebrowsSheet={character.getEyebrowsAsset()}
-          mouthSheet={character.getMouthAsset()}
+          selectedName={character.getCharacterName()}
+          baseAsset={character.getBaseAsset(true)}
+          background={character.getCurrentBackgroundAsset(true)}
+          hairSheet={character.getHairAsset(true)}
+          clothesSheet={character.getClothesAsset(true)}
+          eyesSheet={character.getEyesAsset(true)}
+          eyebrowsSheet={character.getEyebrowsAsset(true)}
+          mouthSheet={character.getMouthAsset(true)}
           hairIndex={character.getHairIndex()}
           clothesIndex={character.getClothesIndex()}
           eyesIndex={character.getEyesIndex()}
           eyebrowsIndex={character.getEyebrowsIndex()}
-          mouthIndex={character.selectedMouthType}
+          mouthIndex={character.selectedMouthType || 0}
+          size={250} // Match the CharacterFrame size
         />
       </CharacterFrame>
     </View>

@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Animated,
@@ -16,8 +17,6 @@ import {
   CharacterPreviewSection,
   ColorOptionControls,
   StyleControls,
-  createCharacterCreatorCategories,
-  useCharacterCreation,
   useMasterState,
 } from "../../imports";
 
@@ -77,79 +76,17 @@ export default function ArchiveCharacterCreatorScreen() {
   const [selectedCategory, setSelectedCategory] = useState<number>(0);
   const [forgeStep, setForgeStep] = useState<number>(0);
 
-  // Create centralized category configurations with memoization - KEEP YOUR BACKEND INTEGRATION
-  const { styleCategories, colorCategories } = useMemo(
-    () =>
-      createCharacterCreatorCategories(
-        {
-          selectedHairStyle: character.selectedHairStyle,
-          selectedEyeType: character.selectedEyeType,
-          selectedEyebrowStyle: character.selectedEyebrowStyle,
-          selectedMouthType: character.selectedMouthType,
-          selectedShirtType: character.selectedShirtType,
-          selectedBackgroundType: character.selectedBackgroundType,
-          selectedBaseModel: character.selectedBaseModel,
-          selectedBaseColor: character.selectedBaseColor,
-          selectedHairColor: character.selectedHairColor,
-          selectedEyeColor: character.selectedEyeColor,
-          selectedEyebrowColor: character.selectedEyebrowColor,
-          selectedClothesColor: character.selectedClothesColor,
-          selectedBackgroundColor: character.selectedBackgroundColor,
-        },
-        {
-          setSelectedHairStyle: character.setSelectedHairStyle,
-          setSelectedEyeType: character.setSelectedEyeType,
-          setSelectedEyebrowStyle: character.setSelectedEyebrowStyle,
-          setSelectedMouthType: character.setSelectedMouthType,
-          setSelectedShirtType: character.setSelectedShirtType,
-          setSelectedBackgroundType: character.setSelectedBackgroundType,
-          setSelectedBaseModel: character.setSelectedBaseModel,
-          setSelectedBaseColor: character.setSelectedBaseColor,
-          setSelectedHairColor: character.setSelectedHairColor,
-          setSelectedEyeColor: character.setSelectedEyeColor,
-          setSelectedEyebrowColor: character.setSelectedEyebrowColor,
-          setSelectedClothesColor: character.setSelectedClothesColor,
-          setSelectedBackgroundColor: character.setSelectedBackgroundColor,
-        }
-      ),
-    [
-      character.selectedHairStyle,
-      character.selectedEyeType,
-      character.selectedEyebrowStyle,
-      character.selectedMouthType,
-      character.selectedShirtType,
-      character.selectedBackgroundType,
-      character.selectedBaseModel,
-      character.selectedBaseColor,
-      character.selectedHairColor,
-      character.selectedEyeColor,
-      character.selectedEyebrowColor,
-      character.selectedClothesColor,
-      character.selectedBackgroundColor,
-      character.setSelectedHairStyle,
-      character.setSelectedEyeType,
-      character.setSelectedEyebrowStyle,
-      character.setSelectedMouthType,
-      character.setSelectedShirtType,
-      character.setSelectedBackgroundType,
-      character.setSelectedBaseModel,
-      character.setSelectedBaseColor,
-      character.setSelectedHairColor,
-      character.setSelectedEyeColor,
-      character.setSelectedEyebrowColor,
-      character.setSelectedClothesColor,
-      character.setSelectedBackgroundColor,
-    ]
-  );
+  // Use centralized categories from MasterState context
+  const { styleCategories, colorCategories } = character;
 
-  // Custom hook for character creation logic - KEEP YOUR BACKEND INTEGRATION
-  const { handleCharacterCreation } = useCharacterCreation({
-    characterName: character.characterName,
-    createCharacter: character.createCharacter,
-    completeCharacter: onboarding.completeCharacter,
-  });
 
-  // Track forge progression
+  // Disabled automatic character loading to prevent overwriting character name
+  // The character data will be loaded when needed, not automatically on mount
+  useEffect(() => {
+    // Character loading disabled to prevent overwriting user input
+  }, []);
+
+  // Track character creation progression
   useEffect(() => {
     const selections = [
       character.selectedBaseModel,
@@ -169,7 +106,7 @@ export default function ArchiveCharacterCreatorScreen() {
     character.selectedShirtType
   ]);
 
-  // Memoized handlers - KEEP YOUR BACKEND INTEGRATION
+  // Logout handler
   const handleLogout = useCallback(async (): Promise<void> => {
     await auth.logout();
   }, [auth]);
@@ -185,7 +122,7 @@ export default function ArchiveCharacterCreatorScreen() {
     setSelectedCategory(index);
   }, []);
 
-  // Memoized current category - KEEP YOUR BACKEND INTEGRATION
+  // Current style category
   const currentStyleCategory = useMemo(
     () => styleCategories[selectedCategory],
     [styleCategories, selectedCategory]
@@ -210,6 +147,24 @@ export default function ArchiveCharacterCreatorScreen() {
     const colorIndex = styleToColorIndexMap[selectedCategory];
     return colorIndex !== -1 && colorIndex !== undefined ? colorCategories[colorIndex] : null;
   }, [selectedCategory, colorCategories]);
+
+  // Character creation handler with validation
+  const handleCharacterCreation = useCallback(async () => {
+    if (!character.characterName || character.characterName.trim() === '') {
+      // You could show an alert here if needed
+      return;
+    }
+    
+    try {
+      await character.createCharacter();
+      
+      // Navigate to character home screen after successful creation
+      router.replace('/(character)/character');
+    } catch (error) {
+      console.error('Character creation failed:', error);
+      // Error handling is already done in the createCharacter method
+    }
+  }, [character.characterName, character.createCharacter, character]);
 
   return (
     <View style={styles.container}>

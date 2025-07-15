@@ -77,27 +77,81 @@ export const useStoryEngine = ({ storyId }: UseStoryEngineProps) => {
         throw new Error('No target passage ID found in choice');
       }
 
-      console.log(`🎯 Target passage ID: ${targetPassageId}`);
+      console.log('🎯 Target passage ID:', targetPassageId);
+
+      // Get the next passage directly
+      const nextPassage = await apiService.getPassage(Number(storyId), targetPassageId);
       
-      // Since the backend doesn't have a make_choice endpoint, 
-      // we'll directly fetch the target passage
-      console.log('Backend has no make_choice endpoint, fetching target passage directly');
-      const passageResult = await apiService.getPassage(Number(storyId), targetPassageId);
-      console.log('✅ Target passage fetched successfully:', passageResult);
-      
-      // Update the story state with the new passage
-      if (passageResult) {
-        setStoryState(passageResult);
+      if (!nextPassage) {
+        throw new Error('Failed to get next passage');
       }
-      
-      // Return the passage data in the format expected by StoryScreen
-      return passageResult?.passage || passageResult || null;
-    } catch (err: any) {
-      console.error('Failed to make choice:', err);
-      setError(err.message || 'Failed to make choice.');
-      return null;
-    } finally {
+
+      console.log('✅ Next passage loaded:', nextPassage);
+
+      // Try to update progress, but don't fail if it doesn't work
+      try {
+        const currentProgress = await apiService.getStoryProgress(storyId);
+        if (currentProgress) {
+          console.log('Current progress before choice:', currentProgress);
+          
+          // Get the current passage ID from the current passage
+          const currentPassageId = currentPassage?.passage?.passage_id;
+          console.log('Current passage ID:', currentPassageId);
+          console.log('Target passage ID:', targetPassageId);
+          
+          // Build the updated passages_visited array
+          const currentPassagesVisited = currentProgress.passages_visited || [];
+          const updatedPassagesVisited = [...currentPassagesVisited];
+          
+          // Add current passage if not already in the list
+          if (currentPassageId && !updatedPassagesVisited.includes(currentPassageId)) {
+            updatedPassagesVisited.push(currentPassageId);
+            console.log('Added current passage to visited:', currentPassageId);
+          }
+          
+          // Add target passage if not already in the list
+          if (!updatedPassagesVisited.includes(targetPassageId)) {
+            updatedPassagesVisited.push(targetPassageId);
+            console.log('Added target passage to visited:', targetPassageId);
+          }
+          
+          // Update progress with new passage and choice
+          const updateData = {
+            current_passage_id: targetPassageId,
+            passages_visited: updatedPassagesVisited,
+            choices_made: [...(currentProgress.choices_made || []), {
+              choice_id: choice.id,
+              choice_text: choice.text,
+              timestamp: new Date().toISOString()
+            }],
+            is_completed: false,
+            completion_type: ''
+          };
+          
+          console.log('Updating progress with choice data:', updateData);
+          const updateResult = await apiService.updateStoryProgress(currentProgress.id, updateData);
+          console.log('Progress update result:', updateResult);
+          
+          // Calculate and log progress percentage
+          const progressCalculation = await apiService.calculateAndUpdateProgress(storyId, currentProgress.id);
+          if (progressCalculation) {
+            console.log('Progress calculation result:', progressCalculation);
+            console.log(`Story progress: ${updatedPassagesVisited.length} passages visited`);
+          }
+        }
+      } catch (progressError) {
+        console.warn('Progress tracking failed, but story continues:', progressError);
+        // Don't throw - story should continue even if progress tracking fails
+      }
+
+      setStoryState(nextPassage);
       setLoading(false);
+      return nextPassage;
+    } catch (error) {
+      console.error('Failed to make choice:', error);
+      setError(error instanceof Error ? error.message : 'Failed to make choice');
+      setLoading(false);
+      return null;
     }
   }, [storyId]);
 
@@ -115,16 +169,55 @@ export const useStoryEngine = ({ storyId }: UseStoryEngineProps) => {
       console.log('✅ Current passage fetched:', currentPassage);
       
       if (currentPassage) {
+        // Try to update progress, but don't fail if it doesn't work
+        try {
+          const currentProgress = await apiService.getStoryProgress(storyId);
+          if (currentProgress && currentPassage.passage) {
+            const passageId = currentPassage.passage.passage_id;
+            console.log('Current passage ID for progress tracking:', passageId);
+            
+            const updatedPassagesVisited = [...(currentProgress.passages_visited || [])];
+            
+            // Only add if not already in the list
+            if (!updatedPassagesVisited.includes(passageId)) {
+              updatedPassagesVisited.push(passageId);
+              console.log('Added passage to visited list:', passageId);
+              
+              const updateData = {
+                current_passage_id: passageId,
+                passages_visited: updatedPassagesVisited
+              };
+              
+              console.log('Updating progress with passage visit:', updateData);
+              const updateResult = await apiService.updateStoryProgress(currentProgress.id, updateData);
+              console.log('Passage visit update result:', updateResult);
+              
+              // Calculate and update progress percentage
+              const progressCalculation = await apiService.calculateAndUpdateProgress(storyId, currentProgress.id);
+              if (progressCalculation) {
+                console.log('Progress calculation after passage visit:', progressCalculation);
+              }
+            } else {
+              console.log('Passage already visited:', passageId);
+            }
+          }
+        } catch (progressError) {
+          console.warn('Progress tracking failed, but story continues:', progressError);
+          // Don't throw - story should continue even if progress tracking fails
+        }
+        
         setStoryState(currentPassage);
+        setLoading(false);
+        return currentPassage;
       }
       
-      return currentPassage;
-    } catch (err: any) {
-      console.error('Failed to get current passage:', err);
-      setError(err.message || 'Failed to get current passage.');
-      return null;
-    } finally {
       setLoading(false);
+      return null;
+    } catch (error) {
+      console.error('Failed to get current passage:', error);
+      setError(error instanceof Error ? error.message : 'Failed to get current passage');
+      setLoading(false);
+      return null;
     }
   }, [storyId]);
 

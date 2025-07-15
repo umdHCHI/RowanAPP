@@ -42,16 +42,13 @@ export {
   API_ENDPOINTS,
   apiBaseUrl,
   apiService,
-  appearanceService,
-
-
   getApiUrl
 } from './services';
 
 // ===== Components =====
 
-export { default as CharacterFrame } from './components/CharacterFrame';
-export { default as CharacterPreview } from './components/CharacterPreview';
+export { default as CharacterFrame } from './components/CharacterCreator/CharacterFrame';
+export { default as CharacterPreview } from './components/CharacterCreator/CharacterPreview';
 export { default as CodexModal } from './components/CodexModal';
 export { default as DrawingCanvas } from './components/DrawingCanvas';
 export { default as EquipmentModal } from './components/EquipmentModal';
@@ -86,7 +83,6 @@ export { sampleInventory } from './data/sampleEquipment';
 export { CHARACTER_CREATOR_CONSTANTS } from './constants/characterCreator';
 
 // ===== Hooks =====
-export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Styles =====
 export { createGlobalStyles } from './styles/globalStyles';

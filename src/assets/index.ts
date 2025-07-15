@@ -3,7 +3,7 @@
 // Equipment assets and types
 export {
     ComfortType, equipmentIcons,
-    equipmentTypeLabels, FocusType, GroundType, rarityColors, ShieldType
+    equipmentTypeLabels, FocusType, GroundType, rarityColors, ShieldType //this is where the gear should be held 
 } from './equipment';
 
 // Frame assets for character creator

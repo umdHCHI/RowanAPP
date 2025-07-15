@@ -47,16 +47,16 @@ export const API_ENDPOINTS = {
     users: 'users/',
     userProfile: 'users/me/',
     //PATCH to update user profile
-    updateUserProfile: 'users/update_profile/',
+    updateUserProfile: 'users/update-profile/',
 
 
     
     // Character endpoints - updated to match actual backend structure
-    characters: 'characters/characters/', // Base character endpoint for POST/GET
-    myCharacter: 'characters/characters/my_character/', // Get specific character data
+   // characters: 'characters/characters/', // Base character endpoint for POST/GET
+   // myCharacter: 'characters/characters/my_character/', // Get specific character data
     characterHomeData: 'characters/characters/home_data/', // Character home data endpoint
     characterStats: 'characters/characters/stats/', // Character stats endpoint
-    customizationOptions: 'characters/characters/customization_options/', // Character customization options
+   // customizationOptions: 'characters/characters/customization_options/', // Character customization options
     
     // Character actions -standerize to one endpoint
     gainExperience: 'characters/characters/', // {id}/gain_experience/ USE ME
@@ -121,6 +121,8 @@ export const API_ENDPOINTS = {
     storyStart: 'story/stories/', // + {storyId}/start/
     getCurrentPassage: 'story/stories/',// + {storyId}/current/
     // makeChoice: 'story/make_choice/',  // This endpoint doesn't exist on the backend
+    createProgress: 'story/story-progress/', //new progress record
+    updateProgress: 'story/story-progress/', //{id}/update/ update progress record
     getUserProgress: 'story/progress/user/',
     restartStory: 'story/stories/', // + {storyId}/restart/
     
@@ -134,7 +136,7 @@ export const API_ENDPOINTS = {
     storyPassage: 'story/stories/', // {storyId}/passage/{passageId}/
     passageChoices: 'story/passages/', // {passageId}/choices/
     choiceSelect: 'story/choices/', // {choiceId}/select/
-    storyProgressGet: 'story/stories/', // {storyId}/progress/
+  
     chapterPassages: 'story/stories/', // {storyId}/chapters/{chapterId}/passages/
     
     // CRUD Operations endpoints

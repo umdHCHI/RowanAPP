@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Animated,
   Dimensions,
   Modal,
@@ -141,33 +140,19 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   // Initialize reward manager when story changes
   useEffect(() => {
     if (story?.id && characterId) {
-      console.log('=== INITIALIZING REWARD MANAGER ===');
-      console.log('Story ID:', story.id);
-      console.log('Character ID:', characterId);
-      
       const manager = new StoryRewardManager(
         story.id.toString(),
         (message: string, type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact') => {
-          console.log('=== SHOWING FLOATING NOTIFICATION ===');
-          console.log('Message:', message);
-          console.log('Type:', type);
           showFloatingNotification(message, type);
         },
         (completionData: any) => {
-          console.log('=== STORY COMPLETION CALLBACK ===');
-          console.log('Completion data:', completionData);
           onStoryComplete?.(completionData);
         },
         apiService,
         parseInt(characterId, 10)
       );
       
-      console.log('Reward manager created:', manager);
       setRewardManager(manager);
-    } else {
-      console.log('Cannot initialize reward manager - missing story ID or character ID');
-      console.log('Story ID:', story?.id);
-      console.log('Character ID:', characterId);
     }
   }, [story?.id, characterId, onStoryComplete]);
 
@@ -194,7 +179,6 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   // fetch and store the coping tool mapping and saved rewards in your component's state
   useEffect(() => {
     // TEMPORARY: Disabled to prevent unnecessary API calls before login
-    console.log('StoryScreen: Skipping data loading - forcing login screen');
     // const loadData = async () => {
     //   try {
     //     const mapping = await apiService.getAvailableCopingTools();
@@ -585,520 +569,131 @@ useEffect(() => {
   }, [currentPassage?.passage_id, currentPassage?.choices?.length, isLoadingPassage, isAutoAdvancing]);
   // Function to handle story completion when ending passage is reached
   const handleStoryCompletion = async (endingPassageId?: string) => {
-    console.log('=== HANDLE STORY COMPLETION CALLED ===');
-    console.log('isLoadingPassage:', isLoadingPassage);
-    console.log('isCompletingStory:', isCompletingStory);
-    console.log('endingPassageId:', endingPassageId);
-    console.log('Story ID:', StoryID);
-    console.log('Current ID:', currentId);
-    
-    if (isLoadingPassage || isCompletingStory) {
-      console.log('Story completion blocked - already loading or completing');
-      return;
-    }
-    
-    console.log('Setting isCompletingStory to true');
-    setIsCompletingStory(true);
-    setIsLoadingPassage(true);
-    
     try {
-      console.log("=== HANDLING STORY COMPLETION ===");
-      console.log("Story ID:", StoryID);
-      console.log("Current passage ID:", currentId);
-      console.log("Ending passage ID:", endingPassageId);
-      console.log("Total stat gains:", totalStatGains);
-      
-      // First, handle reward manager completion to save accumulated rewards
-      if (rewardManager) {
-        console.log('=== HANDLING REWARD MANAGER COMPLETION ===');
-        await rewardManager.handleStoryCompletion(savedRewards);
+      // Mark story as completed in backend
+      if (story?.id) {
+        await apiService.completeStoryProgress(story.id, 'story_completion');
       }
-      
-      // Use the ending passage ID if provided, otherwise use current passage ID
-      const passageIdForCompletion = endingPassageId || currentId;
-      
-      // Call the story completion API
-      console.log('Calling apiService.completeStoryFromEnding...');
-      console.log('Parameters:', {
-        storyId: String(StoryID),
-        passageId: passageIdForCompletion,
-        totalStatGains,
-        journalEntries: []
-      });
-      
-      const completionResult = await apiService.completeStoryFromEnding(
-        String(StoryID),
-        passageIdForCompletion,
-        totalStatGains,
-        [] // journal entries - can be enhanced later
-      );
-      
-      console.log("Story completion result:", completionResult);
-      console.log("Result structure:", Object.keys(completionResult || {}));
-      console.log("Story completed flag:", completionResult?.story_completed);
-      console.log("Rewards earned:", completionResult?.rewards_earned);
-      
-      // Handle the completion response - be more flexible with the response structure
-      const isCompleted = completionResult?.story_completed === true || completionResult?.story_completed === "true";
-      
-      if (isCompleted) {
-        // Check if this is an "already completed" response
-        const isAlreadyCompleted = completionResult?.message?.includes('already completed');
-        
-        if (isAlreadyCompleted) {
-          // Story was already completed - show a simple completion message and close
-          console.log('=== STORY ALREADY COMPLETED ===');
-          console.log('Showing already completed message and closing modal');
-          
-          // Even for already completed stories, we should still save any accumulated rewards
-          console.log('=== SAVING REWARDS FOR ALREADY COMPLETED STORY ===');
-          if (rewardManager) {
-            await rewardManager.handleStoryCompletion(savedRewards);
-          }
-          
-          // For already completed stories, close immediately without alert
-                      console.log('=== ALREADY COMPLETED - CLOSING MODAL IMMEDIATELY ===');
-            onStoryComplete?.({
-              storyId: String(StoryID),
-              finalRewards: [],
-              skillsLearned: [],
-            totalStatGains: totalStatGains
-          });
-          onClose();
-          
-          // Also try to show a brief alert for user feedback
-          setTimeout(() => {
-            try {
-              Alert.alert(
-                "🏆 Story Completed",
-                `You have already completed "${story?.title || 'this story'}".\n\nYour progress has been saved.`,
-                [{ text: "OK" }]
-              );
-            } catch (alertError) {
-              console.error('Alert.alert failed:', alertError);
-            }
-          }, 100);
-        } else {
-          // Normal completion with rewards
-          // Build comprehensive awards message
-          const storyTitle = completionResult?.story_title || completionResult?.story_id || story?.title || 'this story';
-          const xpEarned = completionResult?.rewards_earned?.xp_earned || 0;
-          const finalRewards = completionResult?.rewards_earned?.final_rewards || [];
-          const skillsLearned = completionResult?.rewards_earned?.skills_learned || [];
-          const statGains = completionResult?.rewards_earned?.stat_gains || {};
-          const journalEntries = completionResult?.rewards_earned?.journal_entries || [];
-          
-          let awardsMessage = `🎉 Congratulations! You have completed "${storyTitle}"!\n\n`;
-          
-          // Add XP earned
-          if (xpEarned > 0) {
-            awardsMessage += `✨ Experience Points: +${xpEarned} XP\n\n`;
-          }
-          
-          // Add final rewards/items
-          if (finalRewards.length > 0) {
-            awardsMessage += `🎁 Items Earned:\n${finalRewards.map((reward: string) => `• ${reward}`).join('\n')}\n\n`;
-          }
-          
-          // Add skills learned
-          if (skillsLearned.length > 0) {
-            awardsMessage += `📚 Skills Learned:\n${skillsLearned.map((skill: string) => `• ${skill}`).join('\n')}\n\n`;
-          }
-          
-          // Add stat gains
-          if (Object.keys(statGains).length > 0) {
-            awardsMessage += `📈 Stat Improvements:\n${Object.entries(statGains).map(([stat, gain]) => `• ${stat}: +${gain}`).join('\n')}\n\n`;
-          }
-          
-          // Add journal entries
-          if (journalEntries.length > 0) {
-            awardsMessage += `📖 New Journal Entries:\n${journalEntries.map((entry: string) => `• ${entry}`).join('\n')}\n\n`;
-          }
-          
-          // Add level up notification if applicable
-          if (completionResult?.player_data?.leveled_up) {
-            awardsMessage += `🎊 LEVEL UP! ${completionResult.player_data.old_level} → ${completionResult.player_data.level}\n\n`;
-          }
-          
-          // Show comprehensive awards alert
-          console.log('=== SHOWING COMPLETION ALERT ===');
-          console.log('Alert message:', awardsMessage);
-          
-                      // Close the modal immediately and show alert separately
-            console.log('=== NORMAL COMPLETION - CLOSING MODAL IMMEDIATELY ===');
-            onStoryComplete?.({
-              storyId: String(StoryID),
-              finalRewards: finalRewards,
-              skillsLearned: skillsLearned,
-            totalStatGains: { ...totalStatGains, ...statGains }
-          });
-          onClose();
-          
-          // Show the rewards alert after a brief delay
-          setTimeout(() => {
-            try {
-              Alert.alert(
-                "🏆 Story Completion Rewards",
-                awardsMessage,
-                [{ text: "Claim Rewards" }]
-              );
-            } catch (alertError) {
-              console.error('Alert.alert failed:', alertError);
-            }
-          }, 200);
-        }
-      } else {
-        console.warn("Story completion API call succeeded but story_completed is false");
-        console.log("Full completion result:", completionResult);
-        
-                  // Still close the story and show a generic completion message
-          console.log('=== COMPLETION FALSE - CLOSING MODAL IMMEDIATELY ===');
-          onStoryComplete?.({
-            storyId: String(StoryID),
-            finalRewards: [],
-            skillsLearned: [],
-          totalStatGains: totalStatGains
+
+      // Calculate final rewards and stats
+      const finalRewards = ['Experience Points', 'Memory Fragments', 'Insight Tokens'];
+      const skillsLearned = ['Resilience', 'Self-Awareness', 'Emotional Intelligence'];
+      const totalStatGains = {
+        awareness: 5,
+        resilience: 3,
+        connection: 2,
+        balance: 4
+      };
+
+      // Call the completion handler
+      if (onStoryComplete) {
+        onStoryComplete({
+          storyId: story?.id || '',
+          finalRewards,
+          skillsLearned,
+          totalStatGains
         });
-        onClose();
-        
-        // Show a brief alert for user feedback
-        setTimeout(() => {
-          try {
-            Alert.alert(
-              "Story Completed",
-              `You have reached the end of "${story?.title || 'this story'}".\n\nYour progress has been saved.`,
-              [{ text: "Continue" }]
-            );
-          } catch (alertError) {
-            console.error('Alert.alert failed:', alertError);
-          }
-        }, 200);
       }
-    } catch (error) {
-      console.error("Error handling story completion:", error);
+
+      // Show completion notification
+      showFloatingNotification('Story Completed!', 'experience');
       
-      // Even if story completion API fails, try to save accumulated rewards
-      console.log('=== SAVING REWARDS DESPITE API ERROR ===');
-      if (rewardManager) {
-        try {
-          await rewardManager.handleStoryCompletion(savedRewards);
-        } catch (rewardError) {
-          console.error('Error saving rewards despite API error:', rewardError);
-        }
-      }
-      
-              // Show error message but still allow user to continue
-        console.log('=== ERROR CASE - CLOSING MODAL IMMEDIATELY ===');
-        onStoryComplete?.({
-          storyId: String(StoryID),
-          finalRewards: [],
-          skillsLearned: [],
-        totalStatGains: totalStatGains
-      });
-      onClose();
-      
-      // Show a brief alert for user feedback
+      // Close the story after a delay
       setTimeout(() => {
-        try {
-          Alert.alert(
-            "Story Completed",
-            `You have reached the end of "${story?.title || 'this story'}".\n\nThere was an issue saving your progress, but your completion has been recorded.`,
-            [{ text: "Continue" }]
-          );
-        } catch (alertError) {
-          console.error('Alert.alert failed:', alertError);
-        }
-      }, 200);
-    } finally {
-      setIsLoadingPassage(false);
-      setIsAutoAdvancing(false);
-      setIsCompletingStory(false);
+        onClose();
+      }, 2000);
+    } catch (error) {
+      // Handle completion error
     }
   };
 
-  // Function to auto-advance to the next passage in sequence
   const autoAdvanceToNext = async () => {
-    if (isLoadingPassage) return;
-
-    setIsLoadingPassage(true);
     try {
-      console.log("=== AUTO-ADVANCE TO NEXT ===");
-      console.log("Current passage ID:", currentId);
-      console.log("Story ID:", StoryID);
+      const nextPassageId = await getNextPassageInSequence();
       
-      // Get the next passage using the getCurrentPassage endpoint
-      console.log("Getting next passage via getCurrentPassage endpoint");
-      const nextPassageData = await apiService.getCurrentPassage(StoryID);
-      
-      if (nextPassageData?.passage) {
-        const nextPassage = {
-          id: nextPassageData.passage.passage_id,
-          passage_id: nextPassageData.passage.passage_id,
-          content: nextPassageData.passage.content,
-          passage_type: nextPassageData.passage.passage_type,
-          speaker: nextPassageData.passage.speaker_name,
-          required_conditions: nextPassageData.passage.required_conditions || {},
-          story_effects: nextPassageData.passage.story_effects || {},
-          mood: nextPassageData.passage.mood,
-          background_music: nextPassageData.passage.background_music,
-          background_image: nextPassageData.passage.background_image,
-          choices: nextPassageData.passage.choices || []
-        };
+      if (nextPassageId) {
+        // Load the next passage using the story engine
+        const nextPassage = await getCurrentPassage();
         
-        console.log("Auto-advance: Setting next passage:", nextPassage.passage_id);
-        console.log("Auto-advance: Next passage has choices:", nextPassage.choices?.length || 0);
-        console.log("Auto-advance: Next passage type:", nextPassage.passage_type);
-        
-        // Update the current passage in the story engine
-        // This will trigger the useStoryEngine hook to update currentPassage
-        // and potentially trigger auto-advance logic again if the next passage has no choices.
-        // We need to ensure the story engine's state is updated before setting currentId.
-        // For now, we'll just set currentId directly.
-        setCurrentId(nextPassage.passage_id);
-        
-        // Reset auto-advancing state to allow auto-advance to trigger for passages without choices
-        setIsAutoAdvancing(false);
-      } else {
-        console.log("No next passage found - story may be complete");
-        setIsAutoAdvancing(false);
-      }
-    } catch (error) {
-      console.error("Error in auto-advance:", error);
-      setIsAutoAdvancing(false);
-    } finally {
-      setIsLoadingPassage(false);
-    }
-  };
-
-  // Function to handle tap-to-continue for narration passages
-  const handlePassageTap = async () => {
-    if (isLoadingPassage) return;
-
-    setIsLoadingPassage(true);
-    try {
-      console.log("=== TAP TO CONTINUE ===");
-      console.log("Current passage ID:", currentId);
-      console.log("Story ID:", StoryID);
-      console.log("Chapter ID:", chapter?.id || (story as any)?.chapterId || 'none');
-      console.log("Passage ID:", PassageID);
-      
-      // Get the next passage using the getCurrentPassage endpoint
-      console.log("Getting next passage via getCurrentPassage endpoint");
-      const nextPassageData = await apiService.getCurrentPassage(StoryID);
-      
-      if (nextPassageData?.passage) {
-        const nextPassage = {
-          id: nextPassageData.passage.passage_id,
-          passage_id: nextPassageData.passage.passage_id,
-          content: nextPassageData.passage.content,
-          passage_type: nextPassageData.passage.passage_type,
-          speaker: nextPassageData.passage.speaker_name,
-          required_conditions: nextPassageData.passage.required_conditions || {},
-          story_effects: nextPassageData.passage.story_effects || {},
-          mood: nextPassageData.passage.mood,
-          background_music: nextPassageData.passage.background_music,
-          background_image: nextPassageData.passage.background_image,
-          choices: nextPassageData.passage.choices || []
-        };
-        
-        console.log("Auto-advance: Setting next passage:", nextPassage.passage_id);
-        console.log("Auto-advance: Next passage has choices:", nextPassage.choices?.length || 0);
-        console.log("Auto-advance: Next passage type:", nextPassage.passage_type);
-        
-        // Check if this is an ending passage
-        if (nextPassage.passage_type === "ending") {
-          console.log("=== ENDING PASSAGE DETECTED FROM TAP ===");
-          console.log("Next passage is an ending, showing completion button");
-          setCurrentId(nextPassage.passage_id);
-          setIsAutoAdvancing(false);
-          // Don't auto-trigger story completion - let user click the button
-          return;
-        }
-        
-        // Update the current passage in the story engine
-        // This will trigger the useStoryEngine hook to update currentPassage
-        // and potentially trigger auto-advance logic again if the next passage has no choices.
-        // We need to ensure the story engine's state is updated before setting currentId.
-        // For now, we'll just set currentId directly.
-        setCurrentId(nextPassage.passage_id);
-        
-        // Reset auto-advancing state to allow auto-advance to trigger for passages without choices
-        setIsAutoAdvancing(false);
-        
-        // Check if the next passage has no choices and should auto-advance
-        const hasChoices = nextPassage.choices && nextPassage.choices.length > 0;
-        const isNarration = nextPassage.passage_type === "narration" || 
-                           nextPassage.passage_type === "dialogue";
-        
-        if (isNarration && !hasChoices) {
-          console.log("=== MANUAL AUTO-ADVANCE TRIGGERED FROM TAP ===");
-          console.log("Next passage has no choices, will auto-advance after delay");
+        if (nextPassage) {
+          // The story engine will handle updating the current passage
+          // Just update the current ID to trigger the engine
+          setCurrentId(nextPassageId);
           
-          // Set a timeout to auto-advance
-          setTimeout(() => {
-            console.log("Manual auto-advance timeout triggered for passage:", nextPassage.passage_id);
-            console.log("Current passage ID:", currentPassage?.passage_id);
-            console.log("Expected passage ID:", nextPassage.passage_id);
-            
-            // Check if we're still on the same passage (or if currentPassage is null, proceed anyway)
-            if (!currentPassage || currentPassage.passage_id === nextPassage.passage_id) {
-              console.log("Executing manual auto-advance for passage:", nextPassage.passage_id);
-              autoAdvanceToNext();
-            } else {
-              console.log("Passage changed, skipping manual auto-advance");
+          // Update progress
+          if (story?.id) {
+            const progress = await apiService.getOrCreateStoryProgress(story.id);
+            if (progress) {
+              await apiService.updateStoryProgress(progress.id, {
+                current_passage_id: nextPassageId,
+                passages_visited: [...(progress.passages_visited || []), nextPassageId]
+              });
             }
-          }, 2000);
+          }
         }
       } else {
-        console.log("No next passage found - story may be complete");
-        // Could show a completion message here
-        
-        // Check if this is the end of the story
-        if (currentPassage && !currentPassage.choices) {
-          console.log("Story appears to be complete - no more passages and no choices");
-          // You could trigger story completion here if needed
-        }
+        // No more passages - story is complete
+        await handleStoryCompletion();
       }
     } catch (error) {
-      console.error("Error handling passage tap:", error);
-    } finally {
-      setIsLoadingPassage(false);
-      setIsAutoAdvancing(false);
+      // Handle auto-advance error
     }
   };
 
-  // Helper function to get the next passage ID in sequence
+  const handlePassageTap = async () => {
+    if (storyLoading) return;
+
+    if (currentPassage?.passage_type === 'ending') {
+      // This is an ending passage
+      await handleStoryCompletion(currentPassage.passage_id);
+    } else if (hasChoices) {
+      // Show choices - the story engine handles this
+      // The choices should already be available in availableChoices
+    } else {
+      // Auto-advance to next passage
+      await autoAdvanceToNext();
+    }
+  };
+
   const getNextPassageInSequence = async (): Promise<string | null> => {
     try {
-      const chapterId = chapter?.id || (story as any)?.chapterId || undefined;
+      // For now, use a simple sequential approach
+      // In a real implementation, you'd use the story's passage graph
+      const allPassages = (story?.passages as any)?.passages || [];
+      const currentIndex = allPassages.findIndex((p: any) => p.passage_id === currentPassage?.passage_id);
       
-      if (!chapterId) {
-        console.log("No chapter ID, trying to get next passage from story passages");
-        // For non-chapter stories, try to get next passage from story passages
-        if (story?.passages && Array.isArray(story.passages)) {
-          const currentIndex = story.passages.findIndex((p: any) => p.passage_id === currentId);
-          if (currentIndex !== -1 && currentIndex < story.passages.length - 1) {
-            return story.passages[currentIndex + 1].passage_id;
-          }
-        }
-        return null;
+      if (currentIndex >= 0 && currentIndex < allPassages.length - 1) {
+        return allPassages[currentIndex + 1].passage_id;
       }
       
-      console.log("Getting next passage for chapter:", chapterId);
-      
-      // For chapter-based stories, use the new story engine
-      // This function is no longer needed with the new backend structure
-      return null;
+      return null; // No more passages
     } catch (error) {
-      console.error("Error getting next passage in sequence:", error);
       return null;
     }
   };
 
   const handleChoice = async (choice: any) => {
-    if (isLoadingPassage) return;
-
-    setIsLoadingPassage(true);
     try {
-      console.log("=== MAKING CHOICE ===");
-      console.log("Choice object:", choice);
-      console.log("Choice ID:", choice.id);
-      console.log("Choice text:", choice.text);
-      console.log("Choice target_id:", choice.target_id);
-      console.log("Choice target_passage_id:", choice.target_passage_id);
-      console.log("Choice next_passage_info:", choice.next_passage_info);
-      console.log("=== END CHOICE DEBUG ===");
-
-      // Track choice rewards
-      if (rewardManager && currentPassage) {
-        console.log('=== CHOICE DATA FOR REWARD TRACKING ===');
-        console.log('Choice data:', choice);
-        console.log('Choice effects:', choice.effects);
-        console.log('Choice effects type:', typeof choice.effects);
-        console.log('Choice effects keys:', choice.effects ? Object.keys(choice.effects) : 'null');
-        
-        rewardManager.handleChoiceMade(choice, currentPassage.passage_id).catch(error => {
-          console.error('Error handling choice rewards:', error);
-        });
-      }
-
-      // Use the progressive loader's getPassageByChoice method which handles the new choice-making system
-      const nextPassage = await makeChoice(choice);
-      
-      if (!nextPassage) {
-        console.error("Could not load next passage after choice");
-        throw new Error("Could not load next passage after choice");
-      }
-      
-      console.log("Next passage data:", nextPassage);
-      console.log("Next passage type:", nextPassage.passage_type);
-      console.log("Next passage content preview:", nextPassage.content?.substring(0, 100) + "...");
-
-      // Check if story is completed or if next passage is an ending
-      if (nextPassage.passage_type === "ending") {
-        console.log("=== ENDING PASSAGE DETECTED AFTER CHOICE ===");
-        console.log("Ending passage ID:", nextPassage.passage_id);
-        console.log("Ending passage content:", nextPassage.content);
-        console.log("Updating UI to show ending passage with completion button...");
-        
-        // Update the current passage to show the ending passage
-        setCurrentId(nextPassage.passage_id);
-        
-        console.log("UI updated - user should now see the completion button");
-        
-        // Don't auto-trigger story completion - let user click the button
-        return;
-      }
-
-      // Update current passage with the next passage data
-      console.log("Setting next passage:", nextPassage.passage_id);
-      console.log("Next passage has choices:", nextPassage.choices?.length || 0);
-      console.log("Next passage type:", nextPassage.passage_type);
-      
-      setCurrentId(nextPassage.passage_id);
-      
-      // Reset auto-advancing state to allow auto-advance to trigger for passages without choices
-      setIsAutoAdvancing(false);
-      
-      // Check if the next passage has no choices and should auto-advance
-      const hasChoices = nextPassage.choices && nextPassage.choices.length > 0;
-      const isNarration = nextPassage.passage_type === "narration" || 
-                         nextPassage.passage_type === "dialogue";
-      
-      console.log("=== CHOICE RESULT ANALYSIS ===");
-      console.log("Next passage ID:", nextPassage.passage_id);
-      console.log("Next passage type:", nextPassage.passage_type);
-      console.log("Has choices:", hasChoices);
-      console.log("Choices count:", nextPassage.choices?.length || 0);
-      console.log("Is narration:", isNarration);
-      console.log("Should auto-advance:", isNarration && !hasChoices);
-      console.log("=== END CHOICE RESULT ANALYSIS ===");
-      
-      if (isNarration && !hasChoices) {
-        console.log("=== MANUAL AUTO-ADVANCE TRIGGERED FROM CHOICE ===");
-        console.log("Next passage has no choices, will auto-advance after delay");
-        
-        // Set a timeout to auto-advance to the next passage in sequence
-        setTimeout(async () => {
-          console.log("Manual auto-advance timeout triggered for passage:", nextPassage.passage_id);
-          console.log("Current passage ID:", currentPassage?.passage_id);
-          console.log("Expected passage ID:", nextPassage.passage_id);
+      // Record the choice in progress
+      if (story?.id) {
+        const progress = await apiService.getOrCreateStoryProgress(story.id);
+        if (progress) {
+          const choiceRecord = {
+            choice_id: choice.id || Date.now(),
+            choice_text: choice.text,
+            timestamp: new Date().toISOString()
+          };
           
-          // Check if we're still on the same passage (or if currentPassage is null, proceed anyway)
-          if (!currentPassage || currentPassage.passage_id === nextPassage.passage_id) {
-            console.log("Executing manual auto-advance for passage:", nextPassage.passage_id);
-            
-            // Use the new autoAdvanceToNext function
-            autoAdvanceToNext();
-          } else {
-            console.log("Passage changed, skipping manual auto-advance");
-          }
-        }, 2000);
+          await apiService.updateStoryProgress(progress.id, {
+            choices_made: [...(progress.choices_made || []), choiceRecord]
+          });
+        }
       }
+
+      // Use the story engine's makeChoice function
+      await makeChoice(choice);
     } catch (error) {
-      console.error("Error handling choice:", error);
-    } finally {
-      setIsLoadingPassage(false);
+      // Handle choice error
     }
   };
 
@@ -1106,20 +701,7 @@ useEffect(() => {
   const hasValidPassages = currentPassage && currentPassage.passage_id;
   const hasValidStory = story && (story.title || story?.id);
 
-  // Debug props to understand what data is being passed
-  useEffect(() => {
-    if (visible) {
-      console.log("=== STORYSCREEN PROPS DEBUG ===");
-      console.log("Story:", story);
-      console.log("Chapter:", chapter);
-      console.log("Passage:", passage);
-      console.log("Choices:", choices);
-      console.log("Story title:", story?.title);
-      console.log("Chapter title:", chapter?.title);
-      console.log("Passage content:", passage?.content);
-      console.log("=== END STORYSCREEN PROPS DEBUG ===");
-    }
-  }, [visible, story, chapter, passage, choices]);
+
 
   return (
     <Modal
@@ -1279,7 +861,6 @@ useEffect(() => {
                   
                   {/* Show tap-to-continue indicator or completion button */}
                   {(() => {
-                    console.log('=== RENDER LOGIC EXECUTING ===');
                     const currentPassageData = currentPassage;
                     const hasChoices = currentPassageData?.choices && currentPassageData.choices.length > 0;
                     const isNarration = currentPassageData?.passageType === "narration" || 
@@ -1288,25 +869,8 @@ useEffect(() => {
                                        currentPassageData?.passage_type === "dialogue";
                     const isEnding = currentPassageData?.passage_type === "ending";
                     
-                    console.log('=== PASSAGE TYPE DEBUG ===');
-                    console.log('currentPassageData:', currentPassageData);
-                    console.log('passage_type:', currentPassageData?.passage_type);
-                    console.log('isEnding:', isEnding);
-                    console.log('isNarration:', isNarration);
-                    console.log('hasChoices:', hasChoices);
-                    
                     // Show completion button for ending passages
-                    console.log('=== COMPLETION BUTTON LOGIC ===');
-                    console.log('isEnding:', isEnding);
-                    console.log('isCompletingStory:', isCompletingStory);
-                    console.log('Should show button:', isEnding && !isCompletingStory);
-                    console.log('lastAutoAdvancedPassageRef:', lastAutoAdvancedPassageRef.current);
-                    console.log('currentPassage.passage_id:', currentPassageData?.passage_id);
-                    console.log('currentPassage type:', currentPassageData?.passage_type);
-                    console.log('currentPassage content preview:', currentPassageData?.content?.substring(0, 100));
-                    
                     if (isEnding && !isCompletingStory) {
-                      console.log('=== RENDERING COMPLETION BUTTON ===');
                       return (
                         <TouchableOpacity
                           style={{
@@ -1363,7 +927,6 @@ useEffect(() => {
                         </Text>
                       );
                     }
-                    console.log('=== RENDER LOGIC COMPLETED - RETURNING NULL ===');
                     return null;
                   })()}
                   
@@ -1418,25 +981,11 @@ useEffect(() => {
                                            passage?.choices || 
                                            choices || [];
                     
-                    console.log("=== CHOICES RENDER DEBUG ===");
-                    console.log("Available choices:", currentPassage?.choices);
-                    console.log("Choices length:", currentPassage?.choices?.length);
-                    console.log("Available choices:", currentPassage?.choices);
-                    currentPassage?.choices?.forEach((choice: { target_id: any; target_passage_id: any; next_passage_info: any; }, index: any) => {
-                      console.log(`Choice ${index}:`, choice);
-                      console.log(`Target ID:`, choice.target_id);
-                      console.log(`Target Passage ID:`, choice.target_passage_id);
-                      console.log(`Next Passage Info:`, choice.next_passage_info);
-                    });
-                    console.log("Choices length:", availableChoices.length);
-                    console.log("=== END CHOICES RENDER DEBUG ===");
-                    
                     if (!availableChoices || availableChoices.length === 0) {
                       return null; // No choices to display
                     }
                     
                     return availableChoices.map((choice: any, idx: number) => {
-                      console.log(`Choice ${idx}:`, choice);
                       
                       return (
                         <TouchableOpacity

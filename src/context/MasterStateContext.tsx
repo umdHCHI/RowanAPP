@@ -92,7 +92,7 @@ import {
   hairOptionsWhite,
   mouthOptions,
 } from "../assets/characterOptions";
-import { apiService, appearanceService } from "../services";
+import { apiService } from "../services";
 import {
   CharacterGear,
   CharacterTool,
@@ -100,6 +100,7 @@ import {
   HomeData,
 } from "../services/apiService";
 import { Character, CodexEntry, EquipmentItem, EquipmentSubtype, EquippedItems, JournalPrompt, MiniGameProgress, Story } from "../types";
+import { CategoryConfig, createCharacterCreatorCategories } from "../types/user";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
 
@@ -200,6 +201,10 @@ interface MasterStateContextType {
     selectedBackgroundType: number;
     selectedBackgroundColor: number;
 
+    // Character creator categories (memoized)
+    styleCategories: CategoryConfig[];
+    colorCategories: CategoryConfig[];
+
     // Methods
     setCharacterName: (name: string) => void;
     setSelectedBaseModel: (index: number) => void;
@@ -215,18 +220,19 @@ interface MasterStateContextType {
     setSelectedClothesColor: (index: number) => void;
     setSelectedBackgroundType: (index: number) => void;
     setSelectedBackgroundColor: (index: number) => void;
+    getCharacterName: () => string;
     getBaseIndex: () => number;
     getHairIndex: () => number;
     getClothesIndex: () => number;
     getEyesIndex: () => number;
     getEyebrowsIndex: () => number;
-    getHairAsset: () => any;
-    getClothesAsset: () => any;
-    getEyesAsset: () => any;
-    getEyebrowsAsset: () => any;
-    getCurrentBackgroundAsset: () => any;
-    getBaseAsset: () => any;
-    getMouthAsset: () => any;
+    getHairAsset: (useLocalState?: boolean) => any;
+    getClothesAsset: (useLocalState?: boolean) => any;
+    getEyesAsset: (useLocalState?: boolean) => any;
+    getEyebrowsAsset: (useLocalState?: boolean) => any;
+    getCurrentBackgroundAsset: (useLocalState?: boolean) => any;
+    getBaseAsset: (useLocalState?: boolean) => any;
+    getMouthAsset: (useLocalState?: boolean) => any;
     createCharacter: () => Promise<void>;
     updateCharacter: () => Promise<void>;
     loadCharacter: () => Promise<void>;
@@ -513,10 +519,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [selectedBaseModel, setSelectedBaseModel] = useState(0);
   const [selectedBaseColor, setSelectedBaseColor] = useState(0); // color index for base model
 
-  const debugSetSelectedBaseColor = (value: number) => {
-    console.log('[setSelectedBaseColor] value:', value);
-    setSelectedBaseColor(value);
-  }
+  // REMOVED: debugSetSelectedBaseColor - no longer needed
   const [selectedHairStyle, setSelectedHairStyle] = useState(0);
   const [selectedHairColor, setSelectedHairColor] = useState(0);
   const [selectedEyeType, setSelectedEyeType] = useState(0);
@@ -608,64 +611,132 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   // ===== CHARACTER HELPER FUNCTIONS =====
   const getBaseIndex = () => {
-    const baseModel = backendCharacter?.character_config?.selected_base_model ?? selectedBaseModel;
-    const baseColor = backendCharacter?.character_config?.selected_base_color ?? selectedBaseColor; // only one base model
+    const baseModel = backendCharacter?.selected_base_model ?? selectedBaseModel;
+    const baseColor = backendCharacter?.selected_skin_color ?? selectedBaseColor; // only one base model
     return baseModel + baseColor * 12;
   };
 
+  // ===== CHARACTER CREATOR CATEGORIES (MEMOIZED) =====
+  const { styleCategories, colorCategories } = useMemo(() => 
+    createCharacterCreatorCategories(
+      {
+        selectedName: characterName,
+        selectedHairStyle,
+        selectedEyeType,
+        selectedEyebrowStyle,
+        selectedMouthType,
+        selectedShirtType,
+        selectedBackgroundType,
+        selectedBaseModel,
+        selectedBaseColor,
+        selectedHairColor,
+        selectedEyeColor,
+        selectedEyebrowColor,
+        selectedClothesColor,
+        selectedBackgroundColor,
+      },
+      {
+        setSelectedName: setCharacterName,
+        setSelectedHairStyle,
+        setSelectedEyeType,
+        setSelectedEyebrowStyle,
+        setSelectedMouthType,
+        setSelectedShirtType,
+        setSelectedBackgroundType,
+        setSelectedBaseModel,
+        setSelectedBaseColor,
+        setSelectedHairColor,
+        setSelectedEyeColor,
+        setSelectedEyebrowColor,
+        setSelectedClothesColor,
+        setSelectedBackgroundColor,
+      }
+    ),
+    [
+      characterName,
+      selectedHairStyle,
+      selectedEyeType,
+      selectedEyebrowStyle,
+      selectedMouthType,
+      selectedShirtType,
+      selectedBackgroundType,
+      selectedBaseModel,
+      selectedBaseColor,
+      selectedHairColor,
+      selectedEyeColor,
+      selectedEyebrowColor,
+      selectedClothesColor,
+      selectedBackgroundColor,
+    ]
+  );
+
   const getHairIndex = () => {
-    const hairStyle = backendCharacter?.character_config?.selected_hair_style ?? selectedHairStyle;
-    const hairColor = backendCharacter?.character_config?.selected_hair_color ?? selectedHairColor;
+    const hairStyle = backendCharacter?.selected_hair_style ?? selectedHairStyle;
+    const hairColor = backendCharacter?.selected_hair_color ?? selectedHairColor;
     return hairStyle + hairColor * 12;
   };
   const getClothesIndex = () => {
-    const shirtType = backendCharacter?.character_config?.selected_shirt_type ?? selectedShirtType;
-    return shirtType + selectedClothesColor * 12;
+    const shirtType = backendCharacter?.selected_shirt_type ?? selectedShirtType;
+    const clothesColor = backendCharacter?.selected_shirt_color ?? selectedClothesColor;
+    return shirtType + clothesColor * 12;
   };
   const getEyesIndex = () => {
-    const eyeType = backendCharacter?.character_config?.selected_eye_type ?? selectedEyeType;
-    const eyeColor = backendCharacter?.character_config?.selected_eye_color ?? selectedEyeColor;
+    const eyeType = backendCharacter?.selected_eye_type ?? selectedEyeType;
+    const eyeColor = backendCharacter?.selected_eye_color ?? selectedEyeColor;
     return eyeType + eyeColor * 12;
   };
   const getEyebrowsIndex = () => {
-    const eyebrowStyle = backendCharacter?.character_config?.selected_eyebrow_style ?? selectedEyebrowStyle;
-    const eyebrowColor = backendCharacter?.character_config?.selected_eyebrow_color ?? selectedEyebrowColor;
+    const eyebrowStyle = backendCharacter?.selected_eyebrow_style ?? selectedEyebrowStyle;
+    const eyebrowColor = backendCharacter?.selected_eyebrow_color ?? selectedEyebrowColor;
     return eyebrowStyle + eyebrowColor * 12;
   };
 
   // Asset getter functions (updated to use backend character data when available)
-  const getHairAsset = () => {
-    // Use backend character data if available, otherwise fall back to local state
-    const hairStyle = backendCharacter?.character_config?.selected_hair_style ?? selectedHairStyle;
-    const hairColor = backendCharacter?.character_config?.selected_hair_color ?? selectedHairColor;
-    
-    const hairArrays = [
-      hairOptionsBlack,
-      hairOptionsBlonde,
-      hairOptionsBlue,
-      hairOptionsBlueGreen,
-      hairOptionsBrown1,
-      hairOptionsBrown2,
-      hairOptionsBrown3,
-      hairOptionsDarkBlue,
-      hairOptionsGreen,
-      hairOptionsLightGreen,
-      hairOptionsLilac,
-      hairOptionsMagent,
-      hairOptionsOrange,
-      hairOptionsPink,
-      hairOptionsRed,
-      hairOptionsWhite,
-    ];
-    const colorArray = hairArrays[hairColor] || hairOptionsBlack;
-    return colorArray[hairStyle] || colorArray[0];
+  const getHairAsset = (useLocalState: boolean = false) => {
+    try {
+      // Use local state for character creation, backend data for display
+      const hairStyle = useLocalState ? selectedHairStyle : (backendCharacter?.selected_hair_style ?? selectedHairStyle);
+      const hairColor = useLocalState ? selectedHairColor : (backendCharacter?.selected_hair_color ?? selectedHairColor);
+      
+
+      
+      const hairArrays = [
+        hairOptionsBlack,
+        hairOptionsBlonde,
+        hairOptionsBlue,
+        hairOptionsBlueGreen,
+        hairOptionsBrown1,
+        hairOptionsBrown2,
+        hairOptionsBrown3,
+        hairOptionsDarkBlue,
+        hairOptionsGreen,
+        hairOptionsLightGreen,
+        hairOptionsLilac,
+        hairOptionsMagent,
+        hairOptionsOrange,
+        hairOptionsPink,
+        hairOptionsRed,
+        hairOptionsWhite,
+      ];
+      
+      // Ensure indices are within bounds
+      const safeHairColor = Math.max(0, Math.min(hairColor, hairArrays.length - 1));
+      const colorArray = hairArrays[safeHairColor] || hairOptionsBlack;
+      const safeHairStyle = Math.max(0, Math.min(hairStyle, colorArray.length - 1));
+      
+      return colorArray[safeHairStyle] || colorArray[0];
+    } catch (error) {
+      console.error('[getHairAsset] Error loading hair asset:', error);
+      return hairOptionsBlack[0];
+    }
   };
 
-  const getClothesAsset = () => {
-    // Use backend character data if available, otherwise fall back to local state
-    const shirtType = backendCharacter?.character_config?.selected_shirt_type ?? selectedShirtType;
-    // For now, use a default color since the API doesn't provide clothes color in character_config
-    const clothesColor = selectedClothesColor;
+  const getClothesAsset = (useLocalState: boolean = false) => {
+    // Use local state for character creation, backend data for display
+    const shirtType = useLocalState ? selectedShirtType : (backendCharacter?.selected_shirt_type ?? selectedShirtType);
+    const clothesColor = useLocalState ? selectedClothesColor : (backendCharacter?.selected_shirt_color ?? selectedClothesColor);
+    
+
     
     const clothesArrays = [
       clothesOptionsBrown,
@@ -690,10 +761,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return colorArray[shirtType] || colorArray[0];
   };
 
-  const getEyesAsset = () => {
-    // Use backend character data if available, otherwise fall back to local state
-    const eyeType = backendCharacter?.character_config?.selected_eye_type ?? selectedEyeType;
-    const eyeColor = backendCharacter?.character_config?.selected_eye_color ?? selectedEyeColor;
+  const getEyesAsset = (useLocalState: boolean = false) => {
+    // Use local state for character creation, backend data for display
+    const eyeType = useLocalState ? selectedEyeType : (backendCharacter?.selected_eye_type ?? selectedEyeType);
+    const eyeColor = useLocalState ? selectedEyeColor : (backendCharacter?.selected_eye_color ?? selectedEyeColor);
+    
+
     
     const eyesArrays = [
       eyesOptionsBrown,
@@ -717,10 +790,10 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return colorArray[eyeType] || colorArray[0];
   };
 
-  const getEyebrowsAsset = () => {
-    // Use backend character data if available, otherwise fall back to local state
-    const eyebrowStyle = backendCharacter?.character_config?.selected_eyebrow_style ?? selectedEyebrowStyle;
-    const eyebrowColor = backendCharacter?.character_config?.selected_eyebrow_color ?? selectedEyebrowColor;
+  const getEyebrowsAsset = (useLocalState: boolean = false) => {
+    // Use local state for character creation, backend data for display
+    const eyebrowStyle = useLocalState ? selectedEyebrowStyle : (backendCharacter?.selected_eyebrow_style ?? selectedEyebrowStyle);
+    const eyebrowColor = useLocalState ? selectedEyebrowColor : (backendCharacter?.selected_eyebrow_color ?? selectedEyebrowColor);
     
     const eyebrowsArrays = [
       eyebrowsOptionsBrown,
@@ -745,11 +818,10 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return colorArray[eyebrowStyle] || colorArray[0];
   };
 
-  const getCurrentBackgroundAsset = () => {
-    // Use backend character data if available, otherwise fall back to local state
-    const backgroundType = backendCharacter?.character_config?.selected_background_type ?? selectedBackgroundType;
-    // For now, use a default color since the API doesn't provide background color in character_config
-    const backgroundColor = selectedBackgroundColor;
+  const getCurrentBackgroundAsset = (useLocalState: boolean = false) => {
+    // Use local state for character creation, backend data for display
+    const backgroundType = useLocalState ? selectedBackgroundType : (backendCharacter?.selected_background_type ?? selectedBackgroundType);
+    const backgroundColor = useLocalState ? selectedBackgroundColor : (backendCharacter?.selected_background_color ?? selectedBackgroundColor);
     
     const backgroundColorArrays = [
       bgOptionsBrown,
@@ -774,20 +846,44 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return colorArray[backgroundType] || colorArray[0];
   };
 
-  const getBaseAsset = () => {
-    // Use backend character data if available, otherwise fall back to local state
-    const baseColor = backendCharacter?.character_config?.selected_base_color ?? selectedBaseColor;
-    console.log('[getBaseAsset] selectedBaseColor:', baseColor);
-    // The base asset should be the skin color - use selectedBaseColor to get the correct base file
-    const asset = baseOptions[baseColor] || baseOptions[0];
-    console.log('[getBaseAsset] using asset:', asset);
-    return asset;
+  const getCharacterName = () => {
+    // Prioritize the main name field from backend, then character_config, then local state
+    const backendName = backendCharacter?.name;
+    const configName = backendCharacter?.character_config?.selectedName;
+    const localName = characterName;
+    
+    return backendName || configName || localName;
   };
 
-  const getMouthAsset = () => {
-    // Use backend character data if available, otherwise fall back to local state
-    const mouthType = backendCharacter?.character_config?.selected_mouth_type ?? selectedMouthType;
-    return mouthOptions[mouthType] || mouthOptions[0];
+  const getBaseAsset = (useLocalState: boolean = false) => {
+    try {
+      // Use local state for character creation, backend data for display
+      const baseColor = useLocalState ? selectedBaseColor : (backendCharacter?.selected_skin_color ?? selectedBaseColor);
+
+      
+      // Ensure baseColor is within bounds
+      const safeIndex = Math.max(0, Math.min(baseColor, baseOptions.length - 1));
+      
+      // The base asset should be the skin color - use baseColor to get the correct base file
+      const asset = baseOptions[safeIndex] || baseOptions[0];
+      return asset;
+    } catch (error) {
+      console.error('[getBaseAsset] Error loading base asset:', error);
+      // Return a safe fallback
+      return baseOptions[0];
+    }
+  };
+
+  const getMouthAsset = (useLocalState: boolean = false) => {
+    try {
+      // Use local state for character creation, backend data for display
+      const mouthType = useLocalState ? selectedMouthType : (backendCharacter?.selected_mouth_type ?? selectedMouthType);
+      const safeMouthType = Math.max(0, Math.min(mouthType, mouthOptions.length - 1));
+      return mouthOptions[safeMouthType] || mouthOptions[0];
+    } catch (error) {
+      console.error('[getMouthAsset] Error loading mouth asset:', error);
+      return mouthOptions[0];
+    }
   };
 
   // ===== EQUIPMENT HELPER FUNCTIONS =====
@@ -1280,7 +1376,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   // ===== NEW CHARACTER CREATION HANDLERS (UPDATED FOR NEW BACKEND) =====
   const createCharacter = async () => {//character creation
-    
     if (!authToken) {
       setError("No authentication token");
       return;
@@ -1290,28 +1385,102 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     setError(null);
 
     try {
-      const createdCharacter = await appearanceService.createOrUpdateCharacter(
-        characterName,
-        {
-          selectedBaseModel,
-          selectedHairStyle,
-          selectedHairColor,
-          selectedEyeType,
-          selectedEyeColor,
-          selectedEyebrowStyle,
-          selectedEyebrowColor,
-          selectedMouthType,
-          selectedShirtType,
-          selectedClothesColor,
-          selectedBackgroundType,
-          selectedBackgroundColor,
+      // Check if we already have a character (for updates)
+      if (backendCharacter) {
+        // Update existing character - include character_config to ensure backend syncs both
+        const updatedCharacter = await apiService.updateCharacterCustomization({
+          ...backendCharacter,
+          name: characterName,
+          selected_base_model: selectedBaseModel,
+          selected_skin_color: selectedBaseColor,
+          selected_hair_style: selectedHairStyle,
+          selected_hair_color: selectedHairColor,
+          selected_eye_type: selectedEyeType,
+          selected_eye_color: selectedEyeColor,
+          selected_eyebrow_style: selectedEyebrowStyle,
+          selected_eyebrow_color: selectedEyebrowColor,
+          selected_mouth_type: selectedMouthType,
+          selected_shirt_type: selectedShirtType,
+          selected_shirt_color: selectedClothesColor,
+          selected_background_type: selectedBackgroundType,
+          selected_background_color: selectedBackgroundColor,
+          // Also update character_config to ensure backend syncs both
+          character_config: {
+            selectedName: characterName,
+            selected_base_model: selectedBaseModel,
+            selected_skin_color: selectedBaseColor,
+            selected_hair_style: selectedHairStyle,
+            selected_hair_color: selectedHairColor,
+            selected_eye_type: selectedEyeType,
+            selected_eye_color: selectedEyeColor,
+            selected_eyebrow_style: selectedEyebrowStyle,
+            selected_eyebrow_color: selectedEyebrowColor,
+            selected_mouth_type: selectedMouthType,
+            selected_shirt_type: selectedShirtType,
+            selected_shirt_color: selectedClothesColor,
+            selected_background_type: selectedBackgroundType,
+            selected_background_color: selectedBackgroundColor,
+          },
+        });
+        
+        setBackendCharacter(updatedCharacter);
+        
+        // Don't reload character data since we already have the updated data
+        // The backend might return old character_config values, so we keep our local state
+      } else {
+        // Create new character - send ALL customization fields
+        const characterData = {
+          name: characterName,
+          character_config: {
+            selectedName: characterName,
+            selected_base_model: selectedBaseModel,
+            selected_skin_color: selectedBaseColor,
+            selected_hair_style: selectedHairStyle,
+            selected_hair_color: selectedHairColor,
+            selected_eye_type: selectedEyeType,
+            selected_eye_color: selectedEyeColor,
+            selected_eyebrow_style: selectedEyebrowStyle,
+            selected_eyebrow_color: selectedEyebrowColor,
+            selected_mouth_type: selectedMouthType,
+            selected_shirt_type: selectedShirtType,
+            selected_shirt_color: selectedClothesColor,
+            selected_background_type: selectedBackgroundType,
+            selected_background_color: selectedBackgroundColor,
+          },
+          // Also send the main character fields
+          selected_base_model: selectedBaseModel,
+          selected_skin_color: selectedBaseColor,
+          selected_hair_style: selectedHairStyle,
+          selected_hair_color: selectedHairColor,
+          selected_eye_type: selectedEyeType,
+          selected_eye_color: selectedEyeColor,
+          selected_eyebrow_style: selectedEyebrowStyle,
+          selected_eyebrow_color: selectedEyebrowColor,
+          selected_mouth_type: selectedMouthType,
+          selected_shirt_type: selectedShirtType,
+          selected_shirt_color: selectedClothesColor,
+          selected_background_type: selectedBackgroundType,
+          selected_background_color: selectedBackgroundColor,
+        };
+
+        // Create character by updating user profile with character data
+        // The backend should handle both creation and updates through this endpoint
+        const createdCharacter = await apiService.patch<Character>('updateUserProfile', characterData);
+        
+        // Temporary fix: If backend returns "Hero" as name, keep our local name
+        if (createdCharacter?.name === 'Hero' && characterName && characterName !== 'Hero') {
+          createdCharacter.name = characterName;
         }
-      );
-
-      setBackendCharacter(createdCharacter);
-
-      // Complete onboarding - await this to ensure it completes before continuing
-      await completeCharacter();
+        
+        setBackendCharacter(createdCharacter);
+        
+        // Complete onboarding separately
+        await apiService.completeOnboarding('character');
+        
+        // Don't reload character data immediately after creation
+        // The backend might return incorrect data, so we keep our local state
+        // The character data will be reloaded when the user navigates to the home screen
+      }
 
       // Load additional data (temporarily disabled until backend endpoints are implemented)
       // await memoizedLoadHomeData();
@@ -1337,23 +1506,23 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
     try {
       const updatedCharacter =
-        await appearanceService.updateCharacterCustomization(
-          backendCharacter.id,
-          {
-            selectedBaseModel,
-            selectedHairStyle,
-            selectedHairColor,
-            selectedEyeType,
-            selectedEyeColor,
-            selectedEyebrowStyle,
-            selectedEyebrowColor,
-            selectedMouthType,
-            selectedShirtType,
-            selectedClothesColor,
-            selectedBackgroundType,
-            selectedBackgroundColor,
-          }
-        );
+        await apiService.updateCharacterCustomization({
+          ...backendCharacter,
+          name: characterName,
+          selected_base_model: selectedBaseModel,
+          selected_skin_color: selectedBaseColor,
+          selected_hair_style: selectedHairStyle,
+          selected_hair_color: selectedHairColor,
+          selected_eye_type: selectedEyeType,
+          selected_eye_color: selectedEyeColor,
+          selected_eyebrow_style: selectedEyebrowStyle,
+          selected_eyebrow_color: selectedEyebrowColor,
+          selected_mouth_type: selectedMouthType,
+          selected_shirt_type: selectedShirtType,
+          selected_shirt_color: selectedClothesColor,
+          selected_background_type: selectedBackgroundType,
+          selected_background_color: selectedBackgroundColor,
+        });
 
       setBackendCharacter(updatedCharacter);
     } catch (error: any) {
@@ -1374,7 +1543,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
 
     try {
-      const result = await appearanceService.gainExperience(
+      const result = await apiService.gainExperience(
         backendCharacter.id,
         amount,
         source
@@ -1402,7 +1571,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
 
     try {
-      const result = await appearanceService.gainWellness(
+      const result = await apiService.gainWellness(
         backendCharacter.id,
         gains
       );
@@ -1422,7 +1591,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const acquireTool = async (toolId: number) => {
     try {
-      await appearanceService.acquireCopingTool(toolId);
+      await apiService.acquireCopingTool(toolId);
       await memoizedLoadMyTools(); // Refresh tools
 
       Alert.alert("🛠️ Tool Acquired!", "You have acquired a new coping tool!", [
@@ -1437,7 +1606,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const equipTool = async (toolId: number) => {
     try {
-      await appearanceService.equipTool(toolId);
+      await apiService.equipTool(toolId);
       await memoizedLoadMyTools(); // Refresh tools
     } catch (error: any) {
       setError("Failed to equip tool: " + (error?.message || "Unknown error"));
@@ -1461,7 +1630,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     notes?: string
   ) => {
     try {
-      await appearanceService.useTool(toolId, effectiveness, notes);
+      await apiService.useTool(toolId, effectiveness, notes);
       await memoizedLoadMyTools(); // Refresh tools
 
       Alert.alert("🌟 Tool Used!", "Your tool usage has been recorded.", [
@@ -1473,7 +1642,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
   const createCodexEntry = async (entryData: any) => {
     try {
-      await appearanceService.createCodexEntry(entryData);
+      await apiService.createCodexEntry(entryData);
       await memoizedLoadRecentCodexEntries(); // Refresh entries
     } catch (error: any) {
       setError(
@@ -1488,7 +1657,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     entryType: 'journal' | 'draw' | 'voice'
   ) => {
     try {
-      await appearanceService.createCodexEntry({
+      await apiService.createCodexEntry({
         prompt: promptText,
         entry_type: entryType,
         content: content,
@@ -1669,29 +1838,41 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       return;
     }
 
+    // Don't load character data if we're in the middle of character creation
+    // This prevents overwriting the user's input with backend defaults
+    if (characterName && characterName.trim() !== '' && characterName !== 'Hero') {
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const characterData = await appearanceService.getMyCharacter();
+      const characterData = await apiService.getMyCharacter();
 
       if (characterData) {
         setBackendCharacter(characterData);
 
-        // Sync UI state with backend data using the mapping function
-        const frontendData =
-          appearanceService.mapBackendToFrontend(characterData);
-        setCharacterName(characterData.name || "");
-        setSelectedBaseModel(frontendData.selectedBaseModel);
-        setSelectedHairStyle(frontendData.selectedHairStyle);
-        setSelectedHairColor(frontendData.selectedHairColor);
-        setSelectedEyeType(frontendData.selectedEyeType);
-        setSelectedEyeColor(frontendData.selectedEyeColor);
-        setSelectedEyebrowStyle(frontendData.selectedEyebrowStyle);
-        setSelectedEyebrowColor(frontendData.selectedEyebrowColor);
-        setSelectedMouthType(frontendData.selectedMouthType);
-        setSelectedShirtType(frontendData.selectedShirtType);
-        setSelectedClothesColor(frontendData.selectedClothesColor);
-        setSelectedBackgroundType(frontendData.selectedBackgroundType);
-        setSelectedBackgroundColor(frontendData.selectedBackgroundColor);
+        // Sync UI state with backend data directly
+        // NEVER update character name from backend if we have a local name
+        // This prevents the backend's "Hero" default from overwriting user input
+        if (characterName && characterName.trim() !== '') {
+          // Keep local character name
+        } else if (characterData.name && characterData.name !== 'Hero') {
+          setCharacterName(characterData.name);
+        }
+        
+        setSelectedBaseModel(characterData.selected_base_model || 0);
+        setSelectedBaseColor(characterData.selected_skin_color || 0); // Sync skin color
+        setSelectedHairStyle(characterData.selected_hair_style || 0);
+        setSelectedHairColor(characterData.selected_hair_color || 0);
+        setSelectedEyeType(characterData.selected_eye_type || 0);
+        setSelectedEyeColor(characterData.selected_eye_color || 0);
+        setSelectedEyebrowStyle(characterData.selected_eyebrow_style || 0);
+        setSelectedEyebrowColor(characterData.selected_eyebrow_color || 0);
+        setSelectedMouthType(characterData.selected_mouth_type || 0);
+        setSelectedShirtType(characterData.selected_shirt_type || 0);
+        setSelectedClothesColor(characterData.selected_shirt_color || 0);
+        setSelectedBackgroundType(characterData.selected_background_type || 0);
+        setSelectedBackgroundColor(characterData.selected_background_color || 0);
       }
     } catch (error: any) {
       // Don't set error state for load failures as they might be expected
@@ -1703,11 +1884,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [authToken]);
+  }, [authToken, characterName]);
 
   const memoizedLoadAvailableTools = useCallback(async () => {
     try {
-      const tools = await appearanceService.getAvailableCopingTools();
+      const tools = await apiService.getAvailableCopingTools();
       setAvailableTools(tools);
     } catch (error: any) {
       // Handle error silently
@@ -1721,9 +1902,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const memoizedLoadMyTools = useCallback(async () => {
     try {
-      const tools = await appearanceService.getMyTools();
+      const tools = await apiService.getMyTools();
       setMyTools(tools);
-      setEquippedTools(tools.filter((tool) => tool.is_equipped));
+      setEquippedTools(tools.filter((tool: CharacterTool) => tool.is_equipped));
     } catch (error: any) {
       // Handle error silently
       if (error.response?.status === 404) {
@@ -1736,8 +1917,21 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const memoizedLoadRecentCodexEntries = useCallback(async () => {
     try {
-      const entries = await appearanceService.getRecentCodexEntries();
-      setRecentCodexEntries(entries);
+      const entries = await apiService.getMyCodexEntries();
+      // Convert API service CodexEntry to frontend CodexEntry format
+      const convertedEntries = entries.map(entry => ({
+        id: entry.id.toString(),
+        prompt: typeof entry.prompt === 'string' ? entry.prompt : entry.prompt?.text || '',
+        content: entry.content || '',
+        entry_type: entry.entry_type || 'journal',
+        timestamp: new Date(entry.created_at || Date.now()).getTime(),
+        type: 'journal',
+        passages: entry.content || '',
+        skillCategory: 'General',
+        mapArea: 'entrance',
+        difficulty: 'easy'
+      }));
+      setRecentCodexEntries(convertedEntries);
     } catch (error: any) {
       // Handle error silently
       if (error.response?.status === 404) {
@@ -1750,7 +1944,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const memoizedLoadHomeData = useCallback(async () => {
     try {
-      const data = await appearanceService.getHomeData();
+      const data = await apiService.getCharacterHomeData();
       setHomeData(data);
     } catch (error: any) {
       // Handle error silently
@@ -1790,8 +1984,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     // Load onboarding status if we have an auth token
     if (authToken) {
       loadUserOnboardingStatus();
-    } else {
-      console.log('MasterStateContext: No auth token, skipping data load');
     }
     
   }, [authToken, user, loadUserOnboardingStatus, memoizedLoadCharacter, memoizedLoadHomeData, loadBackendGear]);
@@ -1843,9 +2035,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       selectedClothesColor,
       selectedBackgroundType,
       selectedBackgroundColor,
+      styleCategories,
+      colorCategories,
       setCharacterName,
       setSelectedBaseModel,
-      setSelectedBaseColor: debugSetSelectedBaseColor,
+      setSelectedBaseColor,
       setSelectedHairStyle,
       setSelectedHairColor,
       setSelectedEyeType,
@@ -1869,6 +2063,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       getCurrentBackgroundAsset,
       getBaseAsset,
       getMouthAsset,
+      getCharacterName,
       createCharacter,
       updateCharacter,
       loadCharacter: memoizedLoadCharacter,

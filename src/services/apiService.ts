@@ -113,14 +113,10 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
     async (config) => {
         try {
-            console.log('=== REQUEST INTERCEPTOR ===');
-            console.log('Making request to:', config.url);
-            console.log('Method:', config.method?.toUpperCase());
-            console.log('Full URL:', `${config.baseURL}${config.url}`);
+
             
             // Skip authorization for login requests
             if (config.url?.includes('auth/login') || config.url?.includes('login')) {
-                console.log('Request interceptor - Login request detected, skipping authorization');
                 return config;
             }
             
@@ -131,17 +127,10 @@ apiClient.interceptors.request.use(
             await new Promise(resolve => setTimeout(resolve, 10));
             
             const token = await AsyncStorage.getItem('authToken');
-            console.log('Request interceptor - Token from AsyncStorage:', token ? 'Yes' : 'No');
-            console.log('Token value preview:', token ? `${token.substring(0, 10)}...` : 'null');
-            console.log('Token length:', token ? token.length : 0);
             
             if (token && token.trim()) {
                 // Django REST Framework uses 'Token' prefix for token authentication
                 config.headers.Authorization = `Token ${token}`;
-                console.log('Request interceptor - Added Authorization header (Token format)');
-                console.log('Authorization header:', config.headers.Authorization);
-                console.log('Token length:', token.length);
-                console.log('Token starts with:', token.substring(0, 10));
                 
                 // Log the full request details for debugging
                 console.log('Full request config:', {
@@ -155,7 +144,7 @@ apiClient.interceptors.request.use(
                     fullURL: `${config.baseURL}${config.url}`
                 });
             } else {
-                console.log('Request interceptor - No valid token found in AsyncStorage');
+
                 
                 // Try to get all AsyncStorage keys to debug
                 const allKeys = await AsyncStorage.getAllKeys();
@@ -180,20 +169,12 @@ apiClient.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         if (error.response?.status === 401) {
-            console.error('Authentication error:', error.response.data);
-            console.error('Request URL:', error.config?.url);
-            console.error('Request headers:', error.config?.headers);
-            
-            // Only remove token if it's definitely invalid
-            // Don't remove on temporary auth issues
+
             const errorMessage = error.response.data as any;
             if (errorMessage?.detail === 'Invalid token.' || 
                 errorMessage?.detail === 'Token has expired.') {
-                console.log('Removing invalid/expired token and user data');
                 await AsyncStorage.removeItem('authToken');
                 await AsyncStorage.removeItem('userData');
-            } else {
-                console.log('401 error but not removing token - might be temporary issue');
             }
         }
         return Promise.reject(error);
@@ -204,47 +185,34 @@ apiClient.interceptors.response.use(
 class ApiService {
     private isInitialized = false;
 
-    /**
-     * Initialize the API service - sets up auth tokens and validates existing sessions
-     */
     public async initialize(): Promise<void> {
         try {
             console.log('=== API SERVICE INITIALIZATION ===');
             
             // Check if we have a stored token
-            const token = await AsyncStorage.getItem('authToken');
-            console.log('Initialization - Token from AsyncStorage:', token ? 'Present' : 'Not found');
+                    const token = await AsyncStorage.getItem('authToken');
+        
+        if (token) {
+            const isValid = await this.validateToken();
             
-            if (token) {
-                console.log('Initialization - Validating existing token...');
-                const isValid = await this.validateToken();
-                console.log('Initialization - Token validation result:', isValid);
-                
-                if (isValid) {
-                    this.isInitialized = true;
-                    console.log('Initialization - API service initialized successfully');
-                } else {
-                    console.log('Initialization - Token invalid, clearing stored data');
-                    await AsyncStorage.removeItem('authToken');
-                    await AsyncStorage.removeItem('userData');
-                    await AsyncStorage.removeItem('characterId');
-                    this.isInitialized = false;
-                }
+            if (isValid) {
+                this.isInitialized = true;
             } else {
-                console.log('Initialization - No token found, service not initialized');
+                await AsyncStorage.removeItem('authToken');
+                await AsyncStorage.removeItem('userData');
+                await AsyncStorage.removeItem('characterId');
                 this.isInitialized = false;
             }
-            
-            console.log('=== END API SERVICE INITIALIZATION ===');
+        } else {
+            this.isInitialized = false;
+        }
         } catch (error) {
             console.error('API service initialization error:', error);
             this.isInitialized = false;
         }
     }
 
-    /**
-     * Check if the API service has been initialized
-     */
+
     public getInitializationStatus(): boolean {
         return this.isInitialized;
     }
@@ -256,13 +224,7 @@ class ApiService {
             const urlSuffix = config?.urlSuffix || '';
             const url = baseEndpoint + urlSuffix;
             
-            // Debug logging to trace URL construction
-            console.log(`=== GET REQUEST DEBUG ===`);
-            console.log(`Endpoint key: ${endpoint}`);
-            console.log(`Base endpoint: ${baseEndpoint}`);
-            console.log(`URL suffix: ${urlSuffix}`);
-            console.log(`Final URL: ${url}`);
-            console.log(`=== END GET REQUEST DEBUG ===`);
+
             
             const axiosConfig = { ...config };
             delete (axiosConfig as any).urlSuffix;
@@ -276,35 +238,22 @@ class ApiService {
 
     public async post<T>(endpoint: keyof typeof API_ENDPOINTS, data?: any, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
         const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
-        console.log(`=== POST REQUEST ===`);
-        console.log(`URL: ${url}`);
-        console.log(`Full URL: ${apiBaseUrl}${url}`);
-        console.log(`Data:`, data);
-        console.log(`Config:`, config);
+
         
         try {
             const axiosConfig = { ...config };
             delete (axiosConfig as any).urlSuffix;
             const response = await apiClient.post<T>(url, data, axiosConfig);
-            console.log(`POST ${url} success:`, response.data);
+
             return response.data;
         } catch (error: any) {
-            console.error(`=== POST REQUEST FAILED ===`);
-            console.error(`URL: ${url}`);
-            console.error(`Full URL: ${apiBaseUrl}${url}`);
-            console.error(`Error:`, error);
+
             if (error.response) {
-                console.error('Response data:', error.response.data);
-                console.error('Response status:', error.response.status);
-                console.error('Response headers:', error.response.headers);
+
             }
             if (error.config) {
-                console.error('Request URL:', error.config.url);
-                console.error('Request method:', error.config.method);
-                console.error('Request headers:', error.config.headers);
-                console.error('Request data:', error.config.data);
             }
-            console.error(`=== END POST REQUEST FAILED ===`);
+ 
             this.handleError(error, 'POST', url);
             throw error;
         }
@@ -360,122 +309,24 @@ class ApiService {
     // ===== Authentication Methods verified =====
     async login(username: string, password: string): Promise<LoginResponse> {
         try {
-            console.log('=== LOGIN ATTEMPT ===');
-            console.log('Username:', username);
-            console.log('Login endpoint:', API_ENDPOINTS.login);
-            console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.login}`);
-            console.log('API Base URL:', apiBaseUrl);
-            
-            // Test network connectivity first
-            console.log('=== TESTING NETWORK CONNECTIVITY ===');
-            try {
-                const testResponse = await fetch(`${apiBaseUrl}`, { 
-                    method: 'GET'
-                });
-                console.log('Network test response status:', testResponse.status);
-                console.log('Network test successful');
-            } catch (networkError) {
-                console.error('Network connectivity test failed:', networkError);
-                console.error('This suggests the device cannot reach the API server');
-                console.error('Possible causes:');
-                console.error('1. No internet connection');
-                console.error('2. API server is down');
-                console.error('3. Android network security blocking HTTP traffic');
-                console.error('4. Firewall blocking the connection');
-            }
             
             const response = await this.post<LoginResponse>('login', { username, password });
-            
-            console.log('=== LOGIN RESPONSE ===');
-            console.log('Response received:', response);
-            console.log('Token:', response.token ? 'Present' : 'Missing');
-            console.log('User ID:', response.user?.id);
-            console.log('Username from response:', response.user?.username);
             
             if (!response.token) {
                 throw new Error('No token received from login response');
             }
             
             // Store the token and character ID
-            console.log('Storing token in AsyncStorage...');
             await AsyncStorage.setItem('authToken', response.token);
             await AsyncStorage.setItem('characterId', String(response.user.id));
             
             // Store the complete user data for getProfile() to use
-            console.log('Storing user data from login response...');
             await AsyncStorage.setItem('userData', JSON.stringify(response.user));
             
             // Add a small delay to ensure AsyncStorage operations complete
             await new Promise(resolve => setTimeout(resolve, 50));
-            
-            // Verify the token was stored
-            const storedToken = await AsyncStorage.getItem('authToken');
-            console.log('Token verification - stored successfully:', storedToken === response.token);
-            console.log('Stored token value:', storedToken);
-            console.log('Original token value:', response.token);
-            
-            // Double verify by getting all AsyncStorage data
-            const allKeys = await AsyncStorage.getAllKeys();
-            const allValues = await AsyncStorage.multiGet(allKeys);
-            console.log('All AsyncStorage after login:', allValues);
-            
-            // Test the token immediately after login using stored data
-            console.log('=== TESTING TOKEN IMMEDIATELY AFTER LOGIN ===');
-            try {
-                const testProfile = await this.getProfile();
-                if (testProfile && testProfile.username) {
-                    console.log('✅ Token works immediately after login - profile data available');
-                } else {
-                    console.log('❌ Token test failed - no valid profile data');
-                }
-            } catch (testError: any) {
-                console.error('❌ Token failed immediately after login:', testError.response?.status, testError.response?.data);
-                console.error('❌ Token test error details:', {
-                    status: testError.response?.status,
-                    data: testError.response?.data,
-                    headers: testError.response?.headers,
-                    config: testError.config
-                });
-                
-                // Log the exact curl command that would work
-                console.log('=== CURL TEST COMMAND ===');
-                console.log(`curl -H "Authorization: Token ${response.token}" -H "Content-Type: application/json" ${apiBaseUrl}users/me`);
-                console.log('========================');
-            }
-            
-            console.log('=== LOGIN COMPLETE ===');
             return response;
         } catch (error: any) {
-            console.error('=== LOGIN ERROR ===');
-            console.error('Login error:', error);
-            
-            // Enhanced error logging for network issues
-            if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
-                console.error('🔴 NETWORK ERROR DETECTED');
-                console.error('This is likely due to:');
-                console.error('1. Android blocking HTTP traffic');
-                console.error('2. No internet connection');
-                console.error('3. API server unreachable');
-                console.error('4. Network security configuration issue');
-                console.error('');
-                console.error('Troubleshooting steps:');
-                console.error('1. Check internet connection');
-                console.error('2. Verify API server is running');
-                console.error('3. Check Android network security config');
-                console.error('4. Try using HTTPS instead of HTTP');
-            }
-            
-            if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data);
-                console.error('Response headers:', error.response.headers);
-            } else if (error.request) {
-                console.error('Request was made but no response received');
-                console.error('Request details:', error.request);
-            } else {
-                console.error('Error setting up request:', error.message);
-            }
-            
             throw new Error('Login failed. Please check your credentials and network connection.');
         }
     }
@@ -501,21 +352,16 @@ class ApiService {
             // This will work for both regular tokens and test tokens
             try {
                 await this.get('userProfile');
-                console.log('Token validation: Success');
                 return true;
             } catch (error) {
-                console.error('Token validation error:', error);
                 // Don't remove token here - let response interceptor handle it
                 return false;
             }
         } catch (error) {
-            console.error('Token validation error:', error);
             // Don't remove token here - let response interceptor handle it
             return false;
         }
     }
-
-    // REMOVED: testTokenAuth() - duplicate of testTokenAuthentication()
 
     /**
      * Test method to verify token storage and retrieval
@@ -535,7 +381,6 @@ class ApiService {
                 preview: token ? token.substring(0, 20) + '...' : 'null'
             };
         } catch (error) {
-            console.error('Error testing token storage:', error);
             return {
                 stored: false,
                 token: null,
@@ -555,7 +400,6 @@ class ApiService {
         error?: string;
     }> {
         try {
-            console.log('=== TESTING TOKEN AUTHENTICATION ===');
             const token = await AsyncStorage.getItem('authToken');
             
             if (!token) {
@@ -569,11 +413,9 @@ class ApiService {
                 }
             });
             
-            console.log('Token auth test successful:', response.data);
             return { success: true, status: response.status, data: response.data };
             
         } catch (error: any) {
-            console.error('Token auth test failed:', error);
             return { 
                 success: false, 
                 status: error.response?.status,
@@ -611,7 +453,16 @@ class ApiService {
     }
 
     async updateProfile(profileData: any): Promise<UserProfile> {
-        return this.patch<UserProfile>('updateUserProfile', profileData);
+        console.log('=== UPDATE PROFILE DEBUG ===');
+        console.log('Profile data being sent:', profileData);
+        console.log('Profile data JSON:', JSON.stringify(profileData, null, 2));
+        console.log('================================');
+        const result = await this.patch<UserProfile>('updateUserProfile', profileData);
+        console.log('=== UPDATE PROFILE RESPONSE ===');
+        console.log('Response:', result);
+        
+        console.log('================================');
+        return result;
     }
 
     // ===== Survey Methods =====
@@ -1134,16 +985,56 @@ class ApiService {
      * Complete the character creator onboarding flow (Research Condition A)
      * This combines character creation + onboarding completion
      */
-    async completeCharacterOnboarding(characterData: CharacterCreateData): Promise<{
+    async completeCharacterOnboarding(characterData: Character): Promise<{
         characterResult: Character;
         onboardingResult: UserProfile;
     }> {
         try {
-            console.log('=== COMPLETING CHARACTER ONBOARDING ===');
+            
+            
+            // Validate that character data includes the name
+            if (!characterData.name || characterData.name.trim() === '') {
+                throw new Error('Character name is required for character creation');
+            }
+            
+            // Ensure we have all necessary character customization data
+            const completeCharacterData: Character = {
+                id: characterData.id || 0, // Use 0 for new characters
+
+                name: characterData.name,
+                // Visual customization data
+                selected_base_model: characterData.selected_base_model || 1,
+                selected_skin_color: characterData.selected_skin_color || 1,
+                selected_hair_style: characterData.selected_hair_style || 1,
+                selected_hair_color: characterData.selected_hair_color || 1,
+                selected_eye_type: characterData.selected_eye_type || 1,
+                selected_eye_color: characterData.selected_eye_color || 1,
+                selected_eyebrow_style: characterData.selected_eyebrow_style || 1,
+                selected_eyebrow_color: characterData.selected_eyebrow_color || 1,
+                selected_mouth_type: characterData.selected_mouth_type || 1,
+                selected_shirt_type: characterData.selected_shirt_type || 1,
+                selected_background_type: characterData.selected_background_type || 1,
+                user: 0,
+                level: 0,
+                experience: 0,
+                awareness: 0,
+                resilience: 0,
+                connection: 0,
+                balance: 0,
+                coins: 0,
+                crystals: 0,
+                memories_explored: 0,
+                coping_skills_learned: 0,
+                insights_discovered: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            
+    
             
             // First create the character
-            const characterResult = await this.createCharacter(characterData);
-            console.log('Character created successfully:', characterResult);
+            const characterResult = await this.createCharacter(completeCharacterData);
+    
             
             // Then complete the onboarding
             const onboardingResult = await this.completeOnboarding('character');
@@ -1294,7 +1185,7 @@ class ApiService {
                     throw new Error('User field should not be present in character creation data');
                 }
                 
-                const result = await this.post<Character>('characters', cleanData);
+                const result = await this.patch<Character>('updateUserProfile', cleanData);
         //        console.log('Character created successfully (simple):', result);
                 return result;
             } else {
@@ -1309,7 +1200,7 @@ class ApiService {
                     throw new Error('User field should not be present in character creation data');
                 }
                 
-                const result = await this.post<Character>('characters', characterData);
+                const result = await this.patch<Character>('updateUserProfile', characterData);
         //          console.log('Character created successfully (complete):', result);
                 return result;
             }
@@ -1326,8 +1217,9 @@ class ApiService {
 
     async getMyCharacter(): Promise<Character> {
         try {
-            // Try to get character data from the my_character endpoint
-            return await this.get<Character>('myCharacter');
+            // Try to get character data from the home data endpoint
+            const homeData = await this.get<HomeData>('characterHomeData');
+            return homeData.character;
         } catch (error) {
       //          console.error('Error getting character:', error);
             throw error;
@@ -1352,12 +1244,11 @@ class ApiService {
         return this.get('characterStats');
     }
 
-    async updateCharacterCustomization(characterId: number, customizationData: Partial<Character>): Promise<{
-        message: string;
-        character: Character;
-        character_config: Character;
-    }> {
-        return this.patch('characters', customizationData, { urlSuffix: `${characterId}/` });
+    async updateCharacterCustomization(customizationData: Character): Promise<Character> {
+        // Use the specific character update endpoint
+        return this.patch('updateCustomization', customizationData, { 
+            urlSuffix: `${customizationData.id}/update_customization/` 
+        });
     }
 
     async gainExperience(characterId: number, experience: number, source?: string): Promise<Character & {
@@ -1383,9 +1274,7 @@ class ApiService {
         return this.post('gainWellness', wellnessGains, { urlSuffix: `${characterId}/gain-wellness/` });
     }
 
-    async getCustomizationOptions(): Promise<Character & { option_limits: Record<string, number> }> {
-        return this.get('customizationOptions');
-    }
+    // REMOVED: getCustomizationOptions() - returns mock data, not used
 
     // ===== NEW COPING TOOLS METHODS =====delete?
     async getAvailableCopingTools(): Promise<CopingTool[]> {
@@ -1439,20 +1328,7 @@ class ApiService {
         }, { urlSuffix: `${toolId}/use/` });
     }
 
-    async getToolUsageStats(): Promise<{
-        total_tools: number;
-        equipped_tools: number;
-        total_usage: number;
-        tools_with_ratings: number;
-        average_effectiveness: number;
-        most_used_tool?: {
-            name: string;
-            times_used: number;
-            effectiveness?: number;
-        };
-    }> {
-        return this.get('toolUsageStats');
-    }    // ===== JOURNAL & CODEX METHODS (matching your Django backend) =====
+    // REMOVED: getToolUsageStats() - endpoint not implemented    // ===== JOURNAL & CODEX METHODS (matching your Django backend) =====
     async getJournalPrompts(): Promise<JournalPrompt[]> {
         return this.get<JournalPrompt[]>('journalPrompts');
     }
@@ -1488,9 +1364,7 @@ class ApiService {
             throw error;
         }
     }    // ===== NEW GEAR METHODS =====
-    async getAvailableGear(): Promise<any[]> {
-        return this.get<any[]>('availableGear');
-    }
+    // REMOVED: getAvailableGear() - not used in current implementation
 
     async getMyGear(): Promise<CharacterGear[]> {
         return this.get<CharacterGear[]>('myGear');
@@ -1501,14 +1375,34 @@ class ApiService {
     }
 
     async acquireGear(gearTypeId: number): Promise<CharacterGear> {
-        // Backend expects gear_type_id as a single integer value
-        const payload = { 
-            gear_type_id: gearTypeId
-        };
-        console.log('=== ACQUIRE GEAR PAYLOAD ===');
-        console.log('Gear type ID:', gearTypeId);
-        console.log('Payload:', payload);
-        return this.post<CharacterGear>('acquireGear', payload);
+        try {
+            console.log('=== ACQUIRE GEAR PAYLOAD ===');
+            console.log('Gear type ID:', gearTypeId);
+            const payload = { gear_type_id: gearTypeId };
+            console.log('Payload:', payload);
+            
+            // First check if the character already has this gear
+            const myGear = await this.getMyGear();
+            const alreadyHasGear = myGear.some(gear => gear.gear_type.id === gearTypeId);
+            
+            if (alreadyHasGear) {
+                console.log('Character already has this gear type, skipping acquisition');
+                return myGear.find(gear => gear.gear_type.id === gearTypeId)!;
+            }
+            
+            const result = await this.post<CharacterGear>('acquireGear', payload);
+            console.log('✅ Gear acquired successfully:', result);
+            return result;
+        } catch (error: any) {
+            console.error('Failed to acquire gear:', error);
+            // If it's a duplicate key error, the gear already exists
+            if (error.response?.status === 500 && error.response?.data?.includes('duplicate key')) {
+                console.log('Gear already exists, returning existing gear');
+                const myGear = await this.getMyGear();
+                return myGear.find(gear => gear.gear_type.id === gearTypeId)!;
+            }
+            throw error;
+        }
     }
 
     async equipGear(gearId: number): Promise<{ message: string; gear: CharacterGear }> {
@@ -1519,22 +1413,7 @@ class ApiService {
         return this.post('unequipGear', {}, { urlSuffix: `${gearId}/unequip/` });
     }
 
-    // ===== EXISTING METHODS (KEEP FOR COMPATIBILITY) =====
-    /* async getInventory(characterId: string): Promise<EquipmentItem[]> {
-        return this.get<EquipmentItem[]>('characters', { urlSuffix: `${characterId}/inventory` });
-    }
-
-    async getEquippedItems(characterId: string): Promise<EquippedItems> {
-        return this.get<EquippedItems>('characters', { urlSuffix: `${characterId}/equipment` });
-    }
-
-    async equipItem(characterId: string, itemId: string): Promise<void> {
-        await this.post('characters', null, { urlSuffix: `${characterId}/equipment/${itemId}` });
-    }
-
-    async unequipItem(characterId: string, itemId: string): Promise<void> {
-        await this.delete('characters', { urlSuffix: `${characterId}/equipment/${itemId}` });
-    } */
+    // ===== REMOVED: OLD EQUIPMENT METHODS (NO LONGER USED) =====
 
     async getGameData(): Promise<GameData> {
         try {
@@ -1912,6 +1791,7 @@ class ApiService {
             
             console.log(`Total passages loaded: ${allPassages.length}`);
             
+            
             return {
                 id: storyId.toString(),
                 title: 'Story Passages',
@@ -1969,7 +1849,239 @@ class ApiService {
      * Fetch user's progress records for a story
      */
     async getStoryProgressRecords(storyId: string): Promise<any[]> {
-        return this.get<any[]>('storyProgressGet', { urlSuffix: `${storyId}/progress/` });
+        return this.get<any[]>('getUserProgress', );
+    }
+
+    /**
+     * Get story progress for a specific story
+     */
+    async getStoryProgress(storyId: number | string): Promise<any> {
+        try {
+            console.log('=== GETTING STORY PROGRESS ===');
+            console.log('Story ID:', storyId);
+            
+            // Get all user progress records and filter by story ID
+            const allProgress = await this.get<any[]>('getUserProgress');
+            console.log('All progress records:', allProgress);
+            
+            if (!allProgress || allProgress.length === 0) {
+                console.log('No progress records found');
+                return null;
+            }
+            
+            // Find progress for this specific story
+            const storyProgress = allProgress.find((progress: any) => 
+                progress.story === storyId || progress.story === parseInt(storyId as string)
+            );
+            
+            if (storyProgress) {
+                console.log('✅ Story progress found:', storyProgress);
+                console.log('Progress ID (PK):', storyProgress.id);
+                console.log('Story ID:', storyProgress.story);
+                console.log('Current passage ID:', storyProgress.current_passage_id);
+                console.log('Passages visited count:', storyProgress.passages_visited_count);
+                console.log('Choices made count:', storyProgress.choices_made_count);
+                console.log('Progress percentage:', storyProgress.progress_percentage);
+            } else {
+                console.log('❌ No progress found for story ID:', storyId);
+            }
+            
+            return storyProgress || null;
+        } catch (error) {
+            console.error('Failed to get story progress:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Create new story progress record
+     */
+    async createStoryProgress(storyId: number | string, initialData?: {
+        current_passage_id?: string;
+        story_variables?: Record<string, any>;
+    }): Promise<any> {
+        try {
+            console.log('=== CREATING STORY PROGRESS ===');
+            console.log('Story ID:', storyId);
+            console.log('Initial data:', initialData);
+            
+            const payload = {
+                story: storyId,
+                current_passage_id: initialData?.current_passage_id || '',
+                story_variables: initialData?.story_variables || {},
+                passages_visited: [],
+                choices_made: [],
+                is_completed: false
+            };
+            
+            console.log('Create progress payload:', payload);
+            const result = await this.post<any>('createProgress', payload);
+            console.log('Story progress created:', result);
+            return result;
+        } catch (error) {
+            console.error('Failed to create story progress:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update existing story progress record
+     * Now that the backend fields are writable, we can actually update them
+     * The endpoint is: /api/story/story-progress/{id}/ where id is the story-progress PK
+     */
+    async updateStoryProgress(progressId: number, updateData: {
+        current_passage_id?: string;
+        passages_visited?: string[];
+        choices_made?: Array<{
+            choice_id: number;
+            choice_text: string;
+            timestamp: string;
+        }>;
+        story_variables?: Record<string, any>;
+        is_completed?: boolean;
+        completion_type?: string;
+        progress_percentage?: number;
+    }): Promise<any> {
+        try {
+            console.log('=== UPDATING STORY PROGRESS ===');
+            console.log('Progress ID:', progressId);
+            console.log('Update data:', updateData);
+            
+            // The endpoint is: /api/story/story-progress/{id}/ where id is the story-progress PK
+            const result = await this.patch<any>('updateProgress', updateData, {
+                urlSuffix: `${progressId}/`
+            });
+            
+            console.log('✅ Story progress updated successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('Failed to update story progress:', error);
+            // Don't throw error - just log it and continue
+            // The story should still work even if progress tracking fails
+            return null;
+        }
+    }
+
+    /**
+     * Get or create story progress for a story
+     * This is a convenience method that checks for existing progress and creates new if needed
+     */
+    async getOrCreateStoryProgress(storyId: number | string, initialData?: {
+        current_passage_id?: string;
+        story_variables?: Record<string, any>;
+    }): Promise<any> {
+        try {
+            console.log('=== GET OR CREATE STORY PROGRESS ===');
+            console.log('Story ID:', storyId);
+            
+            // First try to get existing progress
+            const existingProgress = await this.getStoryProgress(storyId);
+            
+            if (existingProgress) {
+                console.log('Existing progress found:', existingProgress);
+                return existingProgress;
+            }
+            
+            // If no existing progress, create new
+            console.log('No existing progress found, creating new progress record');
+            const newProgress = await this.createStoryProgress(storyId, initialData);
+            console.log('New progress created:', newProgress);
+            return newProgress;
+        } catch (error) {
+            console.error('Failed to get or create story progress:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Calculate and update progress percentage for a story
+     * This method calculates progress based on passages visited vs total passages
+     * Now that the backend fields are writable, we can actually update the progress_percentage
+     */
+    async calculateAndUpdateProgress(storyId: number | string, progressId: number): Promise<any> {
+        try {
+            console.log('=== CALCULATING PROGRESS PERCENTAGE ===');
+            console.log('Story ID:', storyId);
+            console.log('Progress ID (PK):', progressId);
+            
+            // Get current progress
+            const currentProgress = await this.getStoryProgress(storyId);
+            if (!currentProgress) {
+                console.log('No progress found for story');
+                return null;
+            }
+            
+            // Get all passages for the story to calculate total
+            const storyPassages = await this.getStorypassages(Number(storyId));
+            const totalPassages = storyPassages?.passages?.length || 0;
+            const visitedPassages = currentProgress.passages_visited?.length || 0;
+            
+            console.log('Total passages in story:', totalPassages);
+            console.log('Passages visited:', visitedPassages);
+            
+            // Calculate progress percentage
+            let progressPercentage = 0;
+            if (totalPassages > 0) {
+                progressPercentage = Math.round((visitedPassages / totalPassages) * 100);
+            }
+            
+            // Cap at 100% if completed
+            if (currentProgress.is_completed) {
+                progressPercentage = 100;
+            }
+            
+            console.log('Calculated progress percentage:', progressPercentage);
+            
+            // Now that the backend fields are writable, let's actually update the progress_percentage
+            const updateData = {
+                progress_percentage: progressPercentage
+            };
+            
+            console.log('Updating progress percentage with data:', updateData);
+            const result = await this.updateStoryProgress(progressId, updateData);
+            console.log('Progress percentage update result:', result);
+            return result;
+        } catch (error) {
+            console.error('Failed to calculate and update progress:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Mark a story as completed
+     * This method updates the progress record to mark the story as completed
+     */
+    async completeStoryProgress(storyId: number | string, completionType: string = 'rewards_completion'): Promise<any> {
+        try {
+            console.log('=== COMPLETING STORY PROGRESS ===');
+            console.log('Story ID:', storyId);
+            console.log('Completion type:', completionType);
+            
+            // Get current progress
+            const currentProgress = await this.getStoryProgress(storyId);
+            if (!currentProgress) {
+                console.log('No progress found for story');
+                return null;
+            }
+            
+            console.log('Found progress record with ID:', currentProgress.id);
+            
+            // Update progress to mark as completed
+            const updateData = {
+                is_completed: true,
+                completion_type: completionType,
+                completed_at: new Date().toISOString(),
+                progress_percentage: 100
+            };
+            
+            console.log('Updating progress with completion data:', updateData);
+            const result = await this.updateStoryProgress(currentProgress.id, updateData);
+            console.log('Story progress completion result:', result);
+            return result;
+        } catch (error) {
+            console.error('Failed to complete story progress:', error);
+            throw error;
+        }
     }
 
     /**
@@ -2294,7 +2406,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
    * @param storyPersonalityType - The story's personality type object
    * @returns boolean indicating if there's a match
    */
-  public doesPersonalityMatch(userPersonalityType: string, storyPersonalityType: any): boolean {
+  async doesPersonalityMatch(userPersonalityType: string, storyPersonalityType: any): Promise<boolean> {
     // Handle different personality type formats
     
     // Format 1: Direct string match

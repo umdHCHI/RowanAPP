@@ -1,8 +1,8 @@
 import React from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { CharacterFrameProps } from "../types/user";
+import { CharacterFrameProps } from "../../types/user";
 
-const DEFAULT_FRAME = require("../../assets/character-creator/BGs/brown/brown_one.png");
+const DEFAULT_FRAME = require("../../../assets/character-creator/BGs/brown/brown_one.png");
 
 const CharacterFrame: React.FC<CharacterFrameProps> = ({
   children,

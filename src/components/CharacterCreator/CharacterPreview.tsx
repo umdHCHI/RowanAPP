@@ -1,6 +1,6 @@
 import React from "react";
-import { Image, StyleSheet, View } from "react-native";
-import { CharacterPreviewProps } from "../types/user";
+import { Image, StyleSheet, Text, View } from "react-native";
+import { CharacterPreviewProps } from "../../types/user";
 
 // Sizing and offset constants (can be adjusted as needed)
 const PREVIEW_WIDTH = 500;
@@ -35,6 +35,7 @@ const MOUTH_TOP_OFFSET = -30;
 const MOUTH_LEFT_OFFSET = 0;
 
 const CharacterPreview: React.FC<CharacterPreviewProps> = ({
+  selectedName,
   baseAsset,
   background,
   hairSheet,
@@ -50,6 +51,11 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
 }) => {
   return (
     <View style={styles.previewContainer}>
+      {/* Character Name Display */}
+      {selectedName && selectedName.trim() !== '' && (
+        <Text style={styles.characterName}>{selectedName}</Text>
+      )}
+      
       {/* Background layer */}
       <Image source={background} style={styles.baseLayer} />
       
@@ -137,6 +143,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  characterName: {
+    position: "absolute",
+    top: -40,
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#4ee6e6",
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    zIndex: 10,
   },
   baseLayer: {
     width: BASE_WIDTH,

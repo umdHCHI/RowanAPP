@@ -1,19 +1,19 @@
 import {
-    BlurView,
-    createGlobalStyles,
-    Dimensions,
-    Icon,
-    LinearGradient,
-    Modal,
-    React,
-    ScrollView,
-    Story,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useEffect,
-    useState,
-    View
+  BlurView,
+  createGlobalStyles,
+  Dimensions,
+  Icon,
+  LinearGradient,
+  Modal,
+  React,
+  ScrollView,
+  Story,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useEffect,
+  useState,
+  View
 } from "../../imports";
 
 import { useMasterState } from "../../context/MasterStateContext";
@@ -24,13 +24,14 @@ import { apiService } from "../../services/apiService";
 
 const { width } = Dimensions.get("window");
 
-
-
 type StoryCatalogModalProps = {
   visible: boolean;
   onClose: () => void;
   onSelectStory: (Story: Story) => void;
 };
+
+// Progress filter options
+type ProgressFilter = 'all' | 'completed' | 'in-progress' | 'not-started';
 
 const StoryCatalogModal = ({
   visible,
@@ -43,6 +44,9 @@ const StoryCatalogModal = ({
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [storyProgress, setStoryProgress] = useState<Record<number, any>>({});
+  const [progressFilter, setProgressFilter] = useState<ProgressFilter>('all');
+  const [sortBy, setSortBy] = useState<'title' | 'progress' | 'recent'>('progress');
 
   // Load stories when modal becomes visible
   useEffect(() => {
@@ -53,10 +57,13 @@ const StoryCatalogModal = ({
       setError(null);
 
       try {
-        const backendStorys = await apiService.getAvailableStories();
+        const backendStories = await apiService.getAvailableStories();
 
-        if (backendStorys && backendStorys.length > 0) {
-          setStories(backendStorys);
+        if (backendStories && backendStories.length > 0) {
+          setStories(backendStories);
+          
+          // Load story progress for all stories
+          await loadStoryProgress(backendStories);
         } else {
           setStories([]);
         }
@@ -70,6 +77,127 @@ const StoryCatalogModal = ({
 
     loadStorys();
   }, [visible]);
+
+  // Load story progress for all stories
+  const loadStoryProgress = async (storyList: Story[]) => {
+    try {
+      const allProgress = await apiService.getStoryProgressRecords('');
+      
+      if (allProgress && allProgress.length > 0) {
+        // Create a map of story ID to progress for efficient lookup
+        const progressMap: Record<number, any> = {};
+        allProgress.forEach((progress: any) => {
+          progressMap[progress.story] = progress;
+        });
+        
+        setStoryProgress(progressMap);
+      } else {
+        setStoryProgress({});
+      }
+    } catch (error) {
+      setStoryProgress({});
+    }
+  };
+
+  // Filter and sort stories based on progress
+  const getFilteredAndSortedStories = () => {
+    let filteredStories = [...stories];
+
+    // Apply progress filter
+    switch (progressFilter) {
+      case 'completed':
+        filteredStories = filteredStories.filter(story => 
+          storyProgress[story.id]?.is_completed
+        );
+        break;
+      case 'in-progress':
+        filteredStories = filteredStories.filter(story => 
+          storyProgress[story.id] && !storyProgress[story.id].is_completed && storyProgress[story.id].passages_visited_count > 0
+        );
+        break;
+      case 'not-started':
+        filteredStories = filteredStories.filter(story => 
+          !storyProgress[story.id] || storyProgress[story.id].passages_visited_count === 0
+        );
+        break;
+      default:
+        // 'all' - no filtering
+        break;
+    }
+
+    // Apply sorting
+    filteredStories.sort((a, b) => {
+      const progressA = storyProgress[a.id];
+      const progressB = storyProgress[b.id];
+
+      switch (sortBy) {
+        case 'title':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'recent':
+          const lastPlayedA = progressA?.last_played ? new Date(progressA.last_played).getTime() : 0;
+          const lastPlayedB = progressB?.last_played ? new Date(progressB.last_played).getTime() : 0;
+          return lastPlayedB - lastPlayedA; // Most recent first
+        case 'progress':
+        default:
+          const progressPercentA = progressA?.progress_percentage || 0;
+          const progressPercentB = progressB?.progress_percentage || 0;
+          return progressPercentB - progressPercentA; // Highest progress first
+      }
+    });
+
+    return filteredStories;
+  };
+
+  // Handle story selection with progress management
+  const handleStorySelection = async (selectedStory: Story) => {
+    try {
+      const progress = storyProgress[selectedStory.id];
+      
+      if (progress) {
+        // Story has existing progress
+        if (progress.is_completed) {
+          // Story is completed - ask user if they want to replay
+          onSelectStory(selectedStory);
+        } else {
+          // Story is in progress - continue from where they left off
+          onSelectStory(selectedStory);
+        }
+      } else {
+        // No progress - start new story
+        try {
+          // Create new progress record
+          const newProgress = await apiService.createStoryProgress(selectedStory.id, {
+            current_passage_id: selectedStory.starting_passage_id || '',
+            story_variables: {}
+          });
+          
+          // Update local progress state
+          setStoryProgress(prev => ({
+            ...prev,
+            [selectedStory.id]: newProgress
+          }));
+          
+          // Start the story
+          onSelectStory(selectedStory);
+        } catch (progressError) {
+          // Still allow story to start even if progress creation fails
+          onSelectStory(selectedStory);
+        }
+      }
+    } catch (error) {
+      // Fallback to direct story selection
+      onSelectStory(selectedStory);
+    }
+  };
+
+  // Refresh story progress
+  const refreshStoryProgress = async () => {
+    try {
+      await loadStoryProgress(stories);
+    } catch (error) {
+      // Failed to refresh story progress
+    }
+  };
 
   const getRarityColors = (rarity: string): readonly [string, string] => {
     switch (rarity) {
@@ -97,206 +225,254 @@ const StoryCatalogModal = ({
     }
   };
 
-  const StoryCard = ({ Story }: { Story: Story }) => (
-    <TouchableOpacity
-      style={[globalStyles.StoryCard, { opacity: Story.isLocked ? 0.6 : 1 }]}
-      onPress={() => !Story.isLocked && onSelectStory(Story)}
-      activeOpacity={Story.isLocked ? 1 : 0.8}
-      disabled={Story.isLocked}
-    >
-      <LinearGradient
-        colors={[
-          "rgba(30, 41, 59, 0.95)",
-          "rgba(51, 65, 85, 0.8)",
-          "rgba(30, 41, 59, 0.95)",
-        ]}
-        style={globalStyles.StoryCardGradient}
+  const StoryCard = ({ Story }: { Story: Story }) => {
+    const progress = storyProgress[Story.id];
+    const isCompleted = progress?.is_completed || false;
+    const progressPercentage = progress?.progress_percentage || 0;
+    const lastPlayed = progress?.last_played;
+    const hasProgress = !!progress;
+    const passagesVisited = progress?.passages_visited_count || 0;
+    const choicesMade = progress?.choices_made_count || 0;
+    const completedAt = progress?.completed_at;
+
+    return (
+      <TouchableOpacity
+        style={[globalStyles.StoryCard, { opacity: Story.isLocked ? 0.6 : 1 }]}
+        onPress={() => !Story.isLocked && handleStorySelection(Story)}
+        activeOpacity={Story.isLocked ? 1 : 0.8}
+        disabled={Story.isLocked}
       >
-        <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
-          {/* Rarity Border */}
-          <LinearGradient
-            colors={getRarityColors(Story.rarity || "Common")}
-            style={globalStyles.StoryRarityBorder}
-          />
+        <LinearGradient
+          colors={[
+            "rgba(30, 41, 59, 0.95)",
+            "rgba(51, 65, 85, 0.8)",
+            "rgba(30, 41, 59, 0.95)",
+          ]}
+          style={globalStyles.StoryCardGradient}
+        >
+          <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
+            {/* Rarity Border */}
+            <LinearGradient
+              colors={getRarityColors(Story.rarity || "Common")}
+              style={globalStyles.StoryRarityBorder}
+            />
 
-          {/* Lock Overlay */}
-          {Story.isLocked && (
-            <View style={globalStyles.StoryLockOverlay}>
-              <LinearGradient
-                colors={["rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 0.6)"]}
-                style={globalStyles.StoryLockGradient}
-              >
-                <Icon name="lock" size={24} color="#A855F7" />
-                <Text
-                  style={[globalStyles.StoryLockText, { color: "#A855F7" }]}
-                >
-                  Level {Story.unlockLevel || 1} Required
-                </Text>
-              </LinearGradient>
-            </View>
-          )}
-
-          {/* Header */}
-          <View style={globalStyles.StoryCardHeader}>
-            <View style={globalStyles.StoryTitleSection}>
-              <Text style={[globalStyles.StoryCardTitle, { color: "#A855F7" }]}>
-                {Story.title || "Untitled Story"}
-              </Text>
-              <Text
-                style={[globalStyles.StoryCardCategory, { color: "#9CA3AF" }]}
-              >
-                {Story.category || "Unknown Category"}
-              </Text>
-            </View>
-
-            <View style={globalStyles.StoryRarityBadge}>
-              <LinearGradient
-                colors={getRarityColors(Story.rarity || "Common")}
-                style={globalStyles.StoryRarityBadgeGradient}
-              >
-                <Text style={globalStyles.StoryRarityBadgeText}>
-                  {Story.rarity || "Common"}
-                </Text>
-              </LinearGradient>
-            </View>
-          </View>
-
-          {/* Progress Indicator */}
-          {(Story.exploration || 0) > 0 && (
-            <View style={globalStyles.StoryProgressSection}>
-              <View style={globalStyles.StoryProgressHeader}>
-                <Icon name="compass" size={12} color="#06B6D4" />
-                <Text
-                  style={[
-                    globalStyles.StoryProgressLabel,
-                    { color: "#06B6D4" },
-                  ]}
-                >
-                  Exploration: {Story.exploration || 0}%
-                </Text>
-              </View>
-              <View style={globalStyles.StoryProgressBar}>
+            {/* Lock Overlay */}
+            {Story.isLocked && (
+              <View style={globalStyles.StoryLockOverlay}>
                 <LinearGradient
-                  colors={["#06B6D4", "#A855F7"]}
-                  style={[
-                    globalStyles.StoryProgressFill,
-                    { width: `${Story.exploration || 0}%` },
-                  ]}
-                />
+                  colors={["rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 0.6)"]}
+                  style={globalStyles.StoryLockGradient}
+                >
+                  <Icon name="lock" size={24} color="#A855F7" />
+                  <Text
+                    style={[globalStyles.StoryLockText, { color: "#A855F7" }]}
+                  >
+                    Level {Story.unlockLevel || 1} Required
+                  </Text>
+                </LinearGradient>
+              </View>
+            )}
+
+            {/* Header */}
+            <View style={globalStyles.StoryCardHeader}>
+              <View style={globalStyles.StoryTitleSection}>
+                <Text style={[globalStyles.StoryCardTitle, { color: "#A855F7" }]}>
+                  {Story.title || "Untitled Story"}
+                </Text>
+                <Text
+                  style={[globalStyles.StoryCardCategory, { color: "#9CA3AF" }]}
+                >
+                  {Story.category || "Unknown Category"}
+                </Text>
+              </View>
+
+              <View style={globalStyles.StoryRarityBadge}>
+                <LinearGradient
+                  colors={getRarityColors(Story.rarity || "Common")}
+                  style={globalStyles.StoryRarityBadgeGradient}
+                >
+                  <Text style={globalStyles.StoryRarityBadgeText}>
+                    {Story.rarity || "Common"}
+                  </Text>
+                </LinearGradient>
               </View>
             </View>
-          )}
 
-          {/* Description */}
-          <Text style={[globalStyles.StoryDescription, { color: "#9CA3AF" }]}>
-            {Story.description || "No description available"}
-          </Text>
-
-          {/* Atmosphere */}
-          <View style={globalStyles.StoryAtmosphereContainer}>
-            <Icon name="eye" size={10} color="#06B6D4" />
-            <Text
-              style={[globalStyles.StoryAtmosphereText, { color: "#06B6D4" }]}
-            >
-              ✦ {Story.atmosphere || "Mysterious atmosphere"} ✦
-            </Text>
-          </View>
-
-          {/* Skill Focus Tags */}
-          <View style={globalStyles.StorySkillFocusContainer}>
-            <Text
-              style={[globalStyles.StorySkillFocusLabel, { color: "#9CA3AF" }]}
-            >
-              Coping Skills:
-            </Text>
-            <View style={globalStyles.StorySkillTags}>
-              {(Story.skillFocus || ["General Wellness"]).slice(0, 2).map((skill, index) => (
-                <View key={index} style={globalStyles.StorySkillTag}>
-                  <Text style={globalStyles.StorySkillTagText}>{skill}</Text>
-                </View>
-              ))}
-              {(Story.skillFocus || []).length > 2 && (
-                <View style={globalStyles.StorySkillTag}>
-                  <Text style={globalStyles.StorySkillTagText}>
-                    +{(Story.skillFocus || []).length - 2}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Stat Boosts */}
-          <View style={globalStyles.StoryStatBoostsContainer}>
-            <Text
-              style={[globalStyles.StoryStatBoostsLabel, { color: "#9CA3AF" }]}
-            >
-              Strengthens:
-            </Text>
-            <View style={globalStyles.StoryStatBoostTags}>
-              {(Story.statBoosts || ["General Growth"]).map((stat, index) => (
-                <View key={index} style={globalStyles.StoryStatBoostTag}>
-                  <Icon name="trending-up" size={8} color="#10B981" />
+            {/* Progress Indicator */}
+            {hasProgress && (
+              <View style={globalStyles.StoryProgressSection}>
+                <View style={globalStyles.StoryProgressHeader}>
+                  <Icon name="compass" size={12} color="#06B6D4" />
                   <Text
                     style={[
-                      globalStyles.StoryStatBoostText,
-                      { color: "#10B981" },
+                      globalStyles.StoryProgressLabel,
+                      { color: "#06B6D4" },
                     ]}
                   >
-                    {stat}
+                    {isCompleted ? "✅ Completed" : `📖 Progress: ${Math.round(progressPercentage)}%`}
                   </Text>
                 </View>
-              ))}
-            </View>
-          </View>
+                <View style={globalStyles.StoryProgressBar}>
+                  <LinearGradient
+                    colors={isCompleted ? ["#10B981", "#059669"] : ["#06B6D4", "#A855F7"]}
+                    style={[
+                      globalStyles.StoryProgressFill,
+                      { width: `${Math.max(progressPercentage, 5)}%` },
+                    ]}
+                  />
+                </View>
+                
+                {/* Progress Stats */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Icon name="map-pin" size={10} color="#06B6D4" />
+                    <Text style={[globalStyles.StoryProgressLabel, { color: "#6B7280", fontSize: 10, marginLeft: 2 }]}>
+                      {passagesVisited} passages
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Icon name="check-circle" size={10} color="#10B981" />
+                    <Text style={[globalStyles.StoryProgressLabel, { color: "#6B7280", fontSize: 10, marginLeft: 2 }]}>
+                      {choicesMade} choices
+                    </Text>
+                  </View>
+                </View>
+                
+                {/* Completion Date for completed stories */}
+                {isCompleted && completedAt && (
+                  <Text style={[globalStyles.StoryProgressLabel, { color: "#10B981", fontSize: 10, marginTop: 2 }]}>
+                    Completed: {new Date(completedAt).toLocaleDateString()}
+                  </Text>
+                )}
+                
+                {/* Last played for in-progress stories */}
+                {!isCompleted && lastPlayed && (
+                  <Text style={[globalStyles.StoryProgressLabel, { color: "#6B7280", fontSize: 10, marginTop: 2 }]}>
+                    Last played: {new Date(lastPlayed).toLocaleDateString()} at {new Date(lastPlayed).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </Text>
+                )}
+              </View>
+            )}
 
-          {/* Footer Info */}
-          <View style={globalStyles.StoryFooter}>
-            <View style={globalStyles.StoryFooterStat}>
-              <Icon name="clock" size={12} color="#FB923C" />
-              <Text
-                style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
-              >
-                {Story.timeToComplete || "10-15 min"}
-              </Text>
-            </View>
-            <View style={globalStyles.StoryFooterStat}>
-              <Icon name="key" size={12} color="#A855F7" />
-              <Text
-                style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
-              >
-                {Story.revelations || 1} revelations
-              </Text>
-            </View>
-            <View style={globalStyles.StoryFooterStat}>
-              <Icon name="zap" size={12} color="#A855F7" />
-              <Text
-                style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
-              >
-                {Story.difficulty || "Intermediate"}
-              </Text>
-            </View>
-          </View>
+            {/* Description */}
+            <Text style={[globalStyles.StoryDescription, { color: "#9CA3AF" }]}>
+              {Story.description || "No description available"}
+            </Text>
 
-          {/* Action Button */}
-          {!Story.isLocked && (
-            <View style={globalStyles.StoryActionButton}>
-              <LinearGradient
-                colors={["#7C3AED", "#A855F7"]}
-                style={globalStyles.StoryActionButtonGradient}
+            {/* Atmosphere */}
+            <View style={globalStyles.StoryAtmosphereContainer}>
+              <Icon name="eye" size={10} color="#06B6D4" />
+              <Text
+                style={[globalStyles.StoryAtmosphereText, { color: "#06B6D4" }]}
               >
-                <Icon name="book-open" size={14} color="#E0E7FF" />
-                <Text style={globalStyles.StoryActionButtonText}>
-                  {(Story.exploration || 0) > 0
-                    ? "Continue Study"
-                    : "Begin Reading"}
+                ✦ {Story.atmosphere || "Mysterious atmosphere"} ✦
+              </Text>
+            </View>
+
+            {/* Skill Focus Tags */}
+            <View style={globalStyles.StorySkillFocusContainer}>
+              <Text
+                style={[globalStyles.StorySkillFocusLabel, { color: "#9CA3AF" }]}
+              >
+                Coping Skills:
+              </Text>
+              <View style={globalStyles.StorySkillTags}>
+                {(Story.skillFocus || ["General Wellness"]).slice(0, 2).map((skill, index) => (
+                  <View key={index} style={globalStyles.StorySkillTag}>
+                    <Text style={globalStyles.StorySkillTagText}>{skill}</Text>
+                  </View>
+                ))}
+                {(Story.skillFocus || []).length > 2 && (
+                  <View style={globalStyles.StorySkillTag}>
+                    <Text style={globalStyles.StorySkillTagText}>
+                      +{(Story.skillFocus || []).length - 2}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Stat Boosts */}
+            <View style={globalStyles.StoryStatBoostsContainer}>
+              <Text
+                style={[globalStyles.StoryStatBoostsLabel, { color: "#9CA3AF" }]}
+              >
+                Strengthens:
+              </Text>
+              <View style={globalStyles.StoryStatBoostTags}>
+                {(Story.statBoosts || ["General Growth"]).map((stat, index) => (
+                  <View key={index} style={globalStyles.StoryStatBoostTag}>
+                    <Icon name="trending-up" size={8} color="#10B981" />
+                    <Text
+                      style={[
+                        globalStyles.StoryStatBoostText,
+                        { color: "#10B981" },
+                      ]}
+                    >
+                      {stat}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Footer Info */}
+            <View style={globalStyles.StoryFooter}>
+              <View style={globalStyles.StoryFooterStat}>
+                <Icon name="clock" size={12} color="#FB923C" />
+                <Text
+                  style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
+                >
+                  {Story.timeToComplete || "10-15 min"}
                 </Text>
-              </LinearGradient>
+              </View>
+              <View style={globalStyles.StoryFooterStat}>
+                <Icon name="key" size={12} color="#A855F7" />
+                <Text
+                  style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
+                >
+                  {Story.revelations || 1} revelations
+                </Text>
+              </View>
+              <View style={globalStyles.StoryFooterStat}>
+                <Icon name="zap" size={12} color="#A855F7" />
+                <Text
+                  style={[globalStyles.StoryFooterStatText, { color: "#9CA3AF" }]}
+                >
+                  {Story.difficulty || "Intermediate"}
+                </Text>
+              </View>
             </View>
-          )}
-        </BlurView>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+
+            {/* Action Button */}
+            {!Story.isLocked && (
+              <View style={globalStyles.StoryActionButton}>
+                <LinearGradient
+                  colors={isCompleted ? ["#10B981", "#059669"] : ["#7C3AED", "#A855F7"]}
+                  style={globalStyles.StoryActionButtonGradient}
+                >
+                  <Icon 
+                    name={isCompleted ? "check-circle" : hasProgress ? "play" : "book-open"} 
+                    size={14} 
+                    color="#E0E7FF" 
+                  />
+                  <Text style={globalStyles.StoryActionButtonText}>
+                    {isCompleted 
+                      ? "Replay Story" 
+                      : hasProgress 
+                        ? "Continue Reading" 
+                        : "Begin Reading"
+                    }
+                  </Text>
+                </LinearGradient>
+              </View>
+            )}
+          </BlurView>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   // Loading state
   if (isLoading) {
@@ -368,6 +544,8 @@ const StoryCatalogModal = ({
     );
   }
 
+  const filteredStories = getFilteredAndSortedStories();
+
   return (
     <Modal
       visible={visible}
@@ -435,6 +613,25 @@ const StoryCatalogModal = ({
                         </LinearGradient>
                       </TouchableOpacity>
                       <TouchableOpacity
+                        style={[
+                          globalStyles.StoryCloseButton,
+                          { marginRight: 8 },
+                        ]}
+                        onPress={() => refreshStoryProgress()}
+                      >
+                        <LinearGradient
+                          colors={[
+                            "rgba(16, 185, 129, 0.8)",
+                            "rgba(5, 150, 105, 0.8)",
+                          ]}
+                          style={globalStyles.StoryCloseButtonGradient}
+                        >
+                          <Text style={{ color: "#E0E7FF", fontSize: 12 }}>
+                            Refresh
+                          </Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         style={globalStyles.StoryCloseButton}
                         onPress={onClose}
                       >
@@ -445,21 +642,182 @@ const StoryCatalogModal = ({
                           ]}
                           style={globalStyles.StoryCloseButtonGradient}
                         >
-                          <Icon name="x" size={18} color="#FECACA" />
+                          <Icon name="x" size={16} color="#E0E7FF" />
                         </LinearGradient>
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <Text
-                    style={[
-                      globalStyles.StoryModalSubtitle,
-                      { color: "#9CA3AF" },
-                    ]}
-                  >
-                    Ancient Storys of wisdom await your study. Each Story
-                    contains powerful coping techniques disguised as mystical
-                    knowledge.
-                  </Text>
+                </View>
+
+                {/* Progress Summary */}
+                {Object.keys(storyProgress).length > 0 && (
+                  <View style={{
+                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                    borderRadius: 8,
+                    padding: 12,
+                    marginHorizontal: 16,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: 'rgba(6, 182, 212, 0.3)'
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <Icon name="trending-up" size={16} color="#06B6D4" />
+                      <Text style={{ color: '#06B981', fontSize: 14, fontWeight: '600', marginLeft: 6 }}>
+                        Your Progress Summary
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={{ color: '#E0E7FF', fontSize: 18, fontWeight: 'bold' }}>
+                          {Object.values(storyProgress).filter((p: any) => p.is_completed).length}
+                        </Text>
+                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Completed</Text>
+                      </View>
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={{ color: '#E0E7FF', fontSize: 18, fontWeight: 'bold' }}>
+                          {Object.values(storyProgress).filter((p: any) => !p.is_completed && p.passages_visited_count > 0).length}
+                        </Text>
+                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>In Progress</Text>
+                      </View>
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={{ color: '#E0E7FF', fontSize: 18, fontWeight: 'bold' }}>
+                          {Math.round(Object.values(storyProgress).reduce((acc: number, p: any) => acc + (p.progress_percentage || 0), 0) / Math.max(Object.keys(storyProgress).length, 1))}%
+                        </Text>
+                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Avg Progress</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* Filter and Sort Controls */}
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingHorizontal: 16,
+                  marginBottom: 16
+                }}>
+                  {/* Progress Filter */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ color: '#9CA3AF', fontSize: 12, marginRight: 8 }}>Filter:</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 16,
+                          marginRight: 8,
+                          backgroundColor: progressFilter === 'all' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                          borderWidth: 1,
+                          borderColor: progressFilter === 'all' ? '#A855F7' : '#374151'
+                        }}
+                        onPress={() => setProgressFilter('all')}
+                      >
+                        <Text style={{ color: progressFilter === 'all' ? '#E0E7FF' : '#9CA3AF', fontSize: 11 }}>
+                          All ({stories.length})
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 16,
+                          marginRight: 8,
+                          backgroundColor: progressFilter === 'completed' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                          borderWidth: 1,
+                          borderColor: progressFilter === 'completed' ? '#10B981' : '#374151'
+                        }}
+                        onPress={() => setProgressFilter('completed')}
+                      >
+                        <Text style={{ color: progressFilter === 'completed' ? '#E0E7FF' : '#9CA3AF', fontSize: 11 }}>
+                          Completed ({Object.values(storyProgress).filter((p: any) => p.is_completed).length})
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 16,
+                          marginRight: 8,
+                          backgroundColor: progressFilter === 'in-progress' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                          borderWidth: 1,
+                          borderColor: progressFilter === 'in-progress' ? '#06B6D4' : '#374151'
+                        }}
+                        onPress={() => setProgressFilter('in-progress')}
+                      >
+                        <Text style={{ color: progressFilter === 'in-progress' ? '#E0E7FF' : '#9CA3AF', fontSize: 11 }}>
+                          In Progress ({Object.values(storyProgress).filter((p: any) => !p.is_completed && p.passages_visited_count > 0).length})
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 16,
+                          backgroundColor: progressFilter === 'not-started' ? 'rgba(107, 114, 128, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                          borderWidth: 1,
+                          borderColor: progressFilter === 'not-started' ? '#6B7280' : '#374151'
+                        }}
+                        onPress={() => setProgressFilter('not-started')}
+                      >
+                        <Text style={{ color: progressFilter === 'not-started' ? '#E0E7FF' : '#9CA3AF', fontSize: 11 }}>
+                          Not Started ({stories.filter(story => !storyProgress[story.id] || storyProgress[story.id].passages_visited_count === 0).length})
+                        </Text>
+                      </TouchableOpacity>
+                    </ScrollView>
+                  </View>
+
+                  {/* Sort Options */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ color: '#9CA3AF', fontSize: 12, marginRight: 8 }}>Sort:</Text>
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 12,
+                        marginRight: 4,
+                        backgroundColor: sortBy === 'progress' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                        borderWidth: 1,
+                        borderColor: sortBy === 'progress' ? '#A855F7' : '#374151'
+                      }}
+                      onPress={() => setSortBy('progress')}
+                    >
+                      <Text style={{ color: sortBy === 'progress' ? '#E0E7FF' : '#9CA3AF', fontSize: 10 }}>
+                        Progress
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 12,
+                        marginRight: 4,
+                        backgroundColor: sortBy === 'recent' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                        borderWidth: 1,
+                        borderColor: sortBy === 'recent' ? '#A855F7' : '#374151'
+                      }}
+                      onPress={() => setSortBy('recent')}
+                    >
+                      <Text style={{ color: sortBy === 'recent' ? '#E0E7FF' : '#9CA3AF', fontSize: 10 }}>
+                        Recent
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 12,
+                        backgroundColor: sortBy === 'title' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                        borderWidth: 1,
+                        borderColor: sortBy === 'title' ? '#A855F7' : '#374151'
+                      }}
+                      onPress={() => setSortBy('title')}
+                    >
+                      <Text style={{ color: sortBy === 'title' ? '#E0E7FF' : '#9CA3AF', fontSize: 10 }}>
+                        Title
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {/* Story Grid */}
@@ -468,8 +826,8 @@ const StoryCatalogModal = ({
                   contentContainerStyle={globalStyles.StoryGrid}
                   showsVerticalScrollIndicator={false}
                 >
-                  {stories.length > 0 ? (
-                    stories.map((Story) => (
+                  {filteredStories.length > 0 ? (
+                    filteredStories.map((Story) => (
                       <StoryCard key={Story.id} Story={Story} />
                     ))
                   ) : (
@@ -494,7 +852,7 @@ const StoryCatalogModal = ({
                           textAlign: "center",
                         }}
                       >
-                        No Storys Available
+                        {progressFilter === 'all' ? 'No Storys Available' : `No ${progressFilter.replace('-', ' ')} Stories`}
                       </Text>
                       <Text
                         style={{
@@ -504,8 +862,10 @@ const StoryCatalogModal = ({
                           marginTop: 8,
                         }}
                       >
-                        The Archive is currently empty. Check back later for new
-                        wisdom to discover.
+                        {progressFilter === 'all' 
+                          ? 'The Archive is currently empty. Check back later for new wisdom to discover.'
+                          : `Try changing the filter to see other stories.`
+                        }
                       </Text>
                     </View>
                   )}
@@ -534,8 +894,19 @@ const runComprehensiveTest = async () => {
       const firstStory = catalog[0];
       console.log("First story:", firstStory);
 
-      // Test 2: Get chapters for first story
-      console.log("2. Testing chapters for story:", firstStory.id);
+      // Test 2: Get story progress
+      console.log("2. Testing story progress...");
+      const allProgress = await apiService.getStoryProgressRecords('');
+      console.log("All progress records:", allProgress);
+      console.log("Progress count:", allProgress?.length);
+
+      // Test 3: Get specific story progress
+      console.log("3. Testing specific story progress...");
+      const storyProgress = await apiService.getStoryProgress(firstStory.id);
+      console.log("Story progress for first story:", storyProgress);
+
+      // Test 4: Get chapters for first story
+      console.log("4. Testing chapters for story:", firstStory.id);
       const chapters = await apiService.getChapters(firstStory.id);
       console.log("Chapters result:", chapters);
 
@@ -543,8 +914,8 @@ const runComprehensiveTest = async () => {
         const firstChapter = chapters[0];
         console.log("First chapter:", firstChapter);
 
-        // Test 3: Get story passages from chapter
-        console.log("3. Testing story passages from chapter:", firstChapter.id);
+        // Test 5: Get story passages from chapter
+        console.log("5. Testing story passages from chapter:", firstChapter.id);
         const storypassages = await apiService.getStorypassagesFromChapter(
           firstStory.id,
           firstChapter.id

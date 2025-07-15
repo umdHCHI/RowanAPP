@@ -27,8 +27,6 @@ import StoryScreen from "../../screens/characterStory/StoryScreen";
 import PersonalityStoryCatalog from "./PersonalityStoryCatalog";
 
 // Import modals for personality tabs
-import CodexModal from "../../components/CodexModal";
-import ThoughtDefenderModal from "../../components/ThoughtDefenderModal";
 
 // Dummy Icon and LinearGradient for now (replace with your UI lib)
 const Icon = ({ name, size, color }: any) => <Text style={{ fontSize: size, color }}>{name}</Text>;
@@ -358,13 +356,114 @@ export default function PersonalityHomeScreen() {
   // Modal state for personality tabs
   const [isCodexModalVisible, setIsCodexModalVisible] = useState(false);
   const [isThoughtDefenderModalVisible, setIsThoughtDefenderModalVisible] = useState(false);
-  const [selectedCodexType, setSelectedCodexType] = useState<'journal' | 'draw' | 'voice'>('journal');
 
   // ===== TAB CONTENT COMPONENTS =====
 
+  // Codex Content Component
+  const CodexContent = ({ onClose, onSave, unlockedAreas }: { 
+    onClose: () => void; 
+    onSave: (entry: any) => void; 
+    unlockedAreas: string[]; 
+  }) => {
+    return (
+      <View style={{ flex: 1, padding: 20 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>📖 The Codex</Text>
+          <TouchableOpacity onPress={onClose} style={{ padding: 8 }}>
+            <Text style={{ color: '#4ee6e6', fontSize: 18 }}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={{ flex: 1, backgroundColor: '#23242b', borderRadius: 12, padding: 20 }}>
+          <Text style={{ color: '#fff', fontSize: 18, marginBottom: 16 }}>Your Quest</Text>
+          <Text style={{ color: '#ccc', fontSize: 14, lineHeight: 20, marginBottom: 20 }}>
+            Choose your path of wisdom and record your journey through the {PersonalityConfigs[primaryTrait]?.archiveSection || 'Archive'}.
+          </Text>
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 }}>
+            <TouchableOpacity style={{ alignItems: 'center', padding: 16, backgroundColor: '#2a2d35', borderRadius: 8 }}>
+              <Text style={{ fontSize: 24, marginBottom: 8 }}>📝</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Journal</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ alignItems: 'center', padding: 16, backgroundColor: '#2a2d35', borderRadius: 8 }}>
+              <Text style={{ fontSize: 24, marginBottom: 8 }}>🎨</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Draw</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ alignItems: 'center', padding: 16, backgroundColor: '#2a2d35', borderRadius: 8 }}>
+              <Text style={{ fontSize: 24, marginBottom: 8 }}>🎤</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Voice</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={{ color: '#ccc', fontSize: 12, textAlign: 'center', fontStyle: 'italic' }}>
+            Tap any method to begin your reflection and growth journey.
+          </Text>
+        </View>
+      </View>
+    );
+  };
 
-
-
+  // Thought Defender Content Component
+  const ThoughtDefenderContent = ({ onClose, onScoreUpdate }: { 
+    onClose: () => void; 
+    onScoreUpdate: (data: any) => void; 
+  }) => {
+    return (
+      <View style={{ flex: 1, padding: 20 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>⚡ Thought Defender</Text>
+          <TouchableOpacity onPress={onClose} style={{ padding: 8 }}>
+            <Text style={{ color: '#4ee6e6', fontSize: 18 }}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={{ flex: 1, backgroundColor: '#23242b', borderRadius: 12, padding: 20, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>
+            🧠 Mind Defense Training
+          </Text>
+          <Text style={{ color: '#ccc', fontSize: 16, textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
+            Strengthen your mental resilience by defending against negative thoughts and collecting positive power-ups.
+          </Text>
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 24 }}>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 32, marginBottom: 8 }}>💚</Text>
+              <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>Tap positive thoughts for power-ups</Text>
+            </View>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 32, marginBottom: 8 }}>⚡</Text>
+              <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>Shoot negative thoughts to defend</Text>
+            </View>
+          </View>
+          
+          <TouchableOpacity 
+            style={{ 
+              backgroundColor: '#4ee6e6', 
+              paddingHorizontal: 32, 
+              paddingVertical: 16, 
+              borderRadius: 8,
+              shadowColor: '#4ee6e6',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 5
+            }}
+            onPress={() => {
+              // Launch the actual game modal
+              // For now, just show a placeholder
+              Alert.alert('Game Launch', 'Thought Defender game would launch here!');
+            }}
+          >
+            <Text style={{ color: '#000', fontSize: 16, fontWeight: 'bold' }}>🚀 Start Training</Text>
+          </TouchableOpacity>
+          
+          <Text style={{ color: '#ccc', fontSize: 12, textAlign: 'center', marginTop: 16, fontStyle: 'italic' }}>
+            Complete waves to strengthen your mind and unlock new abilities.
+          </Text>
+        </View>
+      </View>
+    );
+  };
 
   // Check for survey data passed via navigation params
   useEffect(() => {
@@ -609,239 +708,18 @@ export default function PersonalityHomeScreen() {
   };
 
   // Handlers for story navigation (no changes needed here)
-  const handleOpenStory = async (story: Story) => {
-    try {
-      console.log("=== handleOpenStory called ===");
-      console.log("Story data:", story);
-      console.log("Story ID:", story?.id);
-      console.log("Story title:", story?.title);
-
-      // First, check if this story has chapters
-      try {
-        console.log("Checking for chapters in story:", story.id);
-        const chapters = await apiService.getChapters(String(story.id));
-        console.log("Chapters found:", chapters);
-        
-        if (chapters && chapters.length > 0) {
-          console.log("Story has chapters, showing chapter selection");
-          // Story has chapters, show chapter selection
-          setSelectedStory(story);
-          setIsChapterScreenVisible(true);
-          return;
-        }
-      } catch (chapterError) {
-        console.warn("Could not get chapters, assuming no chapters:", chapterError);
-      }
-
-      // No chapters or chapter check failed, proceed with direct story opening
-      console.log("No chapters found, opening story directly");
-      await handleDirectStoryOpen(story);
-    } catch (error) {
-      console.error("Error in handleOpenStory:", error);
-      // Show error to user
-      Alert.alert("Error", "Failed to open story. Please try again.", [
-        { text: "OK", style: "default" },
-      ]);
-    }
-  };
-
-  const handleDirectStoryOpen = async (story: Story) => {
-    try {
-      // Check if Story is defined and has an id
-      if (!story?.id) {
-        console.error("Story is undefined or missing id:", story);
-        Alert.alert("Error", "Invalid story data. Please try again.", [
-          { text: "OK", style: "default" },
-        ]);
-        return;
-      }
-      
-      console.log("=== handleDirectStoryOpen called ===");
-      console.log("Story ID:", story.id);
-      console.log("Chapter count:", story.chapter_count);
-      
-      // For non-chapter stories, try to get passages directly
-      if (story.chapter_count === 0) {
-        console.log("Non-chapter story, getting passages directly");
-        try {
-          // Try to get passages directly from the story
-          const passages = await apiService.get<any[]>('storyRoot', { urlSuffix: `stories/${story.id}/passages/` });
-          console.log("Direct passages for story:", passages);
-          
-          if (passages && passages.length > 0) {
-            // Transform to frontend format
-            const storypassages = {
-              id: story.id.toString(),
-              title: story.title || 'Unknown Story',
-              subtitle: 'main',
-              atmosphere: 'Mysterious',
-              difficulty: 'Intermediate',
-              rarity: 'Common',
-              skillFocus: ['General'],
-              passages: passages.map((passage: any) => ({
-                id: passage.id,
-                chapter: null, // Add required chapter property
-                passage_id: passage.passage_id,
-                content: passage.content,
-                passage_type: passage.passage_type,
-                speaker: passage.speaker,
-                required_conditions: passage.required_conditions || {},
-                story_effects: passage.story_effects || {},
-                mood: passage.mood,
-                background_music: passage.background_music,
-                background_image: passage.background_image,
-                order: passage.order,
-                choices: [] // Will be populated per passage
-              })),
-              currentPassage: passages[0] ? {
-                id: passages[0].id,
-                passage_id: passages[0].passage_id,
-                content: passages[0].content,
-                passage_type: passages[0].passage_type,
-                speaker: passages[0].speaker,
-                required_conditions: passages[0].required_conditions || {},
-                story_effects: passages[0].story_effects || {},
-                mood: passages[0].mood,
-                background_music: passages[0].background_music,
-                background_image: passages[0].background_image,
-                order: passages[0].order,
-                choices: []
-              } : null,
-              progress: {
-                passagesVisited: 0,
-                isCompleted: false,
-                progressPercentage: 0
-              },
-              isChapterBased: false,
-              chapterId: null,
-              chapterTitle: null
-            };
-            
-            // Get user's progress for this story
-            const progressRecords = await apiService.getStoryProgressRecords(String(story.id));
-            console.log("User progress for story:", progressRecords);
-            
-            // Calculate exploration percentage based on progress
-            let exploration = 0;
-            if (progressRecords.length > 0) {
-              // Count unique passages visited
-              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-              const totalPassages = storypassages.passages?.length || 1;
-              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-            }
-            
-            // Update story with progress information
-            const storyWithProgress = {
-              ...story,
-              passages: storypassages.passages, // Pass the passages array directly
-              exploration: exploration,
-              chapterId: null // Non-chapter story
-            };
-            
-            setSelectedStory(storyWithProgress);
-            setIsStoryVisible(true);
-            return;
-          }
-        } catch (directError: any) {
-          console.error("Failed to get direct passages:", directError);
-          console.error("Direct error details:", {
-            message: directError.message,
-            status: directError.response?.status,
-            data: directError.response?.data,
-            url: directError.config?.url
-          });
-        }
-      }
-      
-      // For chapter-based stories, we need to determine the correct chapter ID
-      // Try to get the first available chapter
-      try {
-        console.log("Chapter-based story, getting first available chapter");
-        const chapters = await apiService.getChapters(String(story.id));
-        console.log("Available chapters:", chapters);
-        
-        if (chapters && chapters.length > 0) {
-          // Use the first chapter as default
-          const firstChapter = chapters[0];
-          console.log("Using first chapter:", firstChapter);
-          
-          // Get passages for the first chapter
-          const chapterPassages = await apiService.getChapterPassages(story.id, firstChapter.id);
-          console.log("First chapter passages:", chapterPassages);
-          
-          if (chapterPassages && chapterPassages.length > 0) {
-            // Get user's progress for this story
-            const progressRecords = await apiService.getStoryProgressRecords(String(story.id));
-            console.log("User progress for story:", progressRecords);
-            
-            // Calculate exploration percentage based on progress
-            let exploration = 0;
-            if (progressRecords.length > 0) {
-              // Count unique passages visited
-              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-              const totalPassages = chapterPassages.length || 1;
-              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-            }
-            
-            // Update story with chapter information and progress
-            const storyWithChapter = {
-              ...story,
-              passages: chapterPassages, // Pass the passages array directly
-              chapterId: firstChapter.id, // Set the actual chapter ID
-              chapterTitle: firstChapter.title || `Chapter ${firstChapter.id}`,
-              exploration: exploration
-            };
-            
-            console.log("Opening story with first chapter:", storyWithChapter);
-            setSelectedStory(storyWithChapter);
-            setIsStoryVisible(true);
-            return;
-          }
-        }
-      } catch (chapterError) {
-        console.warn("Could not get chapters, trying fallback method:", chapterError);
-      }
-      
-      // Fallback: try the original getStorypassages method
-      console.log("Trying fallback getStorypassages method");
-      const storypassages = await apiService.getStorypassages(story.id);
-      if (storypassages && storypassages.passages && storypassages.passages.length > 0) {
-        // Get user's progress for this story
-        const progressRecords = await apiService.getStoryProgressRecords(String(story.id));
-        console.log("User progress for story:", progressRecords);
-        
-        // Calculate exploration percentage based on progress
-        let exploration = 0;
-        if (progressRecords.length > 0) {
-          // Count unique passages visited
-          const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-          const totalPassages = storypassages.passages?.length || 1;
-          exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-        }
-        
-        // Update story with progress information
-        const storyWithProgress = {
-          ...story,
-          passages: storypassages.passages, // Pass the passages array directly
-          exploration: exploration,
-          chapterId: null // Fallback - no specific chapter
-        };
-        
-        setSelectedStory(storyWithProgress);
-        setIsStoryVisible(true);
-      } else {
-        // Show error if no passages found
-        Alert.alert(
-          "No passages Available",
-          "This story does not have any passages yet.",
-          [{ text: "OK", style: "default" }]
-        );
-      }
-    } catch (error: any) {
-      console.error("Error opening story:", error);
-      Alert.alert("Error", "Failed to load story passages. Please try again.", [
-        { text: "OK", style: "default" },
-      ]);
+  const handleOpenStory = (story: Story) => {
+    console.log("=== handleOpenStory called ===");
+    console.log("Story data:", story);
+    console.log("Story ID:", story.id);
+    console.log("Story title:", story.title);
+    console.log("Chapter count:", story.chapter_count);
+    
+    setSelectedStory(story);
+    if (story.chapter_count && story.chapter_count > 0) {
+        setIsChapterScreenVisible(true);
+    } else {
+        setIsStoryVisible(true); 
     }
   };
   
@@ -850,152 +728,9 @@ export default function PersonalityHomeScreen() {
     setSelectedStory(null);
   };
 
-  const handleChapterSelect = async (chapterId: number) => {
-    try {
-      console.log("=== handleChapterSelect called ===");
-      console.log("Chapter ID:", chapterId);
-      console.log("Selected story:", selectedStory);
-      console.log("Selected story ID:", selectedStory?.id);
-
-      // Close the chapter selection modal first
-      setIsChapterScreenVisible(false);
-
-      // For chapter-based stories, we need to get the story passages with the specific chapter
-      if (selectedStory?.id) {
-        console.log(
-          "Opening story with chapter:",
-          selectedStory.id,
-          "chapter:",
-          chapterId
-        );
-
-        // Get story passages from the selected chapter
-        console.log("Calling getStorypassagesFromChapter with:", {
-          storyId: selectedStory.id,
-          chapterId: chapterId
-        });
-        
-        console.log("=== ATTEMPTING TO LOAD CHAPTER PASSAGES ===");
-        console.log("Story ID:", selectedStory.id);
-        console.log("Chapter ID:", chapterId);
-        console.log("Selected story structure:", selectedStory);
-        
-        // First, let's check if the story already has chapter data with passages
-        if (selectedStory.chapters && selectedStory.chapters.length > 0) {
-          console.log("Story already has chapters data, checking for target chapter");
-          const targetChapter = selectedStory.chapters.find((ch: any) => ch.id === chapterId);
-          
-          if (targetChapter && targetChapter.passages) {
-            console.log("Found target chapter with passages:", targetChapter.passages.length);
-            const storypassages = {
-              id: selectedStory.id.toString(),
-              title: targetChapter.title || `Chapter ${chapterId}`,
-              passages: targetChapter.passages
-            };
-            
-            // Get user's progress for this story
-            const progressRecords = await apiService.getStoryProgressRecords(String(selectedStory.id));
-            console.log("User progress for story:", progressRecords);
-            
-            // Calculate exploration percentage based on progress
-            let exploration = 0;
-            if (progressRecords.length > 0) {
-              // Count unique passages visited
-              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-              const totalPassages = storypassages.passages?.length || 1;
-              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-            }
-
-            // Create a modified story object with chapter information and progress
-            const storyWithChapter = {
-              ...selectedStory,
-              passages: storypassages.passages, // Pass the passages array directly
-              chapterId: chapterId, // Add the chapter ID to the story object
-              exploration: exploration
-            };
-            
-            console.log("Opening story with existing chapter data");
-            setIsStoryVisible(true);
-            return;
-          }
-        }
-        
-        // Fallback: try to get chapters from API
-        console.log("No existing chapter data, fetching from API");
-        const storypassages = await apiService.getStorypassagesFromChapter(
-          selectedStory.id,
-          chapterId
-        );
-        console.log("Story passages result:", storypassages);
-        console.log("Story passages passages:", storypassages?.passages);
-        console.log(
-          "Story passages passages length:",
-          storypassages?.passages?.length
-        );
-
-        if (storypassages) {
-          console.log("Opening story with chapter passages:", storypassages);
-          console.log("Story passages passages:", storypassages.passages);
-          console.log(
-            "Number of passages in story passages:",
-            storypassages.passages?.length
-          );
-
-          // Get user's progress for this story
-          const progressRecords = await apiService.getStoryProgressRecords(String(selectedStory.id));
-          console.log("User progress for story:", progressRecords);
-          
-          // Calculate exploration percentage based on progress
-          let exploration = 0;
-          if (progressRecords.length > 0) {
-            // Count unique passages visited
-            const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-            const totalPassages = storypassages.passages?.length || 1;
-            exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-          }
-
-          // Create a modified story object with chapter information and progress
-          const storyWithChapter = {
-            ...selectedStory,
-            passages: storypassages.passages, // Pass the passages array directly
-            chapterId: chapterId, // Add the chapter ID to the story object
-            exploration: exploration
-          };
-          console.log(
-            "Final story object being passed to StoryScreen:",
-            storyWithChapter
-          );
-          console.log(
-            "Final story object passages passages:",
-            storyWithChapter.passages?.passages
-          );
-          console.log(
-            "Final story object passages passages length:",
-            storyWithChapter.passages?.passages?.length
-          );
-          setIsStoryVisible(true);
-        } else {
-          console.log("No passages found for chapter");
-          Alert.alert(
-            "No passages Available",
-            "This chapter does not have any passages yet.",
-            [{ text: "OK", style: "default" }]
-          );
-        }
-      } else {
-        console.log("No selected story");
-        Alert.alert("Error", "No story selected. Please try again.", [
-          { text: "OK", style: "default" },
-        ]);
-      }
-    } catch (error) {
-      console.error("Error opening chapter:", error);
-      Alert.alert(
-        "Error",
-        "Failed to load chapter passages. Please try again.",
-        [{ text: "OK", style: "default" }]
-      );
-    }
+  const handleChapterSelect = (chapterId: number) => {
+    setIsChapterScreenVisible(false);
+    setIsStoryVisible(true);
   };
 
 
@@ -1049,13 +784,7 @@ export default function PersonalityHomeScreen() {
           {PERSONALITY_TABS[primaryTrait]?.map((tab) => (
             <TouchableOpacity 
               key={tab.key}
-              onPress={() => {
-                if (tab.key === 'defender') {
-                  setIsThoughtDefenderModalVisible(true);
-                } else {
-                  setActiveTab(tab.key);
-                }
-              }} 
+              onPress={() => setActiveTab(tab.key)} 
               style={[
                 globalStyles.personalityTabButton || { 
                   flex: 1, 
@@ -1124,71 +853,6 @@ export default function PersonalityHomeScreen() {
                 characterData={characterData}
                 globalStyles={globalStyles} 
             />
-            
-            {/* Debug Button */}
-            <TouchableOpacity 
-              style={{ 
-                backgroundColor: '#ff6b6b', 
-                padding: 12, 
-                borderRadius: 8, 
-                marginBottom: 16,
-                alignItems: 'center'
-              }}
-              onPress={async () => {
-                try {
-                  const debugResult = await apiService.debugStoryLoading();
-                  console.log('Debug result:', debugResult);
-                  
-                  if (debugResult.success) {
-                    Alert.alert(
-                      "Debug Success", 
-                      `All story loading tests passed!\n\nResults:\n- Profile: ✅\n- User Trait: ${debugResult.results.userTrait}\n- Admin Stories: ${debugResult.results.adminStories?.stories?.length || 0}\n- Catalog Stories: ${debugResult.results.catalogStories?.length || 0}\n- Personality Stories: ${debugResult.results.personalityStories?.stories?.length || 0}\n- Filtered Stories: ${debugResult.results.filteredStories?.length || 0}`,
-                      [{ text: "OK", style: "default" }]
-                    );
-                  } else {
-                    Alert.alert(
-                      "Debug Failed", 
-                      `Story loading tests failed:\n\nErrors:\n${debugResult.errors.join('\n')}`,
-                      [{ text: "OK", style: "default" }]
-                    );
-                  }
-                } catch (error) {
-                  console.error('Debug function failed:', error);
-                  Alert.alert("Debug Error", "Failed to run debug function", [{ text: "OK", style: "default" }]);
-                }
-              }}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>🐛 Debug Story Loading</Text>
-            </TouchableOpacity>
-            
-            {/* Simple Test Button */}
-            <TouchableOpacity 
-              style={{ 
-                backgroundColor: '#4ecdc4', 
-                padding: 12, 
-                borderRadius: 8, 
-                marginBottom: 16,
-                alignItems: 'center'
-              }}
-              onPress={async () => {
-                try {
-                  const testResult = await apiService.testBasicStoryLoading();
-                  console.log('Test result:', testResult);
-                  
-                  Alert.alert(
-                    testResult.success ? "Test Success" : "Test Failed",
-                    testResult.message,
-                    [{ text: "OK", style: "default" }]
-                  );
-                } catch (error) {
-                  console.error('Simple test failed:', error);
-                  Alert.alert("Test Error", "Failed to run simple test", [{ text: "OK", style: "default" }]);
-                }
-              }}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>🧪 Simple Test</Text>
-            </TouchableOpacity>
-            
             {/* **STEP 2, 3, & 4: CONNECT THE COMPONENTS** */}
             <WellnessAttributesDisplay
                 personalityType={primaryTrait}
@@ -1218,114 +882,26 @@ export default function PersonalityHomeScreen() {
 
       {activeTab === 'codex' && (
         <View style={{ flex: 1, backgroundColor: '#0a0b0f' }}>
-          <View style={{ flex: 1, padding: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>📖 The Codex</Text>
-              <TouchableOpacity onPress={() => setActiveTab('entrance')} style={{ padding: 8 }}>
-                <Text style={{ color: '#4ee6e6', fontSize: 18 }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={{ flex: 1, backgroundColor: '#23242b', borderRadius: 12, padding: 20 }}>
-              <Text style={{ color: '#fff', fontSize: 18, marginBottom: 16 }}>Your Quest</Text>
-              <Text style={{ color: '#ccc', fontSize: 14, lineHeight: 20, marginBottom: 20 }}>
-                Choose your path of wisdom and record your journey through the {PersonalityConfigs[primaryTrait]?.archiveSection || 'Archive'}.
-              </Text>
-              
-              <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 }}>
-                <TouchableOpacity 
-                  style={{ alignItems: 'center', padding: 16, backgroundColor: '#2a2d35', borderRadius: 8 }}
-                  onPress={() => {
-                    setIsCodexModalVisible(true);
-                    setSelectedCodexType('journal');
-                  }}
-                >
-                  <Text style={{ fontSize: 24, marginBottom: 8 }}>📝</Text>
-                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Journal</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={{ alignItems: 'center', padding: 16, backgroundColor: '#2a2d35', borderRadius: 8 }}
-                  onPress={() => {
-                    setIsCodexModalVisible(true);
-                    setSelectedCodexType('draw');
-                  }}
-                >
-                  <Text style={{ fontSize: 24, marginBottom: 8 }}>🎨</Text>
-                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Draw</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={{ alignItems: 'center', padding: 16, backgroundColor: '#2a2d35', borderRadius: 8 }}
-                  onPress={() => {
-                    setIsCodexModalVisible(true);
-                    setSelectedCodexType('voice');
-                  }}
-                >
-                  <Text style={{ fontSize: 24, marginBottom: 8 }}>🎤</Text>
-                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Voice</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={{ color: '#ccc', fontSize: 12, textAlign: 'center', fontStyle: 'italic' }}>
-                Tap any method to begin your reflection and growth journey.
-              </Text>
-            </View>
-          </View>
+          <CodexContent
+            onClose={() => setActiveTab('entrance')}
+            onSave={(entry) => {
+              console.log('Codex entry saved:', entry);
+              // Handle codex entry save
+            }}
+            unlockedAreas={['journal', 'draw', 'voice']}
+          />
         </View>
       )}
 
       {activeTab === 'defender' && (
         <View style={{ flex: 1, backgroundColor: '#0a0b0f' }}>
-          <View style={{ flex: 1, padding: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>⚡ Thought Defender</Text>
-              <TouchableOpacity onPress={() => setActiveTab('entrance')} style={{ padding: 8 }}>
-                <Text style={{ color: '#4ee6e6', fontSize: 18 }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={{ flex: 1, backgroundColor: '#23242b', borderRadius: 12, padding: 20, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>
-                🧠 Mind Defense Training
-              </Text>
-              <Text style={{ color: '#ccc', fontSize: 16, textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
-                Strengthen your mental resilience by defending against negative thoughts and collecting positive power-ups.
-              </Text>
-              
-              <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 24 }}>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ fontSize: 32, marginBottom: 8 }}>💚</Text>
-                  <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>Tap positive thoughts for power-ups</Text>
-                </View>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ fontSize: 32, marginBottom: 8 }}>⚡</Text>
-                  <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>Shoot negative thoughts to defend</Text>
-                </View>
-              </View>
-              
-              <TouchableOpacity 
-                style={{ 
-                  backgroundColor: '#4ee6e6', 
-                  paddingHorizontal: 32, 
-                  paddingVertical: 16, 
-                  borderRadius: 8,
-                  shadowColor: '#4ee6e6',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 4,
-                  elevation: 5
-                }}
-                onPress={() => {
-                  setIsThoughtDefenderModalVisible(true);
-                }}
-              >
-                <Text style={{ color: '#000', fontSize: 16, fontWeight: 'bold' }}>🚀 Start Training</Text>
-              </TouchableOpacity>
-              
-              <Text style={{ color: '#ccc', fontSize: 12, textAlign: 'center', marginTop: 16, fontStyle: 'italic' }}>
-                Complete waves to strengthen your mind and unlock new abilities.
-              </Text>
-            </View>
-          </View>
+          <ThoughtDefenderContent
+            onClose={() => setActiveTab('entrance')}
+            onScoreUpdate={(data) => {
+              console.log('Thought Defender score update:', data);
+              // Handle score update
+            }}
+          />
         </View>
       )}
 
@@ -1414,34 +990,13 @@ export default function PersonalityHomeScreen() {
           visible={isStoryVisible}
           onClose={handleCloseStory}
           story={selectedStory}
-          chapter={{ 
-            id: (selectedStory as any)?.chapterId || null, 
-            title: (selectedStory as any)?.chapterTitle || selectedStory?.title || "Story",
-            content: selectedStory?.description || "",
-            chapter_number: (selectedStory as any)?.chapterId || null,
-            is_starting_chapter: (selectedStory as any)?.chapterId === 1 || (selectedStory as any)?.chapterId === null,
-            variables: {},
-            requirements: {},
-            rewards: {},
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            passages: selectedStory?.passages || []
-          } as any}
-          passage={selectedStory?.passages?.[0] || {} as any}
-          choices={selectedStory?.passages?.[0]?.choices || []}
-          onStatGain={() => {}} // This would be handled by the master state
-          onArtifactUnlock={(artifact: string) => console.log('Artifact unlocked:', artifact)}
-          onSkillLearned={(skills: string[]) => console.log('Skills learned:', skills)}
-          onStoryComplete={(completionData) => {
-            // Convert the StoryScreen completion data to our handleStoryComplete format
-            handleStoryComplete({
-              storyId: completionData.storyId,
-              totalStatGains: completionData.totalStatGains,
-              skillsLearned: completionData.skillsLearned,
-              questsUpdated: {}, // Not provided by StoryScreen
-              experienceGained: 0 // Not provided by StoryScreen
-            });
-          }}
+          chapter={{ id: 1, title: 'Chapter 1', passages: [] } as any}
+          passage={{ id: 'start', text: 'The story begins...' } as any}
+          choices={[]}
+          onStoryComplete={handleStoryComplete as any} // Cast as any to match expected type
+          onStatGain={() => {}}
+          onArtifactUnlock={() => {}}
+          onSkillLearned={() => {}}
         />
       )}
 
@@ -1454,38 +1009,6 @@ export default function PersonalityHomeScreen() {
           onChapterSelect={handleChapterSelect}
         />
       )}
-
-      {/* Thought Defender Modal */}
-      <ThoughtDefenderModal
-        visible={isThoughtDefenderModalVisible}
-        onClose={() => setIsThoughtDefenderModalVisible(false)}
-        onScoreUpdate={(data) => {
-          console.log('Thought Defender score update:', data);
-          // Handle score update - could update character stats here
-          if (data.won) {
-            // Player won the game, could give rewards
-            console.log('Player won Thought Defender!');
-          }
-        }}
-      />
-
-      {/* Codex Modal */}
-      <CodexModal
-        visible={isCodexModalVisible}
-        onClose={() => setIsCodexModalVisible(false)}
-        onSave={(entry) => {
-          console.log('Codex entry saved:', entry);
-          // Handle codex entry save - could update character stats here
-          if (entry.type === 'journal') {
-            console.log('Journal entry saved:', entry.passages);
-          } else if (entry.type === 'draw') {
-            console.log('Drawing saved:', entry.passages);
-          } else if (entry.type === 'voice') {
-            console.log('Voice memo saved:', entry.passages);
-          }
-        }}
-        selectedType={selectedCodexType}
-      />
     </View>
   );
 }
