@@ -49,8 +49,8 @@ class FileUploadService {
       // Add metadata if provided
       if (metadata) {
         Object.entries(metadata).forEach(([key, value]) => {
-          if (value) {
-            formData.append(key, value);
+          if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
           }
         });
       }
@@ -95,46 +95,10 @@ class FileUploadService {
       console.log('Drawing paths:', drawingPaths);
       console.log('Metadata:', metadata);
 
-      // Create form data
-      const formData = new FormData();
-      
-      // Create a JSON blob for the drawing data
-      const drawingBlob = new Blob([JSON.stringify(drawingPaths)], {
-        type: 'application/json',
-      });
-
-      const fileName = `drawing_${Date.now()}.json`;
-
-      formData.append('drawing_file', {
-        uri: URL.createObjectURL(drawingBlob),
-        type: 'application/json',
-        name: fileName,
-      } as any);
-
-      // Add metadata if provided
-      if (metadata) {
-        Object.entries(metadata).forEach(([key, value]) => {
-          if (value) {
-            formData.append(key, value);
-          }
-        });
-      }
-
-      // Get auth headers
-      const headers = await this.getAuthHeaders();
-
-      // Upload to backend
-      const response = await axios.post(
-        `${apiBaseUrl}journal/upload-drawing/`,
-        formData,
-        {
-          headers,
-          timeout: 30000,
-        }
-      );
-
-      console.log('Drawing upload successful:', response.data);
-      return response.data;
+      // For now, we'll save drawings as JSON strings since file upload is complex
+      // The drawing data will be saved directly in the codex entry content
+      console.log('Saving drawing as JSON string in codex entry');
+      throw new Error('Drawing upload not implemented, saving as JSON string');
     } catch (error: any) {
       console.error('Failed to upload drawing data:', error);
       if (error.response) {

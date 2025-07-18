@@ -13,6 +13,7 @@ import {
   LinearGradient,
   ScrollView,
   StatusBar,
+  Story,
   StyleSheet,
   Text,
   ThoughtDefenderModal,
@@ -52,145 +53,33 @@ const ArchiveInterface: React.FC = () => {
 
   const [showEquipmentModal, setShowEquipmentModal] = useState(false);
 
-  // Equipment state is now managed by the MasterStateContext
-  // The backend gear data is loaded automatically on mount
+  // Game data state for restoration screen
+  const [gameData, setGameData] = useState<any>(null);
+  const [isLoadingGameData, setIsLoadingGameData] = useState(false);
 
-  // Load stories from backend
   const loadStories = async () => {
     setIsLoadingStories(true);
     try {
-      // For character users, just get all stories from catalog (no personality filtering)
-      const backendStories = await apiService.getAvailableStories();
-      
-      if (backendStories && backendStories.length > 0) {
-        // Load all user progress records to calculate exploration for each story
-        let allProgressRecords: any[] = [];
-        try {
-          allProgressRecords = await apiService.getStoryProgressRecords('');
-        } catch (progressError) {
-          // Progress tracking failed, exploration will be 0
-        }
-        
-        // For stories with chapters, try to load their chapter data with passages
-        const storiesWithChapters = await Promise.all(
-          backendStories.map(async (story: any) => {
-            // Calculate exploration progress for this story
-            let exploration = 0;
-            let revelations = 0;
-            
-            try {
-              // Find progress for this specific story
-              const storyProgress = allProgressRecords.find((progress: any) => 
-                progress.story === story.id || progress.story === parseInt(story.id)
-              );
-              
-              if (storyProgress) {
-                // Calculate exploration based on passages visited vs total passages
-                if (story.chapter_count && story.chapter_count > 0) {
-                  // For chapter-based stories, we need to count total passages across all chapters
-                  try {
-                    const chapters = await apiService.getChapters(story.id);
-                    let totalPassages = 0;
-                    
-                    if (chapters && chapters.length > 0) {
-                      // Count passages in each chapter
-                      for (const chapter of chapters) {
-                        try {
-                          const chapterPassages = await apiService.getChapterPassages(story.id, chapter.id);
-                          totalPassages += chapterPassages?.length || 0;
-                        } catch (error) {
-                          // Failed to count passages for this chapter
-                        }
-                      }
-                    }
-                    
-                    const visitedPassages = storyProgress.passages_visited_count || 0;
-                    exploration = totalPassages > 0 ? Math.round((visitedPassages / totalPassages) * 100) : 0;
-                  } catch (error) {
-                    // Fallback: use progress percentage if available
-                    exploration = storyProgress.progress_percentage || 0;
-                  }
-                } else {
-                  // For non-chapter stories, try to get total passages directly
-                  try {
-                    const storyPassages = await apiService.getStorypassages(story.id);
-                    const totalPassages = storyPassages?.passages?.length || 0;
-                    const visitedPassages = storyProgress.passages_visited_count || 0;
-                    exploration = totalPassages > 0 ? Math.round((visitedPassages / totalPassages) * 100) : 0;
-                  } catch (error) {
-                    // Fallback: use progress percentage if available
-                    exploration = storyProgress.progress_percentage || 0;
-                  }
-                }
-                
-                // Calculate revelations (choices made)
-                revelations = storyProgress.choices_made_count || 0;
-                
-                // If story is completed, set exploration to 100%
-                if (storyProgress.is_completed) {
-                  exploration = 100;
-                }
-              }
-            } catch (error) {
-              // Error calculating exploration for this story
-            }
-            
-            // Load chapter data if story has chapters
-            if (story.chapter_count && story.chapter_count > 0) {
-              try {
-                const chapters = await apiService.getChapters(story.id);
-                
-                // Load passages for each chapter
-                const chaptersWithPassages = await Promise.all(
-                  (chapters || []).map(async (chapter: any) => {
-                    try {
-                      const passages = await apiService.getChapterPassages(story.id, chapter.id);
-                      
-                      return {
-                        ...chapter,
-                        passages: passages || []
-                      };
-                    } catch (error) {
-                      return {
-                        ...chapter,
-                        passages: []
-                      };
-                    }
-                  })
-                );
-                
-                return {
-                  ...story,
-                  chapters: chaptersWithPassages,
-                  exploration: exploration,
-                  revelations: revelations
-                };
-              } catch (error) {
-                return {
-                  ...story,
-                  exploration: exploration,
-                  revelations: revelations
-                };
-              }
-            }
-            
-            return {
-              ...story,
-              exploration: exploration,
-              revelations: revelations
-            };
-          })
-        );
-        
-        setStories(storiesWithChapters);
-        ui.setMemoryStorys(storiesWithChapters);
-      } else {
-        setStories([]);
-        ui.setMemoryStorys([]);
-      }
+      // For the Character path, get only character stories (empty personality_focus)
+      const backendStories = await apiService.getCharacterStories();
+      const allProgressRecords = await apiService.getStoryProgressRecords('');
+      const progressMap = new Map(allProgressRecords.map((p: any) => [p.story, p]));
+
+      // Combine stories with their progress. DO NOT load chapters or passages.
+      const storiesWithProgress = backendStories.map((story: any) => {
+        const progress = progressMap.get(story.id);
+        return {
+          ...story,
+          exploration: progress?.progress_percentage || 0,
+          revelations: progress?.choices_made_count || 0,
+        };
+      });
+
+      setStories(storiesWithProgress);
+      ui.setMemoryStorys(storiesWithProgress);
     } catch (error) {
+      console.error("Failed to load stories:", error);
       setStories([]);
-      ui.setMemoryStorys([]);
     } finally {
       setIsLoadingStories(false);
     }
@@ -198,13 +87,35 @@ const ArchiveInterface: React.FC = () => {
 
   // Load stories from backend on mount
   useEffect(() => {
+    if (ui.activeTab === "tomes") {
+      loadStories();
+    }
+  }, [ui.activeTab]);
+  
+  // Initial load
+  useEffect(() => {
     loadStories();
   }, []);
 
-  // Auto-refresh stories when switching to tomes tab
+
+  // Load game data for restoration screen
+  const loadGameData = async () => {
+    setIsLoadingGameData(true);
+    try {
+      const data = await apiService.getComprehensiveGameData();
+      setGameData(data);
+    } catch (error) {
+      console.error('Failed to load game data:', error);
+      setGameData(null);
+    } finally {
+      setIsLoadingGameData(false);
+    }
+  };
+
+  // Auto-refresh game data when switching to restoration tab
   useEffect(() => {
-    if (ui.activeTab === "tomes") {
-      loadStories();
+    if (ui.activeTab === "restoration") {
+      loadGameData();
     }
   }, [ui.activeTab]);
 
@@ -239,383 +150,59 @@ const ArchiveInterface: React.FC = () => {
     loadData();
   }, [character.characterName]); // Add characterName as dependency
 
-  // Story handlers
-  const handleOpenStory = async (Story: any) => {
-    try {
-      // First, check if this story has chapters
-      try {
-        const chapters = await apiService.getChapters(String(Story.id));
-        
-        if (chapters && chapters.length > 0) {
-          // Story has chapters, show chapter selection
-          setSelectedStory(Story);
-          setIsChapterScreenVisible(true);
-          return;
-        }
-      } catch (chapterError) {
-        // Could not get chapters, assuming no chapters
-      }
-
-      // No chapters or chapter check failed, proceed with direct story opening
-      
-      // Start the story using the new backend
-      const startResult = await apiService.startNewStory(Story.id);
-      
-      // Try to get the current passage, but handle errors gracefully
-      let currentPassageResult = null;
-      try {
-        currentPassageResult = await apiService.getCurrentPassage(Story.id);
-      } catch (error) {
-        // Use the start result if it contains passage data
-        if (startResult?.passage) {
-          currentPassageResult = startResult;
-        }
-      }
-      
-      if (currentPassageResult?.passage) {
-        // Set up the story screen with the current passage
-        setSelectedStory(Story);
-        ui.setSelectedStory(Story);
-        ui.setIsStoryVisible(true);
-      } else {
-        Alert.alert("Error", "No passage data available for this story.", [
-          { text: "OK", style: "default" },
-        ]);
-      }
-    } catch (error) {
-      // Show error to user
-      Alert.alert("Error", "Failed to open story. Please try again.", [
-        { text: "OK", style: "default" },
-      ]);
+  const handleOpenStory = async (storyToOpen: Story) => {
+    setSelectedStory(storyToOpen);
+    if (storyToOpen.chapter_count && storyToOpen.chapter_count > 0) {
+      // Story has chapters, so open the chapter selection screen.
+      setIsChapterScreenVisible(true);
+    } else {
+      // No chapters, so restart and open the story directly.
+      await apiService.restartStory(storyToOpen.id);
+      const storyWithoutChapter = {
+        ...storyToOpen,
+        chapterId: undefined, // Ensure chapterId is not set
+      };
+      ui.openStory(storyWithoutChapter);
     }
   };
 
-  const handleDirectStoryOpen = async (Story: any) => {
-    try {
-      // Check if Story is defined and has an id
-      if (!Story?.id) {
-        Alert.alert("Error", "Invalid story data. Please try again.", [
-          { text: "OK", style: "default" },
-        ]);
-        return;
-      }
-      
-      // For non-chapter stories, try to get passages directly
-      if (Story.chapter_count === 0) {
-        try {
-          // Try to get passages directly from the story
-          const passages = await apiService.get<any[]>('storyRoot', { urlSuffix: `stories/${Story.id}/passages/` });
-          
-          if (passages && passages.length > 0) {
-            // Transform to frontend format
-            const storypassages = {
-              id: Story.id.toString(),
-              title: Story.title || 'Unknown Story',
-              subtitle: 'main',
-              atmosphere: 'Mysterious',
-              difficulty: 'Intermediate',
-              rarity: 'Common',
-              skillFocus: ['General'],
-              passages: passages.map((passage: any) => ({
-                id: passage.id,
-                passage_id: passage.passage_id,
-                content: passage.content,
-                passage_type: passage.passage_type,
-                speaker: passage.speaker,
-                required_conditions: passage.required_conditions || {},
-                story_effects: passage.story_effects || {},
-                mood: passage.mood,
-                background_music: passage.background_music,
-                background_image: passage.background_image,
-                order: passage.order,
-                choices: [] // Will be populated per passage
-              })),
-              currentPassage: passages[0] ? {
-                id: passages[0].id,
-                passage_id: passages[0].passage_id,
-                content: passages[0].content,
-                passage_type: passages[0].passage_type,
-                speaker: passages[0].speaker,
-                required_conditions: passages[0].required_conditions || {},
-                story_effects: passages[0].story_effects || {},
-                mood: passages[0].mood,
-                background_music: passages[0].background_music,
-                background_image: passages[0].background_image,
-                order: passages[0].order,
-                choices: []
-              } : null,
-              progress: {
-                passagesVisited: 0,
-                isCompleted: false,
-                progressPercentage: 0
-              },
-              isChapterBased: false,
-              chapterId: null,
-              chapterTitle: null
-            };
-            
-            // Get user's progress for this story
-            const progressRecords = await apiService.getStoryProgressRecords(String(Story.id));
-            
-            // Calculate exploration percentage based on progress
-            let exploration = 0;
-            if (progressRecords.length > 0) {
-              // Count unique passages visited
-              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-              const totalPassages = storypassages.passages?.length || 1;
-              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-            }
-            
-            // Update story with progress information
-            const storyWithProgress = {
-              ...Story,
-              passages: storypassages,
-              exploration: exploration
-            };
-            
-            ui.openStory(storyWithProgress);
-            return;
-          }
-        } catch (directError: any) {
-          // Failed to get direct passages
-        }
-      }
-      
-      // For chapter-based stories, we need to determine the correct chapter ID
-      // Try to get the first available chapter
-      try {
-        const chapters = await apiService.getChapters(String(Story.id));
-        
-        if (chapters && chapters.length > 0) {
-          // Use the first chapter as default
-          const firstChapter = chapters[0];
-          
-          // Get passages for the first chapter
-          const chapterPassages = await apiService.getChapterPassages(Story.id, firstChapter.id);
-          
-          if (chapterPassages && chapterPassages.length > 0) {
-            // Get user's progress for this story
-            const progressRecords = await apiService.getStoryProgressRecords(String(Story.id));
-            
-            // Calculate exploration percentage based on progress
-            let exploration = 0;
-            if (progressRecords.length > 0) {
-              // Count unique passages visited
-              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-              const totalPassages = chapterPassages.length || 1;
-              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-            }
-            
-            // Update story with chapter information and progress
-            const storyWithChapter = {
-              ...Story,
-              passages: chapterPassages, // Pass the passages array directly
-              chapterId: firstChapter.id, // Set the actual chapter ID
-              chapterTitle: firstChapter.title || `Chapter ${firstChapter.id}`,
-              exploration: exploration
-            };
-            
-            ui.openStory(storyWithChapter);
-            return;
-          }
-        }
-      } catch (chapterError) {
-        // Could not get chapters, trying fallback method
-      }
-      
-      // Fallback: try the original getStorypassages method
-      const storypassages = await apiService.getStorypassages(Story.id);
-      if (storypassages) {
-        // Get user's progress for this story
-        const progressRecords = await apiService.getStoryProgressRecords(String(Story.id));
-        
-        // Calculate exploration percentage based on progress
-        let exploration = 0;
-        if (progressRecords.length > 0) {
-          // Count unique passages visited
-          const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-          const totalPassages = storypassages.passages?.length || 1;
-          exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-        }
-        
-        // Update story with progress information
-        const storyWithProgress = {
-          ...Story,
-          passages: storypassages,
-          exploration: exploration,
-          chapterId: null // Fallback - no specific chapter
-        };
-        
-        ui.openStory(storyWithProgress);
-      } else {
-        // Show error if no passages found
-        Alert.alert(
-          "No passages Available",
-          "This story does not have any passages yet.",
-          [{ text: "OK", style: "default" }]
-        );
-      }
-    } catch (error: any) {
-      Alert.alert("Error", "Failed to load story passages. Please try again.", [
-        { text: "OK", style: "default" },
-      ]);
-    }
-  };
-
-  // Chapter selection is not needed for Django backend (no chapters)
   const handleChapterSelect = async (chapterId: number) => {
     try {
-      // Close the chapter selection modal first
-      setIsChapterScreenVisible(false);
-
-      // For chapter-based stories, we need to get the story passages with the specific chapter
-      if (selectedStory?.id) {
-        // First, let's check if the story already has chapter data with passages
-        if (selectedStory.chapters && selectedStory.chapters.length > 0) {
-          const targetChapter = selectedStory.chapters.find((ch: any) => ch.id === chapterId);
-          
-          if (targetChapter && targetChapter.passages) {
-            const storypassages = {
-              id: selectedStory.id.toString(),
-              title: targetChapter.title || `Chapter ${chapterId}`,
-              passages: targetChapter.passages
-            };
-            
-            // Get user's progress for this story
-            const progressRecords = await apiService.getStoryProgressRecords(String(selectedStory.id));
-            
-            // Calculate exploration percentage based on progress
-            let exploration = 0;
-            if (progressRecords.length > 0) {
-              // Count unique passages visited
-              const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-              const totalPassages = storypassages.passages?.length || 1;
-              exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-            }
-
-            // Create a modified story object with chapter information and progress
-            const storyWithChapter = {
-              ...selectedStory,
-              passages: storypassages, // Pass the entire storypassages object directly
-              chapterId: chapterId, // Add the chapter ID to the story object
-              exploration: exploration
-            };
-            
-            ui.openStory(storyWithChapter);
-            return;
-          }
-        }
-        
-        // Fallback: try to get chapters from API
-        const storypassages = await apiService.getStorypassagesFromChapter(
-          selectedStory.id,
-          chapterId
-        );
-
-        if (storypassages) {
-          // Get user's progress for this story
-          const progressRecords = await apiService.getStoryProgressRecords(String(selectedStory.id));
-          
-          // Calculate exploration percentage based on progress
-          let exploration = 0;
-          if (progressRecords.length > 0) {
-            // Count unique passages visited
-            const uniquePassages = new Set(progressRecords.map((p: any) => p.passage_id));
-            const totalPassages = storypassages.passages?.length || 1;
-            exploration = Math.round((uniquePassages.size / totalPassages) * 100);
-          }
-
-          // Create a modified story object with chapter information and progress
-          const storyWithChapter = {
-            ...selectedStory,
-            passages: storypassages, // Pass the entire storypassages object directly
-            chapterId: chapterId, // Add the chapter ID to the story object
-            exploration: exploration
-          };
-          ui.openStory(storyWithChapter);
-        } else {
-          Alert.alert(
-            "No passages Available",
-            "This chapter does not have any passages yet.",
-            [{ text: "OK", style: "default" }]
-          );
-        }
-      } else {
-        Alert.alert("Error", "No story selected. Please try again.", [
-          { text: "OK", style: "default" },
-        ]);
+      if (!selectedStory?.id) {
+        Alert.alert("Error", "No story selected. Please try again.");
+        return;
       }
+  
+      setIsChapterScreenVisible(false);
+      console.log(`✅ Chapter ${chapterId} selected for story ${selectedStory.id}`);
+  
+      // Create a NEW story object with the chapterId attached.
+      const storyWithChapterInfo = {
+        ...selectedStory,
+        chapterId: chapterId,
+        passages: undefined, // Explicitly remove any pre-loaded passage data
+      };
+      
+      // Open the story screen, passing the updated story object.
+      ui.openStory(storyWithChapterInfo);
+  
     } catch (error) {
-      Alert.alert(
-        "Error",
-        "Failed to load chapter passages. Please try again.",
-        [{ text: "OK", style: "default" }]
-      );
+      console.error("Failed to handle chapter selection:", error);
+      Alert.alert("Error", "Failed to load chapter. Please try again.");
     }
   };
+
+
 
   const handleCloseStory = () => {
     ui.closeStory();
   };
 
-  const handleStoryCompleteLocal = async (completionData: {
-    StoryId: string;
-    finalRewards: string[];
-    skillsLearned: string[];
-    totalStatGains: { [key: string]: number };
-  }) => {
-    try {
-      // Call the backend to complete the story
-      await apiService.completeStoryFromEnding(
-        completionData.StoryId,
-        "end", // Use a default passage ID for completion
-        completionData.totalStatGains,
-        [] // Empty journal entries array
-      );
-
-      // Update local archive progress
-      archive.handleStoryComplete(completionData.StoryId);
-      archive.handleSkillLearned(completionData.skillsLearned);
-
-      // ✅ Refresh character data to reflect new stats
-      try {
-        // Refresh home data (includes character stats and wellness)
-        await wellness.loadHomeData();
-        
-        // Refresh character stats specifically (but preserve character name)
-        if (!character.characterName || character.characterName.trim() === '') {
-          await character.loadCharacter();
-        }
-        
-        // Refresh equipment/gear data
-        await equipment.loadBackendGear();
-        
-      } catch (refreshError) {
-        // Don't fail the story completion if refresh fails
-      }
-
-      // Show completion message
-      Alert.alert(
-        "🎉 Story Completed!",
-        "You have successfully completed this story and gained new insights.",
-        [
-          {
-            text: "Continue Exploring",
-            onPress: () => {
-              handleCloseStory();
-              // Optionally refresh the story list
-              loadStories();
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        "Failed to complete story. Your progress has been saved locally.",
-        [{ text: "OK", style: "default" }]
-      );
-    }
+  const handleStoryCompleteLocal = (completionData: { storyId: string; }) => {
+    archive.handleStoryComplete(completionData.storyId);
+    handleCloseStory();
+    loadStories(); // Refresh the story list to show updated progress
+    Alert.alert("🎉 Story Completed!", "You have successfully completed this story.");
   };
 
   // Codex handlers -- needs to update to backend functionality 
@@ -1436,7 +1023,9 @@ const ArchiveInterface: React.FC = () => {
               <View style={{
                 paddingHorizontal: 16,
                 paddingVertical: 12,
-                marginBottom: 16
+                marginBottom: 16,
+                flexDirection: 'row',
+                gap: 8
               }}>
                 <TouchableOpacity
                   style={{
@@ -1448,7 +1037,8 @@ const ArchiveInterface: React.FC = () => {
                     borderColor: 'rgba(6, 182, 212, 0.4)',
                     flexDirection: 'row',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    flex: 1
                   }}
                   onPress={() => {
                     loadStories();
@@ -1462,6 +1052,51 @@ const ArchiveInterface: React.FC = () => {
                     fontWeight: '600'
                   }}>
                     Refresh Progress
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                    borderRadius: 8,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(139, 92, 246, 0.4)',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: 1
+                  }}
+                  onPress={async () => {
+                    try {
+                      const debugInfo = await apiService.debugStoryFiltering();
+                      console.log('=== STORY FILTERING DEBUG INFO ===');
+                      console.log('Total stories:', debugInfo.totalStories);
+                      console.log('Character stories:', debugInfo.characterStories);
+                      console.log('Personality stories:', debugInfo.personalityStories);
+                      console.log('User trait:', debugInfo.userTrait);
+                      console.log('Character story titles:', debugInfo.characterStoryTitles);
+                      console.log('Personality story titles:', debugInfo.personalityStoryTitles);
+                      console.log('All story details:', debugInfo.allStoryDetails);
+                      Alert.alert(
+                        'Story Filtering Debug',
+                        `Total: ${debugInfo.totalStories}\nCharacter: ${debugInfo.characterStories}\nPersonality: ${debugInfo.personalityStories}\nUser Trait: ${debugInfo.userTrait || 'None'}\n\nCheck console for details.`
+                      );
+                    } catch (error) {
+                      console.error('Debug failed:', error);
+                      Alert.alert('Debug Failed', 'Check console for error details.');
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Icon name="help-circle" size={16} color="#A855F7" style={{ marginRight: 8 }} />
+                  <Text style={{
+                    color: '#A855F7',
+                    fontSize: 14,
+                    fontWeight: '600'
+                  }}>
+                    Debug Filtering
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1740,70 +1375,549 @@ const ArchiveInterface: React.FC = () => {
             </View>
           )}
 
-          {/* Restoration Tab - Updated to use home_data archive_metrics */}
+          {/* Restoration Tab - Updated to use comprehensive game data */}
           {ui.activeTab === "restoration" && (
             <View style={theme.styles.archiveTabpassagesArea}>
-              {/* Restoration metrics from home_data */}
-              <View style={theme.styles.archiveRestorationGrid}>
-                {(
-                  wellness.homeData?.archive_metrics || [
-                    {
-                      icon: "📜",
-                      label: "Memories Explored",
-                      value: `${archive.restorationMetrics.chroniclesExplored}/12`,
-                      progress:
-                        (archive.restorationMetrics.chroniclesExplored / 12) *
-                        100,
-                      description: "Memory fragments fully integrated",
-                    },
-                    {
-                      icon: "💎",
-                      label: "Artifacts Discovered",
-                      value: `${archive.restorationMetrics.artifactsDiscovered}`,
-                      progress:
-                        (archive.restorationMetrics.artifactsDiscovered / 50) *
-                        100,
-                      description: "Coping mechanisms crystallized into tools",
-                    },
-                    {
-                      icon: "🗝️",
-                      label: "Revelations Unlocked",
-                      value: `${archive.restorationMetrics.revelationsUnlocked}`,
-                      progress:
-                        (archive.restorationMetrics.revelationsUnlocked / 100) *
-                        100,
-                      description: "Hidden chambers of self-knowledge opened",
-                    },
-                  ]
-                ).map((metric, index) => (
-                  <View key={index} style={theme.styles.archiveRestorationCard}>
+              {/* Loading state */}
+              {isLoadingGameData ? (
+                <View style={theme.styles.centeredMessageContainer}>
+                  <Icon
+                    name="loader"
+                    size={40}
+                    color="#A855F7"
+                    style={{ marginBottom: 16 }}
+                  />
+                  <Text style={theme.styles.centeredMessageTitle}>
+                    Loading Archive Data...
+                  </Text>
+                  <Text style={theme.styles.centeredMessageText}>
+                    Retrieving your journey statistics from the Archive...
+                  </Text>
+                </View>
+              ) : gameData ? (
+                <>
+                  {/* Story Progress Section */}
+                  <View style={theme.styles.foundationsSection}>
                     <LinearGradient
                       colors={[
-                        "rgba(30, 41, 59, 0.9)",
-                        "rgba(51, 65, 85, 0.7)",
-                        "rgba(30, 41, 59, 0.9)",
+                        "rgba(30, 41, 59, 0.95)",
+                        "rgba(51, 65, 85, 0.8)",
+                        "rgba(30, 41, 59, 0.95)",
                       ]}
-                      style={theme.styles.archiveRestorationCardGradient}
+                      style={theme.styles.foundationsSectionGradient}
                     >
-                      <Text style={theme.styles.archiveRestorationIcon}>
-                        {metric.icon}
+                      <View style={theme.styles.foundationsHeader}>
+                        <Icon name="book-open" size={20} color="#A855F7" />
+                        <Text style={theme.styles.foundationsTitle}>
+                          Story Progress
+                        </Text>
+                        <Icon name="book-open" size={20} color="#A855F7" />
+                      </View>
+                      <Text style={theme.styles.foundationsSubtitle}>
+                        Your journey through the ancient stories
                       </Text>
-                      <Text style={theme.styles.archiveRestorationLabel}>
-                        {metric.label}
-                      </Text>
-                      <Text style={theme.styles.archiveRestorationValue}>
-                        {metric.value}
-                      </Text>
-                      <Text style={theme.styles.archiveRestorationDescription}>
-                        {wellness.homeData?.archive_metrics
-                          ? `Progress: ${metric.progress}%`
-                          : (metric as any).description ||
-                            "Archive progress tracking"}
-                      </Text>
+
+                      <View style={theme.styles.foundationsGrid}>
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Stories Started",
+                              `You have begun ${gameData.story_data.stories_started} stories in your journey.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                📚
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.story_data.stories_started}
+                                <Text style={theme.styles.foundationMaxValue}>
+                                  /{gameData.story_data.total_stories_available}
+                                </Text>
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                Stories Started
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationProgressContainer}>
+                              <View style={theme.styles.foundationProgressBar}>
+                                <LinearGradient
+                                  colors={["#A855F7", "#7C3AED"]}
+                                  style={[
+                                    theme.styles.foundationProgressFill,
+                                    {
+                                      width: `${gameData.story_data.total_stories_available > 0 ? (gameData.story_data.stories_started / gameData.story_data.total_stories_available) * 100 : 0}%`,
+                                    },
+                                  ]}
+                                />
+                              </View>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Stories Started
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Ancient tales you've begun to explore
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Chapters Explored",
+                              `You have explored ${gameData.story_data.chapters_explored || 3} chapters across your stories.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                📖
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.story_data.chapters_explored || 3}
+                                <Text style={theme.styles.foundationMaxValue}>
+                                  /{gameData.story_data.total_chapters_available || 3}
+                                </Text>
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                Chapters Explored
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationProgressContainer}>
+                              <View style={theme.styles.foundationProgressBar}>
+                                <LinearGradient
+                                  colors={["#06B6D4", "#0891B2"]}
+                                  style={[
+                                    theme.styles.foundationProgressFill,
+                                    {
+                                      width: `${gameData.story_data.total_chapters_available > 0 ? ((gameData.story_data.chapters_explored || 3) / (gameData.story_data.total_chapters_available || 3)) * 100 : 0}%`,
+                                    },
+                                  ]}
+                                />
+                              </View>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Chapters Explored
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Story chapters you've ventured through
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Stories Completed",
+                              `You have completed ${gameData.story_data.stories_completed} stories with a ${gameData.story_data.completion_rate}% completion rate.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                🏆
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.story_data.stories_completed}
+                                <Text style={theme.styles.foundationMaxValue}>
+                                  /{gameData.story_data.stories_started}
+                                </Text>
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                {gameData.story_data.completion_rate}% Complete
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationProgressContainer}>
+                              <View style={theme.styles.foundationProgressBar}>
+                                <LinearGradient
+                                  colors={["#10B981", "#059669"]}
+                                  style={[
+                                    theme.styles.foundationProgressFill,
+                                    {
+                                      width: `${gameData.story_data.completion_rate}%`,
+                                    },
+                                  ]}
+                                />
+                              </View>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Stories Completed
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Tales you've fully explored and mastered
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
                     </LinearGradient>
                   </View>
-                ))}
-              </View>
+
+                  {/* Archive Progress Section */}
+                  <View style={theme.styles.foundationsSection}>
+                    <LinearGradient
+                      colors={[
+                        "rgba(30, 41, 59, 0.95)",
+                        "rgba(51, 65, 85, 0.8)",
+                        "rgba(30, 41, 59, 0.95)",
+                      ]}
+                      style={theme.styles.foundationsSectionGradient}
+                    >
+                      <View style={theme.styles.foundationsHeader}>
+                        <Icon name="archive" size={20} color="#FCD34D" />
+                        <Text style={theme.styles.foundationsTitle}>
+                          Archive Progress
+                        </Text>
+                        <Icon name="archive" size={20} color="#FCD34D" />
+                      </View>
+                      <Text style={theme.styles.foundationsSubtitle}>
+                        Your discoveries and insights within the Archive
+                      </Text>
+
+                      <View style={theme.styles.foundationsGrid}>
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Memories Explored",
+                              `You have explored ${gameData.archive_metrics.memories_explored} memory fragments in your journey.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                📜
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.archive_metrics.memories_explored}
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                Memories Explored
+                              </Text>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Memory Fragments
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Ancient wisdom you've discovered
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Artifacts Discovered",
+                              `You have discovered ${gameData.archive_metrics.artifacts_discovered} coping mechanisms and tools.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                💎
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.archive_metrics.artifacts_discovered}
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                Artifacts Found
+                              </Text>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Coping Tools
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Mechanisms crystallized into tools
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Insights Gained",
+                              `You have gained ${gameData.archive_metrics.insights_gained} profound insights about yourself.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                🗝️
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.archive_metrics.insights_gained}
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                Insights Unlocked
+                              </Text>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Self-Knowledge
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Hidden chambers of understanding opened
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
+                    </LinearGradient>
+                  </View>
+
+                  {/* Journey Statistics Section */}
+                  <View style={theme.styles.foundationsSection}>
+                    <LinearGradient
+                      colors={[
+                        "rgba(30, 41, 59, 0.95)",
+                        "rgba(51, 65, 85, 0.8)",
+                        "rgba(30, 41, 59, 0.95)",
+                      ]}
+                      style={theme.styles.foundationsSectionGradient}
+                    >
+                      <View style={theme.styles.foundationsHeader}>
+                        <Icon name="trending-up" size={20} color="#06B6D4" />
+                        <Text style={theme.styles.foundationsTitle}>
+                          Journey Statistics
+                        </Text>
+                        <Icon name="trending-up" size={20} color="#06B6D4" />
+                      </View>
+                      <Text style={theme.styles.foundationsSubtitle}>
+                        Detailed metrics of your exploration progress
+                      </Text>
+
+                      <View style={theme.styles.foundationsGrid}>
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Passages Visited",
+                              `You have visited ${gameData.progress_data.total_passages_visited} passages across all stories.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                🗺️
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.progress_data.total_passages_visited}
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                Passages Visited
+                              </Text>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Exploration Depth
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Story passages you've experienced
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Choices Made",
+                              `You have made ${gameData.progress_data.total_choices_made} meaningful choices in your journey.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                🎯
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.progress_data.total_choices_made}
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                Choices Made
+                              </Text>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Decision Points
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Meaningful choices that shaped your path
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={theme.styles.foundationCard}
+                          onPress={() =>
+                            Alert.alert(
+                              "Revelations Unlocked",
+                              `You have unlocked ${gameData.progress_data.total_revelations_unlocked} profound revelations.`,
+                              [{ text: "Continue Exploring", style: "default" }]
+                            )
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={[
+                              "rgba(51, 65, 85, 0.8)",
+                              "rgba(30, 41, 59, 0.6)",
+                              "rgba(51, 65, 85, 0.8)",
+                            ]}
+                            style={theme.styles.foundationCardGradient}
+                          >
+                            <View style={theme.styles.foundationIconContainer}>
+                              <Text style={theme.styles.foundationIcon}>
+                                ✨
+                              </Text>
+                            </View>
+                            <View style={theme.styles.foundationValueContainer}>
+                              <Text style={theme.styles.foundationValue}>
+                                {gameData.progress_data.total_revelations_unlocked}
+                              </Text>
+                              <Text style={theme.styles.foundationLevel}>
+                                Revelations
+                              </Text>
+                            </View>
+                            <Text style={theme.styles.foundationLabel}>
+                              Hidden Truths
+                            </Text>
+                            <Text style={theme.styles.foundationDescription}>
+                              Profound insights you've discovered
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
+                    </LinearGradient>
+                  </View>
+                </>
+              ) : (
+                <View style={theme.styles.centeredMessageContainer}>
+                  <Icon
+                    name="alert-circle"
+                    size={40}
+                    color="#EF4444"
+                    style={{ marginBottom: 16 }}
+                  />
+                  <Text style={theme.styles.centeredMessageTitle}>
+                    Unable to Load Data
+                  </Text>
+                  <Text style={theme.styles.centeredMessageText}>
+                    Failed to retrieve your Archive progress. Please try again later.
+                  </Text>
+                  <TouchableOpacity
+                    style={theme.styles.primaryButton}
+                    onPress={loadGameData}
+                  >
+                    <LinearGradient
+                      colors={["#EF4444", "#DC2626"]}
+                      style={theme.styles.primaryButtonGradient}
+                    >
+                      <Icon name="refresh-cw" size={18} color="#FEE2E2" />
+                      <Text style={theme.styles.primaryButtonText}>
+                        Retry Loading
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
         </ScrollView>
@@ -1832,13 +1946,8 @@ const ArchiveInterface: React.FC = () => {
           choices={(ui.selectedStory?.passages as any)?.passages?.[0]?.choices || []}
           onStatGain={() => {}} // This would be handled by the master state
           onArtifactUnlock={(artifact: string) => archive.handleArtifactUnlock({ name: artifact } as any)}
-          onSkillLearned={archive.handleSkillLearned}
-          onStoryComplete={(completionData) => handleStoryCompleteLocal({
-            StoryId: completionData.storyId,
-            finalRewards: completionData.finalRewards,
-            skillsLearned: completionData.skillsLearned,
-            totalStatGains: completionData.totalStatGains
-          })}
+          onSkillLearned={(skill: string) => archive.handleSkillLearned([skill])}
+          onStoryComplete={handleStoryCompleteLocal as any}
         />
       )}
 

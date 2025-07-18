@@ -57,7 +57,7 @@ const StoryCatalogModal = ({
       setError(null);
 
       try {
-        const backendStories = await apiService.getAvailableStories();
+        const backendStories = await apiService.getCharacterStories();
 
         if (backendStories && backendStories.length > 0) {
           setStories(backendStories);
@@ -139,6 +139,21 @@ const StoryCatalogModal = ({
           return lastPlayedB - lastPlayedA; // Most recent first
         case 'progress':
         default:
+          // Custom story ordering by ID: Introduction (12), The Whispering Stacks (27), Tea with The Curator (2)
+          const storyOrder = {
+            12: 1, // Introduction
+            27: 2, // The Whispering Stacks - Base data (Character)
+            2: 3   // Tea with The Curator
+          };
+          
+          const orderA = storyOrder[a.id as keyof typeof storyOrder] || 999;
+          const orderB = storyOrder[b.id as keyof typeof storyOrder] || 999;
+          
+          if (orderA !== orderB) {
+            return orderA - orderB; // Custom order first
+          }
+          
+          // If not in custom order, fall back to progress-based sorting
           const progressPercentA = progressA?.progress_percentage || 0;
           const progressPercentB = progressB?.progress_percentage || 0;
           return progressPercentB - progressPercentA; // Highest progress first
@@ -151,17 +166,19 @@ const StoryCatalogModal = ({
   // Handle story selection with progress management
   const handleStorySelection = async (selectedStory: Story) => {
     try {
+      // Always restart the story to ensure we start from the beginning
+      try {
+        await apiService.restartStory(selectedStory.id);
+        console.log(`✅ Story ${selectedStory.id} restarted successfully from catalog`);
+      } catch (restartError) {
+        console.warn(`⚠️ Story restart failed, continuing anyway:`, restartError);
+      }
+      
       const progress = storyProgress[selectedStory.id];
       
       if (progress) {
-        // Story has existing progress
-        if (progress.is_completed) {
-          // Story is completed - ask user if they want to replay
-          onSelectStory(selectedStory);
-        } else {
-          // Story is in progress - continue from where they left off
-          onSelectStory(selectedStory);
-        }
+        // Story has existing progress - always restart regardless of completion status
+        onSelectStory(selectedStory);
       } else {
         // No progress - start new story
         try {

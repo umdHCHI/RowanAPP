@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useMasterState } from "../context/MasterStateContext";
+import FloatingRewardNotification from "./FloatingRewardNotification";
 
 const { width, height } = Dimensions.get("window");
 const GAME_WIDTH = width * 0.9;
@@ -225,6 +227,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   onClose,
   onScoreUpdate,
 }) => {
+  const { character, archive } = useMasterState();
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [showDifficultySelect, setShowDifficultySelect] = useState<boolean>(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('normal');
@@ -252,10 +255,16 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   });
   const [activePowerUps, setActivePowerUps] = useState<PowerUp[]>([]);
 
+  // New state for experience rewards
+  const [showExperienceReward, setShowExperienceReward] = useState(false);
+  const [experienceRewardMessage, setExperienceRewardMessage] = useState("");
+  const [experienceRewardAmount, setExperienceRewardAmount] = useState(0);
+
   const gameLoopRef = useRef<number>(0);
   const spawnLoopRef = useRef<number>(0);
   const thoughtIdCounter = useRef<number>(0);
   const projectileIdCounter = useRef<number>(0);
+  const gameStartTime = useRef<number>(0);
 
   const getDifficultyConfig = useCallback((): DifficultyConfig => {
     return DIFFICULTY_LEVELS[selectedDifficulty] || DIFFICULTY_LEVELS.normal;
@@ -644,11 +653,102 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     setActivePowerUps([]);
     setGameStarted(true);
     setShowDifficultySelect(false);
+    gameStartTime.current = Date.now();
     
     console.log('✅ Game started with', difficulty.modifiers.livesStart, 'lives!');
   }, [selectedDifficulty, getDifficultyConfig]);
 
-  const checkWinCondition = useCallback((): void => {
+  const calculateExperienceReward = useCallback((finalScore: number, finalLevel: number, won: boolean, difficultyName: string): number => {
+    const difficultyConfig = getDifficultyConfig();
+    
+    // Base experience for playing
+    let baseExperience = 50;
+    
+    // Score-based experience (1 XP per 10 points)
+    const scoreExperience = Math.floor(finalScore / 10);
+    
+    // Level-based experience (bonus for reaching higher levels)
+    const levelExperience = finalLevel * 25;
+    
+    // Difficulty multiplier
+    const difficultyMultiplier = difficultyConfig.modifiers.scoreMultiplier;
+    
+    // Victory bonus
+    const victoryBonus = won ? 100 : 0;
+    
+    // Achievement bonuses
+    let achievementBonus = 0;
+    
+    // High score bonus (1000+ points)
+    if (finalScore >= 1000) achievementBonus += 50;
+    
+    // High level bonus (level 5+)
+    if (finalLevel >= 5) achievementBonus += 75;
+    
+    // Perfect game bonus (no lives lost)
+    if (lives === difficultyConfig.modifiers.livesStart) achievementBonus += 25;
+    
+    // Calculate total experience
+    const totalExperience = Math.floor(
+      (baseExperience + scoreExperience + levelExperience + victoryBonus + achievementBonus) * difficultyMultiplier
+    );
+    
+    console.log('🎁 Experience calculation:', {
+      baseExperience,
+      scoreExperience,
+      levelExperience,
+      victoryBonus,
+      achievementBonus,
+      difficultyMultiplier,
+      totalExperience
+    });
+    
+    return Math.max(10, totalExperience); // Minimum 10 XP
+  }, [getDifficultyConfig, lives]);
+
+  const awardExperience = useCallback(async (experienceAmount: number, source: string) => {
+    try {
+      console.log('🎁 Awarding experience:', experienceAmount, 'from source:', source);
+      console.log('🎁 Current character state:', character.backendCharacter);
+      
+      // Show floating reward notification immediately
+      setExperienceRewardAmount(experienceAmount);
+      setExperienceRewardMessage(`+${experienceAmount} Experience from Thought Defender!`);
+      setShowExperienceReward(true);
+      
+      // Try to load character if not available
+      if (!character.backendCharacter) {
+        console.log('🔄 No character loaded, attempting to load...');
+        try {
+          await character.loadCharacter(); // Load character
+          console.log('🔄 Character load attempt completed. New state:', character.backendCharacter);
+        } catch (loadError) {
+          console.error('❌ Failed to load character:', loadError);
+          // Show notification anyway - user gets visual feedback
+          return;
+        }
+      }
+      
+      // Award experience through the backend
+      console.log('🎁 Calling gainExperience with:', experienceAmount, source);
+      console.log('🎁 Character ID:', character.backendCharacter?.id);
+      
+      if (character.backendCharacter?.id) {
+        await character.gainExperience(experienceAmount, source);
+        console.log('✅ Experience awarded successfully');
+      } else {
+        console.error('❌ No character ID available for experience gain');
+        // Still show the notification - user gets visual feedback
+      }
+    } catch (error) {
+      console.error('❌ Failed to award experience:', error);
+      console.error('❌ Error details:', error);
+      // The notification is already shown, so user still sees the reward
+      // In a real app, you might want to queue this for retry later
+    }
+  }, [character]);
+
+  const checkWinCondition = useCallback(async (): Promise<void> => {
     const difficulty = getDifficultyConfig();
     const currentWaveTarget = getCurrentWaveTarget();
 
@@ -676,11 +776,25 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         if (gameLoopRef.current) clearInterval(gameLoopRef.current);
         if (spawnLoopRef.current) clearInterval(spawnLoopRef.current);
         
+        // Calculate and award experience for victory
+        const experienceGained = calculateExperienceReward(score, level, true, selectedDifficulty);
+        await awardExperience(experienceGained, `thought_defender_victory_${selectedDifficulty}`);
+        
+        // Update archive progress
+        await archive.handleMiniGameComplete("thoughtDefender", {
+          level,
+          score,
+          won: true,
+          difficulty: selectedDifficulty,
+          experienceGained,
+          gameTime: Date.now() - gameStartTime.current
+        });
+        
         if (onScoreUpdate) onScoreUpdate({ score, level, won: true, difficulty: selectedDifficulty });
         
         Alert.alert(
           '🏆 VICTORY! 🏆',
-          `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
+          `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\nEXPERIENCE GAINED: ${experienceGained}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
           [
             { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
             { text: '❌ EXIT', onPress: onClose }
@@ -700,33 +814,54 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         thoughtsCleared: 0,
       }));
     }
-  }, [gameState.thoughtsCleared, level, score, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, getCurrentWaveTarget]);
+  }, [gameState.thoughtsCleared, level, score, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, getCurrentWaveTarget, calculateExperienceReward, awardExperience]);
 
-  const endGame = useCallback((): void => {
+  const endGame = useCallback(async (): Promise<void> => {
     console.log("🎮 Game Over!");
+    console.log("🎮 Final Score:", score);
+    console.log("🎮 Final Level:", level);
+    console.log("🎮 Difficulty:", selectedDifficulty);
+    
     setGameStarted(false);
 
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     if (spawnLoopRef.current) clearInterval(spawnLoopRef.current);
 
-    const difficulty =getDifficultyConfig();
+    const difficulty = getDifficultyConfig();
+    
+    // Calculate and award experience for game over (partial completion)
+    const experienceGained = calculateExperienceReward(score, level, false, selectedDifficulty);
+    console.log("🎁 Experience calculated:", experienceGained);
+    
+    // Award experience
+    await awardExperience(experienceGained, `thought_defender_completion_${selectedDifficulty}`);
+    
+    // Update archive progress
+    await archive.handleMiniGameComplete("thoughtDefender", {
+      level,
+      score,
+      won: false,
+      difficulty: selectedDifficulty,
+      experienceGained,
+      gameTime: Date.now() - gameStartTime.current
+    });
     
     if (onScoreUpdate) onScoreUpdate({ score, level, won: false, difficulty: selectedDifficulty });
     
     Alert.alert(
       '⚡ GAME OVER ⚡',
-      `DIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\n🧠 MIND DEFENDED!`,
+      `DIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\nEXPERIENCE GAINED: ${experienceGained}\n\n🧠 MIND DEFENDED!`,
       [
         { text: '🔄 RETRY', onPress: () => setShowDifficultySelect(true) },
         { text: '❌ EXIT', onPress: onClose }
       ]
     );
-  }, [score, level, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig]);
+  }, [score, level, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, calculateExperienceReward, awardExperience]);
 
   // Check win condition
   useEffect(() => {
     if (gameStarted) {
-      checkWinCondition();
+      checkWinCondition().catch(console.error);
     }
   }, [gameStarted, checkWinCondition]);
 
@@ -756,7 +891,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   // Check for game over
   useEffect(() => {
     if (gameStarted && lives <= 0) {
-      setTimeout(endGame, 500);
+      setTimeout(() => endGame().catch(console.error), 500);
     }
   }, [lives, gameStarted, endGame]);
 
@@ -1081,6 +1216,36 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           </TouchableOpacity>
             
         </View>
+        
+        {/* Floating Reward Notification */}
+        <FloatingRewardNotification
+          visible={showExperienceReward}
+          message={experienceRewardMessage}
+          type="experience"
+          onHide={() => setShowExperienceReward(false)}
+        />
+        
+        {/* Debug button for testing experience system */}
+        {__DEV__ && (
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 50,
+              right: 20,
+              backgroundColor: 'red',
+              padding: 10,
+              borderRadius: 5,
+              zIndex: 1000,
+            }}
+            onPress={() => {
+              console.log('🧪 Testing experience system...');
+              awardExperience(100, 'test_experience');
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 12 }}>Test XP</Text>
+          </TouchableOpacity>
+        )}
+        
       </View>
     </Modal>
   );

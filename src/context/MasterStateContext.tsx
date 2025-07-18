@@ -267,9 +267,13 @@ interface MasterStateContextType {
 
     // Codex entry methods
     loadRecentCodexEntries: () => Promise<void>;
-    createCodexEntry: (entryData: any) => Promise<void>;
+    createCodexEntry: (entryData: {
+        prompt: number;
+        entry_type: 'journal' | 'draw' | 'voice';
+        content: string;
+    }) => Promise<void>;
     quickJournalEntry: (
-      promptId: string,
+      promptId: number, // Changed from string to number
       content: string,
       entryType: 'journal' | 'draw' | 'voice'
     ) => Promise<void>;
@@ -1299,11 +1303,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     setCodexEntries((prev) => [...prev, newEntry]);
   };
 
-  const handleMiniGameComplete = ( //mini game rewards
+  const handleMiniGameComplete = async ( //mini game rewards
     gameType: "thoughtDefender" | "drawing",
     data: any
   ) => {
     if (gameType === "thoughtDefender") {
+      // Update local progress
       setMiniGameProgress((prev) => ({
         ...prev,
         thoughtDefenderLevel: Math.max(
@@ -1317,6 +1322,16 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         thoughtDefenderWins: prev.thoughtDefenderWins + (data.won ? 1 : 0),
         totalGameTime: prev.totalGameTime + (data.gameTime || 0),
       }));
+
+      // Award experience for Thought Defender completion
+      if (data.experienceGained && data.experienceGained > 0) {
+        try {
+          await gainExperience(data.experienceGained, `thought_defender_${data.difficulty || 'normal'}`);
+          console.log('✅ Thought Defender experience awarded:', data.experienceGained);
+        } catch (error) {
+          console.error('❌ Failed to award Thought Defender experience:', error);
+        }
+      }
     } else if (gameType === "drawing") {
       setMiniGameProgress((prev) => ({
         ...prev,
@@ -1537,17 +1552,48 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
 
   const gainExperience = async (amount: number, source?: string) => {
-    if (!backendCharacter) {
-      setError("No character loaded");
-      return;
-    }
-
     try {
+      // If no backend character is loaded, try to load it first
+      if (!backendCharacter) {
+        console.log('🔄 No character loaded, attempting to load character data...');
+        await memoizedLoadCharacter(true); // Force load for experience gains
+        
+        // If still no character after loading, try to get character ID from auth context
+        if (!backendCharacter && characterId) {
+          console.log('🔄 Attempting to load character with ID:', characterId);
+          try {
+            const characterData = await apiService.getMyCharacter();
+            if (characterData) {
+              setBackendCharacter(characterData);
+            } else {
+              console.error('❌ Failed to load character data');
+              setError("No character found. Please create a character first.");
+              return;
+            }
+          } catch (loadError: any) {
+            console.error('❌ Error loading character:', loadError);
+            setError("Failed to load character data. Please try again.");
+            return;
+          }
+        }
+        
+        // If still no character, we can't proceed
+        if (!backendCharacter) {
+          console.error('❌ No character available for experience gain');
+          setError("No character available. Please create a character first.");
+          return;
+        }
+      }
+
+      console.log('🎁 Awarding experience:', amount, 'to character:', backendCharacter.id, 'from source:', source);
+      
       const result = await apiService.gainExperience(
         backendCharacter.id,
         amount,
         source
       );
+      
+      console.log('✅ Experience awarded successfully:', result);
       setBackendCharacter(result);
 
       if (result.level_up) {
@@ -1558,6 +1604,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         );
       }
     } catch (error: any) {
+      console.error('❌ Failed to gain experience:', error);
       setError(
         "Failed to gain experience: " + (error?.message || "Unknown error")
       );
@@ -1652,13 +1699,13 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
   const quickJournalEntry = async (
-    promptText: string,
+    promptId: number, // Changed from string to number
     content: string,
     entryType: 'journal' | 'draw' | 'voice'
   ) => {
     try {
       await apiService.createCodexEntry({
-        prompt: promptText,
+        prompt: promptId, // Use the prompt ID number
         entry_type: entryType,
         content: content,
       });
@@ -1833,22 +1880,26 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
 
   // Memoize the functions to prevent unnecessary re-renders
-  const memoizedLoadCharacter = useCallback(async () => {
+  const memoizedLoadCharacter = useCallback(async (forceLoad: boolean = false) => {
     if (!authToken) {
       return;
     }
 
     // Don't load character data if we're in the middle of character creation
     // This prevents overwriting the user's input with backend defaults
-    if (characterName && characterName.trim() !== '' && characterName !== 'Hero') {
+    // UNLESS forceLoad is true (for experience gains)
+    if (!forceLoad && characterName && characterName.trim() !== '' && characterName !== 'Hero') {
+      console.log('🔄 Skipping character load due to local character name:', characterName);
       return;
     }
 
+    console.log('🔄 Loading character data...');
     setIsLoading(true);
     try {
       const characterData = await apiService.getMyCharacter();
 
       if (characterData) {
+        console.log('✅ Character data loaded:', characterData);
         setBackendCharacter(characterData);
 
         // Sync UI state with backend data directly
@@ -1856,6 +1907,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         // This prevents the backend's "Hero" default from overwriting user input
         if (characterName && characterName.trim() !== '') {
           // Keep local character name
+          console.log('🔄 Keeping local character name:', characterName);
         } else if (characterData.name && characterData.name !== 'Hero') {
           setCharacterName(characterData.name);
         }
@@ -1873,13 +1925,17 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         setSelectedClothesColor(characterData.selected_shirt_color || 0);
         setSelectedBackgroundType(characterData.selected_background_type || 0);
         setSelectedBackgroundColor(characterData.selected_background_color || 0);
+      } else {
+        console.log('⚠️ No character data returned from API');
       }
     } catch (error: any) {
       // Don't set error state for load failures as they might be expected
       if (error.response?.status === 404) {
         // Character endpoint not found (404) - this is expected if the endpoint is not implemented
+        console.log('⚠️ Character endpoint not found (404)');
       } else {
         // Error loading character
+        console.error('❌ Error loading character:', error);
       }
     } finally {
       setIsLoading(false);

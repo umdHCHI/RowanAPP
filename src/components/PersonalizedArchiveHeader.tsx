@@ -198,11 +198,11 @@ const PersonalizedArchiveHeader = ({
               <Text style={styles.mindStateIcon}>{state.icon}</Text>
               <Text style={dynamicStyles.mindStateLabel}>{state.label}</Text>
               <View style={styles.mindStateBar}>
-                <View
+                <View 
                   style={[
                     dynamicStyles.mindStateProgress,
                     { width: `${(calculateMindState(state.key) / 10) * 100}%` }
-                  ]}
+                  ]} 
                 />
               </View>
             </View>

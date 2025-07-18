@@ -37,24 +37,40 @@ export function applyPassageRewards(
   tracker: StoryRewardTracker,
   passage: Passage
 ): StoryRewardTracker {
-  if (!passage.story_effects || Object.keys(passage.story_effects).length === 0) {
-    return tracker; // No rewards in this passage
+  // Check for story_effects first (primary source for passage rewards)
+  if (passage.story_effects && Object.keys(passage.story_effects).length > 0) {
+    const newReward: StoryReward = {
+      type: 'passage',
+      source: passage.passage_id,
+      effects: passage.story_effects,
+      timestamp: Date.now()
+    };
+
+    return {
+      ...tracker,
+      rewards: [...tracker.rewards, newReward]
+    };
   }
+  
+  // Check for effects field (fallback format)
+  if (passage.effects && Object.keys(passage.effects).length > 0) {
+    const newReward: StoryReward = {
+      type: 'passage',
+      source: passage.passage_id,
+      effects: passage.effects,
+      timestamp: Date.now()
+    };
 
-  const newReward: StoryReward = {
-    type: 'passage',
-    source: passage.passage_id,
-    effects: passage.story_effects,
-    timestamp: Date.now()
-  };
-
-  return {
-    ...tracker,
-    rewards: [...tracker.rewards, newReward]
-  };
+    return {
+      ...tracker,
+      rewards: [...tracker.rewards, newReward]
+    };
+  }
+  
+  return tracker; // No rewards in this passage
 }
 
-// Apply rewards from a choice (from effects field)
+// Apply rewards from a choice (secondary source - only if no passage rewards)
 export function applyChoiceRewards(
   tracker: StoryRewardTracker,
   choice: Choice,
@@ -93,7 +109,22 @@ export function calculateTotalRewards(tracker: StoryRewardTracker): {
   tracker.rewards.forEach(reward => {
     const effects = reward.effects;
 
-    // Handle stat gains (excluding experience as it's handled separately)
+    // Handle direct stat gains from story_effects (new format)
+    // These are direct stat values like awareness: 2, connection: 1, experience: 10
+    Object.entries(effects).forEach(([key, value]) => {
+      // Skip non-stat fields
+      if (['rewards', 'artifacts', 'skills', 'journal_entry', 'stats', 'wellness'].includes(key)) {
+        return;
+      }
+      
+      // Handle direct stat values (awareness, connection, experience, etc.)
+      const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
+      if (!isNaN(numValue) && numValue > 0) {
+        totalStatGains[key] = (totalStatGains[key] || 0) + numValue;
+      }
+    });
+
+    // Handle legacy stats object format
     if (effects.stats) {
       Object.entries(effects.stats).forEach(([stat, value]) => {
         // Skip experience as it's handled separately to avoid double-counting
@@ -235,7 +266,10 @@ export function handleStoryCompletionRewards(
 
 // Helper function to check if a passage has rewards
 export function hasPassageRewards(passage: Passage): boolean {
-  return !!(passage.story_effects && Object.keys(passage.story_effects).length > 0);
+  return !!(
+    (passage.story_effects && Object.keys(passage.story_effects).length > 0) ||
+    (passage.effects && Object.keys(passage.effects).length > 0)
+  );
 }
 
 // Helper function to check if a choice has rewards
@@ -285,12 +319,41 @@ export function createNotificationFromEffects(effects: Record<string, any>): Arr
   message: string;
   type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact';
 }> {
+  console.log('=== CREATING NOTIFICATIONS FROM EFFECTS ===');
+  console.log('Effects object:', effects);
+  console.log('Effects type:', typeof effects);
+  console.log('Effects keys:', effects ? Object.keys(effects) : 'No effects');
   const notifications: Array<{
     message: string;
     type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact';
   }> = [];
 
-  // Handle experience (direct or from stats)
+  // Handle direct stat gains from story_effects (new format)
+  // These are direct stat values like awareness: 2, connection: 1, experience: 10
+  Object.entries(effects).forEach(([key, value]) => {
+    // Skip non-stat fields
+    if (['rewards', 'artifacts', 'skills', 'journal_entry', 'stats', 'wellness'].includes(key)) {
+      return;
+    }
+    
+    // Handle direct stat values (awareness, connection, experience, etc.)
+    const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
+    if (!isNaN(numValue) && numValue > 0) {
+      if (key === 'experience') {
+        notifications.push({
+          message: `+${numValue} Experience`,
+          type: 'experience'
+        });
+      } else {
+        notifications.push({
+          message: `+${numValue} ${key.charAt(0).toUpperCase() + key.slice(1)}`,
+          type: 'stat'
+        });
+      }
+    }
+  });
+
+  // Handle experience (direct or from stats) - legacy format
   let experienceGain = 0;
   
   // Check for experience directly in effects
@@ -313,15 +376,15 @@ export function createNotificationFromEffects(effects: Record<string, any>): Arr
     }
   }
   
-  // Add experience notification
-  if (experienceGain > 0) {
+  // Add experience notification (only if not already added above)
+  if (experienceGain > 0 && !notifications.some(n => n.type === 'experience')) {
     notifications.push({
       message: `+${experienceGain} Experience`,
       type: 'experience'
     });
   }
 
-  // Handle stats (exclude experience as it's handled separately)
+  // Handle stats (exclude experience as it's handled separately) - legacy format
   if (effects.stats) {
     Object.entries(effects.stats).forEach(([stat, value]) => {
       // Skip experience as it's handled separately
@@ -390,3 +453,218 @@ export function createNotificationFromEffects(effects: Record<string, any>): Arr
 
   return notifications;
 }
+
+// Debug function to test reward detection
+export function debugRewardDetection(passage: Passage, choice?: Choice): void {
+  console.log('=== DEBUGGING REWARD DETECTION ===');
+  console.log('Passage ID:', passage.passage_id);
+  console.log('Passage story_effects:', passage.story_effects);
+  console.log('Passage effects:', passage.effects);
+  console.log('Has passage rewards:', hasPassageRewards(passage));
+  
+  if (choice) {
+    console.log('Choice ID:', choice.id);
+    console.log('Choice effects:', choice.effects);
+    console.log('Has choice rewards:', hasChoiceRewards(choice));
+  }
+  
+  // Test notification creation
+  if (passage.story_effects) {
+    console.log('Testing story_effects notifications:');
+    const storyNotifications = createNotificationFromEffects(passage.story_effects);
+    console.log('Story notifications:', storyNotifications);
+  }
+  
+  if (passage.effects) {
+    console.log('Testing effects notifications:');
+    const effectsNotifications = createNotificationFromEffects(passage.effects);
+    console.log('Effects notifications:', effectsNotifications);
+  }
+  
+  if (choice && choice.effects) {
+    console.log('Testing choice notifications:');
+    const choiceNotifications = createNotificationFromEffects(choice.effects);
+    console.log('Choice notifications:', choiceNotifications);
+  }
+  
+  console.log('=== END DEBUGGING ===');
+}
+
+// Test function for the new story_effects format
+export function testNewRewardFormat(): void {
+  console.log('=== TESTING NEW REWARD FORMAT ===');
+  
+  // Test passage with new story_effects format
+  const testPassage: Passage = {
+    id: 1,
+    chapter: 1,
+    passage_id: "test-passage-1",
+    content: "Test passage content",
+    passage_type: "narration",
+    speaker: null,
+    required_conditions: {},
+    story_effects: {
+      awareness: 2,
+      connection: 1,
+      experience: 10
+    },
+    mood: "",
+    background_music: "",
+    background_image: null,
+    order: 1,
+    choices: []
+  };
+  
+  console.log('Test passage:', testPassage);
+  
+  // Test reward detection
+  console.log('Has passage rewards:', hasPassageRewards(testPassage));
+  
+  // Test notification creation
+  const notifications = createNotificationFromEffects(testPassage.story_effects);
+  console.log('Notifications created:', notifications);
+  
+  // Test reward tracker
+  const tracker = initializeRewardTracker("test-story");
+  const updatedTracker = applyPassageRewards(tracker, testPassage);
+  console.log('Updated tracker:', updatedTracker);
+  
+  // Test total rewards calculation
+  const totalRewards = calculateTotalRewards(updatedTracker);
+  console.log('Total rewards:', totalRewards);
+  
+  console.log('=== END TESTING NEW REWARD FORMAT ===');
+}
+
+// Reward system for journal entries and activities
+export interface JournalReward {
+  experience: number;
+  wellnessStats: {
+    awareness?: number;
+    resilience?: number;
+    connection?: number;
+    balance?: number;
+  };
+  message: string;
+}
+
+export interface RewardResult {
+  success: boolean;
+  rewards: JournalReward;
+  newLevel?: number;
+  levelsGained?: number;
+  error?: string;
+}
+
+// Calculate rewards based on entry type and skill category
+export const calculateJournalRewards = (
+  entryType: 'journal' | 'draw' | 'voice',
+  skillCategory: string,
+  difficulty: string = 'Beginner'
+): JournalReward => {
+  // Base experience for completing any journal entry
+  let baseExperience = 50;
+  
+  // Bonus experience based on entry type
+  const typeBonuses = {
+    journal: 0,    // Base type
+    draw: 25,      // Drawing is more creative
+    voice: 30      // Voice recording is more personal
+  };
+  
+  // Bonus experience based on difficulty
+  const difficultyBonuses = {
+    'Beginner': 0,
+    'Intermediate': 25,
+    'Advanced': 50
+  };
+  
+  // Skill category bonuses - using correct backend wellness attribute names
+  const skillBonuses: Record<string, { exp: number; awareness?: number; resilience?: number; connection?: number; balance?: number }> = {
+    'Self-Compassion': { exp: 20, awareness: 2, resilience: 1 },
+    'Social Connection': { exp: 15, connection: 2, awareness: 1 },
+    'Stress Management': { exp: 25, resilience: 2, balance: 1 },
+    'Emotional Awareness': { exp: 30, awareness: 3, connection: 1 },
+    'Personal Growth': { exp: 35, balance: 2, awareness: 1 }
+  };
+  
+  const skillBonus = skillBonuses[skillCategory] || { exp: 10, awareness: 1 };
+  
+  const totalExperience = baseExperience + 
+    typeBonuses[entryType] + 
+    difficultyBonuses[difficulty as keyof typeof difficultyBonuses] + 
+    skillBonus.exp;
+  
+  // Generate wellness stat gains
+  const wellnessStats: JournalReward['wellnessStats'] = {};
+  
+  // Base wellness gains for completing any entry
+  wellnessStats.awareness = (wellnessStats.awareness || 0) + 1;
+  
+  // Add skill-specific wellness gains
+  if (skillBonus.awareness) wellnessStats.awareness += skillBonus.awareness;
+  if (skillBonus.resilience) wellnessStats.resilience = skillBonus.resilience;
+  if (skillBonus.connection) wellnessStats.connection = skillBonus.connection;
+  if (skillBonus.balance) wellnessStats.balance = skillBonus.balance;
+  
+  // Generate reward message
+  const messages = {
+    journal: "📝 Reflection recorded!",
+    draw: "🎨 Creative expression captured!",
+    voice: "🎤 Voice memo saved!"
+  };
+  
+  const baseMessage = messages[entryType];
+  const skillMessage = `Your ${skillCategory} practice grows stronger.`;
+  
+  return {
+    experience: totalExperience,
+    wellnessStats,
+    message: `${baseMessage} ${skillMessage}`
+  };
+};
+
+// Calculate level progression
+export const calculateLevelProgress = (
+  currentExperience: number,
+  experienceGained: number
+): { newLevel: number; levelsGained: number; experienceNeeded: number } => {
+  const baseExperienceNeeded = 1000;
+  const currentLevel = Math.floor(currentExperience / baseExperienceNeeded) + 1;
+  const newTotalExperience = currentExperience + experienceGained;
+  const newLevel = Math.floor(newTotalExperience / baseExperienceNeeded) + 1;
+  const levelsGained = newLevel - currentLevel;
+  const experienceNeeded = baseExperienceNeeded - (newTotalExperience % baseExperienceNeeded);
+  
+  return {
+    newLevel,
+    levelsGained,
+    experienceNeeded
+  };
+};
+
+// Format reward message for display
+export const formatRewardMessage = (reward: JournalReward, levelsGained: number = 0): string => {
+  let message = reward.message;
+  
+  if (reward.experience > 0) {
+    message += `\n\n✨ +${reward.experience} Experience`;
+  }
+  
+  if (levelsGained > 0) {
+    message += `\n🎉 Level Up! You gained ${levelsGained} level${levelsGained > 1 ? 's' : ''}!`;
+  }
+  
+  // Add wellness stat gains
+  const wellnessGains = [];
+  if (reward.wellnessStats.awareness) wellnessGains.push(`Awareness +${reward.wellnessStats.awareness}`);
+  if (reward.wellnessStats.resilience) wellnessGains.push(`Resilience +${reward.wellnessStats.resilience}`);
+  if (reward.wellnessStats.connection) wellnessGains.push(`Connection +${reward.wellnessStats.connection}`);
+  if (reward.wellnessStats.balance) wellnessGains.push(`Balance +${reward.wellnessStats.balance}`);
+  
+  if (wellnessGains.length > 0) {
+    message += `\n💪 ${wellnessGains.join(', ')}`;
+  }
+  
+  return message;
+};

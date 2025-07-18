@@ -1,19 +1,87 @@
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 import { ThemeColors } from './theme';
 
 const { width, height } = Dimensions.get('window');
 
-export const createGlobalStyles = (theme: ThemeColors) => {
+const FONT_FAMILY_TITLE = 'serif';
+const FONT_FAMILY_TEXT = 'sans-serif';
+const FONT_FAMILY_BODY = 'sans-serif';
+const FONT_FAMILY_PIXEL = 'pixel';
+
+const engravedText: TextStyle = {
+  textShadowColor: 'rgba(0, 0, 0, 0.4)',
+  textShadowOffset: { width: 1, height: 1 },
+  textShadowRadius: 1,
+};
+
+const glowingText = (theme: ThemeColors): TextStyle => ({
+  textShadowColor: theme.archiveAccent,
+  textShadowOffset: { width: 0, height: 0 },
+  textShadowRadius: 8,
+});
+
+type StyleGuide = {
+  [key: string]: ViewStyle | TextStyle | ImageStyle;
+}
+
+export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } => {
   return StyleSheet.create({
+
+     // ===== NEW 8-BIT STYLES =====
+     rpgHeader: {
+      paddingTop: 40,
+      paddingBottom: 10,
+      paddingHorizontal: 10,
+      backgroundColor: theme.archiveBackground,
+      borderBottomWidth: 4,
+      borderBottomColor: '#000',
+  },
+  rpgHeaderContent: {
+      padding: 10,
+      backgroundColor: theme.archiveCard,
+      borderWidth: 4,
+      borderColor: '#000',
+      flexDirection: 'row',
+      alignItems: 'center',
+  },
+  rpgHeaderIconContainer: {
+      width: 48,
+      height: 48,
+      backgroundColor: '#000',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 10,
+      // Pixelated look by having no border-radius
+  },
+  rpgHeaderTextContainer: {
+      flex: 1,
+  },
+  rpgHeaderTitle: {
+      fontFamily: FONT_FAMILY_PIXEL,
+      color: theme.archiveAccent,
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 4,
+  },
+  rpgHeaderSubtitle: {
+      fontFamily: FONT_FAMILY_PIXEL,
+      color: theme.archiveText,
+      fontSize: 10,
+      lineHeight: 14,
+  },
+
     container: {
       flex: 1,
-      backgroundColor: theme.background,
+      backgroundColor: theme.archiveBackground,
     },
     screenContainer: {
       flex: 1,
-      backgroundColor: theme.background,
+      backgroundColor: 'transparent',
       padding: 16,
     },
+    engravedText: engravedText,
+    glowingText: glowingText(theme),
+
     card: {
       backgroundColor: theme.card,
       borderRadius: 12,
@@ -111,6 +179,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       flex: 1,
       backgroundColor: theme.archiveBackground,
     },
+ 
     archivepassages: {
       flex: 1,
       paddingTop: 40,
@@ -125,9 +194,69 @@ export const createGlobalStyles = (theme: ThemeColors) => {
 
     // Archive Header
     archiveHeader: {
-      marginHorizontal: 16,
+      padding: 20,
+      paddingTop: 40, // More space for status bar
+      backgroundColor: 'transparent',
+      borderBottomWidth: 2,
+      borderBottomColor: theme.archiveBorder,
+    },
+    archiveTitle: {
+      fontFamily: FONT_FAMILY_TITLE,
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: theme.archiveAccent,
+      textAlign: 'center',
+      marginBottom: 16,
+      letterSpacing: 1,
+      ...engravedText,
+    },
+    levelDisplay: {
+      alignItems: 'center',
       marginBottom: 16,
     },
+    levelText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 8,
+    },
+    experienceBar: {
+      width: '100%',
+      height: 8,
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      borderRadius: 4,
+      overflow: 'hidden',
+      marginBottom: 4,
+    },
+    experienceFill: {
+      height: '100%',
+      borderRadius: 4,
+    },
+    experienceText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    wellnessStats: {
+      marginTop: 8,
+    },
+    wellnessLabel: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    wellnessGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-around',
+    },
+    wellnessStat: {
+      fontSize: 12,
+      fontWeight: '600',
+      marginHorizontal: 4,
+      marginVertical: 2,
+    },
+
+    // Archive Header Gradient
     archiveHeaderGradient: {
       borderRadius: 16,
       overflow: 'hidden',
@@ -249,8 +378,16 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       borderColor: theme.archiveBorder,
     },
     archiveSection: {
-      borderRadius: 16,
-      overflow: 'hidden',
+      backgroundColor: theme.archiveCard,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.archiveBorder,
+      marginBottom: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 5,
+      elevation: 8,
     },
     archiveSectionGradient: {
       padding: 20,
@@ -261,28 +398,46 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 8,
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.archiveBorder,
     },
     archiveSectionTitle: {
-      fontSize: 18,
+      fontFamily: FONT_FAMILY_TITLE,
+      fontSize: 20,
       fontWeight: 'bold',
       color: theme.archiveAccent,
       marginHorizontal: 12,
       textAlign: 'center',
     },
     archiveSectionSubtitle: {
+      fontFamily: FONT_FAMILY_BODY,
       fontSize: 14,
       color: theme.archiveSubtext,
       textAlign: 'center',
       fontStyle: 'italic',
-      marginBottom: 20,
+      marginTop: 4,
+    },
+    archiveSectionContent: {
+      padding: 16,
     },
 
     // Archive Buttons
     archivePrimaryButton: {
-      borderRadius: 12,
-      overflow: 'hidden',
-      minWidth: 200,
+      backgroundColor: theme.archiveAccent,
+      borderRadius: 8,
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      borderBottomWidth: 2,
+      borderBottomColor: 'rgba(0,0,0,0.3)',
     },
     archivePrimaryButtonGradient: {
       flexDirection: 'row',
@@ -292,26 +447,36 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       paddingHorizontal: 24,
     },
     archivePrimaryButtonText: {
-      color: theme.archiveText,
+      fontFamily: FONT_FAMILY_BODY,
+      color: '#1a120b', // Dark text on gold button
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: 'bold',
       marginLeft: 10,
     },
-    archiveSecondaryButton: {
-      borderRadius: 8,
-      overflow: 'hidden',
-    },
+  
     archiveSecondaryButtonGradient: {
       paddingHorizontal: 12,
       paddingVertical: 8,
       flexDirection: 'row',
       alignItems: 'center',
     },
+    archiveSecondaryButton: {
+      backgroundColor: 'transparent',
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.archiveSubtext,
+    },
     archiveSecondaryButtonText: {
+      fontFamily: FONT_FAMILY_BODY,
       color: theme.archiveSubtext,
-      fontSize: 12,
+      fontSize: 14,
       fontWeight: '600',
-      marginLeft: 6,
+      marginLeft: 8,
     },
 
     // Archive Foundation Cards
@@ -1626,39 +1791,31 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     // ===== STORY/STORY SCREEN STYLES =====
     StoryModalOverlay: {
       flex: 1,
-      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(0, 0, 0, 0.95)' : 'rgba(255,255,255,0.95)',
+      backgroundColor: 'rgba(0, 0, 0, 0.85)',
       justifyContent: 'center',
       alignItems: 'center',
       padding: 16,
-      // Ensure proper display on mobile
-      paddingTop: 40,
-      paddingBottom: 40,
     },
     StoryModalpassages: {
-      flex: 1,
       width: '100%',
-      backgroundColor: theme.archiveCard,
-      borderRadius: 16,
-      padding: 16,
-      maxHeight: '90%', // Reduce max height for better mobile experience
+      maxHeight: '90%',
+      backgroundColor: theme.archiveBackground,
+      borderRadius: 12,
       borderWidth: 2,
-      borderColor: theme.archiveBorder,
-      // Ensure proper layout on mobile
-      minHeight: 300,
-      // Add responsive sizing for mobile
-      maxWidth: 500,
+      borderColor: theme.archiveAccent,
+      padding: 20,
+      shadowColor: theme.archiveAccent,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 15,
+      elevation: 20,
     },
     StoryHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      paddingBottom: 16,
       marginBottom: 16,
-      paddingBottom: 12,
       borderBottomWidth: 1,
       borderBottomColor: theme.archiveBorder,
-      // Prevent header from taking too much space on mobile
-      flexShrink: 0,
-    },
+  },
     StoryHeaderLeft: {
       flex: 1,
     },
@@ -1668,10 +1825,13 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       marginBottom: 4,
     },
     StoryTitle: {
-      fontSize: 18,
+      fontFamily: FONT_FAMILY_TITLE,
+      fontSize: 22,
       fontWeight: 'bold',
       color: theme.archiveAccent,
-      flex: 1,
+      textAlign: 'center',
+      marginBottom: 8,
+      ...glowingText,
     },
     StoryRarityBadge: {
       backgroundColor: theme.rarityEpic,
@@ -1686,10 +1846,11 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       fontWeight: 'bold',
     },
     StorySubtitle: {
-      fontSize: 12,
-      color: theme.statusInfo,
+      fontFamily: FONT_FAMILY_BODY,
+      fontSize: 14,
+      color: theme.archiveSubtext,
       fontStyle: 'italic',
-      marginBottom: 4,
+      textAlign: 'center',
     },
     StoryDifficultyRow: {
       flexDirection: 'row',
@@ -1728,57 +1889,39 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     StoryCurrentAtmosphere: {
       marginBottom: 12,
       borderRadius: 6,
-      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(6, 182, 212, 0.1)',
+      backgroundColor: 'rgba(6, 182, 212, 0.2)',
       padding: 8,
       borderWidth: 1,
-      borderColor: theme.archiveMode === 'dark' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(6, 182, 212, 0.2)',
+      borderColor: 'rgba(6, 182, 212, 0.3)',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
     },
     StoryPassageContainer: {
-      // Remove flex: 1 to prevent it from taking all available space
-      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255,255,255,0.9)',
-      borderRadius: 12,
+      backgroundColor: 'rgba(0,0,0,0.2)',
+      borderRadius: 8,
       padding: 16,
-      marginBottom: 16,
-      borderWidth: 1,
-      borderColor: theme.archiveBorder,
-      // Remove justifyContent: 'center' to prevent content from being pushed to center
-      // Add minHeight to ensure proper spacing
-      minHeight: 80,
+      marginBottom: 20,
+      minHeight: 100,
     },
     StoryPassageText: {
-      fontSize: 16, // Slightly larger for better mobile readability
+      fontFamily: FONT_FAMILY_BODY,
+      fontSize: 16,
       color: theme.archiveText,
-      lineHeight: 24, // Increase line height for better readability
-      textAlign: 'center',
+      lineHeight: 24,
       fontStyle: 'italic',
-      // Add padding for better text spacing
-      paddingHorizontal: 4,
     },
     StoryChoicesContainer: {
-      gap: 8,
-      // Ensure choices container is always visible
-      flexShrink: 0,
-      // Add padding to ensure choices don't touch edges
-      paddingHorizontal: 4,
-      // Add margin to separate from passage content
-      marginTop: 8,
-      // Ensure minimum height for visibility
-      minHeight: 50,
+      gap: 12,
     },
     StoryChoiceButton: {
-      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.8)' : 'rgba(243, 244, 246, 0.8)',
-      padding: 16, // Increase padding for better mobile touch targets
+      backgroundColor: theme.archiveCard,
+      padding: 16,
       borderRadius: 8,
       borderWidth: 1,
       borderColor: theme.archiveBorder,
-      // Ensure buttons are properly sized on mobile
-      minHeight: 50, // Increase minimum height for better touch targets
-      justifyContent: 'center',
-      // Add margin for better spacing
-      marginVertical: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     StoryChoiceRow: {
       flexDirection: 'row',
@@ -1789,13 +1932,12 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       marginRight: 8,
     },
     StoryChoiceText: {
-      flex: 1,
-      fontSize: 13,
+      fontFamily: FONT_FAMILY_BODY,
+      fontSize: 14,
       fontWeight: '600',
       color: theme.archiveText,
-      lineHeight: 18,
-      // Ensure text is properly aligned
-      textAlign: 'left',
+      lineHeight: 20,
+      flex: 1,
     },
 
     // Story/Story Screen - Notifications & Artifact Unlock
@@ -2429,44 +2571,44 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     // ===== CHARACTER CREATOR STYLES =====
     characterCreatorContainer: {
       flex: 1,
-      backgroundColor: theme.archiveMode === 'dark' ? '#1A2332' : '#F8FAFC',
-    },
-    characterCreatorHeader: {
-      alignItems: 'center',
-      paddingVertical: 20,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.archiveBorder,
-    },
-    characterCreatorNameInput: {
-      color: theme.archiveText,
-      fontSize: 18,
-      fontWeight: 'bold',
-      marginBottom: 12,
-      borderBottomWidth: 2,
-      borderBottomColor: theme.archiveBorder,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      minWidth: 200,
-      textAlign: 'center',
-      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.3)' : 'rgba(243, 244, 246, 0.3)',
-      borderRadius: 8,
-    },
+      backgroundColor: theme.archiveBackground,
+  },
+  characterCreatorHeader: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.archiveBorder,
+},
+characterCreatorNameInput: {
+  fontFamily: FONT_FAMILY_BODY,
+  color: theme.archiveText,
+  fontSize: 18,
+  fontWeight: 'bold',
+  marginBottom: 12,
+  borderBottomWidth: 2,
+  borderBottomColor: theme.archiveBorder,
+  paddingVertical: 8,
+  paddingHorizontal: 12,
+  minWidth: 200,
+  textAlign: 'center',
+  backgroundColor: 'rgba(0,0,0,0.2)',
+  borderRadius: 8,
+},
     characterCreatorTitle: {
-      color: theme.archiveText,
+      fontFamily: FONT_FAMILY_TITLE,
+      color: theme.archiveAccent,
       fontSize: 24,
       fontWeight: 'bold',
       marginBottom: 12,
-      textShadowColor: theme.archiveMode === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.3)',
-      textShadowOffset: { width: 1, height: 1 },
-      textShadowRadius: 1,
-    },
-    characterCreatorMainpassages: {
-      flex: 1,
-      flexDirection: 'row',
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-    },
+      ...engravedText,
+  },
+  characterCreatorMainpassages: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
     characterCreatorPreviewSection: {
       flex: 1.5,
       alignItems: 'center',
@@ -2479,7 +2621,7 @@ export const createGlobalStyles = (theme: ThemeColors) => {
       justifyContent: 'center',
     },
     characterCreatorColorContainer: {
-      backgroundColor: theme.archiveMode === 'dark' ? 'rgba(51, 65, 85, 0.5)' : 'rgba(243, 244, 246, 0.5)',
+      backgroundColor: 'rgba(0,0,0,0.2)',
       borderRadius: 12,
       padding: 16,
       borderWidth: 1,
@@ -3070,7 +3212,6 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     personalityStoryCardGradient: {
       padding: 16,
       borderRadius: 12,
-      backgroundColor: "rgba(35, 36, 43, 0.2)",
     },
     personalityStoryCardTitle: {
       color: "#fff",
@@ -3162,7 +3303,6 @@ export const createGlobalStyles = (theme: ThemeColors) => {
     },
     personalityStoryCardBlur: {
       borderRadius: 12,
-      backgroundColor: "rgba(35, 36, 43, 0.1)",
     },
     personalityStoryRarityBorder: {
       position: 'absolute',

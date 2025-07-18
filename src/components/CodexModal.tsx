@@ -15,7 +15,9 @@ import { useMasterState } from "../context/MasterStateContext";
 import fileUploadService from '../services/fileUploadService';
 import { createGlobalStyles } from "../styles/globalStyles";
 import { CodexModalProps, JournalPrompt } from "../types";
+import { calculateJournalRewards } from '../utils/rewardsUtils';
 import DrawingCanvas from "./DrawingCanvas";
+import FloatingRewardNotification from './FloatingRewardNotification';
 import VoiceMemoRecorder from './VoiceMemoRecorder';
 const { width, height } = Dimensions.get("window");
 const isMobile = width < 600;
@@ -26,7 +28,7 @@ const CodexModal = ({
   isFullScreen = false,
   selectedType = 'journal',
 }: CodexModalProps & { isFullScreen?: boolean }) => {
-  const { wellness, archive, theme } = useMasterState();
+  const { wellness, archive, theme, character } = useMasterState();
   const globalStyles = createGlobalStyles(theme.theme);
 
   const parchmentSource =
@@ -42,6 +44,15 @@ const CodexModal = ({
   const [drawingPaths, setDrawingPaths] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [completedPrompts, setCompletedPrompts] = useState<string[]>([]);
+  const [rewardNotification, setRewardNotification] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact';
+  }>({
+    visible: false,
+    message: '',
+    type: 'stat'
+  });
 
   // Update selectedTypeState when selectedType prop changes
   useEffect(() => {
@@ -116,39 +127,100 @@ const CodexModal = ({
                 [{ text: "OK" }]
               );
             }
-          } else if (selectedTypeState === 'draw' && drawingPaths.length > 0) {
-            try {
-              console.log('Uploading drawing data to backend...');
-              const uploadResult = await fileUploadService.uploadDrawingData(drawingPaths, {
-                prompt: selectedPrompt.text,
-                entry_type: selectedTypeState,
-                skill_category: selectedPrompt.skill_category,
-                map_area: selectedPrompt.map_area,
-                difficulty: selectedPrompt.difficulty,
-              });
-              contentToSave = uploadResult.file_url;
-              console.log('✅ Drawing data uploaded successfully:', uploadResult);
-            } catch (uploadError) {
-              console.error('❌ Failed to upload drawing data:', uploadError);
-              // Fallback: save the JSON data directly
-              contentToSave = JSON.stringify(drawingPaths);
-              Alert.alert(
-                "Upload Error",
-                "Failed to upload drawing data to backend. The drawing will be saved locally.",
-                [{ text: "OK" }]
-              );
-            }
+          }
+        }
+        
+        // Handle drawing uploads for both web and mobile
+        if (selectedTypeState === 'draw' && drawingPaths.length > 0) {
+          try {
+            console.log('Uploading drawing data to backend...');
+            const uploadResult = await fileUploadService.uploadDrawingData(drawingPaths, {
+              prompt: selectedPrompt.text,
+              entry_type: selectedTypeState,
+              skill_category: selectedPrompt.skill_category,
+              map_area: selectedPrompt.map_area,
+              difficulty: selectedPrompt.difficulty,
+            });
+            contentToSave = uploadResult.file_url;
+            console.log('✅ Drawing data uploaded successfully:', uploadResult);
+          } catch (uploadError) {
+            console.error('❌ Failed to upload drawing data:', uploadError);
+            // Fallback: save the JSON data directly
+            contentToSave = JSON.stringify(drawingPaths);
+            Alert.alert(
+              "Upload Error",
+              "Failed to upload drawing data to backend. The drawing will be saved locally.",
+              [{ text: "OK" }]
+            );
           }
         }
 
         // Save to backend first
         try {
           await wellness.createCodexEntry({
-            prompt: selectedPrompt.text,
+            prompt: selectedPrompt.id, // Use the prompt ID (number) instead of text
             entry_type: entryType,
             content: contentToSave,
           });
           console.log('✅ Codex entry saved to backend successfully');
+          
+          // Calculate and apply rewards
+          try {
+            // Use the reward utility function for consistent calculation
+            const journalReward = calculateJournalRewards(
+              selectedTypeState,
+              selectedPrompt.skill_category,
+              selectedPrompt.difficulty
+            );
+            
+            console.log('🎁 Calculated rewards using utility:', journalReward);
+            
+            // Apply experience and wellness gains
+            if (journalReward.experience > 0) {
+              console.log('🎁 Applying experience gain:', journalReward.experience);
+              await character.gainExperience(journalReward.experience, `journal_${selectedTypeState}`);
+            }
+            
+            if (Object.keys(journalReward.wellnessStats).length > 0) {
+              console.log('🎁 Applying wellness gains:', journalReward.wellnessStats);
+              await character.gainWellness(journalReward.wellnessStats);
+              console.log('✅ Wellness gains applied to backend');
+            }
+            
+            // Show floating reward notification
+            let rewardMessage = journalReward.message;
+            if (journalReward.experience > 0) {
+              rewardMessage += ` +${journalReward.experience} XP`;
+            }
+            
+            const wellnessGainText = Object.entries(journalReward.wellnessStats)
+              .map(([stat, value]) => `${stat.charAt(0).toUpperCase() + stat.slice(1)} +${value}`)
+              .join(', ');
+            
+            if (wellnessGainText) {
+              rewardMessage += ` | ${wellnessGainText}`;
+            }
+            
+            console.log('🎁 Setting reward notification:', rewardMessage);
+            setRewardNotification({
+              visible: true,
+              message: rewardMessage,
+              type: 'experience'
+            });
+            
+            // Add a small delay to ensure the notification is set before modal closes
+            setTimeout(() => {
+              console.log('🎁 Reward notification should be visible now');
+            }, 100);
+          } catch (rewardError) {
+            console.error('❌ Failed to apply rewards:', rewardError);
+            // Still show success message even if rewards fail
+            Alert.alert(
+              "Entry Saved",
+              "Your journal entry has been saved to your Codex.",
+              [{ text: "OK" }]
+            );
+          }
         } catch (backendError) {
           console.error('❌ Failed to save to backend:', backendError);
           Alert.alert(
@@ -166,13 +238,6 @@ const CodexModal = ({
           console.error('Error marking prompt as inactive:', deactivateError);
           // Continue with save even if deactivation fails
         }
-
-        // Show success alert
-        Alert.alert(
-          "Entry Saved",
-          "Your journal entry has been saved to your Codex.",
-          [{ text: "OK" }]
-        );
 
         // Call the original onSave for local state updates
         onSave({
@@ -230,12 +295,13 @@ const CodexModal = ({
   }, [visible, selectedPrompt, hasPromptForCategory, currentPrompt, selectedTypeState]);
 
   return (
-    <Modal
-      visible={visible}
-      animationType={isFullScreen ? "none" : "slide"}
-      transparent={!isMobile && !isFullScreen}
-      onRequestClose={onClose}
-    >
+    <>
+      <Modal
+        visible={visible}
+        animationType={isFullScreen ? "none" : "slide"}
+        transparent={!isMobile && !isFullScreen}
+        onRequestClose={onClose}
+      >
       <View style={isFullScreen ? { flex: 1, backgroundColor: '#0a0b0f' } : (isMobile ? { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)' } : globalStyles.codexModalOverlay)}>
         <View style={isFullScreen ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start' } : (isMobile ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start' } : globalStyles.codexModalpassages)}>
           <ImageBackground
@@ -572,6 +638,14 @@ const CodexModal = ({
         </View>
       </View>
     </Modal>
+    
+    <FloatingRewardNotification
+      visible={rewardNotification.visible}
+      message={rewardNotification.message}
+      type={rewardNotification.type}
+      onHide={() => setRewardNotification(prev => ({ ...prev, visible: false }))}
+    />
+    </>
   );
 };
 

@@ -14,6 +14,7 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
   type = 'stat',
   onHide
 }) => {
+  console.log('🎁 FloatingRewardNotification props:', { visible, message, type });
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;

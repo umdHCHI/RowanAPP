@@ -238,20 +238,31 @@ class ApiService {
 
     public async post<T>(endpoint: keyof typeof API_ENDPOINTS, data?: any, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
         const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
-
         
+        console.log('=== API POST REQUEST ===');
+        console.log('Endpoint:', endpoint);
+        console.log('Base URL:', API_ENDPOINTS[endpoint]);
+        console.log('URL Suffix:', config?.urlSuffix);
+        console.log('Full URL:', url);
+        console.log('Data:', data);
+        console.log('Config:', config);
+
         try {
             const axiosConfig = { ...config };
             delete (axiosConfig as any).urlSuffix;
             const response = await apiClient.post<T>(url, data, axiosConfig);
 
+            console.log('✅ API POST successful:', response.data);
             return response.data;
         } catch (error: any) {
-
+            console.error('❌ API POST failed:', error);
+            
             if (error.response) {
-
+                console.error('Response status:', error.response.status);
+                console.error('Response data:', error.response.data);
             }
             if (error.config) {
+                console.error('Request config:', error.config);
             }
  
             this.handleError(error, 'POST', url);
@@ -1258,7 +1269,32 @@ class ApiService {
         levels_gained?: number;
         message?: string;
     }> {
-        return this.post('gainExperience', { experience, source }, { urlSuffix: `${characterId}/gain_experience/` });
+        console.log('=== GAIN EXPERIENCE API CALL ===');
+        console.log('Character ID:', characterId);
+        console.log('Experience:', experience);
+        console.log('Source:', source);
+        console.log('Endpoint:', API_ENDPOINTS.gainExperience);
+        console.log('URL Suffix:', `${characterId}/gain_experience/`);
+        console.log('Full URL will be:', `${apiBaseUrl}${API_ENDPOINTS.gainExperience}${characterId}/gain_experience/`);
+        
+        try {
+            const result = await this.post<Character & {
+                experience_gained: number;
+                source: string;
+                level_up?: boolean;
+                levels_gained?: number;
+                message?: string;
+            }>('gainExperience', { experience, source }, { urlSuffix: `${characterId}/gain_experience/` });
+            console.log('✅ Gain experience API call successful:', result);
+            return result;
+        } catch (error: any) {
+            console.error('❌ Gain experience API call failed:', error);
+            if (error.response) {
+                console.error('Response status:', error.response.status);
+                console.error('Response data:', error.response.data);
+            }
+            throw error;
+        }
     }
 
     async gainWellness(characterId: number, wellnessGains: Partial<{
@@ -1342,7 +1378,7 @@ class ApiService {
     }
 
     async createCodexEntry(entryData: {
-        prompt: string;
+        prompt: number; // Changed from string to number - should be the prompt ID
         entry_type: 'journal' | 'draw' | 'voice';
         content: string;
     }): Promise<CodexEntry> {
@@ -1433,6 +1469,104 @@ class ApiService {
                 completed_prompts: [],
                 total_entries: 0
             } as GameData;
+        }
+    }
+
+    /**
+     * Get comprehensive game data including story statistics and player progress
+     * This calls the game data endpoint that provides detailed player statistics
+     */
+    async getComprehensiveGameData(): Promise<{
+        story_data: {
+            stories_started: number;
+            stories_completed: number;
+            total_stories_available: number;
+            completion_rate: number;
+        };
+        character_data: {
+            level: number;
+            experience: number;
+            wellness_stats: Record<string, number>;
+        };
+        progress_data: {
+            total_passages_visited: number;
+            total_choices_made: number;
+            total_revelations_unlocked: number;
+        };
+        archive_metrics: {
+            memories_explored: number;
+            artifacts_discovered: number;
+            insights_gained: number;
+        };
+    }> {
+        try {
+            console.log('=== GETTING COMPREHENSIVE GAME DATA ===');
+            console.log('Endpoint:', API_ENDPOINTS.gameData);
+            console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.gameData}`);
+            
+            const response = await this.get<any>('gameData');
+            console.log('Comprehensive game data loaded:', response);
+            
+            // Extract and format the data for the restoration screen
+            const formattedData = {
+                story_data: {
+                    stories_started: response.story_data?.stories_started || 0,
+                    stories_completed: response.story_data?.stories_completed || 0,
+                    total_stories_available: response.story_data?.total_stories_available || 0,
+                    completion_rate: response.story_data?.completion_rate || 0
+                },
+                character_data: {
+                    level: response.character_data?.level || 1,
+                    experience: response.character_data?.experience || 0,
+                    wellness_stats: response.character_data?.wellness_stats || {}
+                },
+                progress_data: {
+                    total_passages_visited: response.progress_data?.total_passages_visited || 0,
+                    total_choices_made: response.progress_data?.total_choices_made || 0,
+                    total_revelations_unlocked: response.progress_data?.total_revelations_unlocked || 0
+                },
+                archive_metrics: {
+                    memories_explored: response.archive_metrics?.memories_explored || 0,
+                    artifacts_discovered: response.archive_metrics?.artifacts_discovered || 0,
+                    insights_gained: response.archive_metrics?.insights_gained || 0
+                }
+            };
+            
+            console.log('Formatted game data:', formattedData);
+            return formattedData;
+        } catch (error: any) {
+            console.error('Failed to get comprehensive game data:', error);
+            console.error('Error details:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data,
+                url: error.config?.url
+            });
+            
+            // Return default data structure to prevent cascading failures
+            return {
+                story_data: {
+                    stories_started: 0,
+                    stories_completed: 0,
+                    total_stories_available: 0,
+                    completion_rate: 0
+                },
+                character_data: {
+                    level: 1,
+                    experience: 0,
+                    wellness_stats: {}
+                },
+                progress_data: {
+                    total_passages_visited: 0,
+                    total_choices_made: 0,
+                    total_revelations_unlocked: 0
+                },
+                archive_metrics: {
+                    memories_explored: 0,
+                    artifacts_discovered: 0,
+                    insights_gained: 0
+                }
+            };
         }
     }
 
@@ -1723,40 +1857,39 @@ class ApiService {
     /**
      * Fetch passages for a specific chapter
      */
-    async getChapterPassages(storyId: number | string, chapterId: number | string): Promise<any> {
+    async getChapterPassages(storyId: number | string, chapterId: number | string): Promise<any[]> {
         try {
-            console.log('=== GETTING CHAPTER PASSAGES ===');
-            console.log('Story ID:', storyId);
-            console.log('Chapter ID:', chapterId);
-            console.log('Chapter ID type:', typeof chapterId);
-            console.log('Story ID type:', typeof storyId);
-            
-            // Use the correct endpoint: /story/chapters/{chapterId}/passages/
-            const urlSuffix = `chapters/${chapterId}/passages/`;
-            console.log('URL suffix:', urlSuffix);
-            console.log('Full URL will be:', `${apiBaseUrl}story/${urlSuffix}`);
-            
-            const passages = await this.get<any[]>('storyRoot', { urlSuffix });
-            
-            console.log('Chapter passages loaded:', passages?.length || 0);
-            if (passages && passages.length > 0) {
-                console.log('First passage structure:', passages[0]);
-                console.log('First passage keys:', Object.keys(passages[0]));
-            } else {
-                console.log('No passages returned from API');
-                console.log('Raw response:', passages);
+            console.log(`=== GETTING CHAPTER PASSAGES (IMPROVED) ===`);
+            // 1. Fetch the list of all chapters for the story. This is efficient.
+            const chapters = await this.getChapters(storyId);
+            if (!chapters || chapters.length === 0) {
+                console.warn(`No chapters found for story ${storyId}`);
+                return [];
+            }
+    
+            // Debug: Log all available chapters and their IDs
+            console.log(`🔍 Available chapters for story ${storyId}:`, chapters.map((chap: any) => ({ id: chap.id, title: chap.title })));
+            console.log(`🎯 Looking for chapter ID: ${chapterId} (type: ${typeof chapterId})`);
+    
+            // 2. Find the specific chapter the user requested from the list.
+            const targetChapter = chapters.find((chap: any) => chap.id === chapterId);
+    
+            if (!targetChapter) {
+                console.error(`❌ Chapter with ID ${chapterId} not found in story ${storyId}`);
+                console.error(`Available chapter IDs:`, chapters.map((chap: any) => chap.id));
+                return [];
             }
             
-            return passages || [];
-        } catch (error: any) {
-            console.error('Failed to get chapter passages:', error);
-            console.error('Error details:', {
-                message: error.message,
-                status: error.response?.status,
-                data: error.response?.data,
-                url: error.config?.url
-            });
-            return [];
+            console.log(`✅ Found target chapter: ${targetChapter.title} (ID: ${targetChapter.id})`);
+    
+            // 3. Return the 'passages' array that is already nested within the chapter data.
+            // This avoids fetching all passages for the entire story.
+            console.log(`✅ Found chapter "${targetChapter.title}". Returning its ${targetChapter.passages?.length || 0} nested passages.`);
+            return targetChapter.passages || [];
+    
+        } catch (error) {
+            this.handleError(error, 'GET', `chapters for story ${storyId}`);
+            throw error;
         }
     }
 
@@ -2143,7 +2276,21 @@ class ApiService {
      * }
      */
     async getPassage(storyId: number, passageId: string): Promise<any> {
-        return this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${passageId}/` });
+        try {
+            console.log(`=== GETTING PASSAGE ===`);
+            console.log(`Story ID: ${storyId}`);
+            console.log(`Passage ID: ${passageId}`);
+            console.log(`Endpoint: storyPassage`);
+            console.log(`URL Suffix: ${storyId}/passage/${passageId}/`);
+            console.log(`Full URL: ${apiBaseUrl}story/stories/${storyId}/passage/${passageId}/`);
+            
+            const response = await this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${passageId}/` });
+            console.log(`✅ Passage response received:`, response);
+            return response;
+        } catch (error) {
+            console.error(`❌ Failed to get passage ${passageId} for story ${storyId}:`, error);
+            throw error;
+        }
     }
 
     /**
@@ -2178,9 +2325,29 @@ class ApiService {
 
     /**
      * Restarts a story, clearing old progress and resetting to the starting passage.
+     * @param storyId - The story ID to restart
+     * @param chapterId - Optional chapter ID to start from a specific chapter
      */
-    async restartStory(storyId: string | number): Promise<any> {
-        return this.post<any>('storyReset', {}, { urlSuffix: `${storyId}/restart/` });
+    async restartStory(storyId: string | number, chapterId?: number): Promise<any> {
+        let data = {};
+        let urlSuffix = `${storyId}/restart/`;
+        
+        if (chapterId) {
+            // Try different approaches to send chapter data
+            // Method 1: Send as request body data
+            data = { chapter_id: chapterId };
+            
+            // Method 2: Also try as query parameter
+            urlSuffix = `${storyId}/restart/?chapter_id=${chapterId}`;
+            
+            console.log(`🔄 Restarting story ${storyId} for chapter ${chapterId}`);
+            console.log(`📤 Sending restart data:`, data);
+            console.log(`📤 URL suffix with query param:`, urlSuffix);
+        } else {
+            console.log(`🔄 Restarting story ${storyId} (no specific chapter)`);
+        }
+        
+        return this.post<any>('storyReset', data, { urlSuffix });
     }
 
     /**
@@ -2297,11 +2464,12 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
     try {
       console.log('=== GETTING STORIES BY PERSONALITY ===');
       console.log('User personality type:', userPersonalityType);
+      console.log('User personality type type:', typeof userPersonalityType);
       console.log('Include general stories:', includeGeneral);
       
       // Check if user is admin or test user
       const profile = await this.getProfile();
-      const isAdminOrTestUser = profile?.username === 'admin' || profile?.is_test_user;
+      const isAdminOrTestUser = profile?.username === 'admin' || profile?.is_test_user === true;
       
       console.log('=== ADMIN DETECTION DEBUG ===');
       console.log('Profile username:', profile?.username);
@@ -2310,13 +2478,21 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
       console.log('Full profile:', profile);
       console.log('=== END ADMIN DETECTION DEBUG ===');
       
-      // For admin users, always return all stories from catalog
+      // For admin users, still apply personality filtering but with more detailed logging
       if (isAdminOrTestUser) {
-        console.log('Admin/test user detected - returning all stories from catalog');
+        console.log('Admin/test user detected - applying personality filtering with admin privileges');
         try {
           const allStories = await this.getAvailableStories();
           console.log('Admin stories loaded:', allStories?.length || 0);
-          return allStories || [];
+          
+          // Apply personality filtering even for admin users
+          if (userPersonalityType) {
+            console.log('Admin user has personality type - applying filtering');
+            return await this.filterStoriesByPersonality(allStories, userPersonalityType, includeGeneral);
+          } else {
+            console.log('Admin user has no personality type - returning all stories');
+            return allStories || [];
+          }
         } catch (catalogError) {
           console.error('Failed to get catalog stories:', catalogError);
           return [];
@@ -2350,37 +2526,15 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
         return [];
       }
       
-      // For users with personality type, try to filter but be permissive
+      // For users with personality type, filter stories properly
       if (userPersonalityType) {
-        console.log('Filtering stories by personality type (permissive mode)');
-        const filteredStories = allStories.filter((story: any) => {
-          const storyPersonalityType = story.personality_type;
-          console.log(`Story ${story.id} (${story.title}) personality_type:`, storyPersonalityType);
-          
-          // If story has no personality type (empty object), it's a general story
-          if (!storyPersonalityType || Object.keys(storyPersonalityType).length === 0) {
-            console.log(`Story ${story.id} is general story - including`);
-            return includeGeneral;
-          }
-          
-          // Check if story personality type matches user personality type
-          const isMatch = this.doesPersonalityMatch(userPersonalityType, storyPersonalityType);
-          console.log(`Story ${story.id} personality match:`, isMatch);
-          
-          // Be permissive: include if it matches OR if it's a general story
-          return isMatch || includeGeneral;
+        console.log('Filtering stories by personality focus');
+        console.log('About to call filterStoriesByPersonality with:', {
+          userPersonalityType,
+          storyCount: allStories.length,
+          includeGeneral
         });
-        
-        console.log('Filtered stories count:', filteredStories.length);
-        console.log('Filtered story IDs:', filteredStories.map((s: any) => s.id));
-        
-        // If filtering removed all stories, return all stories instead
-        if (filteredStories.length === 0) {
-          console.log('Filtering removed all stories - returning all stories instead');
-          return allStories;
-        }
-        
-        return filteredStories;
+        return await this.filterStoriesByPersonality(allStories, userPersonalityType, includeGeneral);
       }
       
       // If no personality type, return all stories
@@ -2401,45 +2555,177 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
   }
 
   /**
-   * Check if a user's personality type matches a story's personality type
-   * @param userPersonalityType - The user's primary personality trait
-   * @param storyPersonalityType - The story's personality type object
-   * @returns boolean indicating if there's a match
+   * Get stories specifically for character users (stories with empty personality_focus)
+   * @returns Filtered array of stories suitable for character path users
    */
-  async doesPersonalityMatch(userPersonalityType: string, storyPersonalityType: any): Promise<boolean> {
-    // Handle different personality type formats
-    
-    // Format 1: Direct string match
-    if (typeof storyPersonalityType === 'string') {
-      return this.normalizePersonalityType(userPersonalityType) === this.normalizePersonalityType(storyPersonalityType);
-    }
-    
-    // Format 2: Object with personality_type field
-    if (storyPersonalityType && typeof storyPersonalityType === 'object') {
-      if (storyPersonalityType.personality_type) {
-        return this.normalizePersonalityType(userPersonalityType) === this.normalizePersonalityType(storyPersonalityType.personality_type);
+  async getCharacterStories(): Promise<any[]> {
+    try {
+      console.log('=== GETTING CHARACTER STORIES ===');
+      
+      // Get all available stories from catalog
+      const allStories = await this.getAvailableStories();
+      console.log('Total stories available:', allStories?.length || 0);
+      
+      if (!allStories || allStories.length === 0) {
+        console.log('No stories found in catalog');
+        return [];
       }
       
-      // Format 3: Object with trait names as keys
-      const normalizedUserType = this.normalizePersonalityType(userPersonalityType);
-      const storyKeys = Object.keys(storyPersonalityType);
+      // Filter for character stories (empty personality_focus array)
+      const characterStories = allStories.filter((story: any) => {
+        const storyPersonalityFocus = story.personality_focus;
+        const isCharacterStory = !storyPersonalityFocus || 
+                                !Array.isArray(storyPersonalityFocus) || 
+                                storyPersonalityFocus.length === 0;
+        
+        if (isCharacterStory) {
+          console.log(`✅ Including character story: "${story.title}" (personality_focus: ${JSON.stringify(storyPersonalityFocus)})`);
+        } else {
+          console.log(`❌ Excluding personality story: "${story.title}" (personality_focus: ${JSON.stringify(storyPersonalityFocus)})`);
+        }
+        
+        return isCharacterStory;
+      });
+      
+      console.log(`Character stories found: ${characterStories.length} out of ${allStories.length} total stories`);
+      
+      console.log('Character stories found:', characterStories.length);
+      return characterStories;
+    } catch (error) {
+      console.error('Failed to get character stories:', error);
+      // Fallback to all stories if filtering fails
+      try {
+        const fallbackStories = await this.getAvailableStories();
+        console.log('Fallback stories loaded:', fallbackStories?.length || 0);
+        return fallbackStories || [];
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        return [];
+      }
+    }
+  }
+
+  /**
+   * Check if a user's personality type matches a story's personality focus
+   * @param userPersonalityType - The user's primary personality trait
+   * @param storyPersonalityFocus - The story's personality focus (array of personality types)
+   * @returns boolean indicating if there's a match
+   */
+  async doesPersonalityMatch(userPersonalityType: string, storyPersonalityFocus: any): Promise<boolean> {
+    console.log('=== PERSONALITY MATCHING ===');
+    console.log('User personality type:', userPersonalityType);
+    console.log('Story personality focus:', storyPersonalityFocus);
+    console.log('Story personality focus type:', typeof storyPersonalityFocus);
+    
+    if (!userPersonalityType) {
+      console.log('No user personality type - no match');
+      return false;
+    }
+    
+    const normalizedUserType = this.normalizePersonalityType(userPersonalityType);
+    console.log('Normalized user type:', normalizedUserType);
+    
+    // Handle different personality focus formats
+    
+    // Format 1: Direct string match (legacy support)
+    if (typeof storyPersonalityFocus === 'string') {
+      const normalizedStoryType = this.normalizePersonalityType(storyPersonalityFocus);
+      const isMatch = normalizedUserType === normalizedStoryType;
+      console.log('String match:', isMatch);
+      return isMatch;
+    }
+    
+    // Format 2: Array of personality types (new format)
+    if (Array.isArray(storyPersonalityFocus)) {
+      console.log('Checking array of personality types:', storyPersonalityFocus);
+      const isMatch = storyPersonalityFocus.some(type => {
+        console.log(`Processing array element: "${type}" (type: ${typeof type})`);
+        const normalizedStoryType = this.normalizePersonalityType(type);
+        const matches = normalizedUserType === normalizedStoryType;
+        console.log(`Checking type: "${type}" (normalized: "${normalizedStoryType}") - matches: ${matches}`);
+        console.log(`Comparing: "${normalizedUserType}" === "${normalizedStoryType}"`);
+        return matches;
+      });
+      console.log('Array match result:', isMatch);
+      return isMatch;
+    }
+    
+    // Format 3: Object with personality_type field (legacy support)
+    if (storyPersonalityFocus && typeof storyPersonalityFocus === 'object') {
+      if (storyPersonalityFocus.personality_type) {
+        const normalizedStoryType = this.normalizePersonalityType(storyPersonalityFocus.personality_type);
+        const isMatch = normalizedUserType === normalizedStoryType;
+        console.log('Object with personality_type field match:', isMatch);
+        return isMatch;
+      }
+      
+      // Format 4: Object with trait names as keys (legacy support)
+      const storyKeys = Object.keys(storyPersonalityFocus);
+      console.log('Story keys:', storyKeys);
       
       // Check if any of the story's personality traits match the user's type
-      return storyKeys.some(key => {
+      const isMatch = storyKeys.some(key => {
         const normalizedKey = this.normalizePersonalityType(key);
-        return normalizedKey === normalizedUserType;
+        const storyValue = storyPersonalityFocus[key];
+        console.log(`Checking key: ${key} (normalized: ${normalizedKey}), value: ${storyValue}`);
+        
+        // If the value is truthy and the normalized key matches the user type
+        return storyValue && normalizedKey === normalizedUserType;
       });
+      
+      console.log('Object with trait keys match:', isMatch);
+      return isMatch;
     }
     
-    // Format 4: Array of personality types
-    if (Array.isArray(storyPersonalityType)) {
-      return storyPersonalityType.some(type => 
-        this.normalizePersonalityType(userPersonalityType) === this.normalizePersonalityType(type)
-      );
-    }
-    
+    console.log('No match found - unknown format');
     return false;
   }
+
+  /**
+   * Filter stories by personality focus
+   * @param allStories - Array of all available stories
+   * @param userPersonalityType - The user's primary personality trait
+   * @param includeGeneral - Whether to include stories with empty personality_focus (general stories)
+   * @returns Filtered array of stories
+   */
+  private async filterStoriesByPersonality(allStories: any[], userPersonalityType: string, includeGeneral: boolean): Promise<any[]> {
+    console.log('=== FILTERING STORIES BY PERSONALITY (IMPROVED LOGIC) ===');
+    const filteredStories = [];
+    
+    for (const story of allStories) {
+      const storyPersonalityFocus = story.personality_focus;
+
+      // Check if it's a general story (no specific personality focus)
+      const isGeneralStory = !storyPersonalityFocus || !Array.isArray(storyPersonalityFocus) || storyPersonalityFocus.length === 0;
+
+      // 1. If it's a general story AND we're supposed to include them, add it.
+      if (isGeneralStory && includeGeneral) {
+        console.log(`✅ Including general story: "${story.title}"`);
+        filteredStories.push(story);
+        continue;
+      }
+      
+      // 2. If it's not a general story, check for a personality match.
+      if (userPersonalityType && !isGeneralStory) {
+        const isMatch = await this.doesPersonalityMatch(userPersonalityType, storyPersonalityFocus);
+        if (isMatch) {
+          console.log(`✅ Including personality-matched story: "${story.title}" (focus: ${JSON.stringify(storyPersonalityFocus)})`);
+          filteredStories.push(story);
+        } else {
+          console.log(`❌ Excluding non-matching story: "${story.title}" (focus: ${JSON.stringify(storyPersonalityFocus)})`);
+        }
+      }
+    }
+    
+    // Ensure "Introduction" stories are always included and remove duplicates.
+    const introductionStories = allStories.filter(s => s.title?.toLowerCase().includes('introduction'));
+    console.log(`Found ${introductionStories.length} introduction stories`);
+    
+    const finalStories = [...new Map([...introductionStories, ...filteredStories].map(item => [item['id'], item])).values()];
+    console.log(`Final filtered stories count: ${finalStories.length}`);
+    
+    return finalStories;
+}
 
   /**
    * Normalize personality type names to handle different naming conventions
@@ -2449,7 +2735,9 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
   private normalizePersonalityType(personalityType: string): string {
     if (!personalityType) return '';
     
+    console.log(`Normalizing personality type: "${personalityType}"`);
     const normalized = personalityType.toLowerCase().trim();
+    console.log(`After toLowerCase and trim: "${normalized}"`);
     
     // Map different naming conventions to standard names
     const typeMappings: Record<string, string> = {
@@ -2477,7 +2765,9 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
       'n': 'neuroticism'
     };
     
-    return typeMappings[normalized] || normalized;
+    const result = typeMappings[normalized] || normalized;
+    console.log(`Final normalized result: "${result}"`);
+    return result;
   }
 
   /**
@@ -2486,32 +2776,83 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
    */
   async getUserPrimaryPersonalityTrait(): Promise<string | null> {
     try {
+      console.log('=== GETTING USER PRIMARY PERSONALITY TRAIT ===');
       const profile = await this.getProfile();
+      console.log('Profile structure:', {
+        hasProfile: !!profile?.profile,
+        hasPersonalityProfile: !!profile?.personality_profile,
+        hasProfilePersonalityScores: !!profile?.profile?.personality_scores,
+        hasPersonalityProfileScores: !!profile?.personality_profile?.profile_summary?.dominant_trait
+      });
       
-      if (profile?.profile?.personality_scores) {
+      let primaryTrait: string | null = null;
+      
+      // Check for dominant trait in personality profile summary (most reliable)
+      if (profile?.personality_profile?.profile_summary?.dominant_trait) {
+        primaryTrait = profile.personality_profile.profile_summary.dominant_trait;
+        console.log('Found dominant trait in profile summary:', primaryTrait);
+        console.log('Dominant trait type:', typeof primaryTrait);
+        console.log('Dominant trait length:', primaryTrait?.length);
+      }
+      
+      // Check for personality scores in profile
+      else if (profile?.profile?.personality_scores) {
         const scores = profile.profile.personality_scores;
-        const primaryTrait = Object.keys(scores).reduce((a, b) => 
+        console.log('Found personality scores in profile:', scores);
+        primaryTrait = Object.keys(scores).reduce((a, b) => 
           scores[a as keyof typeof scores] > scores[b as keyof typeof scores] ? a : b
         );
-        return primaryTrait;
+        console.log('Calculated primary trait from profile scores:', primaryTrait);
+        console.log('Primary trait type:', typeof primaryTrait);
       }
       
-      if (profile?.personality_profile) {
+      // Check for personality profile with individual scores
+      else if (profile?.personality_profile) {
         const scores = profile.personality_profile;
-        const traitScores = {
-          openness: scores.openness,
-          conscientiousness: scores.conscientiousness,
-          extraversion: scores.extraversion,
-          agreeableness: scores.agreeableness,
-          neuroticism: scores.neuroticism
-        };
+        console.log('Found personality profile scores:', scores);
         
-        const primaryTrait = Object.keys(traitScores).reduce((a, b) => 
+        // Handle different score formats
+        let traitScores: Record<string, number>;
+        
+        if (scores.openness !== undefined) {
+          // Direct score format
+          traitScores = {
+            openness: scores.openness,
+            conscientiousness: scores.conscientiousness,
+            extraversion: scores.extraversion,
+            agreeableness: scores.agreeableness,
+            neuroticism: scores.neuroticism
+          };
+        } else if ((scores as any).big_five_scores) {
+          // BFI-2-XS format
+          const bigFiveScores = (scores as any).big_five_scores;
+          traitScores = {
+            openness: bigFiveScores.openMindedness || 0,
+            conscientiousness: bigFiveScores.conscientiousness || 0,
+            extraversion: bigFiveScores.extraversion || 0,
+            agreeableness: bigFiveScores.agreeableness || 0,
+            neuroticism: bigFiveScores.negativeEmotionality || 0
+          };
+        } else {
+          console.log('Unknown personality profile format:', scores);
+          return null;
+        }
+        
+        primaryTrait = Object.keys(traitScores).reduce((a, b) => 
           traitScores[a as keyof typeof traitScores] > traitScores[b as keyof typeof traitScores] ? a : b
         );
-        return primaryTrait;
+        console.log('Calculated primary trait from personality profile:', primaryTrait);
+        console.log('Primary trait type:', typeof primaryTrait);
       }
       
+      if (primaryTrait) {
+        // Normalize the trait to ensure consistent case handling
+        const normalizedTrait = this.normalizePersonalityType(primaryTrait);
+        console.log('Normalized primary trait:', normalizedTrait);
+        return normalizedTrait;
+      }
+      
+      console.log('No personality data found in profile');
       return null;
     } catch (error) {
       console.error('Failed to get user primary personality trait:', error);
@@ -2533,15 +2874,15 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
         return true;
       }
       
-      const storyPersonalityType = story.personality_type;
+      const storyPersonalityFocus = story.personality_focus;
       
-      // If story has no personality type (empty object), it's a general story
-      if (!storyPersonalityType || Object.keys(storyPersonalityType).length === 0) {
+      // If story has no personality focus (empty array), it's a general story
+      if (!storyPersonalityFocus || !Array.isArray(storyPersonalityFocus) || storyPersonalityFocus.length === 0) {
         return true; // General stories are always available
       }
       
-      // Check if story personality type matches user personality type
-      return this.doesPersonalityMatch(userPrimaryTrait, storyPersonalityType);
+      // Check if story personality focus matches user personality type
+      return this.doesPersonalityMatch(userPrimaryTrait, storyPersonalityFocus);
     } catch (error) {
       console.error('Failed to check story personality match:', error);
       return true; // Default to showing the story if there's an error
@@ -2746,24 +3087,140 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityType }> {
         filteredStories = catalogStories; // Use catalog as fallback
       }
       
+      // Test 5: Check specific stories for personality focus
+      console.log('\n--- Testing Specific Stories ---');
+      const conscientiousnessStories = catalogStories.filter((story: any) => 
+        story.personality_focus && 
+        Array.isArray(story.personality_focus) && 
+        story.personality_focus.some((focus: string) => 
+          focus.toLowerCase().includes('conscientiousness')
+        )
+      );
+      console.log('Stories with conscientiousness focus:', conscientiousnessStories.length);
+      conscientiousnessStories.forEach((story: any) => {
+        console.log(`- Story ${story.id}: "${story.title}" (focus: ${JSON.stringify(story.personality_focus)})`);
+      });
+      
+      // Test 6: Test normalization function directly
+      console.log('\n--- Testing Normalization ---');
+      const testCases = ['Conscientiousness', 'conscientiousness', 'CONSCIENTIOUSNESS', 'Openness', 'openness'];
+      testCases.forEach(testCase => {
+        const normalized = this.normalizePersonalityType(testCase);
+        console.log(`"${testCase}" -> "${normalized}"`);
+      });
+      
+      // Test 7: Test personality matching directly
+      console.log('\n--- Testing Direct Personality Matching ---');
+      if (userTrait) {
+        conscientiousnessStories.forEach((story: any) => {
+          console.log(`Testing story ${story.id} with user trait "${userTrait}":`);
+          console.log(`  Story focus: ${JSON.stringify(story.personality_focus)}`);
+          this.doesPersonalityMatch(userTrait, story.personality_focus).then(match => {
+            console.log(`  Match result: ${match}`);
+          });
+        });
+      }
+      
+      // Test 8: Test the fix - verify that normalized traits match
+      console.log('\n--- Testing Normalized Matching ---');
+      if (userTrait) {
+        const testStories = [
+          { id: 'test1', personality_focus: ['conscientiousness'] },
+          { id: 'test2', personality_focus: ['Conscientiousness'] },
+          { id: 'test3', personality_focus: ['CONSCIENTIOUSNESS'] },
+          { id: 'test4', personality_focus: ['openness'] },
+          { id: 'test5', personality_focus: ['Openness'] }
+        ];
+        
+        for (const testStory of testStories) {
+          const isMatch = await this.doesPersonalityMatch(userTrait, testStory.personality_focus);
+          console.log(`Test story ${testStory.id} (${JSON.stringify(testStory.personality_focus)}) with "${userTrait}": ${isMatch}`);
+        }
+      }
+      
       return {
         success: true,
-        message: `Found ${catalogStories.length} stories in catalog. User: ${profile?.username || 'unknown'}. Personality trait: ${userTrait || 'none'}. Filtered stories: ${filteredStories?.length || 0}`,
+        message: `Found ${catalogStories.length} stories, ${filteredStories?.length || 0} after filtering`,
         data: {
-          storyCount: catalogStories.length,
-          firstStory: firstStory,
-          userProfile: profile,
+          catalogCount: catalogStories.length,
+          filteredCount: filteredStories?.length || 0,
           userTrait: userTrait,
-          filteredStoryCount: filteredStories?.length || 0
+          conscientiousnessStories: conscientiousnessStories.length
         }
       };
-      
     } catch (error: any) {
-      console.error('Basic story loading test failed:', error);
+      console.error('Test failed:', error);
       return {
         success: false,
         message: `Test failed: ${error.message}`
       };
+    }
+  }
+
+  /**
+   * Debug method to test story filtering
+   * @returns Debug information about story filtering
+   */
+  async debugStoryFiltering(): Promise<{
+    totalStories: number;
+    characterStories: number;
+    personalityStories: number;
+    userTrait: string | null;
+    characterStoryTitles: string[];
+    personalityStoryTitles: string[];
+    allStoryDetails: Array<{
+      id: number;
+      title: string;
+      personality_focus: any;
+      isCharacterStory: boolean;
+    }>;
+  }> {
+    try {
+      console.log('=== DEBUGGING STORY FILTERING ===');
+      
+      // Get all stories
+      const allStories = await this.getAvailableStories();
+      console.log('Total stories available:', allStories?.length || 0);
+      
+      // Get user's personality trait
+      const userTrait = await this.getUserPrimaryPersonalityTrait();
+      console.log('User primary trait:', userTrait);
+      
+      // Get character stories
+      const characterStories = await this.getCharacterStories();
+      console.log('Character stories count:', characterStories?.length || 0);
+      
+      // Get personality stories
+      const personalityStories = await this.getStoriesByPersonality(userTrait || undefined, true);
+      console.log('Personality stories count:', personalityStories?.length || 0);
+      
+      // Analyze all stories
+      const allStoryDetails = allStories.map((story: any) => {
+        const storyPersonalityFocus = story.personality_focus;
+        const isCharacterStory = !storyPersonalityFocus || 
+                                !Array.isArray(storyPersonalityFocus) || 
+                                storyPersonalityFocus.length === 0;
+        
+        return {
+          id: story.id,
+          title: story.title,
+          personality_focus: storyPersonalityFocus,
+          isCharacterStory: isCharacterStory
+        };
+      });
+      
+      return {
+        totalStories: allStories?.length || 0,
+        characterStories: characterStories?.length || 0,
+        personalityStories: personalityStories?.length || 0,
+        userTrait: userTrait,
+        characterStoryTitles: characterStories?.map((s: any) => s.title) || [],
+        personalityStoryTitles: personalityStories?.map((s: any) => s.title) || [],
+        allStoryDetails: allStoryDetails
+      };
+    } catch (error) {
+      console.error('Failed to debug story filtering:', error);
+      throw error;
     }
   }
 }

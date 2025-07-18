@@ -56,6 +56,7 @@ export class StoryRewardManager {
     console.log('=== HANDLING PASSAGE VISIT ===');
     console.log('Passage ID:', passage.passage_id);
     console.log('Passage story_effects:', passage.story_effects);
+    console.log('Passage effects:', passage.effects);
     console.log('Has rewards:', hasPassageRewards(passage));
     
     // ✅ Check if this passage has already been processed
@@ -65,19 +66,22 @@ export class StoryRewardManager {
     }
     
     if (hasPassageRewards(passage)) {
-      console.log('Passage effects:', passage.story_effects);
+      // Prioritize story_effects over effects (new format)
+      const effects = passage.story_effects || passage.effects;
+      console.log('Using passage effects:', effects);
+      
       this.rewardTracker = applyPassageRewards(this.rewardTracker, passage);
       console.log('Reward tracker updated, total rewards:', this.rewardTracker.rewards.length);
       
       // ✅ SAVE GEAR REWARDS IMMEDIATELY (but not stats/experience to avoid double-counting)
       // Gear rewards should be saved immediately so they appear in inventory
-      if (passage.story_effects.rewards || passage.story_effects.artifacts) {
+      if (effects.rewards || effects.artifacts) {
         console.log('=== SAVING GEAR REWARDS IMMEDIATELY ===');
-        await this.saveGearRewardsToBackend(passage.story_effects, 'passage');
+        await this.saveGearRewardsToBackend(effects, 'passage');
       }
       
       // Show floating notifications for each reward
-      const notifications = createNotificationFromEffects(passage.story_effects);
+      const notifications = createNotificationFromEffects(effects);
       console.log('Created notifications:', notifications);
       notifications.forEach(notification => {
         this.showNotification(notification.message, notification.type);
@@ -90,7 +94,7 @@ export class StoryRewardManager {
     this.processedPassages.add(passage.passage_id);
   }
 
-  // Call this when making a choice
+  // Call this when making a choice (only if no passage rewards were found)
   async handleChoiceMade(choice: Choice, passageId: string): Promise<void> {
     console.log('=== HANDLING CHOICE MADE ===');
     console.log('Choice ID:', choice.id);
@@ -104,7 +108,8 @@ export class StoryRewardManager {
       return;
     }
     
-    if (hasChoiceRewards(choice)) {
+    // Only process choice rewards if no passage rewards were found for this passage
+    if (hasChoiceRewards(choice) && !this.processedPassages.has(passageId)) {
       console.log('Choice effects:', choice.effects);
       this.rewardTracker = applyChoiceRewards(this.rewardTracker, choice, passageId);
       console.log('Reward tracker updated, total rewards:', this.rewardTracker.rewards.length);
@@ -123,7 +128,7 @@ export class StoryRewardManager {
         this.showNotification(notification.message, notification.type);
       });
     } else {
-      console.log('No rewards found in choice');
+      console.log('No rewards found in choice or passage already processed');
     }
     
     // Mark this choice as processed
@@ -141,7 +146,7 @@ export class StoryRewardManager {
       // Save experience gains
       let experienceToSave = 0;
       
-      // Check for experience directly in effects
+      // Check for experience directly in effects (new format)
       if (effects.experience) {
         console.log('Processing experience directly:', effects.experience);
         const expValue = typeof effects.experience === 'number' 
@@ -157,7 +162,7 @@ export class StoryRewardManager {
         }
       }
       
-      // Check for experience in stats object
+      // Check for experience in stats object (legacy format)
       if (effects.stats && effects.stats.experience) {
         console.log('Processing experience from stats:', effects.stats.experience);
         const expValue = typeof effects.stats.experience === 'number' 
@@ -186,17 +191,43 @@ export class StoryRewardManager {
         console.log('No experience to save');
       }
 
-      // Save wellness stats
+      // Save wellness stats from direct properties (new format)
+      const wellnessStats: any = {};
+      
+      // Handle direct stat values from story_effects (awareness, connection, etc.)
+      Object.entries(effects).forEach(([key, value]) => {
+        // Skip non-wellness fields
+        if (['rewards', 'artifacts', 'skills', 'journal_entry', 'stats', 'wellness', 'experience'].includes(key)) {
+          return;
+        }
+        
+        // Handle direct wellness stat values
+        const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
+        console.log(`Direct stat: ${key}, Value: ${value}, Parsed: ${numValue}`);
+        
+        if (!isNaN(numValue) && numValue > 0) {
+          // Map story stats to wellness stats
+          if (['awareness', 'resilience', 'connection', 'balance'].includes(key)) {
+            wellnessStats[key] = numValue;
+            console.log(`Added wellness stat: ${key} = ${numValue}`);
+          } else {
+            console.log(`Skipping non-wellness stat: ${key}`);
+          }
+        } else {
+          console.log(`Invalid stat value: ${key} = ${value}`);
+        }
+      });
+
+      // Save wellness stats from stats object (legacy format)
       if (effects.stats) {
         console.log('Processing stats for wellness:', effects.stats);
-        const wellnessStats: any = {};
         Object.entries(effects.stats).forEach(([stat, value]) => {
           const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
           console.log(`Stat: ${stat}, Value: ${value}, Parsed: ${numValue}`);
           if (!isNaN(numValue) && numValue > 0) {
             // Map story stats to wellness stats (exclude experience as it's handled separately)
             if (['awareness', 'resilience', 'connection', 'balance'].includes(stat) && stat !== 'experience') {
-              wellnessStats[stat] = numValue;
+              wellnessStats[stat] = (wellnessStats[stat] || 0) + numValue;
               console.log(`Added wellness stat: ${stat} = ${numValue}`);
             } else {
               console.log(`Skipping non-wellness stat: ${stat}`);
@@ -205,16 +236,16 @@ export class StoryRewardManager {
             console.log(`Invalid stat value: ${stat} = ${value}`);
           }
         });
-
-        if (Object.keys(wellnessStats).length > 0) {
-          console.log('Saving wellness stats to backend:', wellnessStats);
-          const wellnessResult = await this.apiService.gainWellness(this.characterId, wellnessStats);
-          console.log('Wellness stats saved:', wellnessResult);
-        } else {
-          console.log('No valid wellness stats to save');
-        }
       } else {
         console.log('No stats found in effects');
+      }
+
+      if (Object.keys(wellnessStats).length > 0) {
+        console.log('Saving wellness stats to backend:', wellnessStats);
+        const wellnessResult = await this.apiService.gainWellness(this.characterId, wellnessStats);
+        console.log('Wellness stats saved:', wellnessResult);
+      } else {
+        console.log('No valid wellness stats to save');
       }
 
       // Save gear/items
@@ -535,6 +566,18 @@ export class StoryRewardManager {
     this.processedPassages.clear();
     this.processedChoices.clear();
   }
+
+  // Debug method to test reward detection
+  debugRewards(passage: any, choice?: any): void {
+    console.log('=== STORY REWARD MANAGER DEBUG ===');
+    console.log('Story ID:', this.rewardTracker.storyId);
+    console.log('Character ID:', this.characterId);
+    console.log('Processed passages:', Array.from(this.processedPassages));
+    console.log('Processed choices:', Array.from(this.processedChoices));
+    console.log('Current reward tracker:', this.rewardTracker);
+    
+    console.log('=== END STORY REWARD MANAGER DEBUG ===');
+  }
 }
 
 // ===== USAGE EXAMPLE IN STORYSCREEN =====
@@ -596,12 +639,9 @@ export const examplePassageWithRewards: Passage = {
   speaker: null,
   required_conditions: {},
   story_effects: {
-    stats: {
-      experience: 10,
-      awareness: 2
-    },
-    rewards: ["Ancient Scroll"],
-    journal_entry: "I learned about movement and awareness."
+    awareness: 2,
+    connection: 1,
+    experience: 10
   },
   mood: "",
   background_music: "",
@@ -780,3 +820,6 @@ export async function testGearAcquisition(apiService: any, characterId: number):
   
   console.log('=== GEAR ACQUISITION TEST COMPLETE ===');
 } 
+
+// Export the debug function for use in story components
+export { debugRewardDetection } from './rewardsUtils';

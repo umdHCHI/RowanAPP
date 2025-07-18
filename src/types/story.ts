@@ -18,6 +18,7 @@ export interface Story {
   chapter_count?: number; // Backend field for number of chapters
   chapters?: Chapter[];
   passages?: Passage[];
+  chapterId?: number; // Frontend field for specific chapter selection
   // Frontend-specific fields
   difficulty?: string;
   atmosphere?: string;
@@ -56,6 +57,7 @@ export interface Passage {
   speaker?: NPC | null;
   required_conditions: Record<string, any>;
   story_effects: Record<string, any>;
+  effects?: Record<string, any>; // New field for rewards in passages
   mood?: string;
   background_music?: string;
   background_image?: string | null;

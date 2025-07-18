@@ -151,7 +151,7 @@ export const API_ENDPOINTS = {
     surveys: 'surveys/',
     surveySubmit: 'surveys/submit/',
     personality: 'personality/',
-    gameData: 'game/game-data/',
+    gameData: 'game/my-data/',
 } as const;
 
 // Helper to get full URL
