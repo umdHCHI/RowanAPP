@@ -3,18 +3,16 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Animated,
-  Dimensions,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
 import { useMasterState } from "../../context/MasterStateContext";
 import { apiService } from '../../services/apiService';
+import { getOnboardingStyles } from '../../styles/globalStyles';
 
-const { width, height } = Dimensions.get('window');
 
 // Type definitions
 type PathType = 'character' | 'survey';
@@ -48,6 +46,7 @@ interface PathCardProps {
   onSelect: (pathKey: PathType) => void;
   onChoose: (pathType: PathType) => Promise<void>;
   isLoading: boolean;
+  onboardingStyles: any;
 }
 
 // The two research paths with rich lore and theming
@@ -91,6 +90,7 @@ const ArchivePaths: Record<PathType, PathData> = {
     journey: 'Embark on the Path of Discovery'
   }
 };
+
 
 // Floating mystical elements
 const FloatingElement: React.FC<FloatingElementProps> = ({ 
@@ -139,57 +139,58 @@ const PathCard: React.FC<PathCardProps> = ({
   isSelected, 
   onSelect, 
   onChoose, 
-  isLoading 
+  isLoading,
+  onboardingStyles
 }) => (
   <TouchableOpacity
     style={[
-      styles.pathCard,
-      isSelected && styles.pathCardSelected,
+      onboardingStyles.pathCard,
+      isSelected && onboardingStyles.pathCardSelected,
       { borderColor: pathData.color }
     ]}
     onPress={() => onSelect(pathKey)}
     activeOpacity={0.8}
   >
-    <View style={styles.pathCardGradient}>
+    <View style={onboardingStyles.pathCardGradient}>
       {/* Path Icon */}
-      <View style={styles.pathIconContainer}>
-        <Text style={styles.pathIcon}>{pathData.icon}</Text>
-        <View style={[styles.pathIconGlow, { backgroundColor: pathData.color }]} />
+      <View style={onboardingStyles.pathIconContainer}>
+        <Text style={onboardingStyles.pathIcon}>{pathData.icon}</Text>
+        <View style={[onboardingStyles.pathIconGlow, { backgroundColor: pathData.color }]} />
       </View>
 
       {/* Path Header */}
-      <View style={styles.pathHeader}>
-        <Text style={[styles.pathTitle, { color: pathData.color }]}>
+      <View style={onboardingStyles.pathHeader}>
+        <Text style={[onboardingStyles.pathTitle, { color: pathData.color }]}>
           {pathData.title}
         </Text>
-        <Text style={[styles.pathSubtitle, { color: pathData.secondaryColor }]}>
+        <Text style={[onboardingStyles.pathSubtitle, { color: pathData.secondaryColor }]}>
           {pathData.subtitle}
         </Text>
-        <Text style={styles.pathAtmosphere}>
+        <Text style={onboardingStyles.pathAtmosphere}>
           ✦ {pathData.atmosphere} ✦
         </Text>
       </View>
 
       {/* Path Description */}
-      <Text style={styles.pathDescription}>
+      <Text style={onboardingStyles.pathDescription}>
         {pathData.description}
       </Text>
 
       {/* Curator's Note */}
-      <View style={styles.curatorNote}>
-        <Text style={styles.curatorNoteIcon}>🧙‍♂️</Text>
-        <Text style={styles.curatorNoteText}>
+      <View style={onboardingStyles.curatorNote}>
+        <Text style={onboardingStyles.curatorNoteIcon}>🧙‍♂️</Text>
+        <Text style={onboardingStyles.curatorNoteText}>
           {pathData.curatorNote}
         </Text>
       </View>
 
       {/* Benefits List */}
-      <View style={styles.benefitsList}>
-        <Text style={[styles.benefitsTitle, { color: pathData.secondaryColor }]}>
+      <View style={onboardingStyles.benefitsList}>
+        <Text style={[onboardingStyles.benefitsTitle, { color: pathData.secondaryColor }]}>
           What Awaits You:
         </Text>
         {pathData.benefits.map((benefit: string, index: number) => (
-          <Text key={index} style={styles.benefitItem}>
+          <Text key={index} style={onboardingStyles.benefitItem}>
             {benefit}
           </Text>
         ))}
@@ -198,20 +199,20 @@ const PathCard: React.FC<PathCardProps> = ({
       {/* Action Button */}
       <TouchableOpacity
         style={[
-          styles.pathButton,
+            onboardingStyles.pathButton,
           { backgroundColor: pathData.color },
-          isLoading && styles.pathButtonDisabled
+          isLoading && onboardingStyles.pathButtonDisabled
         ]}
         onPress={() => onChoose(pathKey)}
         disabled={isLoading}
       >
-        <View style={styles.pathButtonContent}>
-          <Text style={styles.pathButtonIcon}>🗝️</Text>
-          <Text style={styles.pathButtonText}>
+        <View style={onboardingStyles.pathButtonContent}>
+          <Text style={onboardingStyles.pathButtonIcon}>🗝️</Text>
+          <Text style={onboardingStyles.pathButtonText}>
             {isLoading ? 'Opening Gateway...' : pathData.buttonText}
           </Text>
         </View>
-        <View style={[styles.pathButtonGlow, { backgroundColor: pathData.color }]} />
+        <View style={[onboardingStyles.pathButtonGlow, { backgroundColor: pathData.color }]} />
       </TouchableOpacity>
     </View>
   </TouchableOpacity>
@@ -221,7 +222,7 @@ const ArchiveOnboardingScreen: React.FC = () => {
   const { theme, auth, onboarding } = useMasterState();
   const { authToken, isTestUser, user } = auth;
   const { assignedPath, setAssignedPath, setIsLoading, isLoading } = onboarding;
-  
+  const onboardingStyles = getOnboardingStyles(theme.onboardingTheme);
   const [isAdminOrTestUser, setIsAdminOrTestUser] = useState<boolean>(false);
   const [selectedPath, setSelectedPath] = useState<PathType | null>(null);
   const [showCurator, setShowCurator] = useState<boolean>(false);
@@ -329,75 +330,76 @@ const ArchiveOnboardingScreen: React.FC = () => {
   // If not authenticated, show message
   if (!authToken) {
     return (
-      <View style={styles.authErrorContainer}>
-        <Text style={styles.authErrorTitle}>🔒 Archive Access Required</Text>
-        <Text style={styles.authErrorText}>
+      <View style={onboardingStyles.authErrorContainer}>
+        <Text style={onboardingStyles.authErrorTitle}>🔒 Archive Access Required</Text>
+        <Text style={onboardingStyles.authErrorText}>
           The Curator awaits your return. Please present your credentials to enter The Archive.
         </Text>
         <TouchableOpacity
-          style={styles.authErrorButton}
+          style={onboardingStyles.authErrorButton}
           onPress={() => router.replace('/(auth)/login')}
         >
-          <Text style={styles.authErrorButtonText}>Return to Gateway</Text>
+          <Text style={onboardingStyles.authErrorButtonText}>Return to Gateway</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={onboardingStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0a0b0f" />
       
       {/* Mystical Background */}
-      <View style={styles.backgroundContainer}>
+      <View style={onboardingStyles.backgroundContainer}>
         {/* Floating mystical elements */}
-        <View style={styles.floatingElements}>
+        <View style={onboardingStyles.floatingElements}>
           <FloatingElement delay={0} duration={5000} translateY={20}>
-            <Text style={[styles.floatingIcon, { left: '5%', top: '10%' }]}>📚</Text>
+            <Text style={[onboardingStyles.floatingIcon, { left: '5%', top: '10%' }]}>📚</Text>
           </FloatingElement>
           <FloatingElement delay={1500} duration={4000} translateY={15}>
-            <Text style={[styles.floatingIcon, { right: '10%', top: '15%' }]}>✨</Text>
+            <Text style={[onboardingStyles.floatingIcon, { right: '10%', top: '15%' }]}>✨</Text>
           </FloatingElement>
           <FloatingElement delay={3000} duration={6000} translateY={25}>
-            <Text style={[styles.floatingIcon, { left: '15%', top: '70%' }]}>🕯️</Text>
+            <Text style={[onboardingStyles.floatingIcon, { left: '15%', top: '70%' }]}>🕯️</Text>
           </FloatingElement>
           <FloatingElement delay={2000} duration={4500} translateY={18}>
-            <Text style={[styles.floatingIcon, { right: '20%', top: '60%' }]}>🔮</Text>
+            <Text style={[onboardingStyles.floatingIcon, { right: '20%', top: '60%' }]}>🔮</Text>
           </FloatingElement>
           <FloatingElement delay={4000} duration={3500} translateY={22}>
-            <Text style={[styles.floatingIcon, { left: '80%', top: '30%' }]}>📖</Text>
+            <Text style={[onboardingStyles.floatingIcon, { left: '80%', top: '30%' }]}>📖</Text>
           </FloatingElement>
         </View>
 
         {/* Gradient Overlay */}
-        <View style={styles.gradientOverlay} />
+        <View style={onboardingStyles.gradientOverlay} />
       </View>
 
       <ScrollView 
-        contentContainerStyle={styles.scrollContainer}
+      style={onboardingStyles.container}
+        contentContainerStyle={onboardingStyles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
         {/* Archive Header */}
-        <View style={styles.header}>
-          <Text style={styles.archiveTitle}>THE ARCHIVE</Text>
-          <Text style={styles.archiveSubtitle}>Gateway to Inner Wisdom</Text>
-          <View style={styles.decorativeLine} />
+          <View style={onboardingStyles.header}>
+          <Text style={onboardingStyles.archiveTitle}>THE ARCHIVE</Text>
+          <Text style={onboardingStyles.archiveSubtitle}>Gateway to Inner Wisdom</Text>
+          <View style={onboardingStyles.decorativeLine} />
         </View>
 
         {/* The Curator's Welcome */}
         {showCurator && (
-          <View style={styles.curatorSection}>
-            <View style={styles.curatorCard}>
-              <View style={styles.curatorHeader}>
-                <Text style={styles.curatorAvatar}>🧙‍♂️</Text>
-                <View style={styles.curatorInfo}>
-                  <Text style={styles.curatorName}>The Curator Speaks</Text>
-                  <Text style={styles.curatorTitle}>Guardian of The Archive</Text>
+          <View style={onboardingStyles.curatorSection}>
+            <View style={onboardingStyles.curatorCard}>
+              <View style={onboardingStyles.curatorHeader}>
+                <Text style={onboardingStyles.curatorAvatar}>🧙‍♂️</Text>
+                <View style={onboardingStyles.curatorInfo}>
+                  <Text style={onboardingStyles.curatorName}>The Curator Speaks</Text>
+                  <Text style={onboardingStyles.curatorTitle}>Guardian of The Archive</Text>
                 </View>
               </View>
               
-              <View style={styles.curatorMessage}>
-                <Text style={styles.curatorText}>
+              <View style={onboardingStyles.curatorMessage}>
+                <Text style={onboardingStyles.curatorText}>
                   "Welcome, brave Scholar, to The Archive's threshold. Before you lie two sacred paths, 
                   each leading to mastery over the storms of stress and the shadows of uncertainty. 
                   Choose wisely, for your path will shape how you discover the coping wisdom that 
@@ -405,8 +407,8 @@ const ArchiveOnboardingScreen: React.FC = () => {
                 </Text>
               </View>
               
-              <View style={styles.curatorChoice}>
-                <Text style={styles.curatorChoiceText}>
+              <View style={onboardingStyles.curatorChoice}>
+                <Text style={onboardingStyles.curatorChoiceText}>
                   ✦ Which path calls to your soul? ✦
                 </Text>
               </View>
@@ -416,13 +418,13 @@ const ArchiveOnboardingScreen: React.FC = () => {
 
         {/* Path Selection */}
         {animationStep >= 2 && (
-          <View style={styles.pathsContainer}>
-            <Text style={styles.pathsTitle}>Choose Your Journey</Text>
-            <Text style={styles.pathsSubtitle}>
+          <View style={onboardingStyles.pathsContainer}>
+            <Text style={onboardingStyles.pathsTitle}>Choose Your Journey</Text>
+            <Text style={onboardingStyles.pathsSubtitle}>
               Two ancient methods of self-discovery await your decision
             </Text>
             
-            <View style={styles.pathsGrid}>
+            <View style={onboardingStyles.pathsGrid}>
               <PathCard 
                 pathKey="character" 
                 pathData={ArchivePaths.character}
@@ -430,6 +432,7 @@ const ArchiveOnboardingScreen: React.FC = () => {
                 onSelect={handlePathSelect}
                 onChoose={handlePathChoice}
                 isLoading={isLoading}
+                onboardingStyles={onboardingStyles}
               />
               <PathCard 
                 pathKey="survey" 
@@ -438,18 +441,19 @@ const ArchiveOnboardingScreen: React.FC = () => {
                 onSelect={handlePathSelect}
                 onChoose={handlePathChoice}
                 isLoading={isLoading}
+                onboardingStyles={onboardingStyles}
               />
             </View>
           </View>
         )}
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
+        <View style={onboardingStyles.footer}>
+          <Text style={onboardingStyles.footerText}>
             "Every scholar's journey begins with a single choice, 
             but wisdom lies in understanding that all paths lead to growth."
           </Text>
-          <Text style={styles.footerSignature}>
+          <Text style={onboardingStyles.footerSignature}>
             ~ The Curator's First Teaching
           </Text>
         </View>
@@ -458,386 +462,5 @@ const ArchiveOnboardingScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0b0f',
-  },
-  
-  backgroundContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  
-  floatingElements: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  
-  floatingIcon: {
-    position: 'absolute',
-    fontSize: 28,
-    color: '#4ee6e6',
-    opacity: 0.4,
-  },
-  
-  gradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(10, 11, 15, 0.7)',
-  },
-  
-  scrollContainer: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  
-  archiveTitle: {
-    color: '#4ee6e6',
-    fontSize: 36,
-    fontWeight: 'bold',
-    letterSpacing: 6,
-    marginBottom: 8,
-    textShadowColor: 'rgba(78, 230, 230, 0.6)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 10,
-  },
-  
-  archiveSubtitle: {
-    color: '#d4af37',
-    fontSize: 18,
-    fontStyle: 'italic',
-    marginBottom: 15,
-  },
-  
-  decorativeLine: {
-    width: 120,
-    height: 2,
-    backgroundColor: '#4ee6e6',
-    opacity: 0.8,
-  },
-  
-  curatorSection: {
-    marginBottom: 40,
-  },
-  
-  curatorCard: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
-    borderRadius: 16,
-    padding: 25,
-    borderWidth: 2,
-    borderColor: '#d4af37',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  
-  curatorHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  
-  curatorAvatar: {
-    fontSize: 40,
-    marginRight: 15,
-  },
-  
-  curatorInfo: {
-    flex: 1,
-  },
-  
-  curatorName: {
-    color: '#d4af37',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  
-  curatorTitle: {
-    color: '#ccc',
-    fontSize: 14,
-    fontStyle: 'italic',
-  },
-  
-  curatorMessage: {
-    marginBottom: 20,
-  },
-  
-  curatorText: {
-    color: '#fff',
-    fontSize: 16,
-    lineHeight: 24,
-    fontStyle: 'italic',
-  },
-  
-  curatorChoice: {
-    alignItems: 'center',
-  },
-  
-  curatorChoiceText: {
-    color: '#4ee6e6',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  
-  pathsContainer: {
-    marginBottom: 40,
-  },
-  
-  pathsTitle: {
-    color: '#4ee6e6',
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  
-  pathsSubtitle: {
-    color: '#ccc',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 30,
-    fontStyle: 'italic',
-  },
-  
-  pathsGrid: {
-    gap: 25,
-  },
-  
-  pathCard: {
-    borderRadius: 16,
-    borderWidth: 2,
-    overflow: 'hidden',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
-    marginBottom: 10,
-  },
-  
-  pathCardSelected: {
-    shadowOpacity: 0.8,
-    shadowRadius: 16,
-  },
-  
-  pathCardGradient: {
-    backgroundColor: 'rgba(30, 30, 40, 0.95)',
-    padding: 25,
-  },
-  
-  pathIconContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    position: 'relative',
-  },
-  
-  pathIcon: {
-    fontSize: 50,
-    zIndex: 2,
-  },
-  
-  pathIconGlow: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
-    borderRadius: 35,
-    opacity: 0.3,
-    zIndex: 1,
-  },
-  
-  pathHeader: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  
-  pathTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  
-  pathSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  
-  pathAtmosphere: {
-    color: '#ccc',
-    fontSize: 14,
-    fontStyle: 'italic',
-  },
-  
-  pathDescription: {
-    color: '#e5e7eb',
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  
-  curatorNote: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#d4af37',
-  },
-  
-  curatorNoteIcon: {
-    fontSize: 16,
-    marginRight: 10,
-  },
-  
-  curatorNoteText: {
-    color: '#d4af37',
-    fontSize: 13,
-    fontStyle: 'italic',
-    flex: 1,
-    lineHeight: 18,
-  },
-  
-  benefitsList: {
-    marginBottom: 25,
-  },
-  
-  benefitsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  
-  benefitItem: {
-    color: '#ccc',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 6,
-  },
-  
-  pathButton: {
-    borderRadius: 12,
-    padding: 18,
-    alignItems: 'center',
-    position: 'relative',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  
-  pathButtonDisabled: {
-    opacity: 0.7,
-  },
-  
-  pathButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  
-  pathButtonIcon: {
-    fontSize: 18,
-    marginRight: 10,
-  },
-  
-  pathButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  
-  pathButtonGlow: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
-    borderRadius: 14,
-    opacity: 0.4,
-    zIndex: 1,
-  },
-  
-  footer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  
-  footerText: {
-    color: '#4ee6e6',
-    fontSize: 15,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 10,
-  },
-  
-  footerSignature: {
-    color: '#d4af37',
-    fontSize: 13,
-    fontStyle: 'italic',
-  },
-  
-  // Auth Error Styles
-  authErrorContainer: {
-    flex: 1,
-    backgroundColor: '#0a0b0f',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  
-  authErrorTitle: {
-    color: '#4ee6e6',
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  
-  authErrorText: {
-    color: '#ccc',
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 30,
-  },
-  
-  authErrorButton: {
-    backgroundColor: '#4ee6e6',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 12,
-  },
-  
-  authErrorButtonText: {
-    color: '#0a0b0f',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default ArchiveOnboardingScreen;

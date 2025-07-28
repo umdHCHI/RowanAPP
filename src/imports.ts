@@ -62,6 +62,7 @@ export { CharacterNameInput } from './components/CharacterCreator/CharacterNameI
 export { CharacterPreviewSection } from './components/CharacterCreator/CharacterPreviewSection';
 export { ColorOptionControls } from './components/CharacterCreator/ColorOptionControls';
 export { StyleControls } from './components/CharacterCreator/StyleControls';
+export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Assets =====
 export {

@@ -103,3 +103,102 @@ Welcome to the frontend codebase for **The Archive**, a narrative-based stress m
 
 ---
 
+# The Archive - Frontend
+
+A React Native application for mental wellness through interactive storytelling and mindfulness exercises.
+
+## Features
+
+### Core Features
+- **Interactive Stories**: Choose-your-own-adventure style narratives focused on mental health
+- **Character Creation**: Customizable avatar system with personality-based story paths
+- **Journal System**: Reflective writing prompts with skill-based rewards
+- **Equipment System**: Backend-integrated gear that provides wellness stat bonuses
+- **Mind Defender Mini-Game**: Arcade-style thought management game with comprehensive reward system
+
+### ThoughtDefender Mini-Game Reward System
+
+The ThoughtDefender mini-game now features a comprehensive reward system that integrates with the player's progression:
+
+#### Reward Components
+- **Experience Points**: Based on score, level, difficulty, accuracy, and survival time
+- **Wellness Stats**: 
+  - **Awareness**: Based on accuracy and quick thinking
+  - **Resilience**: Based on survival time and difficulty
+  - **Connection**: Based on positive thoughts cleared
+  - **Balance**: Based on consistent performance
+- **Foundation Attributes**: 
+  - **Sight Beyond Sight**: High accuracy rewards
+  - **Unbreakable Will**: Difficulty and survival-based
+  - **Heart's Compass**: Positive thought management
+  - **Elemental Harmony**: Balanced performance
+
+#### Performance Metrics Tracked
+- Total thoughts spawned
+- Positive thoughts cleared (by tapping)
+- Negative thoughts cleared (by projectiles or reaching bottom)
+- Survival time
+- Accuracy percentage
+- Score and level progression
+
+#### Difficulty Scaling
+- **Beginner**: 1.0x multiplier
+- **Intermediate**: 1.5x multiplier  
+- **Advanced**: 2.0x multiplier
+- **Expert**: 2.5x multiplier
+- **Master**: 3.0x multiplier
+
+#### Reward Calculation Formula
+```
+Base Experience = 100
+Score Bonus = (score / 100) * 10
+Level Bonus = level * 25
+Win Bonus = won ? 200 : 50
+Accuracy Bonus = (accuracy / 10) * 5
+Time Bonus = (survivalTime / 30) * 15
+
+Total Experience = (Base + Score + Level + Win + Accuracy + Time) * Difficulty Multiplier
+```
+
+#### Integration Points
+- **Character Progression**: Rewards directly update character experience and wellness stats
+- **Foundation System**: Contributes to the four core foundation attributes
+- **Backend Sync**: All rewards are saved to the backend via API calls
+- **UI Feedback**: Detailed reward messages show all gains and level-ups
+
+## Technical Architecture
+
+### Reward System Files
+- `src/utils/rewardsUtils.ts`: Core reward calculation and processing functions
+- `src/components/ThoughtDefenderModal.tsx`: Mini-game with integrated reward tracking
+- `src/context/MasterStateContext.tsx`: Character state management and reward application
+
+### Key Functions
+- `processThoughtDefenderCompletion()`: Main reward processing function
+- `calculateThoughtDefenderRewards()`: Reward calculation logic
+- `formatThoughtDefenderRewardMessage()`: User-friendly reward display
+- `createThoughtDefenderNotifications()`: Reward notification system
+
+## Development
+
+### Testing the Reward System
+1. Open the ThoughtDefender mini-game
+2. Click the "🧪 TEST REWARD SYSTEM" button to see sample rewards
+3. Play the game normally to earn real rewards
+4. Check the detailed reward messages after game completion
+
+### Adding New Reward Types
+1. Extend the `ThoughtDefenderReward` interface in `rewardsUtils.ts`
+2. Update the calculation logic in `calculateThoughtDefenderRewards()`
+3. Add display logic in `formatThoughtDefenderRewardMessage()`
+4. Integrate with character context methods if needed
+
+## Backend Integration
+
+The reward system integrates with the backend through:
+- `character.gainExperience()`: Updates character experience and level
+- `character.gainWellness()`: Updates wellness stats (awareness, resilience, connection, balance)
+- `apiService.updateGameData()`: Saves game performance data
+
+All rewards are calculated client-side for immediate feedback, then synchronized with the backend for persistence.
+

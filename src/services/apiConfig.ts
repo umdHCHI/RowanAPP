@@ -45,23 +45,23 @@ export const API_ENDPOINTS = {
     
     // User endpoints
     users: 'users/',
-    userProfile: 'users/me/',
+    userProfile: 'users/', //{id}/full_profile/
     //PATCH to update user profile
     updateUserProfile: 'users/update-profile/',
 
 
     
     // Character endpoints - updated to match actual backend structure
-   // characters: 'characters/characters/', // Base character endpoint for POST/GET
-   // myCharacter: 'characters/characters/my_character/', // Get specific character data
+    characters: 'characters/characters/', // Base character endpoint for POST/GET
+    
     characterHomeData: 'characters/characters/home_data/', // Character home data endpoint
     characterStats: 'characters/characters/stats/', // Character stats endpoint
-   // customizationOptions: 'characters/characters/customization_options/', // Character customization options
-    
-    // Character actions -standerize to one endpoint
     gainExperience: 'characters/characters/', // {id}/gain_experience/ USE ME
     gainWellness: 'characters/characters/', // {id}/gain_wellness/ USE ME
     updateCustomization: 'characters/characters/', // {id}/update_customization/ USE ME
+
+
+
 
     // User survey endpoints - now handled directly via updateUserProfile
     // postUserSurvey: 'users/update_profile/', // Removed - using updateUserProfile directly
@@ -120,7 +120,7 @@ export const API_ENDPOINTS = {
     storyReset: 'story/stories/', // + {storyId}/reset/
     storyStart: 'story/stories/', // + {storyId}/start/
     getCurrentPassage: 'story/stories/',// + {storyId}/current/
-    // makeChoice: 'story/make_choice/',  // This endpoint doesn't exist on the backend
+    makeChoice: 'story/make_choice/',  //User for choice progression
     createProgress: 'story/story-progress/', //new progress record
     updateProgress: 'story/story-progress/', //{id}/update/ update progress record
     getUserProgress: 'story/progress/user/',

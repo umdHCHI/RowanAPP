@@ -1,7 +1,9 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Dimensions, View } from 'react-native';
 import CharacterFrame from './CharacterFrame';
 import CharacterPreview from './CharacterPreview';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface CharacterPreviewSectionProps {
   character: {
@@ -26,9 +28,12 @@ export const CharacterPreviewSection: React.FC<CharacterPreviewSectionProps> = (
   character,
   styles
 }) => {
+  // Calculate responsive frame size
+  const frameSize = Math.min(screenWidth * 0.4, screenHeight * 0.25, 200); // Reduced sizes for mobile-friendly character
+  
   return (
     <View style={styles.characterCreatorPreviewSection}>
-      <CharacterFrame frame={character.getCurrentBackgroundAsset(true)} size={250}>
+      <CharacterFrame frame={character.getCurrentBackgroundAsset(true)} size={frameSize}>
         <CharacterPreview
           selectedName={character.getCharacterName()}
           baseAsset={character.getBaseAsset(true)}
@@ -43,7 +48,7 @@ export const CharacterPreviewSection: React.FC<CharacterPreviewSectionProps> = (
           eyesIndex={character.getEyesIndex()}
           eyebrowsIndex={character.getEyebrowsIndex()}
           mouthIndex={character.selectedMouthType || 0}
-          size={250} // Match the CharacterFrame size
+          size={frameSize} // Match the CharacterFrame size
         />
       </CharacterFrame>
     </View>

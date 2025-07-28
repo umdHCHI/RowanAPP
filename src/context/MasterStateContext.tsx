@@ -100,7 +100,7 @@ import {
   HomeData,
 } from "../services/apiService";
 import { Character, CodexEntry, EquipmentItem, EquipmentSubtype, EquippedItems, JournalPrompt, MiniGameProgress, Story } from "../types";
-import { CategoryConfig, createCharacterCreatorCategories } from "../types/user";
+import { CategoryConfig, createCharacterCreatorCategories, UserProfile } from "../types/user";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
 
@@ -178,6 +178,8 @@ interface MasterStateContextType {
     setThemeMode: (mode: "light" | "dark") => void;
     styles: any;
     isDark: boolean;
+    loginTheme: any;
+    onboardingTheme: any;
   };
 
   // ===== CHARACTER & APPEARANCE STATE (UPDATED FOR NEW BACKEND) =====
@@ -237,6 +239,7 @@ interface MasterStateContextType {
     updateCharacter: () => Promise<void>;
     loadCharacter: () => Promise<void>;
     gainExperience: (amount: number, source?: string) => Promise<void>;
+    gainResonance: (amount: number, source?: string) => Promise<void>;
     gainWellness: (gains: Record<string, number>) => Promise<void>;
   };
   // ===== WELLNESS FEATURES (NEW) =====
@@ -303,6 +306,11 @@ interface MasterStateContextType {
     loadBackendGear: () => Promise<void>;
     equipBackendGear: (gearId: number) => Promise<void>;
     unequipBackendGear: (gearId: number) => Promise<void>;
+    // New upgrade system functions
+    acquireEquipmentWithUpgrade: (itemName: string, storyId?: string) => Promise<any>;
+    getPlayerInventory: () => string[];
+    getStoryReplayCount: (storyId: string) => number;
+    handleEquipmentUpgrade: (upgradeResult: any) => void;
   };
 
   // ===== ARCHIVE PROGRESS STATE =====
@@ -416,7 +424,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 }) => {
   // ===== EXTERNAL CONTEXTS =====
   const { authToken, characterId, isTestUser, user, login, logout } = useAuth();
-  const { theme, themeMode, toggleTheme, setThemeMode, styles, isDark } =
+  const { theme, themeMode, toggleTheme, setThemeMode, styles, isDark, loginTheme, onboardingTheme } =
     useTheme();
 
   // ===== ONBOARDING STATE (LOCAL) =====
@@ -624,7 +632,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const { styleCategories, colorCategories } = useMemo(() => 
     createCharacterCreatorCategories(
       {
-        selectedName: characterName,
         selectedHairStyle,
         selectedEyeType,
         selectedEyebrowStyle,
@@ -640,7 +647,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         selectedBackgroundColor,
       },
       {
-        setSelectedName: setCharacterName,
         setSelectedHairStyle,
         setSelectedEyeType,
         setSelectedEyebrowStyle,
@@ -851,12 +857,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   const getCharacterName = () => {
-    // Prioritize the main name field from backend, then character_config, then local state
+    // Prioritize the main name field from backend, then local state
     const backendName = backendCharacter?.name;
-    const configName = backendCharacter?.character_config?.selectedName;
     const localName = characterName;
     
-    return backendName || configName || localName;
+    return backendName || localName || '';
   };
 
   const getBaseAsset = (useLocalState: boolean = false) => {
@@ -1351,7 +1356,15 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         if (typeof value === 'number' && value > 0) {
           // Update character stats through the backend
           if (backendCharacter) {
-            gainExperience(value, `story_${rewardTracker.storyId}`);
+            // Use resonance for character condition, experience for personality condition
+            if (researchCondition === "character" && stat === "resonance") {
+              gainResonance(value, `story_${rewardTracker.storyId}`);
+            } else if (researchCondition === "personality" && stat === "experience") {
+              gainExperience(value, `story_${rewardTracker.storyId}`);
+            } else if (stat !== "experience" && stat !== "resonance") {
+              // Handle other stats (wellness stats)
+              gainWellness({ [stat]: value });
+            }
           }
         }
       });
@@ -1373,6 +1386,110 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     
     if (rewardTracker.skillsLearned && rewardTracker.skillsLearned.length > 0) {
       handleSkillLearned(rewardTracker.skillsLearned);
+    }
+  };
+
+  // ===== ENHANCED EQUIPMENT UPGRADE HANDLERS =====
+  const handleEquipmentUpgrade = (upgradeResult: any) => {
+    // Handle equipment upgrades from the new upgrade system
+    if (upgradeResult && upgradeResult.upgrade) {
+      const { upgrade } = upgradeResult;
+      
+      // Show upgrade notification with appropriate styling
+      const notificationType = upgrade.currentLevel === 0 ? 'new' : 
+                              upgrade.currentLevel === upgrade.newLevel ? 'strengthen' : 'upgrade';
+      
+      // Update local inventory if needed
+      if (upgradeResult.isUpgrade) {
+        // Remove old item and add new upgraded item
+        setInventory(prev => prev.filter(item => item.name !== upgradeResult.originalItem));
+        
+        // Add the upgraded item
+        const upgradedItem: EquipmentItem = {
+          id: Date.now().toString(),
+          name: upgradeResult.upgradedItem,
+          type: 'focus', // This would be determined by the item type
+          subtype: 'meditation', // This would be determined by the item subtype
+          description: `Upgraded version of ${upgradeResult.originalItem}`,
+          unlockCondition: 'Upgraded through story replay',
+          wellnessStats: { awareness: upgrade.statBonus, resilience: upgrade.statBonus },
+          effect: `Provides +${upgrade.statBonus} to all stats`,
+          rarity: upgrade.rarity.toLowerCase(),
+          level: upgrade.newLevel
+        };
+        
+        setInventory(prev => [...prev, upgradedItem]);
+      }
+      
+      // Apply stat boosts if any
+      if (upgrade.statBonus > 0) {
+        const statGains = {
+          awareness: upgrade.statBonus,
+          resilience: upgrade.statBonus,
+          connection: upgrade.statBonus,
+          balance: upgrade.statBonus
+        };
+        
+        gainWellness(statGains);
+      }
+    }
+  };
+
+  // Get player inventory for upgrade system
+  const getPlayerInventory = (): string[] => {
+    return inventory.map(item => item.name);
+  };
+
+  // Get story replay count (this would be tracked per story)
+  const getStoryReplayCount = (storyId: string): number => {
+    // This would be implemented to track how many times a story has been replayed
+    // For now, return 0 as default
+    return 0;
+  };
+
+  // Enhanced equipment acquisition with upgrade system
+  const acquireEquipmentWithUpgrade = async (itemName: string, storyId?: string) => {
+    try {
+      const playerInventory = getPlayerInventory();
+      const storyReplayCount = storyId ? getStoryReplayCount(storyId) : 0;
+      
+      // Check for upgrade opportunities using the new system
+      const { checkItemOwnershipAndUpgrade } = await import('../utils/rewardsUtils');
+      const upgradeResult = checkItemOwnershipAndUpgrade(itemName, playerInventory, storyReplayCount);
+      
+      if (upgradeResult) {
+        // Handle the upgrade result
+        handleEquipmentUpgrade(upgradeResult);
+        
+        // Save to backend
+        if (upgradeResult.isUpgrade || upgradeResult.upgrade.statBonus > 0) {
+                          // Map the upgraded item name to gear type ID using proper backend mapping
+        const { getBackendGearTypeId } = await import('../utils/rewardsUtils');
+        const gearTypeId = getBackendGearTypeId(upgradeResult.upgradedItem);
+        
+        if (gearTypeId) {
+          await apiService.acquireGear(gearTypeId);
+        } else {
+          console.log(`No backend gear type ID found for: ${upgradeResult.upgradedItem}`);
+        }
+        }
+        
+        return upgradeResult;
+      } else {
+        // Fall back to regular acquisition
+        const { getBackendGearTypeId } = await import('../utils/rewardsUtils');
+        const gearTypeId = getBackendGearTypeId(itemName);
+        
+        if (gearTypeId) {
+          await apiService.acquireGear(gearTypeId);
+        } else {
+          console.log(`No backend gear type ID found for: ${itemName}`);
+        }
+        return { originalItem: itemName, upgradedItem: itemName, isUpgrade: false };
+      }
+    } catch (error) {
+      console.error('Failed to acquire equipment with upgrade:', error);
+      throw error;
     }
   };
 
@@ -1421,7 +1538,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
           selected_background_color: selectedBackgroundColor,
           // Also update character_config to ensure backend syncs both
           character_config: {
-            selectedName: characterName,
             selected_base_model: selectedBaseModel,
             selected_skin_color: selectedBaseColor,
             selected_hair_style: selectedHairStyle,
@@ -1447,7 +1563,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         const characterData = {
           name: characterName,
           character_config: {
-            selectedName: characterName,
             selected_base_model: selectedBaseModel,
             selected_skin_color: selectedBaseColor,
             selected_hair_style: selectedHairStyle,
@@ -1482,19 +1597,41 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         // The backend should handle both creation and updates through this endpoint
         const createdCharacter = await apiService.patch<Character>('updateUserProfile', characterData);
         
-        // Temporary fix: If backend returns "Hero" as name, keep our local name
+        // If backend returns "Hero" as name, we need to update the character name properly
         if (createdCharacter?.name === 'Hero' && characterName && characterName !== 'Hero') {
-          createdCharacter.name = characterName;
+          console.log('🔄 Backend returned "Hero" as name, updating to:', characterName);
+          
+          // Update the character name using the updateUserProfile endpoint
+          try {
+            const nameUpdateData = {
+              name: characterName,
+              character: {
+                ...createdCharacter,
+                name: characterName,
+              }
+            };
+            
+            const updatedProfile = await apiService.patch<UserProfile>('updateUserProfile', nameUpdateData);
+            console.log('✅ Character name updated successfully via profile update');
+            
+            // Update the character object with the new name
+            const updatedCharacter = {
+              ...createdCharacter,
+              name: characterName,
+            };
+            setBackendCharacter(updatedCharacter);
+          } catch (updateError) {
+            console.error('❌ Failed to update character name:', updateError);
+            // Fallback: keep the local name in the character object
+            createdCharacter.name = characterName;
+            setBackendCharacter(createdCharacter);
+          }
+        } else {
+          setBackendCharacter(createdCharacter);
         }
-        
-        setBackendCharacter(createdCharacter);
         
         // Complete onboarding separately
         await apiService.completeOnboarding('character');
-        
-        // Don't reload character data immediately after creation
-        // The backend might return incorrect data, so we keep our local state
-        // The character data will be reloaded when the user navigates to the home screen
       }
 
       // Load additional data (temporarily disabled until backend endpoints are implemented)
@@ -1511,10 +1648,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   const updateCharacter = async () => {
-    if (!authToken || !backendCharacter) {
-      setError("No authentication token or character");
-      return;
-    }
+
 
     setIsLoading(true);
     setError(null);
@@ -1552,6 +1686,10 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
 
   const gainExperience = async (amount: number, source?: string) => {
+    console.log('🎁 gainExperience called with:', { amount, source });
+    console.log('🎁 backendCharacter:', backendCharacter);
+    console.log('🎁 characterId from auth:', characterId);
+    
     try {
       // If no backend character is loaded, try to load it first
       if (!backendCharacter) {
@@ -1585,10 +1723,20 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         }
       }
 
-      console.log('🎁 Awarding experience:', amount, 'to character:', backendCharacter.id, 'from source:', source);
+      // Handle nested character structure
+      const targetCharacterId = (backendCharacter as any).character?.id || backendCharacter.id;
+      
+      if (!targetCharacterId) {
+        console.error('❌ Backend character has no ID:', backendCharacter);
+        setError("Character ID missing. Please reload the app.");
+        return;
+      }
+
+      console.log('🎁 Awarding experience:', amount, 'to character:', targetCharacterId, 'from source:', source);
+      console.log('🎁 Full character data:', backendCharacter);
       
       const result = await apiService.gainExperience(
-        backendCharacter.id,
+        targetCharacterId,
         amount,
         source
       );
@@ -1605,29 +1753,170 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       }
     } catch (error: any) {
       console.error('❌ Failed to gain experience:', error);
+      console.error('❌ Error details:', {
+        characterId: backendCharacter?.id,
+        amount,
+        source,
+        error: error?.message || error
+      });
       setError(
         "Failed to gain experience: " + (error?.message || "Unknown error")
       );
     }
   };
 
+  const gainResonance = async (amount: number, source?: string) => {
+    console.log('🎁 gainResonance called with:', { amount, source });
+    console.log('🎁 backendCharacter:', backendCharacter);
+    console.log('🎁 characterId from auth:', characterId);
+    
+    try {
+      // If no backend character is loaded, try to load it first
+      if (!backendCharacter) {
+        console.log('🔄 No character loaded, attempting to load character data...');
+        await memoizedLoadCharacter(true); // Force load for resonance gain
+        
+        // If still no character after loading, try to get character ID from auth context
+        if (!backendCharacter && characterId) {
+          console.log('🔄 Attempting to load character with ID:', characterId);
+          try {
+            const characterData = await apiService.getMyCharacter();
+            if (characterData) {
+              setBackendCharacter(characterData);
+            } else {
+              console.error('❌ Failed to load character data');
+              setError("No character found. Please create a character first.");
+              return;
+            }
+          } catch (loadError: any) {
+            console.error('❌ Error loading character:', loadError);
+            setError("Failed to load character data. Please try again.");
+            return;
+          }
+        }
+        
+        // If still no character, we can't proceed
+        if (!backendCharacter) {
+          console.error('❌ No character available for resonance gain');
+          setError("No character available. Please create a character first.");
+          return;
+        }
+      }
+
+      // Handle nested character structure
+      const targetCharacterId = (backendCharacter as any).character?.id || backendCharacter.id;
+      
+      if (!targetCharacterId) {
+        console.error('❌ Backend character has no ID:', backendCharacter);
+        setError("Character ID missing. Please reload the app.");
+        return;
+      }
+
+      console.log('🎁 Awarding resonance:', amount, 'to character:', targetCharacterId, 'from source:', source);
+      console.log('🎁 Full character data:', backendCharacter);
+      
+      const result = await apiService.gainResonance(
+        targetCharacterId,
+        amount,
+        source
+      );
+      
+      console.log('✅ Resonance gain successful:', result);
+      setBackendCharacter(result);
+
+      if (result.resonance_up) {
+        Alert.alert(
+          "🎉 Resonance Up!",
+          `Congratulations! Your resonance increased by ${result.resonance_gained}!`,
+          [{ text: "Awesome!", style: "default" }]
+        );
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to gain resonance:', error);
+      console.error('❌ Error details:', {
+        characterId: backendCharacter?.id,
+        amount,
+        source,
+        error: error?.message || error
+      });
+      setError(
+        "Failed to gain resonance: " + (error?.message || "Unknown error")
+      );
+    }
+  };
+
   const gainWellness = async (gains: Record<string, number>) => {
+    console.log('🎁 gainWellness called with:', gains);
+    console.log('🎁 backendCharacter:', backendCharacter);
+    console.log('🎁 characterId from auth:', characterId);
+    
+    // If no backend character is loaded, try to load it first
     if (!backendCharacter) {
-      setError("No character loaded");
+      console.log('🔄 No character loaded, attempting to load character data...');
+      try {
+        await memoizedLoadCharacter(true); // Force load for wellness gains
+        
+        // If still no character after loading, try to get character ID from auth context
+        if (!backendCharacter && characterId) {
+          console.log('🔄 Attempting to load character with ID:', characterId);
+          try {
+            const characterData = await apiService.getMyCharacter();
+            if (characterData) {
+              setBackendCharacter(characterData);
+            } else {
+              console.error('❌ Failed to load character data');
+              setError("No character found. Please create a character first.");
+              return;
+            }
+          } catch (loadError: any) {
+            console.error('❌ Error loading character:', loadError);
+            setError("Failed to load character data. Please try again.");
+            return;
+          }
+        }
+        
+        // If still no character, we can't proceed
+        if (!backendCharacter) {
+          console.error('❌ No character available for wellness gain');
+          setError("No character available. Please create a character first.");
+          return;
+        }
+      } catch (loadError: any) {
+        console.error('❌ Failed to load character for wellness gain:', loadError);
+        setError("Failed to load character. Please try again.");
+        return;
+      }
+    }
+
+    // Handle nested character structure
+    const targetCharacterId = (backendCharacter as any).character?.id || backendCharacter.id;
+    
+    if (!targetCharacterId) {
+      console.error('❌ Backend character has no ID:', backendCharacter);
+      setError("Character ID missing. Please reload the app.");
       return;
     }
 
+    console.log('🎁 Using character ID:', targetCharacterId, 'for wellness gain');
+
     try {
       const result = await apiService.gainWellness(
-        backendCharacter.id,
+        targetCharacterId,
         gains
       );
+      console.log('✅ Wellness gain successful:', result);
       setBackendCharacter(result);
 
       Alert.alert("✨ Wellness Increased!", result.message, [
         { text: "Great!", style: "default" },
       ]);
     } catch (error: any) {
+      console.error('❌ Failed to gain wellness:', error);
+      console.error('❌ Error details:', {
+        characterId: targetCharacterId,
+        gains,
+        error: error?.message || error
+      });
       setError(
         "Failed to gain wellness: " + (error?.message || "Unknown error")
       );
@@ -1885,14 +2174,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       return;
     }
 
-    // Don't load character data if we're in the middle of character creation
-    // This prevents overwriting the user's input with backend defaults
-    // UNLESS forceLoad is true (for experience gains)
-    if (!forceLoad && characterName && characterName.trim() !== '' && characterName !== 'Hero') {
-      console.log('🔄 Skipping character load due to local character name:', characterName);
-      return;
-    }
-
     console.log('🔄 Loading character data...');
     setIsLoading(true);
     try {
@@ -1902,13 +2183,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         console.log('✅ Character data loaded:', characterData);
         setBackendCharacter(characterData);
 
-        // Sync UI state with backend data directly
-        // NEVER update character name from backend if we have a local name
-        // This prevents the backend's "Hero" default from overwriting user input
-        if (characterName && characterName.trim() !== '') {
-          // Keep local character name
-          console.log('🔄 Keeping local character name:', characterName);
-        } else if (characterData.name && characterData.name !== 'Hero') {
+        // Always load character name from backend if it exists and is not "Hero"
+        // This ensures the character name is properly displayed
+        if (characterData.name && characterData.name !== 'Hero') {
           setCharacterName(characterData.name);
         }
         
@@ -1940,7 +2217,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [authToken, characterName]);
+  }, [authToken]);
 
   const memoizedLoadAvailableTools = useCallback(async () => {
     try {
@@ -2022,9 +2299,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   // Update the useEffect to use memoized functions
   useEffect(() => {
-    // Only load data when we have both token AND user data AND this is from a fresh login
-    // Don't automatically load data on startup with stored token
-    
     // Initialize the API service
     const initializeApiService = async () => {
       try {
@@ -2037,12 +2311,13 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     // Always initialize the API service
     initializeApiService();
     
-    // Load onboarding status if we have an auth token
+    // Load onboarding status and character data if we have an auth token
     if (authToken) {
       loadUserOnboardingStatus();
+      memoizedLoadCharacter(); // Load character data including name
     }
     
-  }, [authToken, user, loadUserOnboardingStatus, memoizedLoadCharacter, memoizedLoadHomeData, loadBackendGear]);
+  }, [authToken]);
 
   // ===== CONTEXT VALUE =====
   const value: MasterStateContextType = {
@@ -2074,6 +2349,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       setThemeMode,
       styles,
       isDark,
+      loginTheme,
     },
     character: {
       backendCharacter,
@@ -2124,6 +2400,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       updateCharacter,
       loadCharacter: memoizedLoadCharacter,
       gainExperience,
+      gainResonance,
       gainWellness,
     },
     wellness: {
@@ -2163,6 +2440,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       loadBackendGear,
       equipBackendGear,
       unequipBackendGear,
+      // New upgrade system functions
+      acquireEquipmentWithUpgrade,
+      getPlayerInventory,
+      getStoryReplayCount,
+      handleEquipmentUpgrade,
     },
     archive: {
       completedStories,

@@ -1,45 +1,111 @@
 import { ColorSchemeName } from 'react-native';
 
 export type ThemeColors = {
-  primary: string;
-  background: string;
-  card: string;
-  text: string;
-  border: string;
-  notification: string;
-  tabBar: string;
-  tabBarInactive: string;
+  primary?: string;
+  background?: string;
+  card?: string;
+  text?: string;
+  border?: string;
+  notification?: string;
+  tabBar?: string;
+  tabBarInactive?: string;
   
   // Character Creator & Archive specific colors
-  archiveBackground: string;
-  archiveCard: string;
-  archiveBorder: string;
-  archiveText: string;
-  archiveSubtext: string;
-  archiveAccent: string;
-  archiveAccentSecondary: string;
-  archiveGradientStart: string;
-  archiveGradientEnd: string;
-  archiveGradientMiddle: string;
-  archiveMode: 'light' | 'dark';
+  archiveBackground?: string;
+  archiveCard?: string;
+  archiveBorder?: string;
+  archiveText?: string;
+  archiveSubtext?: string;
+  archiveAccent?: string;
+  archiveAccentSecondary?: string;
+  archiveGradientStart?: string;
+  archiveGradientEnd?: string;
+  archiveGradientMiddle?: string;
+  archiveMode?: 'light' | 'dark';
   
   // Foundation colors
-  foundationSight: string;
-  foundationWill: string;
-  foundationHeart: string;
-  foundationHarmony: string;
+  foundationSight?: string;
+  foundationWill?: string;
+  foundationHeart?: string;
+  foundationHarmony?: string;
   
   // Status colors
-  statusSuccess: string;
-  statusWarning: string;
-  statusError: string;
-  statusInfo: string;
+  statusSuccess?: string;
+  statusWarning?: string;
+  statusError?: string;
+  statusInfo?: string;
   
   // Rarity colors
-  rarityCommon: string;
-  rarityRare: string;
-  rarityEpic: string;
-  rarityLegendary: string;
+  rarityCommon?: string;
+  rarityRare?: string;
+  rarityEpic?: string;
+  rarityLegendary?: string;
+
+  // This should be for something else 
+  buttonTextColor?: string;
+  modalOverlayBackground?: string;
+
+  // Login specific colors
+  placeholderTextColor?: string;
+  floatingIconColor?: string;
+  gradientOverlayBackground?: string;
+  avatarGlow?: string;
+  gameTitle?: string;
+  gameTitleShadow?: string;
+  gameSubtitle?: string;
+  personalityClass?: string;
+  researchHint?: string;
+  curatorCard?: string;
+  curatorName?: string;
+  curatorTitle?: string;
+  curatorText?: string;
+  curatorHint?: string;
+  loginScrollBackground?: string;
+  loginScrollBorder?: string;
+  curatorCardBorder?: string;
+  curatorCardShadowColor?: string;
+  loginScrollTitle?: string;
+  loginScrollTitleShadow?: string;
+  decorativeLine?: string;
+  inputLabel?: string;
+  mysticalInputBackground?: string;
+  mysticalInputColor?: string;
+  mysticalInputBorder?: string;
+  mysticalInputShadow?: string;
+  errorContainerBackground?: string;
+  errorContainerBorder?: string;
+  errorContainerText?: string;
+  inputContainerBorder?: string;
+  inputContainerShadow?: string;
+  inputContainerBackground?: string;
+  inputContainerText?: string;
+  enterButton?: string;
+  enterButtonShadow?: string;
+  enterButtonText?: string;
+  buttonGlow?: string;
+  curatorAccess?: string;
+  curatorAccessBorder?: string;
+  curatorAccessText?: string;
+  footerText?: string;
+  footerSignature?: string; 
+
+  //Onboarding specific colors
+  curatorChoiceText?: string;
+  pathsTitle?: string;
+  pathsSubtitle?: string;
+  pathCardGradient?: string;
+  pathAtmosphere?: string;
+  pathDescription?: string;
+  curatorNote?: string;
+  curatorNoteBorder?: string;
+  curatorNoteText?: string;
+  benefitsList?: string;
+  pathButton?: string;
+  authErrorContainer?: string;
+  authErrorTitle?: string;
+  authErrorText?: string;
+  authErrorButton?: string;
+  authErrorButtonText?: string;
 };
 
 // The new theme designed to evoke an "old library" feeling.
@@ -83,44 +149,56 @@ export const archiveTheme: ThemeColors = {
   rarityRare: '#039be5', // Scholar blue
   rarityEpic: '#6a1b9a', // Rich purple
   rarityLegendary: '#c89f65', // Legendary gold
+
+  //Other colors 
+  modalOverlayBackground:"rgba(0,0,0,0.5)",
+  buttonTextColor:"#FFFFFF",
 };
 
-// Your original light theme
+// Proper light theme with muted purple colors
 export const lightTheme: ThemeColors = {
-  primary: '#7C3AED',
-  background: '#0F172A',
-  card: '#1E1B4B',
-  text: '#FEF3C7',
-  border: '#92400E',
-  notification: '#DC2626',
-  tabBar: '#1E1B4B',
-  tabBarInactive: '#475569',
-  archiveBackground: '#0F172A',
-  archiveCard: '#1E1B4B',
-  archiveBorder: '#92400E',
-  archiveText: '#FEF3C7',
-  archiveSubtext: '#FDE68A',
-  archiveAccent: '#FCD34D',
-  archiveAccentSecondary: '#F59E0B',
-  archiveGradientStart: '#0F172A',
-  archiveGradientEnd: '#1E1B4B',
-  archiveGradientMiddle: '#92400E',
+  primary: '#af87d7', // Muted purple for neuroticism
+  background: '#e8d5f2', // Muted purple background
+  card: '#d4b8e6', // Lighter muted purple cards
+  text: '#000000', // Pure black text for maximum contrast
+  border: '#c4a0d8', // Purple borders
+  notification: '#c62828', // Keep red for alerts
+  tabBar: '#d4b8e6', // Muted purple tab bar
+  tabBarInactive: '#8d6e63', // Muted brown for inactive tabs
+  
+  // Archive specific colors for light mode
+  archiveBackground: '#e8d5f2', // Muted purple background
+  archiveCard: '#d4b8e6', // Lighter muted purple cards
+  archiveBorder: '#c4a0d8', // Purple borders
+  archiveText: '#000000', // Pure black text for maximum contrast
+  archiveSubtext: '#2c1810', // Dark brown for subtitles
+  archiveAccent: '#af87d7', // Muted purple for accents
+  archiveAccentSecondary: '#c89f65', // Gold for secondary accents
+  archiveGradientStart: '#d4b8e6',
+  archiveGradientEnd: '#af87d7',
+  archiveGradientMiddle: '#d4b8e6',
   archiveMode: 'light',
-  foundationSight: '#3B82F6',
-  foundationWill: '#059669',
-  foundationHeart: '#DC2626',
-  foundationHarmony: '#D97706',
-  statusSuccess: '#059669',
-  statusWarning: '#D97706',
-  statusError: '#DC2626',
-  statusInfo: '#3B82F6',
-  rarityCommon: '#6B7280',
-  rarityRare: '#3B82F6',
-  rarityEpic: '#A855F7',
-  rarityLegendary: '#F97316',
+  
+  // Foundation colors for light mode
+  foundationSight: '#3f51b5', // Indigo for wisdom
+  foundationWill: '#00796b', // Teal for willpower
+  foundationHeart: '#c2185b', // Pink for emotion
+  foundationHarmony: '#c89f65', // Gold for balance
+  
+  // Status colors for light mode
+  statusSuccess: '#2e7d32', // Dark green for success
+  statusWarning: '#f57c00', // Orange for warnings
+  statusError: '#c62828', // Red for errors
+  statusInfo: '#1976d2', // Blue for info
+  
+  // Rarity colors for light mode
+  rarityCommon: '#6d4c41', // Brown for common
+  rarityRare: '#1976d2', // Blue for rare
+  rarityEpic: '#7b1fa2', // Purple for epic
+  rarityLegendary: '#c89f65', // Gold for legendary
 };
 
-// Your original dark theme
+// Original dark theme - needs to be updated to match the new palette
 export const darkTheme: ThemeColors = {
   primary: '#A855F7',
   background: '#0A0F1C',
@@ -155,11 +233,96 @@ export const darkTheme: ThemeColors = {
   rarityLegendary: '#FCD34D',
 };
 
-// Updated getTheme function to prioritize the new Archive theme.
-// You can change the logic here to switch between themes as needed.
+// Login theme
+export const loginTheme: ThemeColors = {
+
+  //actual used values
+  background: '#0a0b0f', 
+  floatingIconColor:"#4ee6e6",
+  gradientOverlayBackground:'rgba(10, 11, 15, 0.8)',
+  avatarGlow:"#4ee6e6",
+  gameTitle:"#4ee6e6",
+  gameTitleShadow:"rgba(78, 230, 230, 0.5)",
+  gameSubtitle:"#d4af37",
+  personalityClass:"#ffe066",
+  researchHint:"#4ee6e6",
+  curatorCard: "rgba(212, 175, 55, 0.15)",
+  curatorCardBorder: "#d4af37",
+  curatorCardShadowColor: "#d4af37",
+  curatorName: "#d4af37",
+  curatorTitle: "#ccc",
+  curatorText: "#fff",
+  curatorHint: '#d4af37',
+
+  loginScrollBackground: "rgba(244, 241, 232, 0.95)",
+  loginScrollBorder: "#d4af37",
+  loginScrollTitle: '#2c1810',
+  decorativeLine: "#d4af37",
+  inputLabel: "#5d4037",
+  mysticalInputBackground: "rgba(255, 255, 255, 0.9)",
+  mysticalInputColor: "#2c1810",
+  mysticalInputBorder: "#d4af37",
+  mysticalInputShadow: "#d4af37",
+  placeholderTextColor: "#8b7355",
+  errorContainerBackground: "rgba(239, 68, 68, 0.1)",
+  errorContainerBorder: "#ef4444",
+  errorContainerText: "#dc2626",
+  enterButton: "#4ee6e6",
+  enterButtonShadow: "#4ee6e6",
+  enterButtonText: "#0a0b0f",
+  buttonGlow: "#4ee6e6",
+  curatorAccess: "rgba(157, 78, 221, 0.2)",
+  curatorAccessBorder: "#9d4edd",
+  curatorAccessText: "#9d4edd",
+  footerText: "#4ee6e6",
+  footerSignature: "#d4af37",
+
+
+};
+
+//Onboarding theme
+export const onboardingTheme: ThemeColors = {
+  background: '#0a0b0f',
+  floatingIconColor:"#4ee6e6",
+  gradientOverlayBackground:'rgba(10, 11, 15, 0.7)',
+  avatarGlow:"#4ee6e6",
+  gameTitle:"#4ee6e6",
+  gameTitleShadow:"rgba(78, 230, 230, 0.6)",
+  gameSubtitle:"#d4af37",
+  decorativeLine:"#d4af37",
+
+  // Curator colors (matching login theme)
+  curatorCard: "rgba(212, 175, 55, 0.15)",
+  curatorCardBorder: "#d4af37",
+  curatorCardShadowColor: "#d4af37",
+  curatorName: "#d4af37",
+  curatorTitle: "#ccc",
+  curatorText: "#fff",
+  curatorHint: '#d4af37',
+  
+  // Onboarding specific colors
+  curatorChoiceText: '#4ee6e6', 
+  pathsTitle: '#4ee6e6',
+  pathsSubtitle: '#ccc',
+  pathCardGradient: 'rgba(30, 30, 40, 0.95)',
+  pathAtmosphere: '#ccc',
+  pathDescription: '#fff',
+  curatorNote: 'rgba(212, 175, 55, 0.1)',
+  curatorNoteBorder: '#d4af37',
+  curatorNoteText: '#d4af37',
+  benefitsList: '#ccc',
+  pathButton: '#ffffff',
+  footerText: "#4ee6e6",
+  footerSignature: "#d4af37",
+  authErrorContainer: "#0a0b0f",
+  authErrorTitle: "#4ee6e6",
+  authErrorText: "#ccc",
+  authErrorButton: "#4ee6e6",
+  authErrorButtonText: "#0a0b0f",
+};
+
+// Updated getTheme function to properly switch between themes
 export const getTheme = (colorScheme: ColorSchemeName): ThemeColors => {
-  // Defaulting to the new 'archiveTheme' for the primary game experience.
-  return archiveTheme; 
-  // Or, if you want to keep the light/dark toggle:
-  // return colorScheme === 'dark' ? darkTheme : lightTheme;
+  // Use the light/dark toggle functionality
+  return colorScheme === 'dark' ? archiveTheme : lightTheme;
 };

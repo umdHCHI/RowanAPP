@@ -2,15 +2,18 @@
 
 // Hex Character Pack assets (sprite sheets)
 export const baseOptions = [//DONE
-  require('../../assets/character-creator/Bases/base_main/base_one.png'),
-  require('../../assets/character-creator/Bases/base_main/base_two.png'),
-  require('../../assets/character-creator/Bases/base_main/base_three.png'),
-  require('../../assets/character-creator/Bases/base_main/base_four.png'),
-  require('../../assets/character-creator/Bases/base_main/base_five.png'),
-  require('../../assets/character-creator/Bases/base_main/base_six.png'),
-  require('../../assets/character-creator/Bases/base_main/base_seven.png'),
-  require('../../assets/character-creator/Bases/base_main/base_eight.png'),
-  require('../../assets/character-creator/Bases/base_main/base_nine.png'),
+  require('../../assets/character-creator/Bases/base_main/base_1.png'),
+  require('../../assets/character-creator/Bases/base_main/base_2.png'),
+  require('../../assets/character-creator/Bases/base_main/base_3.png'),
+  require('../../assets/character-creator/Bases/base_main/base_4.png'),
+  require('../../assets/character-creator/Bases/base_main/base_5.png'),
+  require('../../assets/character-creator/Bases/base_main/base_6.png'),
+  require('../../assets/character-creator/Bases/base_main/base_7.png'),
+  require('../../assets/character-creator/Bases/base_main/base_8.png'),
+  require('../../assets/character-creator/Bases/base_main/base_9.png'),
+  require('../../assets/character-creator/Bases/base_main/base_10.png'),
+  require('../../assets/character-creator/Bases/base_main/base_11.png'),
+  require('../../assets/character-creator/Bases/base_main/base_12.png'),
 ];
 
 export const hairOptionsBlack = [
@@ -590,19 +593,20 @@ export const hairOptionsWhite = [
 ];
 
 export const clothesOptionsBlonde = [
-  //Blonde
+  //Blonde - Updated to new ClothesBlonde assets
   require('../../assets/character-creator/Clothes/Clothes Blonde_1.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_2.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_3.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_4.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_5.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_6.png'),
-  require('../../assets/character-creator/Clothes/Clothes Blonde_7.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_8.png'),
+  require('../../assets/character-creator/Clothes/Clothes Blonde_7.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_9.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Blonde_12.png'),
+
 ];
 
 export const clothesOptionsBlue = [
@@ -619,6 +623,7 @@ export const clothesOptionsBlue = [
   require('../../assets/character-creator/Clothes/Clothes Blue_10.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue_11.png'),
   require('../../assets/character-creator/Clothes/Clothes Blue_12.png'),
+
 ];
 
 export const clothesOptionsBlueGreen = [

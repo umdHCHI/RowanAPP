@@ -1,4 +1,3 @@
-import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Animated,
@@ -12,12 +11,13 @@ import {
 } from "react-native";
 import {
   CHARACTER_CREATOR_CONSTANTS,
-  CategorySelector,
   CharacterNameInput,
   CharacterPreviewSection,
   ColorOptionControls,
   StyleControls,
-  useMasterState,
+  createCharacterCreatorCategories,
+  useCharacterCreation,
+  useMasterState
 } from "../../imports";
 
 const { width, height } = Dimensions.get('window');
@@ -74,43 +74,83 @@ const FloatingElement: React.FC<FloatingElementProps> = ({
 export default function ArchiveCharacterCreatorScreen() {
   const { theme, character, loading, onboarding, auth } = useMasterState();
   const [selectedCategory, setSelectedCategory] = useState<number>(0);
-  const [forgeStep, setForgeStep] = useState<number>(0);
 
-  // Use centralized categories from MasterState context
-  const { styleCategories, colorCategories } = character;
-
-
-  // Disabled automatic character loading to prevent overwriting character name
-  // The character data will be loaded when needed, not automatically on mount
-  useEffect(() => {
-    // Character loading disabled to prevent overwriting user input
-  }, []);
-
-  // Track character creation progression
-  useEffect(() => {
-    const selections = [
-      character.selectedBaseModel,
+  // Create centralized category configurations with memoization - KEEP YOUR BACKEND INTEGRATION
+  const { styleCategories, colorCategories } = useMemo(
+    () =>
+      createCharacterCreatorCategories(
+        {
+          selectedHairStyle: character.selectedHairStyle,
+          selectedEyeType: character.selectedEyeType,
+          selectedEyebrowStyle: character.selectedEyebrowStyle,
+          selectedMouthType: character.selectedMouthType,
+          selectedShirtType: character.selectedShirtType,
+          selectedBackgroundType: character.selectedBackgroundType,
+          selectedBaseModel: character.selectedBaseModel,
+          selectedBaseColor: character.selectedBaseColor,
+          selectedHairColor: character.selectedHairColor,
+          selectedEyeColor: character.selectedEyeColor,
+          selectedEyebrowColor: character.selectedEyebrowColor,
+          selectedClothesColor: character.selectedClothesColor,
+          selectedBackgroundColor: character.selectedBackgroundColor,
+        },
+        {
+          setSelectedHairStyle: character.setSelectedHairStyle,
+          setSelectedEyeType: character.setSelectedEyeType,
+          setSelectedEyebrowStyle: character.setSelectedEyebrowStyle,
+          setSelectedMouthType: character.setSelectedMouthType,
+          setSelectedShirtType: character.setSelectedShirtType,
+          setSelectedBackgroundType: character.setSelectedBackgroundType,
+          setSelectedBaseModel: character.setSelectedBaseModel,
+          setSelectedBaseColor: character.setSelectedBaseColor,
+          setSelectedHairColor: character.setSelectedHairColor,
+          setSelectedEyeColor: character.setSelectedEyeColor,
+          setSelectedEyebrowColor: character.setSelectedEyebrowColor,
+          setSelectedClothesColor: character.setSelectedClothesColor,
+          setSelectedBackgroundColor: character.setSelectedBackgroundColor,
+        }
+      ),
+    [
       character.selectedHairStyle,
       character.selectedEyeType,
+      character.selectedEyebrowStyle,
       character.selectedMouthType,
-      character.selectedShirtType
-    ];
-    
-    const completedSelections = selections.filter(val => val > 0).length;
-    setForgeStep(completedSelections);
-  }, [
-    character.selectedBaseModel,
-    character.selectedHairStyle,
-    character.selectedEyeType,
-    character.selectedMouthType,
-    character.selectedShirtType
-  ]);
+      character.selectedShirtType,
+      character.selectedBackgroundType,
+      character.selectedBaseModel,
+      character.selectedBaseColor,
+      character.selectedHairColor,
+      character.selectedEyeColor,
+      character.selectedEyebrowColor,
+      character.selectedClothesColor,
+      character.selectedBackgroundColor,
+      character.setSelectedHairStyle,
+      character.setSelectedEyeType,
+      character.setSelectedEyebrowStyle,
+      character.setSelectedMouthType,
+      character.setSelectedShirtType,
+      character.setSelectedBackgroundType,
+      character.setSelectedBaseModel,
+      character.setSelectedBaseColor,
+      character.setSelectedHairColor,
+      character.setSelectedEyeColor,
+      character.setSelectedEyebrowColor,
+      character.setSelectedClothesColor,
+      character.setSelectedBackgroundColor,
+    ]
+  );
 
-  // Logout handler
-  const handleLogout = useCallback(async (): Promise<void> => {
-    await auth.logout();
-  }, [auth]);
+  // Custom hook for character creation logic - KEEP YOUR BACKEND INTEGRATION
+  const { handleCharacterCreation } = useCharacterCreation({
+    characterName: character.characterName,
+    createCharacter: character.createCharacter,
+    characterId: character.backendCharacter?.id,
+    customizationData: character.updateCharacter, 
+    updateCharacterCustomization: character.updateCharacter, 
+    completeCharacter: onboarding.completeCharacter,
+  });
 
+  // Memoized handlers - KEEP YOUR BACKEND INTEGRATION
   const handleNameChange = useCallback(
     (name: string): void => {
       character.setCharacterName(name);
@@ -122,7 +162,7 @@ export default function ArchiveCharacterCreatorScreen() {
     setSelectedCategory(index);
   }, []);
 
-  // Current style category
+  // Memoized current category - KEEP YOUR BACKEND INTEGRATION
   const currentStyleCategory = useMemo(
     () => styleCategories[selectedCategory],
     [styleCategories, selectedCategory]
@@ -147,24 +187,6 @@ export default function ArchiveCharacterCreatorScreen() {
     const colorIndex = styleToColorIndexMap[selectedCategory];
     return colorIndex !== -1 && colorIndex !== undefined ? colorCategories[colorIndex] : null;
   }, [selectedCategory, colorCategories]);
-
-  // Character creation handler with validation
-  const handleCharacterCreation = useCallback(async () => {
-    if (!character.characterName || character.characterName.trim() === '') {
-      // You could show an alert here if needed
-      return;
-    }
-    
-    try {
-      await character.createCharacter();
-      
-      // Navigate to character home screen after successful creation
-      router.replace('/(character)/character');
-    } catch (error) {
-      console.error('Character creation failed:', error);
-      // Error handling is already done in the createCharacter method
-    }
-  }, [character.characterName, character.createCharacter, character]);
 
   return (
     <View style={styles.container}>
@@ -200,7 +222,6 @@ export default function ArchiveCharacterCreatorScreen() {
           <CharacterNameInput
             characterName={character.characterName}
             onNameChange={handleNameChange}
-            onLogout={handleLogout}
             styles={theme.styles}
           />
         </View>
@@ -210,19 +231,6 @@ export default function ArchiveCharacterCreatorScreen() {
           <Text style={styles.sectionTitle}>✨ Avatar Preview</Text>
           <View style={styles.previewContainer}>
             <CharacterPreviewSection character={character} styles={theme.styles} />
-            
-            {/* Progress Indicator */}
-            <View style={styles.progressSection}>
-              <Text style={styles.progressLabel}>Forge Progress: {forgeStep}/5</Text>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill, 
-                    { width: `${(forgeStep / 5) * 100}%` }
-                  ]} 
-                />
-              </View>
-            </View>
           </View>
         </View>
 
@@ -230,19 +238,54 @@ export default function ArchiveCharacterCreatorScreen() {
         <View style={styles.styleSection}>
           <Text style={styles.sectionTitle}>🎨 Appearance Options</Text>
           
-          {/* Use your original CategorySelector but with custom layout */}
-          <CategorySelector
-            title={CHARACTER_CREATOR_CONSTANTS.SECTIONS.STYLE_OPTIONS}
-            categories={styleCategories}
-            selectedIndex={selectedCategory}
-            onCategorySelect={handleCategorySelect}
-            styles={theme.styles}
-            horizontal={true}
-          />
+          {/* Custom Two-Row Grid Layout */}
+          <View style={styles.categoryGrid}>
+            {/* First Row */}
+            <View style={styles.categoryRow}>
+              {styleCategories.slice(0, 4).map((category, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.categoryButton,
+                    selectedCategory === index && styles.selectedCategoryButton
+                  ]}
+                  onPress={() => handleCategorySelect(index)}
+                >
+                  <Text style={[
+                    styles.categoryText,
+                    selectedCategory === index && styles.selectedCategoryText
+                  ]}>
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            {/* Second Row */}
+            <View style={styles.categoryRow}>
+              {styleCategories.slice(4).map((category, index) => (
+                <TouchableOpacity
+                  key={index + 4}
+                  style={[
+                    styles.categoryButton,
+                    selectedCategory === (index + 4) && styles.selectedCategoryButton
+                  ]}
+                  onPress={() => handleCategorySelect(index + 4)}
+                >
+                  <Text style={[
+                    styles.categoryText,
+                    selectedCategory === (index + 4) && styles.selectedCategoryText
+                  ]}>
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           {/* Style Options Display */}
           {currentStyleCategory && (
-            <View style={styles.styleOptionsContainer}>
+            <View>
               <StyleControls
                 category={currentStyleCategory}
                 styles={theme.styles}
@@ -257,7 +300,7 @@ export default function ArchiveCharacterCreatorScreen() {
             <Text style={styles.sectionTitle}>
               🎨 Color for {currentStyleCategory?.label}
             </Text>
-            <View style={styles.colorContainer}>
+            <View>
               <ColorOptionControls
                 category={getCurrentColorCategory}
                 styles={theme.styles}
@@ -364,23 +407,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(78, 230, 230, 0.1)',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 25,
+    marginBottom: 10, // Reduced from 25 to 15
     borderWidth: 2,
     borderColor: '#4ee6e6',
   },
   
   nameLabel: {
     color: '#4ee6e6',
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 8,
     textAlign: 'center',
   },
   
   // Section Titles
   sectionTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
@@ -400,45 +443,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   
-  progressSection: {
-    alignItems: 'center',
-    marginTop: 20,
-    width: '100%',
-  },
-  
-  progressLabel: {
-    color: '#9d4edd',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: 'rgba(157, 78, 221, 0.3)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#9d4edd',
-    borderRadius: 4,
-  },
-  
   // Style Section
   styleSection: {
     backgroundColor: 'rgba(247, 37, 133, 0.1)',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 25,
+    marginBottom: 15,
     borderWidth: 2,
     borderColor: '#f72585',
   },
   
-  styleOptionsContainer: {
-    marginTop: 15,
+  // Custom Two-Row Grid Layout
+  categoryGrid: {
+    marginBottom: 5,
+  },
+
+  categoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 10,
+  },
+
+  categoryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    minWidth: 60,
+    alignItems: 'center',
+  },
+
+  selectedCategoryButton: {
+    backgroundColor: 'rgba(78, 230, 230, 0.2)',
+    borderColor: '#4ee6e6',
+    borderWidth: 1,
+  },
+
+  categoryText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+
+  selectedCategoryText: {
+    color: '#4ee6e6',
   },
   
   // Single Color Section
@@ -449,9 +500,6 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     borderWidth: 2,
     borderColor: '#ffd60a',
-  },
-  
-  colorContainer: {
     alignItems: 'center',
   },
   

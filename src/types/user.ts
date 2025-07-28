@@ -177,7 +177,7 @@ export interface Character {
         color: string;
     }>;
     character_config?: {
-        selectedName: string;
+        selectedName?: string;
         selected_base_model: number; //only one base model
         selected_base_color?: number; // color index for base model
         selected_skin_color: number;
@@ -263,7 +263,6 @@ export type CharacterCreateData =
 // Utility function to create category configurations
 export const createCharacterCreatorCategories = (
   character: {
-    selectedName: string;
     selectedHairStyle: number;
     selectedEyeType: number;
     selectedEyebrowStyle: number;
@@ -279,7 +278,6 @@ export const createCharacterCreatorCategories = (
     selectedBackgroundColor: number;
   },
   setters: {
-    setSelectedName: (value: string) => void;
     setSelectedHairStyle: (value: number) => void;
     setSelectedEyeType: (value: number) => void;
     setSelectedEyebrowStyle: (value: number) => void;
@@ -297,16 +295,16 @@ export const createCharacterCreatorCategories = (
 ): CharacterCreatorCategories => {
   const styleCategories: CategoryConfig[] = [
     { label: 'Base Model', options: 1, current: character.selectedBaseModel, setter: setters.setSelectedBaseModel },
-    { label: 'Hair Style', options: 12, current: character.selectedHairStyle, setter: setters.setSelectedHairStyle },
+    { label: 'Hair Style', options: 32, current: character.selectedHairStyle, setter: setters.setSelectedHairStyle },
     { label: 'Eyes', options: 12, current: character.selectedEyeType, setter: setters.setSelectedEyeType },
-    { label: 'Eyebrow Style', options: 12, current: character.selectedEyebrowStyle, setter: setters.setSelectedEyebrowStyle },
+    { label: 'Eyebrow', options: 12, current: character.selectedEyebrowStyle, setter: setters.setSelectedEyebrowStyle },
     { label: 'Mouth', options: 12, current: character.selectedMouthType, setter: setters.setSelectedMouthType },
     { label: 'Clothes', options: 12, current: character.selectedShirtType, setter: setters.setSelectedShirtType },
-    { label: 'Background', options: 11, current: character.selectedBackgroundType, setter: setters.setSelectedBackgroundType },
+    { label: 'Background', options: 12, current: character.selectedBackgroundType, setter: setters.setSelectedBackgroundType },
   ];
 
   const colorCategories: CategoryConfig[] = [
-    { label: 'Skin Color', options: 9, current: character.selectedBaseColor, setter: setters.setSelectedBaseColor },
+    { label: 'Skin Color', options: 12, current: character.selectedBaseColor, setter: setters.setSelectedBaseColor },
     { label: 'Hair Color', options: 16, current: character.selectedHairColor, setter: setters.setSelectedHairColor },
     { label: 'Eye Color', options: 16, current: character.selectedEyeColor, setter: setters.setSelectedEyeColor },
     { label: 'Eyebrow Color', options: 16, current: character.selectedEyebrowColor, setter: setters.setSelectedEyebrowColor },

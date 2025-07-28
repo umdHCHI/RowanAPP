@@ -55,16 +55,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const login = async (token: string, charId: string, userData?: any) => {
     try {
-      const storedToken = await AsyncStorage.getItem('authToken'); 
-      if (!storedToken || storedToken !== token) {
-        await AsyncStorage.setItem('authToken', token);
-        await AsyncStorage.setItem('characterId', charId);
-        // Verify storage worked
-        const verifyToken = await AsyncStorage.getItem('authToken');
-      }
+      console.log('AuthContext: Storing new token and character ID');
+      await AsyncStorage.setItem('authToken', token);
+      await AsyncStorage.setItem('characterId', charId);
+      
+      // Verify storage worked
+      const verifyToken = await AsyncStorage.getItem('authToken');
+      const verifyCharId = await AsyncStorage.getItem('characterId');
+      console.log('AuthContext: Token storage verification:', {
+        tokenStored: !!verifyToken,
+        tokenLength: verifyToken?.length,
+        charIdStored: !!verifyCharId,
+        charId: verifyCharId
+      });
     } catch (error) {
-      console.error('AuthContext: Error verifying/storing token:', error);
+      console.error('AuthContext: Error storing token:', error);
     } 
+    
     // Update the state
     setAuthToken(token);
     setCharacterId(charId);

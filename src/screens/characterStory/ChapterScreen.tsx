@@ -82,40 +82,43 @@ const ChapterScreen = ({
       onPress={() => handleChapterSelect(chapter)}
       activeOpacity={0.8}
     >
-      <LinearGradient
-        colors={[
-          "rgba(30, 41, 59, 0.95)",
-          "rgba(51, 65, 85, 0.8)",
-          "rgba(30, 41, 59, 0.95)",
-        ]}
-        style={globalStyles.StoryCardGradient}
-      >
+              <LinearGradient
+          colors={[
+            "rgba(10, 11, 15, 0.95)",
+            "rgba(30, 41, 59, 0.8)",
+            "rgba(10, 11, 15, 0.95)",
+          ]}
+          style={[globalStyles.StoryCardGradient, {
+            borderColor: '#d4af37',
+            borderWidth: 1,
+            shadowColor: '#d4af37',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 4,
+          }]}
+        >
         <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
-          {/* Chapter Number Badge */}
-          <View style={globalStyles.StoryRarityBadge}>
-            <LinearGradient
-              colors={["#A855F7", "#7C3AED"]}
-              style={globalStyles.StoryRarityBadgeGradient}
-            >
-              <Text style={globalStyles.StoryRarityBadgeText}>
-                Chapter {chapter.chapterNumber}
-              </Text>
-            </LinearGradient>
-          </View>
-
           {/* Header */}
           <View style={globalStyles.StoryCardHeader}>
             <View style={globalStyles.StoryTitleSection}>
-              <Text style={[globalStyles.StoryCardTitle, { color: "#A855F7" }]}>
-                {chapter.title || "Untitled Chapter"}
+              <Text style={[globalStyles.StoryCardTitle, { 
+                color: "#4ee6e6",
+                fontSize: 18,
+                fontWeight: 'bold',
+                textShadowColor: 'rgba(78, 230, 230, 0.5)',
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 4,
+              }]}>
+                Chapter {chapter.chapterNumber}: {chapter.title || "Untitled Chapter"}
               </Text>
               {chapter.isStartingChapter && (
-                <View style={globalStyles.StoryRarityBadge}>
+                <View style={[globalStyles.StoryRarityBadge, { marginTop: 8 }]}>
                   <LinearGradient
-                    colors={["#10B981", "#34D399"]}
+                    colors={["#d4af37", "#fbbf24"]}
                     style={globalStyles.StoryRarityBadgeGradient}
                   >
-                    <Text style={globalStyles.StoryRarityBadgeText}>
+                    <Text style={[globalStyles.StoryRarityBadgeText, { color: '#0a0b0f', fontWeight: 'bold' }]}>
                       Starting Point
                     </Text>
                   </LinearGradient>
@@ -125,13 +128,30 @@ const ChapterScreen = ({
           </View>
 
           {/* Action Button */}
-          <View style={globalStyles.StoryActionButton}>
+          <View style={[globalStyles.StoryActionButton, {
+            alignSelf: 'flex-start',
+            borderRadius: 20,
+            overflow: 'hidden',
+          }]}>
             <LinearGradient
-              colors={["#7C3AED", "#A855F7"]}
-              style={globalStyles.StoryActionButtonGradient}
+              colors={["#4ee6e6", "#06b6d4"]}
+              style={[globalStyles.StoryActionButtonGradient, {
+                shadowColor: '#4ee6e6',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 8,
+                elevation: 8,
+                borderRadius: 20,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+              }]}
             >
-              <Icon name="book-open" size={14} color="#E0E7FF" />
-              <Text style={globalStyles.StoryActionButtonText}>
+              <Icon name="book-open" size={14} color="#0a0b0f" />
+              <Text style={[globalStyles.StoryActionButtonText, {
+                color: '#0a0b0f',
+                fontWeight: 'bold',
+                marginLeft: 6,
+              }]}>
                 Begin Chapter
               </Text>
             </LinearGradient>
@@ -156,10 +176,10 @@ const ChapterScreen = ({
           <Icon
             name="loader"
             size={40}
-            color="#A855F7"
+            color="#4ee6e6"
             style={{ marginBottom: 16 }}
           />
-          <Text style={{ color: "white", fontSize: 18, margin: 20 }}>
+          <Text style={{ color: "#4ee6e6", fontSize: 18, margin: 20, textShadowColor: 'rgba(78, 230, 230, 0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }}>
             Loading Chapters...
           </Text>
         </View>
@@ -223,9 +243,9 @@ const ChapterScreen = ({
         <View style={globalStyles.StoryModalOverlay}>
           <LinearGradient
             colors={[
-              "rgba(30, 41, 59, 0.95)",
-              "rgba(51, 65, 85, 0.8)",
-              "rgba(30, 41, 59, 0.95)",
+              "rgba(10, 11, 15, 0.95)",
+              "rgba(30, 41, 59, 0.8)",
+              "rgba(10, 11, 15, 0.95)",
             ]}
             style={StyleSheet.absoluteFillObject}
           />
@@ -233,13 +253,21 @@ const ChapterScreen = ({
           <View style={globalStyles.StoryModalpassages}>
             <LinearGradient
               colors={[
-                "rgba(30, 41, 59, 0.95)",
-                "rgba(51, 65, 85, 0.8)",
-                "rgba(30, 41, 59, 0.95)",
+                "rgba(10, 11, 15, 0.95)",
+                "rgba(30, 41, 59, 0.8)",
+                "rgba(10, 11, 15, 0.95)",
               ]}
               style={[
                 globalStyles.StoryModalGradient,
-                { borderColor: "#374151" },
+                { 
+                  borderColor: "#d4af37",
+                  borderWidth: 2,
+                  shadowColor: '#d4af37',
+                  shadowOffset: { width: 2, height: 6 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 12,
+                  elevation: 12,
+                },
               ]}
             >
               <BlurView intensity={20} style={globalStyles.StoryModalBlur}>
@@ -247,38 +275,69 @@ const ChapterScreen = ({
                 <View
                   style={[
                     globalStyles.StoryModalHeader,
-                    { borderBottomColor: "#374151" },
+                    { 
+                      borderBottomColor: "#d4af37",
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                    },
                   ]}
                 >
-                  <View style={globalStyles.StoryHeaderpassages}>
-                    <Icon name="book" size={24} color="#A855F7" />
+                  <View style={[globalStyles.StoryHeaderpassages, { flex: 1 }]}>
+                    <Icon name="book" size={24} color="#4ee6e6" />
                     <Text
                       style={[
                         globalStyles.StoryModalTitle,
-                        { color: "#A855F7" },
+                        { 
+                          color: "#4ee6e6",
+                          fontSize: 28,
+                          fontWeight: 'bold',
+                          letterSpacing: 3,
+                          textShadowColor: 'rgba(78, 230, 230, 0.5)',
+                          textShadowOffset: { width: 0, height: 2 },
+                          textShadowRadius: 8,
+                        },
                       ]}
                     >
                       Select Chapter
                     </Text>
-                    <TouchableOpacity
-                      style={globalStyles.StoryCloseButton}
-                      onPress={onClose}
-                    >
-                      <LinearGradient
-                        colors={[
-                          "rgba(239, 68, 68, 0.8)",
-                          "rgba(220, 38, 38, 0.8)",
-                        ]}
-                        style={globalStyles.StoryCloseButtonGradient}
-                      >
-                        <Icon name="x" size={18} color="#FECACA" />
-                      </LinearGradient>
-                    </TouchableOpacity>
                   </View>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                      padding: 8,
+                      borderRadius: 20,
+                      borderWidth: 2,
+                      borderColor: '#ef4444',
+                      shadowColor: '#ef4444',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 4,
+                      elevation: 4,
+                      width: 36,
+                      height: 36,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                    onPress={onClose}
+                  >
+                    <Icon name="x" size={20} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+                <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
                   <Text
                     style={[
                       globalStyles.StoryModalSubtitle,
-                      { color: "#9CA3AF" },
+                      { 
+                        color: "#ffe066",
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        textShadowColor: 'rgba(255, 224, 102, 0.3)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 2,
+                      },
                     ]}
                   >
                     {storyTitle}
@@ -286,7 +345,12 @@ const ChapterScreen = ({
                   <Text
                     style={[
                       globalStyles.StoryModalSubtitle,
-                      { color: "#9CA3AF", fontSize: 14 },
+                      { 
+                        color: "#d4af37", 
+                        fontSize: 14,
+                        fontStyle: 'italic',
+                        fontWeight: '600',
+                      },
                     ]}
                   >
                     Choose which chapter to begin your journey
@@ -312,31 +376,35 @@ const ChapterScreen = ({
                         padding: 40,
                       }}
                     >
-                      <Icon
-                        name="book"
-                        size={40}
-                        color="#A855F7"
-                        style={{ marginBottom: 16 }}
-                      />
-                      <Text
-                        style={{
-                          color: "#9CA3AF",
-                          fontSize: 18,
-                          textAlign: "center",
-                        }}
-                      >
-                        No Chapters Available
-                      </Text>
-                      <Text
-                        style={{
-                          color: "#6B7280",
-                          fontSize: 14,
-                          textAlign: "center",
-                          marginTop: 8,
-                        }}
-                      >
-                        This story may not have chapters yet.
-                      </Text>
+                                <Icon
+            name="book"
+            size={40}
+            color="#4ee6e6"
+            style={{ marginBottom: 16 }}
+          />
+          <Text
+            style={{
+              color: "#4ee6e6",
+              fontSize: 18,
+              textAlign: "center",
+              textShadowColor: 'rgba(78, 230, 230, 0.5)',
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 4,
+            }}
+          >
+            No Chapters Available
+          </Text>
+          <Text
+            style={{
+              color: "#d4af37",
+              fontSize: 14,
+              textAlign: "center",
+              marginTop: 8,
+              fontStyle: 'italic',
+            }}
+          >
+            This story may not have chapters yet.
+          </Text>
                     </View>
                   )}
                 </ScrollView>

@@ -1,5 +1,5 @@
 import { Dimensions, ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
-import { ThemeColors } from './theme';
+import { ThemeColors, loginTheme, onboardingTheme } from './theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,55 +20,1533 @@ const glowingText = (theme: ThemeColors): TextStyle => ({
   textShadowRadius: 8,
 });
 
+//Helper function for the Login specific styles 
+export const loginStyles = (theme: ThemeColors) : {[key: string]: any} => {  
+  const isColor = theme?.archiveText || theme.primary;  return {
+
+  container: {
+    flex: 1,
+    backgroundColor: loginTheme.background,
+  },
+  
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  
+  floatingElements: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  
+  floatingIcon: {
+    position: 'absolute',
+    fontSize: 24,
+    color: loginTheme.floatingIconColor,
+    opacity: 0.3,
+  },
+  
+  gradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: loginTheme.gradientOverlayBackground,
+  },
+  
+  scrollContainer: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  
+  personalityAvatar: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  
+  avatarIcon: {
+    fontSize: 60,
+    zIndex: 2,
+  },
+  
+  avatarGlow: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    backgroundColor: loginTheme.avatarGlow,
+    borderRadius: 40,
+    opacity: 0.3,
+    zIndex: 1,
+  },
+  
+  titleSection: {
+    alignItems: 'center',
+  },
+  
+  gameTitle: {
+    color: loginTheme.gameTitle,
+    fontSize: 32,
+    fontWeight: 'bold',
+    letterSpacing: 4,
+    marginBottom: 8,
+    textShadowColor: loginTheme.gameTitleShadow,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  
+  gameSubtitle: {
+    color: loginTheme.gameSubtitle,
+    fontSize: 16,
+    fontStyle: 'italic',
+    marginBottom: 4,
+  },
+  
+  personalityClass: {
+    color: loginTheme.personalityClass,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  
+  researchHint: {
+    color: loginTheme.researchHint,
+    fontSize: 12,
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
+  
+  curatorSection: {
+    marginBottom: 30,
+  },
+  
+  curatorCard: {
+    backgroundColor: loginTheme.curatorCard,
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: loginTheme.curatorCardBorder,
+    shadowColor: loginTheme.curatorCardShadowColor,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  
+  curatorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  
+  curatorAvatar: {
+    fontSize: 32,
+    marginRight: 15,
+  },
+  
+  curatorInfo: {
+    flex: 1,
+  },
+  
+  curatorName: {
+    color: loginTheme.curatorName,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  
+  curatorTitle: {
+    color: loginTheme.curatorTitle,
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  
+  curatorMessage: {
+    marginBottom: 15,
+  },
+  
+  curatorText: {
+    color: loginTheme.curatorText,
+    fontSize: 14,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  
+  curatorFooter: {
+    alignItems: 'center',
+  },
+  
+  curatorHint: {
+    color: loginTheme.curatorHint,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  
+  loginScroll: {
+    backgroundColor: loginTheme.loginScrollBackground,
+    borderRadius: 12,
+    padding: 25,
+    marginBottom: 30,
+    shadowColor: loginTheme.loginScrollBorder,
+    shadowOffset: { width: 2, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+    borderWidth: 2,
+    borderColor: loginTheme.loginScrollBorder,
+  },
+  
+  scrollHeader: {
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  
+  scrollTitle: {
+    color: loginTheme.loginScrollTitle,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  
+  decorativeLine: {
+    width: 80,
+    height: 2,
+    backgroundColor: loginTheme.decorativeLine,
+  },
+  
+  formContainer: {
+    gap: 20,
+  },
+  
+  inputContainer: {
+    marginBottom: 5,
+  },
+  
+  inputLabel: {
+    color: loginTheme.inputLabel,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  
+  mysticalInput: {
+    backgroundColor: loginTheme.mysticalInputBackground,
+    borderRadius: 8,
+    padding: 15,
+    fontSize: 16,
+    color: loginTheme.mysticalInputColor,
+    borderWidth: 2,
+    borderColor: loginTheme.mysticalInputBorder,
+    shadowColor: loginTheme.mysticalInputShadow,
+    placeholderTextColor: loginTheme.placeholderTextColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: loginTheme.errorContainerBackground,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: loginTheme.errorContainerBorder,
+    marginTop: 10,
+  },
+  
+  errorIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  
+  errorText: {
+    color: loginTheme.errorContainerText,
+    fontSize: 14,
+    flex: 1,
+  },
+  
+  enterButton: {
+    position: 'relative',
+    backgroundColor: loginTheme.enterButton,
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+    shadowColor: loginTheme.enterButtonShadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+    marginTop: 10,
+  },
+  
+  enterButtonDisabled: {
+    opacity: 0.7,
+  },
+  
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  
+  buttonIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  
+  buttonText: {
+    color: loginTheme.enterButtonText,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  
+  buttonGlow: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    backgroundColor: loginTheme.buttonGlow,
+    borderRadius: 14,
+    opacity: 0.3,
+    zIndex: 1,
+  },
+  
+  curatorAccess: {
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: loginTheme.curatorAccess,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: loginTheme.curatorAccessBorder,
+    marginTop: 15,
+  },
+  
+  curatorAccessText: {
+    color: loginTheme.curatorAccessText,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  
+  footer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  
+  footerText: {
+    color: loginTheme.footerText,
+    fontSize: 14,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  
+  footerSignature: {
+    color: loginTheme.footerSignature,
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+}
+};
+
+//Helper function for the Onboarding theme
+export const getOnboardingStyles = (theme?: ThemeColors): {[key: string]: any} => {
+
+  return {
+    container: {
+      flex: 1,
+      backgroundColor: onboardingTheme.background,
+    },
+    
+    backgroundContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    
+    floatingElements: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    
+    floatingIcon: {
+      position: 'absolute',
+      fontSize: 28,
+      color: onboardingTheme.floatingIconColor,
+      opacity: 0.4,
+    },
+    
+    gradientOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: onboardingTheme.gradientOverlayBackground,
+    },
+    
+    scrollContainer: {
+      paddingTop: 60,
+      paddingHorizontal: 20,
+      paddingBottom: 40,
+    },
+    
+    header: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    
+    archiveTitle: {
+      color: onboardingTheme.floatingIconColor,
+      fontSize: 36,
+      fontWeight: 'bold',
+      letterSpacing: 6,
+      marginBottom: 8,
+      textShadowColor: onboardingTheme.gameTitleShadow,
+      textShadowOffset: { width: 0, height: 3 },
+      textShadowRadius: 10,
+    },
+    
+    archiveSubtitle: {
+      color: onboardingTheme.gameSubtitle,
+      fontSize: 18,
+      fontStyle: 'italic',
+      marginBottom: 15,
+    },
+    
+    decorativeLine: {
+      width: 120,
+      height: 2,
+      backgroundColor: onboardingTheme.decorativeLine,
+      opacity: 0.8,
+    },
+    
+    curatorSection: {
+      marginBottom: 40,
+    },
+    
+    curatorCard: {
+      backgroundColor: onboardingTheme.curatorCard,
+      borderRadius: 16,
+      padding: 25,
+      borderWidth: 2,
+      borderColor: onboardingTheme.curatorCardBorder,
+      shadowColor: onboardingTheme.curatorCardShadowColor,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 12,
+    },
+    
+    curatorHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    
+    curatorAvatar: {
+      fontSize: 40,
+      marginRight: 15,
+    },
+    
+    curatorInfo: {
+      flex: 1,
+    },
+    
+    curatorName: {
+      color: onboardingTheme.curatorName,
+      fontSize: 20,
+      fontWeight: 'bold',
+    },
+    
+    curatorTitle: {
+      color: onboardingTheme.curatorTitle,
+      fontSize: 14,
+      fontStyle: 'italic',
+    },
+    
+    curatorMessage: {
+      marginBottom: 20,
+    },
+    
+    curatorText: {
+      color: onboardingTheme.curatorText,
+      fontSize: 16,
+      lineHeight: 24,
+      fontStyle: 'italic',
+    },
+    
+    curatorChoice: {
+      alignItems: 'center',
+    },
+    
+    curatorChoiceText: {
+      color: onboardingTheme.curatorChoiceText,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    
+    pathsContainer: {
+      marginBottom: 40,
+    },
+    
+    pathsTitle: {
+      color: onboardingTheme.pathsTitle,
+      fontSize: 24,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    
+    pathsSubtitle: {
+      color: onboardingTheme.pathsSubtitle,
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 30,
+      fontStyle: 'italic',
+    },
+    
+    pathsGrid: {
+      gap: 25,
+    },
+    
+    pathCard: {
+      borderRadius: 16,
+      borderWidth: 2,
+      overflow: 'hidden',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 12,
+      marginBottom: 10,
+    },
+    
+    pathCardSelected: {
+      shadowOpacity: 0.8,
+      shadowRadius: 16,
+    },
+    
+    pathCardGradient: {
+      backgroundColor: onboardingTheme.pathCardGradient,
+      padding: 25,
+    },
+    
+    pathIconContainer: {
+      alignItems: 'center',
+      marginBottom: 20,
+      position: 'relative',
+    },
+    
+    pathIcon: {
+      fontSize: 50,
+      zIndex: 2,
+    },
+    
+    pathIconGlow: {
+      position: 'absolute',
+      top: -10,
+      left: -10,
+      right: -10,
+      bottom: -10,
+      borderRadius: 35,
+      opacity: 0.3,
+      zIndex: 1,
+    },
+    
+    pathHeader: {
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    
+    pathTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginBottom: 6,
+      textAlign: 'center',
+    },
+    
+    pathSubtitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    
+    pathAtmosphere: {
+      color: onboardingTheme.pathAtmosphere,
+      fontSize: 14,
+      fontStyle: 'italic',
+    },
+    
+    pathDescription: {
+      color: onboardingTheme.pathDescription,
+      fontSize: 15,
+      lineHeight: 22,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    
+    curatorNote: {
+      flexDirection: 'row',
+      backgroundColor: onboardingTheme.curatorNote,
+      borderRadius: 12,
+      padding: 15,
+      marginBottom: 20,
+      borderLeftWidth: 4,
+      borderLeftColor: onboardingTheme.curatorNoteBorder,
+    },
+    
+    curatorNoteIcon: {
+      fontSize: 16,
+      marginRight: 10,
+    },
+    
+    curatorNoteText: {
+      color: onboardingTheme.curatorNoteText,
+      fontSize: 13,
+      fontStyle: 'italic',
+      flex: 1,
+      lineHeight: 18,
+    },
+    
+    benefitsList: {
+      marginBottom: 25,
+    },
+    
+    benefitsTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    
+    benefitItem: {
+      color: onboardingTheme.benefitsList,
+      fontSize: 14,
+      lineHeight: 20,
+      marginBottom: 6,
+    },
+    
+    pathButton: {
+      borderRadius: 12,
+      padding: 18,
+      alignItems: 'center',
+      position: 'relative',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.5,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    
+    pathButtonDisabled: {
+      opacity: 0.7,
+    },
+    
+    pathButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      zIndex: 2,
+    },
+    
+    pathButtonIcon: {
+      fontSize: 18,
+      marginRight: 10,
+    },
+    
+    pathButtonText: {
+      color: onboardingTheme.pathButton,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    
+    pathButtonGlow: {
+      position: 'absolute',
+      top: -2,
+      left: -2,
+      right: -2,
+      bottom: -2,
+      borderRadius: 14,
+      opacity: 0.4,
+      zIndex: 1,
+    },
+    
+    footer: {
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    
+    footerText: {
+      color: onboardingTheme.footerText,
+      fontSize: 15,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 10,
+    },
+    
+    footerSignature: {
+      color: onboardingTheme.footerSignature,
+      fontSize: 13,
+      fontStyle: 'italic',
+    },
+    
+    // Auth Error Styles
+    authErrorContainer: {
+      flex: 1,
+      backgroundColor: onboardingTheme.authErrorContainer,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 40,
+    },
+    
+    authErrorTitle: {
+      color: onboardingTheme.authErrorTitle,
+      fontSize: 24,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    
+    authErrorText: {
+      color: onboardingTheme.authErrorText,
+      fontSize: 16,
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: 30,
+    },
+    
+    authErrorButton: {
+      backgroundColor: onboardingTheme.authErrorButton,
+      paddingHorizontal: 30,
+      paddingVertical: 15,
+      borderRadius: 12,
+    },
+    
+    authErrorButtonText: {
+      color: onboardingTheme.authErrorButtonText,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+  
+  }
+}
+
+
+
+// Helper function to generate personality-specific styles
+export const getPersonalityStyles = (primaryColor: string, secondaryColor: string, accentColor: string, theme?: ThemeColors) => {
+  const isDark = !theme || theme.archiveMode === 'dark';
+  
+  return {
+  tabBar: {
+    flexDirection: "row" as const,
+    backgroundColor: theme?.tabBar || (isDark ? "#1a1a1a" : "#ffffff"),
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: primaryColor,
+    shadowColor: primaryColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tabButtonActive: {
+    backgroundColor: `${primaryColor}20`,
+    borderColor: primaryColor,
+    shadowColor: primaryColor,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  tabTextActive: {
+    color: primaryColor,
+    fontWeight: "700" as const,
+    textShadowColor: primaryColor,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  curatorMessageCard: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    marginBottom: 20,
+    overflow: 'hidden' as const,
+  },
+  curatorName: {
+    color: theme?.archiveText || primaryColor,
+    fontSize: 16,
+    fontWeight: 'bold' as const,
+  },
+  curatorMessage: {
+    color: theme?.archiveText || '#fff',
+    fontSize: 14,
+    fontStyle: 'italic' as const,
+    lineHeight: 20,
+  },
+  personalizedGreeting: {
+    color: theme?.archiveText || primaryColor,
+    fontSize: 14,
+    fontWeight: 'bold' as const,
+    marginBottom: 4,
+  },
+  attributesContainer: {
+    marginBottom: 16,
+  },
+  echoesTitle: {
+    color: theme?.archiveText || primaryColor,
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    marginBottom: 4,
+    textAlign: 'center' as const,
+  },
+  attributeCardParchment: {
+    borderRadius: 12,
+    padding: 16,
+    width: '48%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden' as const,
+  },
+  attributeLabel: {
+    color: theme?.archiveText || primaryColor,
+    fontSize: 14,
+    fontWeight: 'bold' as const,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  questsTitle: {
+    color: theme?.archiveText || primaryColor,
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    marginBottom: 4,
+  },
+  questCard: {
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  // Wellness Foundations Card Styles
+  wellnessContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 16,
+  },
+  wellnessTitle: {
+    color: primaryColor,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  wellnessGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  wellnessItem: {
+    backgroundColor: '#23242b',
+    borderRadius: 12,
+    padding: 16,
+    width: '48%',
+    borderWidth: 1,
+    borderColor: `${primaryColor}40`,
+    alignItems: 'center',
+    shadowColor: primaryColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  wellnessIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  wellnessLabel: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  wellnessValue: {
+    color: primaryColor,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  questCompleted: {
+    shadowColor: primaryColor,
+    shadowOpacity: 0.2,
+  },
+  questTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold' as const,
+    flex: 1,
+  },
+  questProgressFill: {
+    height: '100%',
+    backgroundColor: primaryColor,
+    borderRadius: 3,
+  },
+  questProgressCompleted: {
+    backgroundColor: '#2ECC71',
+  },
+  toolsTitle: {
+    color: primaryColor,
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    marginBottom: 4,
+  },
+  toolCard: {
+    borderRadius: 8,
+    padding: 12,
+    marginRight: 12,
+    width: 120,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    alignItems: 'center' as const,
+    overflow: 'hidden' as const,
+  },
+  toolLocked: {
+    shadowColor: '#666',
+    shadowOpacity: 0.1,
+  },
+  toolName: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold' as const,
+    textAlign: 'center' as const,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  toolNameLocked: {
+    color: '#999999',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  toolDescription: {
+    color: '#cccccc',
+    fontSize: 10,
+    textAlign: 'center' as const,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  restorationTitle: {
+    color: primaryColor,
+    fontSize: 24,
+    fontWeight: 'bold' as const,
+    textAlign: 'center' as const,
+    marginBottom: 8,
+    textShadowColor: primaryColor,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  progressCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden' as const,
+  },
+  progressLabel: {
+    color: primaryColor,
+    fontSize: 14,
+    fontWeight: 'bold' as const,
+    marginBottom: 8,
+  },
+  wellnessFill: {
+    height: '100%' as any,
+    borderRadius: 3,
+  },
+  achievementCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    overflow: 'hidden' as const,
+  },
+  achievementTitle: {
+    color: accentColor,
+    fontSize: 16,
+    fontWeight: 'bold' as const,
+    marginBottom: 4,
+  },
+  codexContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: 'rgba(38, 70, 83, 0.1)',
+    borderRadius: 12,
+    margin: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden' as const,
+  },
+  codexHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  codexTitle: {
+    color: primaryColor,
+    fontSize: 24,
+    fontWeight: 'bold' as const,
+  },
+  codexCloseButton: {
+    padding: 8,
+  },
+  codexCloseText: {
+    color: primaryColor,
+    fontSize: 18,
+  },
+  codexContent: {
+    flex: 1,
+    backgroundColor: '#23242b',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden' as const,
+  },
+  codexQuestTitle: {
+    color: primaryColor,
+    fontSize: 18,
+    marginBottom: 16,
+    fontWeight: 'bold' as const,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  codexQuestDescription: {
+    color: '#cccccc',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  codexOptionsContainer: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  codexOptionButton: {
+    alignItems: 'center' as const,
+    padding: 16,
+    backgroundColor: 'rgba(42, 45, 53, 0.8)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: primaryColor,
+    shadowColor: primaryColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden' as const,
+  },
+  codexOptionIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  codexOptionText: {
+    color: primaryColor,
+    fontSize: 14,
+    fontWeight: '600' as const,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  codexFooterText: {
+    color: secondaryColor,
+    fontSize: 12,
+    textAlign: 'center' as const,
+    fontStyle: 'italic' as const,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  thoughtDefenderContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: 'rgba(38, 70, 83, 0.1)',
+    borderRadius: 12,
+    margin: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden' as const,
+  },
+  thoughtDefenderHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  thoughtDefenderTitle: {
+    color: primaryColor,
+    fontSize: 24,
+    fontWeight: 'bold' as const,
+  },
+  thoughtDefenderCloseButton: {
+    padding: 8,
+  },
+  thoughtDefenderCloseText: {
+    color: primaryColor,
+    fontSize: 18,
+  },
+  thoughtDefenderContent: {
+    flex: 1,
+    backgroundColor: '#23242b',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: "rgba(38, 70, 83, 0.01)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden' as const,
+  },
+  thoughtDefenderMainTitle: {
+    color: primaryColor,
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    marginBottom: 16,
+    textAlign: 'center' as const,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  thoughtDefenderDescription: {
+    color: '#cccccc',
+    fontSize: 16,
+    textAlign: 'center' as const,
+    marginBottom: 24,
+    lineHeight: 22,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  thoughtDefenderInstructionsContainer: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 24,
+    flexWrap: 'wrap' as const,
+  },
+  thoughtDefenderInstructionItem: {
+    alignItems: 'center' as const,
+    flex: 1,
+    minWidth: 120,
+    marginHorizontal: 8,
+  },
+  thoughtDefenderInstructionIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  thoughtDefenderInstructionText: {
+    color: primaryColor,
+    fontSize: 12,
+    textAlign: 'center' as const,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    flexWrap: 'wrap' as const,
+    flexShrink: 1,
+    paddingHorizontal: 4,
+  },
+  thoughtDefenderStartButton: {
+    backgroundColor: primaryColor,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 8,
+    shadowColor: primaryColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  thoughtDefenderStartButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold' as const,
+  },
+  thoughtDefenderFooterText: {
+    color: secondaryColor,
+    fontSize: 12,
+    textAlign: 'center' as const,
+    marginTop: 16,
+    fontStyle: 'italic' as const,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  // Header-specific styles
+  headerContainer: {
+    paddingTop: 30,
+    paddingBottom: 20,
+    paddingHorizontal: 32,
+    position: 'relative' as const,
+    borderBottomWidth: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerBackground: {
+    backgroundColor: primaryColor,
+  },
+  headerBorder: {
+    borderBottomColor: primaryColor,
+  },
+  headerShadow: {
+    shadowColor: primaryColor,
+  },
+  backgroundElements: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row' as const,
+    justifyContent: 'space-around' as const,
+    alignItems: 'center' as const,
+    opacity: 0.1,
+  },
+  backgroundRune: {
+    fontSize: 60,
+    transform: [{ rotate: '15deg' }],
+    color: secondaryColor,
+  },
+  headerContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 18,
+  },
+  leftSection: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flex: 1,
+  },
+  avatarContainer: {
+    position: 'relative' as const,
+    marginRight: 12,
+  },
+  avatarIcon: {
+    fontSize: 48,
+    zIndex: 2,
+  },
+  avatarGlow: {
+    position: 'absolute' as const,
+    top: -5,
+    left: -5,
+    right: -5,
+    bottom: -5,
+    borderRadius: 35,
+    opacity: 0.3,
+    zIndex: 1,
+    backgroundColor: accentColor,
+  },
+  scholarInfo: {
+    flex: 1,
+  },
+  scholarRank: {
+    fontSize: 12,
+    fontWeight: 'bold' as const,
+    letterSpacing: 1,
+    marginBottom: 2,
+    color: primaryColor,
+  },
+  scholarClass: {
+    fontSize: 16,
+    fontWeight: 'bold' as const,
+    marginBottom: 2,
+    color: accentColor,
+  },
+  scholarLevel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  rightSection: {
+    flex: 1,
+    alignItems: 'flex-end' as const,
+  },
+  gameInfo: {
+    alignItems: 'flex-end' as const,
+  },
+  archiveLabel: {
+    fontSize: 10,
+    fontWeight: 'bold' as const,
+    letterSpacing: 2,
+    marginBottom: 2,
+    color: primaryColor,
+  },
+  gameTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold' as const,
+    textAlign: 'right' as const,
+    marginBottom: 2,
+  },
+  archiveSection: {
+    color: '#ccc',
+    fontSize: 12,
+    fontWeight: '600' as const,
+    textAlign: 'right' as const,
+    marginBottom: 4,
+  },
+  curatorNote: {
+    color: '#ccc',
+    fontSize: 11,
+    fontStyle: 'italic' as const,
+    textAlign: 'right' as const,
+  },
+  journeySection: {
+    marginTop: 10,
+  },
+  journeyIndicator: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginBottom: 15,
+    padding: 16,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    backgroundColor: `${primaryColor}20`,
+    borderLeftColor: primaryColor,
+  },
+  journeyIcon: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+  journeyText: {
+    color: '#ccc',
+    fontSize: 13,
+    fontStyle: 'italic' as const,
+    flex: 1,
+  },
+  mindStateContainer: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    marginHorizontal: 4,
+  },
+  mindState: {
+    alignItems: 'center' as const,
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  mindStateIcon: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  mindStateLabel: {
+    fontSize: 10,
+    fontWeight: 'bold' as const,
+    marginBottom: 6,
+    color: secondaryColor,
+  },
+  mindStateBar: {
+    width: '100%' as any,
+    height: 4,
+    backgroundColor: 'rgba(78, 230, 230, 0.2)',
+    borderRadius: 2,
+    overflow: 'hidden' as const,
+  },
+  mindStateProgress: {
+    height: '100%' as any,
+    borderRadius: 2,
+    backgroundColor: secondaryColor,
+  },
+  mysticalBorder: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2 as any,
+    backgroundColor: accentColor,
+  },
+  // Additional styles needed for components
+  curatorHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  curatorAvatar: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  curatorInfo: {
+    flex: 1,
+  },
+  curatorTitle: {
+    color: '#ccc',
+    fontSize: 12,
+    fontStyle: 'italic' as const,
+  },
+  dailyLabel: {
+    color: accentColor,
+    fontSize: 10,
+    fontWeight: 'bold' as const,
+    letterSpacing: 1,
+  },
+  messageContent: {
+    marginBottom: 10,
+  },
+  expandedContent: {
+    borderTopWidth: 1,
+    borderTopColor: `${primaryColor}30`,
+    paddingTop: 15,
+  },
+  expandedHint: {
+    color: accentColor,
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  expandedFooter: {
+    color: '#999',
+    fontSize: 11,
+    fontStyle: 'italic' as const,
+  },
+  attributesGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    justifyContent: 'space-between',
+  },
+  attributeBarMagic: {
+    height: 6,
+    backgroundColor: 'rgba(78, 230, 230, 0.2)',
+    borderRadius: 3,
+    marginVertical: 8,
+    overflow: 'hidden' as const,
+  },
+  attributeProgressMagic: {
+    height: '100%' as any,
+    borderRadius: 3,
+  },
+  attributeValue: {
+    color: '#ccc',
+    fontSize: 12,
+    textAlign: 'center' as const,
+    marginBottom: 8,
+  },
+  curatorNoteText: {
+    color: accentColor,
+  },
+  questsContainer: {
+    marginBottom: 20,
+  },
+  questDescription: {
+    color: '#ccc',
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  questProgress: {
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+  },
+  questProgressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(78, 230, 230, 0.2)',
+    borderRadius: 2,
+    marginRight: 10,
+    overflow: 'hidden' as const,
+  },
+
+  questProgressText: {
+    color: '#ccc',
+    fontSize: 12,
+    fontWeight: '600' as const,
+  },
+  toolsContainer: {
+    marginBottom: 20,
+  },
+};
+};
+
 type StyleGuide = {
-  [key: string]: ViewStyle | TextStyle | ImageStyle;
+  [key: string]: ViewStyle | TextStyle | ImageStyle | any;
 }
 
 export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } => {
-  return StyleSheet.create({
-
-     // ===== NEW 8-BIT STYLES =====
-     rpgHeader: {
-      paddingTop: 40,
-      paddingBottom: 10,
-      paddingHorizontal: 10,
-      backgroundColor: theme.archiveBackground,
-      borderBottomWidth: 4,
-      borderBottomColor: '#000',
-  },
-  rpgHeaderContent: {
-      padding: 10,
-      backgroundColor: theme.archiveCard,
-      borderWidth: 4,
-      borderColor: '#000',
-      flexDirection: 'row',
-      alignItems: 'center',
-  },
-  rpgHeaderIconContainer: {
-      width: 48,
-      height: 48,
-      backgroundColor: '#000',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 10,
-      // Pixelated look by having no border-radius
-  },
-  rpgHeaderTextContainer: {
-      flex: 1,
-  },
-  rpgHeaderTitle: {
-      fontFamily: FONT_FAMILY_PIXEL,
-      color: theme.archiveAccent,
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginBottom: 4,
-  },
-  rpgHeaderSubtitle: {
-      fontFamily: FONT_FAMILY_PIXEL,
-      color: theme.archiveText,
-      fontSize: 10,
-      lineHeight: 14,
-  },
+  return StyleSheet.create({ 
 
     container: {
       flex: 1,
@@ -114,7 +1592,7 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       marginVertical: 8,
     },
     buttonText: {
-      color: '#FFFFFF',
+      color: theme.buttonTextColor,
       fontSize: 16,
       fontWeight: '600',
     },
@@ -141,16 +1619,17 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
     },
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: theme.modalOverlayBackground,
       justifyContent: 'center',
       alignItems: 'center',
     },
     modalpassages: {
       backgroundColor: theme.card,
       borderRadius: 24,
-      padding: 32,
+      padding: width < 768 ? 20 : 32,
       alignItems: 'center',
-      maxWidth: 350,
+      maxWidth: width < 768 ? width * 0.95 : 350,
+      width: width < 768 ? width * 0.95 : 350,
     },
 
     // Character Creator Styles
@@ -182,7 +1661,7 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
  
     archivepassages: {
       flex: 1,
-      paddingTop: 40,
+      paddingTop: 10,
     },
     archiveTabpassagesContainer: {
       flex: 1,
@@ -195,7 +1674,7 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
     // Archive Header
     archiveHeader: {
       padding: 20,
-      paddingTop: 40, // More space for status bar
+      paddingTop: 10, // Further reduced space for status bar
       backgroundColor: 'transparent',
       borderBottomWidth: 2,
       borderBottomColor: theme.archiveBorder,
@@ -618,10 +2097,10 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      padding: 24,
+      padding: 20,
       minHeight: 300,
       backgroundColor: 'rgba(30, 41, 59, 0.5)',
-      borderRadius: 16,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: theme.archiveBorder,
     },
@@ -643,8 +2122,8 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
 
     // Archive Character Display
     archiveCharacterFrame: {
-      width: 180,
-      height: 240,
+      width: 210,
+      height: 195,
       borderRadius: 20,
       padding: 3,
       marginBottom: 12,
@@ -659,8 +2138,8 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       alignItems: 'center',
     },
     archiveCharacterPreview: {
-      width: 170,
-      height: 230,
+      width: 210,
+      height: 195,
       position: 'relative',
       justifyContent: 'center',
       alignItems: 'center',
@@ -870,21 +2349,29 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
     },
     characterDisplaySection: {
       flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
       marginBottom: 16,
+      paddingHorizontal: 6,
+      maxWidth: '100%',
+      overflow: 'hidden',
+      minHeight: width < 768 ? 160 : 200,
     },
     gearColumn: {
-      justifyContent: 'space-between',
-      height: 200,
-      marginHorizontal: 8,
+      justifyContent: 'flex-start',
+      height: width < 768 ? 140 : 180,
+      width: width < 768 ? 45 : 55,
+      marginHorizontal: width < 768 ? 2 : 3,
+      flexShrink: 0,
+      minWidth: width < 768 ? 45 : 55,
+      paddingTop: width < 768 ? 8 : 12,
     },
     gearSlot: {
-      width: 60,
-      height: 60,
-      borderRadius: 12,
+      width: '100%',
+      height: width < 768 ? 45 : 55,
+      borderRadius: width < 768 ? 8 : 10,
       overflow: 'hidden',
-      marginVertical: 8,
+      marginVertical: width < 768 ? 6 : 8,
     },
     gearSlotGradient: {
       flex: 1,
@@ -894,8 +2381,8 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       borderColor: 'rgba(217, 119, 6, 0.3)',
     },
     gearIcon: {
-      width: 36,
-      height: 36,
+      width: width < 768 ? 30 : 36,
+      height: width < 768 ? 30 : 36,
     },
     emptyGearSlot: {
       alignItems: 'center',
@@ -903,26 +2390,37 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       width: '100%',
       height: '100%',
     },
+    equippedGearSlot: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(6, 182, 212, 0.1)',
+      borderRadius: 8,
+    },
     gearSlotIcon: {
-      fontSize: 18,
-      marginBottom: 2,
+      fontSize: width < 768 ? 14 : 16,
+      marginBottom: 1,
     },
     gearSlotLabel: {
       color: '#9CA3AF',
-      fontSize: 8,
+      fontSize: width < 768 ? 6 : 7,
       textAlign: 'center',
       fontWeight: '600',
+      lineHeight: width < 768 ? 8 : 9,
     },
     centralCharacterDisplay: {
       alignItems: 'center',
-      marginHorizontal: 16,
+      marginHorizontal: width < 768 ? 4 : 6,
+      flex: 1,
+      minWidth: 0,
     },
     characterFrame: {
-      width: 180,
-      height: 240,
-      borderRadius: 20,
+      width: width < 768 ? 180 : 210,
+      height: width < 768 ? 165 : 195,
+      borderRadius: width < 768 ? 18 : 20,
       padding: 3,
-      marginBottom: 12,
+      marginBottom: width < 768 ? 10 : 12,
     },
     characterFrameInner: {
       flex: 1,
@@ -934,16 +2432,16 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       alignItems: 'center',
     },
     fullCharacterPreview: {
-      width: 170,
-      height: 230,
+      width: width < 768 ? 145 : 170,
+      height: width < 768 ? 195 : 230,
       position: 'relative',
       justifyContent: 'center',
       alignItems: 'center',
     },
     fullCharacterLayer: {
       position: 'absolute',
-      width: 170,
-      height: 230,
+      width: width < 768 ? 145 : 170,
+      height: width < 768 ? 195 : 230,
       resizeMode: 'contain',
     },
     characterLevelBadge: {
@@ -1164,10 +2662,10 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       marginBottom: 8,
     },
     foundationsTitle: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: 'bold',
       color: '#10B981',
-      marginHorizontal: 12,
+      marginHorizontal: 10,
       textAlign: 'center',
     },
     foundationsSubtitle: {
@@ -1185,16 +2683,16 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
     },
     foundationCard: {
       width: '48%',
-      marginBottom: 16,
+      marginBottom: 8,
       borderRadius: 12,
       overflow: 'hidden',
     },
     foundationCardGradient: {
-      padding: 16,
+      padding: 12,
       alignItems: 'center',
       borderWidth: 1,
       borderColor: 'rgba(217, 119, 6, 0.2)',
-      minHeight: 180,
+      minHeight: 140,
     },
     foundationIconContainer: {
       position: 'relative',
@@ -1241,7 +2739,7 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
     },
     foundationProgressContainer: {
       width: '100%',
-      marginBottom: 8,
+      marginBottom: 6,
     },
     foundationProgressBar: {
       width: '100%',
@@ -1741,13 +3239,11 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       fontSize: 10,
     },
     centeredMessageContainer: {
-      flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      padding: 24,
-      minHeight: 300,
+      padding: 16,
       backgroundColor: 'rgba(30, 41, 59, 0.5)',
-      borderRadius: 16,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: theme.archiveBorder,
     },
@@ -1788,6 +3284,8 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       marginLeft: 10,
     },
 
+
+
     // ===== STORY/STORY SCREEN STYLES =====
     StoryModalOverlay: {
       flex: 1,
@@ -1809,6 +3307,7 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       shadowOpacity: 0.5,
       shadowRadius: 15,
       elevation: 20,
+      flex: 1,
     },
     StoryHeader: {
       paddingBottom: 16,
@@ -1912,11 +3411,12 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
       fontStyle: 'italic',
     },
     StoryChoicesContainer: {
-      gap: 12,
+      gap: 5,
+      marginLeft: 10,
     },
     StoryChoiceButton: {
       backgroundColor: theme.archiveCard,
-      padding: 16,
+      padding: -3,
       borderRadius: 8,
       borderWidth: 1,
       borderColor: theme.archiveBorder,
@@ -2585,7 +4085,7 @@ characterCreatorNameInput: {
   color: theme.archiveText,
   fontSize: 18,
   fontWeight: 'bold',
-  marginBottom: 12,
+  marginBottom: 2,
   borderBottomWidth: 2,
   borderBottomColor: theme.archiveBorder,
   paddingVertical: 8,
@@ -2610,10 +4110,12 @@ characterCreatorNameInput: {
     paddingVertical: 12,
   },
     characterCreatorPreviewSection: {
-      flex: 1.5,
+      flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
       paddingRight: 8,
+      minHeight: 200, // Reduced from 300 to allow smaller character
+      maxHeight: 350, // Reduced from 500 to prevent excessive sizing
     },
     characterCreatorColorSection: {
       flex: 1,
@@ -3035,14 +4537,19 @@ characterCreatorNameInput: {
       marginBottom: 16,
     },
     personalityStoryCard: {
-      backgroundColor: "rgba(35, 36, 43, 0.3)",
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: 8,
+      marginHorizontal: 16,
       marginBottom: 16,
-      borderWidth: 1,
-      borderColor: "rgba(51, 51, 51, 0.5)",
-      borderLeftWidth: 4,
-      borderLeftColor: "rgba(78, 230, 230, 0.6)",
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 12,
+      paddingBottom: 12,
+      shadowColor: "rgba(38, 70, 83, 0.01)",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+      overflow: 'hidden',
     },
     personalityStoryCardHeader: {
       flexDirection: "row",
@@ -3210,8 +4717,12 @@ characterCreatorNameInput: {
       textAlign: 'center',
     },
     personalityStoryCardGradient: {
-      padding: 16,
-      borderRadius: 12,
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: 8,
+      overflow: 'hidden',
     },
     personalityStoryCardTitle: {
       color: "#fff",
@@ -3301,9 +4812,7 @@ characterCreatorNameInput: {
     personalityStoryGrid: {
       paddingBottom: 20,
     },
-    personalityStoryCardBlur: {
-      borderRadius: 12,
-    },
+
     personalityStoryRarityBorder: {
       position: 'absolute',
       top: 0,
@@ -3312,6 +4821,7 @@ characterCreatorNameInput: {
       bottom: 0,
       borderRadius: 12,
       borderWidth: 2,
+      opacity: 0.8,
     },
     personalityStoryLockOverlay: {
       position: 'absolute',
@@ -3870,7 +5380,7 @@ characterCreatorNameInput: {
 
     // ===== PERSONALITY HEADER STYLES =====
     personalityHeaderContainer: {
-      paddingTop: 45,
+      paddingTop: 30,
       paddingBottom: 20,
       paddingHorizontal: 20,
       position: 'relative',
@@ -4486,3 +5996,589 @@ characterCreatorNameInput: {
     },
   });
 };
+
+// ===== STANDARDIZED STYLE PATTERNS =====
+
+
+// Standard gradient patterns
+const standardGradients = {
+  primary: ["rgba(10, 11, 15, 0.95)", "rgba(30, 41, 59, 0.8)", "rgba(10, 11, 15, 0.95)"],
+  secondary: ["rgba(10, 11, 15, 0.9)", "rgba(30, 41, 59, 0.7)", "rgba(10, 11, 15, 0.9)"],
+  accent: ["rgba(78, 230, 230, 0.1)", "rgba(78, 230, 230, 0.05)", "rgba(78, 230, 230, 0.1)"],
+  success: ["#10B981", "#059669"],
+  warning: ["#FCD34D", "#F59E0B"],
+  error: ["#EF4444", "#DC2626"],
+  info: ["#06B6D4", "#0891B2"],
+  purple: ["#A855F7", "#9333EA"],
+  gold: ["#FCD34D", "#F59E0B"],
+};
+
+// Standard shadow patterns
+const standardShadows = {
+  subtle: {
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  strong: {
+    shadowColor: 'rgba(0, 0, 0, 0.3)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  accent: (color: string) => ({
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  }),
+  accentStrong: (color: string) => ({
+    shadowColor: color,
+    shadowOffset: { width: 2, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+  }),
+};
+
+// Standard border patterns
+const standardBorders = {
+  subtle: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  medium: {
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  accent: (color: string) => ({
+    borderWidth: 1,
+    borderColor: color,
+  }),
+  accentStrong: (color: string) => ({
+    borderWidth: 2,
+    borderColor: color,
+  }),
+};
+
+// Standard text shadow patterns
+const standardTextShadows = {
+  subtle: {
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  medium: {
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  accent: (color: string) => ({
+    textShadowColor: color,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  }),
+  accentStrong: (color: string) => ({
+    textShadowColor: color,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  }),
+};
+
+// Standard card patterns
+const createCardStyles = (theme: ThemeColors) => ({
+  // Basic card with gradient
+  card: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  cardGradient: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.archiveBorder,
+  },
+  cardGradientAccent: (accentColor: string) => ({
+    padding: 16,
+    borderWidth: 1,
+    borderColor: accentColor,
+  }),
+  
+  // Foundation cards (2-column grid)
+  foundationCard: {
+    width: '48%',
+    marginBottom: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  foundationCardGradient: {
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 119, 6, 0.2)',
+    minHeight: 140,
+  },
+  foundationCardGradientAccent: (accentColor: string) => ({
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: accentColor,
+    minHeight: 140,
+  }),
+  
+  // Section cards
+  sectionCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  sectionCardGradient: {
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 119, 6, 0.3)',
+  },
+  sectionCardGradientAccent: (accentColor: string) => ({
+    padding: 20,
+    borderWidth: 1,
+    borderColor: accentColor,
+  }),
+});
+
+// Standard text patterns
+const createTextStyles = (theme: ThemeColors) => ({
+  // Title hierarchy
+  titleLarge: {
+    fontFamily: FONT_FAMILY_TITLE,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: theme.archiveAccent,
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: 1,
+    ...engravedText,
+  },
+  titleMedium: {
+    fontFamily: FONT_FAMILY_TITLE,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.archiveAccent,
+    textAlign: 'center',
+    marginBottom: 12,
+    letterSpacing: 1,
+    ...engravedText,
+  },
+  titleSmall: {
+    fontFamily: FONT_FAMILY_TITLE,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.archiveAccent,
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: 1,
+    ...engravedText,
+  },
+  
+  // Subtitle hierarchy
+  subtitleLarge: {
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.archiveAccentSecondary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitleMedium: {
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.archiveAccentSecondary,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  subtitleSmall: {
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.archiveAccentSecondary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  
+  // Body text hierarchy
+  bodyLarge: {
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 16,
+    color: theme.archiveText,
+    lineHeight: 24,
+  },
+  bodyMedium: {
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 14,
+    color: theme.archiveText,
+    lineHeight: 20,
+  },
+  bodySmall: {
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 12,
+    color: theme.archiveText,
+    lineHeight: 16,
+  },
+  
+  // Caption text
+  caption: {
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 10,
+    color: theme.archiveSubtext,
+    fontStyle: 'italic',
+  },
+  
+  // Accent text variations
+  accentText: (color: string) => ({
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 14,
+    fontWeight: '600',
+    color: color,
+  }),
+  accentTextLarge: (color: string) => ({
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 16,
+    fontWeight: '600',
+    color: color,
+  }),
+  accentTextSmall: (color: string) => ({
+    fontFamily: FONT_FAMILY_BODY,
+    fontSize: 12,
+    fontWeight: '600',
+    color: color,
+  }),
+});
+
+// Standard button patterns
+const createButtonStyles = (theme: ThemeColors) => ({
+  // Primary buttons
+  buttonPrimary: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    minWidth: 200,
+  },
+  buttonPrimaryGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  buttonPrimaryText: {
+    color: '#E0E7FF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  
+  // Secondary buttons
+  buttonSecondary: {
+    backgroundColor: 'transparent',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.archiveSubtext,
+  },
+  buttonSecondaryText: {
+    color: theme.archiveSubtext,
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  
+  // Small buttons
+  buttonSmall: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  buttonSmallGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  buttonSmallText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 6,
+    color: '#E0E7FF',
+  },
+  
+  // Interactive buttons
+  buttonInteractive: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    activeOpacity: 0.8,
+  },
+  buttonInteractiveGradient: (accentColor: string) => ({
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: accentColor,
+  }),
+  buttonInteractiveText: (color: string) => ({
+    color: color,
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  }),
+});
+
+// Standard progress bar patterns
+const createProgressStyles = (theme: ThemeColors) => ({
+  // Basic progress bars
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(55, 65, 81, 0.5)',
+    borderRadius: 4,
+    marginBottom: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  progressBarSmall: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(55, 65, 81, 0.5)',
+    borderRadius: 3,
+    marginBottom: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  progressBarTiny: {
+    width: '100%',
+    height: 4,
+    backgroundColor: 'rgba(55, 65, 81, 0.5)',
+    borderRadius: 2,
+    marginBottom: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  
+  // Progress fills
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressFillSmall: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressFillTiny: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  
+  // Progress segments
+  progressSegment: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1,
+    backgroundColor: 'rgba(55, 65, 81, 0.8)',
+  },
+  progressSegmentActive: {
+    backgroundColor: 'rgba(252, 211, 77, 0.6)',
+  },
+});
+
+// Standard badge patterns
+const createBadgeStyles = (theme: ThemeColors) => ({
+  // Basic badges
+  badge: {
+    backgroundColor: 'rgba(139, 92, 246, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeText: {
+    color: '#DDD6FE',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  
+  // Status badges
+  badgeStatus: {
+    backgroundColor: 'rgba(75, 85, 99, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  badgeStatusText: {
+    color: theme.archiveSubtext,
+    fontSize: 9,
+  },
+  
+  // Success badges
+  badgeSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  badgeSuccessText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  
+  // Warning badges
+  badgeWarning: {
+    backgroundColor: 'rgba(251, 191, 36, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  badgeWarningText: {
+    color: '#F59E0B',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  
+  // Custom color badges
+  badgeCustom: (backgroundColor: string, textColor: string) => ({
+    backgroundColor: backgroundColor,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  }),
+  badgeCustomText: (color: string) => ({
+    color: color,
+    fontSize: 10,
+    fontWeight: 'bold',
+  }),
+});
+
+// Standard layout patterns
+const createLayoutStyles = (theme: ThemeColors) => ({
+  // Grid layouts
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  gridTwoColumn: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  gridColumn: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  
+  // Centered layouts
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centeredMessage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(30, 41, 59, 0.5)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.archiveBorder,
+  },
+  
+  // Section layouts
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  sectionContent: {
+    padding: 16,
+  },
+});
+
+// Standard interactive patterns
+const createInteractiveStyles = (theme: ThemeColors) => ({
+  // Touchable elements
+  touchable: {
+    activeOpacity: 0.8,
+  },
+  touchableCard: {
+    activeOpacity: 0.8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  
+  // Interactive indicators
+  interactiveIndicator: (color: string) => ({
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: color,
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
+    elevation: 2,
+  }),
+  
+  // Hover effects (for web)
+  hoverEffect: {
+    transform: [{ scale: 1.02 }],
+  },
+});
+
+// Export all standardized patterns
+export const getStandardizedStyles = (theme: ThemeColors) => ({
+  gradients: standardGradients,
+  shadows: standardShadows,
+  borders: standardBorders,
+  textShadows: standardTextShadows,
+  cards: createCardStyles(theme),
+  text: createTextStyles(theme),
+  buttons: createButtonStyles(theme),
+  progress: createProgressStyles(theme),
+  badges: createBadgeStyles(theme),
+  layout: createLayoutStyles(theme),
+  interactive: createInteractiveStyles(theme),
+});
+
+// Combined function to get both global styles and standardized patterns
+export const getCompleteStyles = (theme: ThemeColors) => {
+  const globalStyles = createGlobalStyles(theme);
+  const standardizedStyles = getStandardizedStyles(theme);
+  
+  return {
+    ...globalStyles,
+    std: standardizedStyles,
+  };
+};  

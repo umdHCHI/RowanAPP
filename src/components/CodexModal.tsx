@@ -313,14 +313,22 @@ const CodexModal = ({
               <View
                 style={[
                   globalStyles.codexHeader,
-                  { borderBottomColor: theme.theme.archiveBorder },
+                  { borderBottomColor: '#d4af37' },
                   isMobile && { paddingTop: 32, paddingHorizontal: 16 },
                 ]}
               >
                 <Text
                   style={[
                     globalStyles.codexTitle,
-                    { color: theme.theme.archiveText },
+                    { 
+                      color: '#4ee6e6',
+                      fontSize: 28,
+                      fontWeight: 'bold',
+                      letterSpacing: 3,
+                      textShadowColor: 'rgba(78, 230, 230, 0.5)',
+                      textShadowOffset: { width: 0, height: 2 },
+                      textShadowRadius: 8,
+                    },
                   ]}
                 >
                   📖 The Codex
@@ -329,7 +337,7 @@ const CodexModal = ({
                   onPress={onClose}
                   style={globalStyles.codexCloseButton}
                 >
-                  <Ionicons name="close" size={24} color={theme.theme.archiveText} />
+                  <Ionicons name="close" size={24} color="#4ee6e6" />
                 </TouchableOpacity>
               </View>
 
@@ -337,15 +345,29 @@ const CodexModal = ({
                 <TouchableOpacity
                   style={[
                     globalStyles.codexTypeButton,
-                    selectedTypeState === "journal" &&
-                      globalStyles.codexSelectedType,
+                    selectedTypeState === "journal" && {
+                      backgroundColor: 'rgba(78, 230, 230, 0.2)',
+                      borderColor: '#4ee6e6',
+                      borderWidth: 2,
+                      shadowColor: '#4ee6e6',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.4,
+                      shadowRadius: 8,
+                      elevation: 8,
+                    },
                   ]}
                   onPress={() => setSelectedTypeState("journal")}
                 >
                   <Text
                     style={[
                       globalStyles.codexTypeText,
-                      { color: theme.theme.archiveText },
+                      { 
+                        color: selectedTypeState === "journal" ? '#4ee6e6' : '#d4af37',
+                        fontWeight: selectedTypeState === "journal" ? 'bold' : '600',
+                        textShadowColor: selectedTypeState === "journal" ? 'rgba(78, 230, 230, 0.5)' : 'rgba(212, 175, 55, 0.3)',
+                        textShadowOffset: { width: 0, height: 2 },
+                        textShadowRadius: 4,
+                      },
                     ]}
                   >
                     📝 Journal
@@ -354,14 +376,29 @@ const CodexModal = ({
                 <TouchableOpacity
                   style={[
                     globalStyles.codexTypeButton,
-                    selectedTypeState === "draw" && globalStyles.codexSelectedType,
+                    selectedTypeState === "draw" && {
+                      backgroundColor: 'rgba(78, 230, 230, 0.2)',
+                      borderColor: '#4ee6e6',
+                      borderWidth: 2,
+                      shadowColor: '#4ee6e6',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.4,
+                      shadowRadius: 8,
+                      elevation: 8,
+                    },
                   ]}
                   onPress={() => setSelectedTypeState("draw")}
                 >
                   <Text
                     style={[
                       globalStyles.codexTypeText,
-                      { color: theme.theme.archiveText },
+                      { 
+                        color: selectedTypeState === "draw" ? '#4ee6e6' : '#d4af37',
+                        fontWeight: selectedTypeState === "draw" ? 'bold' : '600',
+                        textShadowColor: selectedTypeState === "draw" ? 'rgba(78, 230, 230, 0.5)' : 'rgba(212, 175, 55, 0.3)',
+                        textShadowOffset: { width: 0, height: 2 },
+                        textShadowRadius: 4,
+                      },
                     ]}
                   >
                     🎨 Draw
@@ -370,14 +407,29 @@ const CodexModal = ({
                 <TouchableOpacity
                   style={[
                     globalStyles.codexTypeButton,
-                    selectedTypeState === "voice" && globalStyles.codexSelectedType,
+                    selectedTypeState === "voice" && {
+                      backgroundColor: 'rgba(78, 230, 230, 0.2)',
+                      borderColor: '#4ee6e6',
+                      borderWidth: 2,
+                      shadowColor: '#4ee6e6',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.4,
+                      shadowRadius: 8,
+                      elevation: 8,
+                    },
                   ]}
                   onPress={() => setSelectedTypeState("voice")}
                 >
                   <Text
                     style={[
                       globalStyles.codexTypeText,
-                      { color: theme.theme.archiveText },
+                      { 
+                        color: selectedTypeState === "voice" ? '#4ee6e6' : '#d4af37',
+                        fontWeight: selectedTypeState === "voice" ? 'bold' : '600',
+                        textShadowColor: selectedTypeState === "voice" ? 'rgba(78, 230, 230, 0.5)' : 'rgba(212, 175, 55, 0.3)',
+                        textShadowOffset: { width: 0, height: 2 },
+                        textShadowRadius: 4,
+                      },
                     ]}
                   >
                     🎤 Voice
@@ -396,7 +448,15 @@ const CodexModal = ({
                   <Text
                     style={[
                       globalStyles.codexSectionTitle,
-                      { color: theme.theme.archiveText },
+                      { 
+                        color: '#4ee6e6',
+                        fontSize: 20,
+                        fontWeight: 'bold',
+                        letterSpacing: 2,
+                        textShadowColor: 'rgba(78, 230, 230, 0.5)',
+                        textShadowOffset: { width: 0, height: 2 },
+                        textShadowRadius: 4,
+                      },
                       isMobile && { fontSize: 16, marginBottom: 8 }
                     ]}
                   >
@@ -411,14 +471,28 @@ const CodexModal = ({
                         style={[
                           globalStyles.codexPromptItem,
                           globalStyles.codexSelectedPrompt,
-                          isMobile && { padding: 8, marginBottom: 4 }
+                          isMobile && { padding: 8, marginBottom: 4 },
+                          {
+                            borderColor: '#d4af37',
+                            borderWidth: 2,
+                            shadowColor: '#d4af37',
+                            shadowOffset: { width: 2, height: 6 },
+                            shadowOpacity: 0.4,
+                            shadowRadius: 12,
+                            elevation: 12,
+                          }
                         ]}
                         onPress={() => setSelectedPrompt(currentPrompt)}
                       >
                         <Text
                           style={[
                             globalStyles.codexPromptText,
-                            { color: theme.theme.archiveText },
+                            { 
+                              color: '#ffe066',
+                              fontSize: 14,
+                              fontWeight: '600',
+                              lineHeight: 20,
+                            },
                             isMobile && { fontSize: 14, lineHeight: 18 }
                           ]}
                         >
@@ -428,7 +502,14 @@ const CodexModal = ({
                           <Text
                             style={[
                               globalStyles.codexSkillCategory,
-                              { color: theme.theme.archiveAccent },
+                              { 
+                                color: '#4ee6e6',
+                                fontSize: 12,
+                                fontWeight: 'bold',
+                                textShadowColor: 'rgba(78, 230, 230, 0.3)',
+                                textShadowOffset: { width: 0, height: 1 },
+                                textShadowRadius: 2,
+                              },
                               isMobile && { fontSize: 12 }
                             ]}
                           >
@@ -437,7 +518,12 @@ const CodexModal = ({
                           <Text
                             style={[
                               globalStyles.codexDifficulty,
-                              { color: theme.theme.archiveSubtext },
+                              { 
+                                color: '#d4af37',
+                                fontSize: 12,
+                                fontStyle: 'italic',
+                                fontWeight: '600',
+                              },
                               isMobile && { fontSize: 12 }
                             ]}
                           >
@@ -447,7 +533,7 @@ const CodexModal = ({
                         {/* Hide difficulty badges on mobile to save space */}
                         {!isMobile && (
                           <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={{ color: theme.theme.archiveSubtext, fontSize: 10, marginRight: 8 }}>
+                            <Text style={{ color: '#d4af37', fontSize: 10, marginRight: 8, fontStyle: 'italic' }}>
                               Available difficulties:
                             </Text>
                             {['Beginner', 'Intermediate', 'Advanced'].map((difficulty) => {
@@ -463,13 +549,13 @@ const CodexModal = ({
                                     marginRight: 4,
                                     borderRadius: 4,
                                     backgroundColor: isAvailable 
-                                      ? theme.theme.archiveAccent 
+                                      ? '#4ee6e6' 
                                       : 'rgba(255,255,255,0.1)',
                                     opacity: isAvailable ? 1 : 0.3
                                   }}
                                 >
                                   <Text style={{
-                                    color: isAvailable ? '#fff' : theme.theme.archiveSubtext,
+                                    color: isAvailable ? '#0a0b0f' : '#d4af37',
                                     fontSize: 8,
                                     fontWeight: '600'
                                   }}>
@@ -484,12 +570,26 @@ const CodexModal = ({
                     ) : (
                       <View style={[
                         globalStyles.codexPromptItem,
-                        isMobile && { padding: 8, marginBottom: 4 }
+                        isMobile && { padding: 8, marginBottom: 4 },
+                        {
+                          borderColor: '#d4af37',
+                          borderWidth: 1,
+                          shadowColor: '#d4af37',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 4,
+                          elevation: 4,
+                        }
                       ]}>
                         <Text
                           style={[
                             globalStyles.codexPromptText,
-                            { color: theme.theme.archiveSubtext },
+                            { 
+                              color: '#d4af37',
+                              fontSize: 14,
+                              fontStyle: 'italic',
+                              lineHeight: 20,
+                            },
                             isMobile && { fontSize: 14, lineHeight: 18 }
                           ]}
                         >
@@ -501,10 +601,18 @@ const CodexModal = ({
                           <TouchableOpacity
                             style={{
                               marginTop: 12,
-                              padding: 8,
-                              backgroundColor: theme.theme.archiveAccent,
-                              borderRadius: 6,
-                              alignSelf: 'flex-start'
+                              paddingVertical: 8,
+                              paddingHorizontal: 16,
+                              backgroundColor: '#4ee6e6',
+                              borderRadius: 20,
+                              alignSelf: 'flex-start',
+                              borderWidth: 2,
+                              borderColor: '#4ee6e6',
+                              shadowColor: '#4ee6e6',
+                              shadowOffset: { width: 0, height: 4 },
+                              shadowOpacity: 0.4,
+                              shadowRadius: 8,
+                              elevation: 8,
                             }}
                             onPress={() => {
                               // Retry loading prompts
@@ -523,7 +631,14 @@ const CodexModal = ({
                               loadPrompts();
                             }}
                           >
-                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+                            <Text style={{ 
+                              color: '#0a0b0f', 
+                              fontSize: 12, 
+                              fontWeight: 'bold',
+                              textShadowColor: 'rgba(10, 11, 15, 0.3)',
+                              textShadowOffset: { width: 0, height: 1 },
+                              textShadowRadius: 2,
+                            }}>
                               Retry Loading
                             </Text>
                           </TouchableOpacity>
@@ -545,7 +660,17 @@ const CodexModal = ({
                     <TextInput
                       style={[
                         globalStyles.codexJournalInput,
-                        { color: theme.theme.archiveText },
+                        { 
+                          color: '#2c1810',
+                          backgroundColor: 'rgba(244, 241, 232, 0.95)',
+                          borderColor: '#d4af37',
+                          borderWidth: 2,
+                          shadowColor: '#8b4513',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 4,
+                          elevation: 4,
+                        },
                         isMobile && { 
                           flex: 1, 
                           minHeight: 100,
@@ -555,9 +680,7 @@ const CodexModal = ({
                       ]}
                       multiline
                       placeholder="Write your thoughts here..."
-                      placeholderTextColor={
-                        theme.theme.archiveMode === "dark" ? "#e0d6c3" : "#7a5c2e"
-                      }
+                      placeholderTextColor="#5d4037"
                       value={passages}
                       onChangeText={setpassages}
                     />
@@ -614,11 +737,19 @@ const CodexModal = ({
                   (!selectedPrompt || !passages) &&
                     globalStyles.codexDisabledButton,
                   {
-                    borderColor: theme.theme.archiveBorder,
-                    backgroundColor:
-                      theme.theme.archiveMode === "dark"
-                        ? "rgba(0,0,0,0.1)"
-                        : "rgba(255,255,255,0.1)",
+                    borderColor: '#4ee6e6',
+                    borderWidth: 2,
+                    backgroundColor: (!selectedPrompt || !passages) 
+                      ? 'rgba(78, 230, 230, 0.2)' 
+                      : '#4ee6e6',
+                    shadowColor: '#4ee6e6',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 8,
+                    elevation: 8,
+                    borderRadius: 20,
+                    paddingVertical: 12,
+                    paddingHorizontal: 24,
                   },
                 ]}
                 onPress={handleSave}
@@ -627,7 +758,14 @@ const CodexModal = ({
                 <Text
                   style={[
                     globalStyles.codexSaveButtonText,
-                    { color: theme.theme.archiveText },
+                    { 
+                      color: (!selectedPrompt || !passages) ? '#d4af37' : '#0a0b0f',
+                      fontWeight: 'bold',
+                      fontSize: 16,
+                      textShadowColor: (!selectedPrompt || !passages) ? 'rgba(212, 175, 55, 0.3)' : 'rgba(10, 11, 15, 0.3)',
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 2,
+                    },
                   ]}
                 >
                   Save to Codex

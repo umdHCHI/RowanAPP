@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
+import { Platform } from 'react-native';
 import { PersonalityType } from '../types/';
 import { PersonalityStories } from '../types/personality';
 import { Character, CharacterCreateData, GameData, LoginResponse, UserProfile } from '../types/user';
@@ -96,35 +97,61 @@ export interface HomeData {
     }[];
     recent_codex_entries: CodexEntry[];
     available_tools: CopingTool[];
+    recent_reflections?: Array<{
+        id: number;
+        character: string;
+        entry_type: 'journal' | 'draw' | 'voice';
+        title: string;
+        content: string;
+        prompt: string;
+        skill_category: string;
+        map_area: string;
+        difficulty: string;
+        wellness_gains: Record<string, number>;
+        tools_unlocked: string[];
+        created_at: string;
+    }>;
 }
 
 // ===== Axios Setup =====
+// Platform-specific timeout configuration
+const getTimeout = (): number => {
+    if (Platform.OS === 'web') {
+        return 10000; // 10 seconds for web
+    } else if (Platform.OS === 'ios') {
+        return 30000; // 30 seconds for iOS (slower networks)
+    } else {
+        return 25000; // 25 seconds for Android
+    }
+};
+
 const apiClient: AxiosInstance = axios.create({
     baseURL: apiBaseUrl,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
     },
-    timeout: 10000, // 10 second timeout
+    timeout: getTimeout(), // Platform-specific timeout
     withCredentials: false, // Important for CORS
 });
+
+console.log(`📱 API Client configured for ${Platform.OS} with ${getTimeout()}ms timeout`);
 
 // Enable request interceptor to add authentication headers
 apiClient.interceptors.request.use(
     async (config) => {
         try {
-
-            
             // Skip authorization for login requests
             if (config.url?.includes('auth/login') || config.url?.includes('login')) {
+                console.log('Skipping auth for login request:', config.url);
                 return config;
             }
             
             // Clear any existing Authorization header to avoid conflicts
             delete config.headers.Authorization;
             
-            // Add a small delay to ensure AsyncStorage operations are complete
-            await new Promise(resolve => setTimeout(resolve, 10));
+            // Add a longer delay to ensure AsyncStorage operations are complete
+            await new Promise(resolve => setTimeout(resolve, 50));
             
             const token = await AsyncStorage.getItem('authToken');
             
@@ -141,11 +168,12 @@ apiClient.interceptors.request.use(
                         Authorization: config.headers.Authorization
                     },
                     baseURL: config.baseURL,
-                    fullURL: `${config.baseURL}${config.url}`
+                    fullURL: `${config.baseURL}${config.url}`,
+                    platform: Platform.OS,
+                    timeout: config.timeout
                 });
             } else {
-
-                
+                console.log('No token found for request:', config.url);
                 // Try to get all AsyncStorage keys to debug
                 const allKeys = await AsyncStorage.getAllKeys();
                 console.log('All AsyncStorage keys:', allKeys);
@@ -169,7 +197,6 @@ apiClient.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         if (error.response?.status === 401) {
-
             const errorMessage = error.response.data as any;
             if (errorMessage?.detail === 'Invalid token.' || 
                 errorMessage?.detail === 'Token has expired.') {
@@ -177,6 +204,16 @@ apiClient.interceptors.response.use(
                 await AsyncStorage.removeItem('userData');
             }
         }
+        
+        // Enhanced error logging for mobile debugging
+        if (error.code === 'ECONNABORTED') {
+            console.error(`⏰ Request timeout on ${Platform.OS}:`, error.config?.url);
+        } else if (error.code === 'NETWORK_ERROR') {
+            console.error(`🌐 Network error on ${Platform.OS}:`, error.message);
+        } else if (error.response) {
+            console.error(`📡 HTTP ${error.response.status} on ${Platform.OS}:`, error.response.data);
+        }
+        
         return Promise.reject(error);
     }
 );
@@ -334,10 +371,16 @@ class ApiService {
             // Store the complete user data for getProfile() to use
             await AsyncStorage.setItem('userData', JSON.stringify(response.user));
             
-            // Add a small delay to ensure AsyncStorage operations complete
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Add a longer delay to ensure AsyncStorage operations complete
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Verify token was stored
+            const storedToken = await AsyncStorage.getItem('authToken');
+            console.log('Token stored successfully:', !!storedToken, 'Length:', storedToken?.length);
+            
             return response;
         } catch (error: any) {
+            console.error('Login error details:', error);
             throw new Error('Login failed. Please check your credentials and network connection.');
         }
     }
@@ -404,45 +447,68 @@ class ApiService {
     /**
      * Test method to verify if the token works with a simple authenticated request
      */
-    public async testTokenAuthentication(): Promise<{
-        success: boolean;
-        status?: number;
-        data?: any;
-        error?: string;
-    }> {
-        try {
-            const token = await AsyncStorage.getItem('authToken');
-            
-            if (!token) {
-                return { success: false, error: 'No token found' };
-            }
-            
-            // Make a simple authenticated request to test the token
-            const response = await apiClient.get('users/me/', {
-                headers: {
-                    'Authorization': `Token ${token}`
-                }
-            });
-            
-            return { success: true, status: response.status, data: response.data };
-            
-        } catch (error: any) {
-            return { 
-                success: false, 
-                status: error.response?.status,
-                data: error.response?.data,
-                error: error.message 
-            };
-        }
-    }
+
     // ===== User Methods =====
     async getProfile(): Promise<UserProfile> {//verified 
         // Always fetch fresh data from backend to get latest survey results
         try {
             console.log('getProfile: Fetching fresh data from backend');
-            const freshProfile = await this.get<UserProfile>('userProfile');
-            console.log('getProfile: Fresh profile data received:', freshProfile);
-            return freshProfile;
+            
+            // Get the current user's profile from the backend
+            // The backend returns an array of users, we need to find the current authenticated user
+            const usersResponse = await this.get<any[]>('userProfile');
+            console.log('getProfile: Users response received:', usersResponse);
+            
+            // Find the current user by matching the authenticated user's ID
+            let currentUser: any = null;
+            
+            if (Array.isArray(usersResponse)) {
+                // Get the current user's ID from stored data
+                const storedUserData = await AsyncStorage.getItem('userData');
+                let currentUserId: number | null = null;
+                
+                if (storedUserData) {
+                    const userData = JSON.parse(storedUserData);
+                    currentUserId = userData.id;
+                    console.log('getProfile: Looking for user with ID:', currentUserId);
+                    console.log('getProfile: Stored user data:', userData);
+                } else {
+                    console.log('getProfile: No stored user data found');
+                }
+                
+                // First try to find the user by ID
+                if (currentUserId) {
+                    currentUser = usersResponse.find(user => user.id === currentUserId);
+                    console.log('getProfile: Found user by ID:', currentUser?.username || 'not found');
+                    console.log('getProfile: Available user IDs:', usersResponse.map(u => ({ id: u.id, username: u.username, hasPersonality: !!u.personality_profile })));
+                }
+                
+                // If not found by ID, look for a user with a personality profile
+                if (!currentUser) {
+                    currentUser = usersResponse.find(user => user.personality_profile);
+                    console.log('getProfile: Found user by personality profile:', currentUser?.username || 'not found');
+                }
+                
+                // If still not found, take the last one (most recent)
+                if (!currentUser && usersResponse.length > 0) {
+                    currentUser = usersResponse[usersResponse.length - 1];
+                    console.log('getProfile: Using last user:', currentUser?.username || 'not found');
+                }
+            } else {
+                // If it's not an array, assume it's a single user
+                currentUser = usersResponse;
+            }
+            
+            if (!currentUser) {
+                throw new Error('No user found in response');
+            }
+            
+            console.log('getProfile: Found current user:', currentUser);
+            console.log('getProfile: User ID:', currentUser.id);
+            console.log('getProfile: Username:', currentUser.username);
+            console.log('getProfile: Personality profile:', currentUser.personality_profile);
+            
+            return currentUser;
         } catch (error) {
             console.log('getProfile: Failed to fetch fresh data, falling back to stored data');
             
@@ -957,15 +1023,12 @@ class ApiService {
         }
     }
     
-    
-    // REMOVED: submitPersonalitySurvey() - duplicate of submitSurveyData()
-    
-    // Update personality scores directly (safe for resubmissions)
+
     async updatePersonalityScores(scores: any): Promise<any> {
         try {
             console.log('Updating personality scores via updateUserProfile endpoint');
             
-            // Use the updateUserProfile endpoint to update personality scores
+
             const profilePayload = {
                 personality_scores: {
                     openness: scores.openness,
@@ -985,7 +1048,7 @@ class ApiService {
     }
 
     
-    // Helper method to determine primary trait
+    // Helper method to determine primary trait -- remove
     private getPrimaryTrait(scores: any): string {
         const entries = Object.entries(scores);
         const sorted = entries.sort((a, b) => (b[1] as number) - (a[1] as number));
@@ -1171,62 +1234,12 @@ class ApiService {
 
     // ===== CHARACTER METHODS =====
     async createCharacter(characterData: CharacterCreateData): Promise<Character> {
-        // POST to /api/characters/characters/ - Create new character
-        try {
-
-//            console.log('=== API SERVICE: CHARACTER CREATION ===');
-//            console.log('API Base URL:', apiBaseUrl);
-//            console.log('Endpoint:', API_ENDPOINTS.characters);
-//            console.log('Full URL will be:', `${apiBaseUrl}${API_ENDPOINTS.characters}`);
-//            console.log('Original character data:', characterData);
-            
-            // Check if this is a simple name-only request or complete character data
-            const isSimpleRequest = Object.keys(characterData).length === 1 && 'name' in characterData;
-            
-            if (isSimpleRequest) {
-                // Simple request - only send the name field
-                const cleanData = { name: characterData.name };
-        //        console.log('Simple request - cleaned data (name only):', cleanData);
-        //        console.log('Simple data JSON:', JSON.stringify(cleanData, null, 2));
-        //        console.log('Simple data keys:', Object.keys(cleanData));
-                
-                // Verify no user field is present
-                if ('user' in cleanData) {
-                    console.error('ERROR: user field found in clean data!');
-                    throw new Error('User field should not be present in character creation data');
-                }
-                
-                const result = await this.patch<Character>('updateUserProfile', cleanData);
-        //        console.log('Character created successfully (simple):', result);
-                return result;
-            } else {
-                // Complete request - send all character data including customization
-        //        console.log('Complete request - sending full character data:', characterData);
-        //        console.log('Complete data JSON:', JSON.stringify(characterData, null, 2));
-        //        console.log('Complete data keys:', Object.keys(characterData));
-                
-                // Verify no user field is present
-                if ('user' in characterData) {
-                    console.error('ERROR: user field found in character data!');
-                    throw new Error('User field should not be present in character creation data');
-                }
-                
-                const result = await this.patch<Character>('updateUserProfile', characterData);
-        //          console.log('Character created successfully (complete):', result);
-                return result;
-            }
-        } catch (error: any) {
-      //      console.error('Character creation failed:', error);
-            if (error.response) {
-        //        console.error('Response data:', error.response.data);
-        //        console.error('Response status:', error.response.status);
-        //        console.error('Response headers:', error.response.headers);
-            }
-            throw error;
-        }
+        // POST to /characters/characters/ to create a new character
+        const result = await this.post<Character>('characters', characterData);
+        return result;
     }
 
-    async getMyCharacter(): Promise<Character> {
+    async getMyCharacter(): Promise<Character> {//for log in without onboarding
         try {
             // Try to get character data from the home data endpoint
             const homeData = await this.get<HomeData>('characterHomeData');
@@ -1255,10 +1268,10 @@ class ApiService {
         return this.get('characterStats');
     }
 
-    async updateCharacterCustomization(customizationData: Character): Promise<Character> {
-        // Use the specific character update endpoint
+    async updateCharacterCustomization(customizationData: any): Promise<Character> {
+        const character = await this.getMyCharacter();
         return this.patch('updateCustomization', customizationData, { 
-            urlSuffix: `${customizationData.id}/update_customization/` 
+            urlSuffix: `${character.id}/update_customization/` 
         });
     }
 
@@ -1289,6 +1302,38 @@ class ApiService {
             return result;
         } catch (error: any) {
             console.error('❌ Gain experience API call failed:', error);
+            if (error.response) {
+                console.error('Response status:', error.response.status);
+                console.error('Response data:', error.response.data);
+            }
+            throw error;
+        }
+    }
+
+    async gainResonance(characterId: number, resonance: number, source?: string): Promise<Character & {
+        resonance_gained: number;
+        source: string;
+        resonance_up?: boolean;
+        message?: string;
+    }> {
+        console.log('=== GAIN RESONANCE API CALL ===');
+        console.log('Character ID:', characterId);
+        console.log('Resonance:', resonance);
+        console.log('Source:', source);
+        console.log('URL Suffix:', `${characterId}/gain_resonance/`);
+        console.log('Full URL will be:', `${apiBaseUrl}characters/characters/${characterId}/gain_resonance/`);
+        
+        try {
+            const result = await this.post<Character & {
+                resonance_gained: number;
+                source: string;
+                resonance_up?: boolean;
+                message?: string;
+            }>('gainExperience', { resonance, source }, { urlSuffix: `${characterId}/gain_resonance/` });
+            console.log('✅ Gain resonance API call successful:', result);
+            return result;
+        } catch (error: any) {
+            console.error('❌ Gain resonance API call failed:', error);
             if (error.response) {
                 console.error('Response status:', error.response.status);
                 console.error('Response data:', error.response.data);
@@ -1574,9 +1619,9 @@ class ApiService {
         return this.post<GameData>('gameData', gameData);
     }
 
-    async updateGameData(gameData: Partial<GameData>): Promise<GameData> {
-        return this.patch<GameData>('gameData', gameData);
-    }
+    // async updateGameData(gameData: Partial<GameData>): Promise<GameData> {
+    //     return this.patch<GameData>('gameData', gameData);
+    // }
 
     // Helper method to get completed stories from game data
     async getCompletedStories(): Promise<string[]> {
@@ -1860,35 +1905,25 @@ class ApiService {
     async getChapterPassages(storyId: number | string, chapterId: number | string): Promise<any[]> {
         try {
             console.log(`=== GETTING CHAPTER PASSAGES (IMPROVED) ===`);
-            // 1. Fetch the list of all chapters for the story. This is efficient.
-            const chapters = await this.getChapters(storyId);
-            if (!chapters || chapters.length === 0) {
-                console.warn(`No chapters found for story ${storyId}`);
-                return [];
-            }
-    
-            // Debug: Log all available chapters and their IDs
-            console.log(`🔍 Available chapters for story ${storyId}:`, chapters.map((chap: any) => ({ id: chap.id, title: chap.title })));
-            console.log(`🎯 Looking for chapter ID: ${chapterId} (type: ${typeof chapterId})`);
-    
-            // 2. Find the specific chapter the user requested from the list.
-            const targetChapter = chapters.find((chap: any) => chap.id === chapterId);
-    
-            if (!targetChapter) {
-                console.error(`❌ Chapter with ID ${chapterId} not found in story ${storyId}`);
-                console.error(`Available chapter IDs:`, chapters.map((chap: any) => chap.id));
-                return [];
+            console.log(`Story ID: ${storyId}, Chapter ID: ${chapterId}`);
+            
+            // Make a direct API call to the correct URL: api/story/chapters/{chapterId}/passages/
+            // Since there's no predefined endpoint for this, we'll construct the URL manually
+            const response = await apiClient.get(`story/chapters/${chapterId}/passages/`);
+            const passages = response.data;
+            
+            console.log(`✅ Loaded ${passages?.length || 0} passages for chapter ${chapterId}`);
+            
+            if (passages && passages.length > 0) {
+                console.log(`First passage structure:`, passages[0]);
+                console.log(`First passage keys:`, Object.keys(passages[0]));
             }
             
-            console.log(`✅ Found target chapter: ${targetChapter.title} (ID: ${targetChapter.id})`);
-    
-            // 3. Return the 'passages' array that is already nested within the chapter data.
-            // This avoids fetching all passages for the entire story.
-            console.log(`✅ Found chapter "${targetChapter.title}". Returning its ${targetChapter.passages?.length || 0} nested passages.`);
-            return targetChapter.passages || [];
+            return passages || [];
     
         } catch (error) {
-            this.handleError(error, 'GET', `chapters for story ${storyId}`);
+            console.error(`❌ Failed to get passages for chapter ${chapterId}:`, error);
+            this.handleError(error, 'GET', `chapters/${chapterId}/passages`);
             throw error;
         }
     }
@@ -2038,8 +2073,17 @@ class ApiService {
             console.log('Story ID:', storyId);
             console.log('Initial data:', initialData);
             
+            // Get current user ID from profile
+            const profile = await this.getProfile();
+            const userId = profile?.id;
+            
+            if (!userId) {
+                throw new Error('User ID not found - cannot create story progress');
+            }
+            
             const payload = {
                 story: storyId,
+                user: userId,
                 current_passage_id: initialData?.current_passage_id || '',
                 story_variables: initialData?.story_variables || {},
                 passages_visited: [],
@@ -2348,6 +2392,14 @@ class ApiService {
         }
         
         return this.post<any>('storyReset', data, { urlSuffix });
+    }
+    async makeChoice(storyId: number | string, targetPassageId: string) {
+        console.log(`🚀 POSTing choice to backend: storyId=${storyId}, target_passage_id=${targetPassageId}`);
+        const response = await apiClient.post('story/make_choice/', {
+          story_id: storyId,
+          target_passage_id: targetPassageId,
+        });
+        return response.data;
     }
 
     /**

@@ -23,7 +23,7 @@ const CharacterFrame: React.FC<CharacterFrameProps> = ({
       >
         <Image source={frame} style={{ width: size, height: size }} />
       </View>
-      <View style={styles.passages}>{children}</View>
+      <View style={[styles.passages, { width: size * 1.1, height: size * 1.1 }]}>{children}</View>
     </View>
   );
 };
@@ -33,12 +33,13 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
+    overflow: "visible", // Changed from "hidden" to allow hair to extend beyond frame
   },
   passages: {
     zIndex: 2,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "visible", // Allow content to extend beyond bounds
   },
 });
 

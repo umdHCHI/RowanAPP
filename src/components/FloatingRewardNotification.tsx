@@ -4,7 +4,7 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 interface FloatingRewardNotificationProps {
   visible: boolean;
   message: string;
-  type?: 'experience' | 'item' | 'skill' | 'stat' | 'artifact';
+  type?: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
   onHide: () => void;
 }
 
@@ -46,10 +46,10 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
         }),
       ]).start();
 
-      // Auto hide after 3 seconds
+      // Auto hide after 4 seconds (increased from 3 seconds)
       const timer = setTimeout(() => {
         hideNotification();
-      }, 3000);
+      }, 4000);
 
       return () => clearTimeout(timer);
     }
@@ -85,6 +85,12 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
           borderColor: '#FFA500',
           icon: '⭐'
         };
+      case 'resonance':
+        return {
+          backgroundColor: '#FF6B6B',
+          borderColor: '#FF5252',
+          icon: '🌟'
+        };
       case 'item':
         return {
           backgroundColor: '#4CAF50',
@@ -102,6 +108,30 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
           backgroundColor: '#9C27B0',
           borderColor: '#7B1FA2',
           icon: '💎'
+        };
+      case 'upgrade':
+        return {
+          backgroundColor: '#FF9800',
+          borderColor: '#F57C00',
+          icon: '⬆️'
+        };
+      case 'strengthen':
+        return {
+          backgroundColor: '#795548',
+          borderColor: '#5D4037',
+          icon: '💪'
+        };
+      case 'new':
+        return {
+          backgroundColor: '#00BCD4',
+          borderColor: '#0097A7',
+          icon: '🆕'
+        };
+      case 'quest':
+        return {
+          backgroundColor: '#FF6B9D',
+          borderColor: '#E91E63',
+          icon: '🎯'
         };
       default:
         return {

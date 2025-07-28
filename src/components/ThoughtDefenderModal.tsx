@@ -4,19 +4,166 @@ import {
   Dimensions,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useMasterState } from "../context/MasterStateContext";
-import FloatingRewardNotification from "./FloatingRewardNotification";
+import {
+  formatThoughtDefenderRewardMessage,
+  processThoughtDefenderCompletion
+} from "../utils/rewardsUtils";
+
 
 const { width, height } = Dimensions.get("window");
 const GAME_WIDTH = width * 0.9;
 const GAME_HEIGHT = height * 0.6;
 const PADDLE_WIDTH = 60;
 const PADDLE_HEIGHT = 20;
+
+
+//find new thoughts
+const CharacterArchetypes = {
+  //The Architect(Conscientiousness)
+  scholar: {
+    positiveThoughts:[
+      { text: "Break into steps", powerUp: "slowtime" },
+      { text: "Planning saves time", powerUp: "multiplier" },
+      { text: "Stick with plans", powerUp: "extralife" },
+      { text: "Details prevent problems", powerUp: "fastshoot" },
+      { text: "Organize for results", powerUp: "shield" },
+      { text: "persistence pays off", powerUp: "multishot" },
+      { text: "Complete tasks thoroughly", powerUp: "slowtime" },
+      { text: "I can wait for a better future", powerUp: "multiplier" },
+    ],
+    negativeThoughts: [
+      "If I don't do this perfectly, it's not worth doing",
+      "I should have planned better", 
+      "this mistake proves I'm incompetent",
+      "I can't relax until everything on my list is complete",
+      "Other people are so disorganized and irresponsible",
+      "I'm behind schedule and everything is falling apart",
+      "I should be more productive",
+      "I'm wasting time",
+      "If I don't control everything, something will go wrong",
+    ]
+  },
+  //The Voice(Extraversion)
+  warrior: {
+    positiveThoughts: [
+      { text: "Socialization energizes me", powerUp: "fastshoot" },
+      { text: "Networking brings opportunities", powerUp: "shield" },
+      { text: "Make challenges fun", powerUp: "extralife" },
+      { text: "People spark creativity", powerUp: "multishot" },
+      { text: "Express ideas confidently", powerUp: "shield" },
+      { text: "Stimulation improves performance", powerUp: "multiplier" },
+      { text: "collaboration creates energy", powerUp: "slowtime" },
+      { text: "Inspire with enthusiasm", powerUp: "fastshoot" },
+    ],
+    negativeThoughts: [
+      "I need to be around people right now or I'll feel empty",
+      "If I'm alone too long, something must be wrong with me",
+      "I should be more exciting and entertaining",
+      "Quiet people probably think I'm annoying",
+      "I can't handle this boring, repetitive task",
+      "If I'm not the center of attention, I must be failing",
+      "I need stimulation now; this is unbearable",
+    ]
+  },
+  //The Mirror(Neuroticism)
+  sage: {
+    positiveThoughts: [
+      { text: "Sensitivity notices details", powerUp: "slowtime" },
+      { text: "Awareness helps preparation", powerUp: "multiplier" },
+      { text: "Depth understands complexity", powerUp: "shield" },
+      { text: "Concern motivates improvement", powerUp: "extralife" },
+      { text: "Risk awareness informs", powerUp: "fastshoot" },
+      { text: "Learn from challenges", powerUp: "multishot" },
+      { text: "Processing reveals priorities", powerUp: "slowtime" },
+      { text: "Deep feelings connect", powerUp: "multiplier" },
+    ],
+    negativeThoughts: [
+      "What if everything goes wrong?",
+      "I always mess things up",
+      "They probably think I'm stupid",
+      "This feeling will never go away",
+      "I can't handle this stress",
+      "Something bad is definitely going to happen",
+      "I'm not good enough",
+      "Everyone else has it figured out except me",
+      "I should be over this by now",
+      "This anxiety proves I'm weak",
+    ]
+  },
+  //The Healer(Agreeableness)
+  healer: {
+    positiveThoughts: [
+      { text: "Find win-win solutions", powerUp: "extralife" },
+      { text: "Understand their perspective", powerUp: "shield" },
+      { text: "Trust good intentions", powerUp: "slowtime" },
+      { text: "Help others succeed", powerUp: "multishot" },
+      { text: "Maintain harmony", powerUp: "multiplier" },
+      { text: "collaborate over compete", powerUp: "fastshoot" },
+      { text: "Build lasting relationships", powerUp: "extralife" },
+      { text: "Show empathy", powerUp: "shield" },
+    ],
+    negativeThoughts: [
+      "I can't say no or they won't like me anymore",
+      "I should put their needs before mine",
+      "If I disagree, I'll hurt their feelings",
+      "I'm being selfish for wanting this",
+      "I must have done something wrong if they're upset",
+      "I can't handle conflict",
+      "I need to fix this immediately",
+    ]
+  },
+  // The Seeker(Openness)
+  explorer: {
+    positiveThoughts: [
+      { text: "Try different approaches", powerUp: "fastshoot" },
+      { text: "New perspectives help", powerUp: "multishot" },
+      { text: "Challenge my beliefs", powerUp: "shield" },
+      { text: "Combine different ideas", powerUp: "multiplier" },
+      { text: "Explore new concepts", powerUp: "extralife" },
+      { text: "Connect unrelated things", powerUp: "slowtime" },
+      { text: "Change when needed", powerUp: "fastshoot" },
+      { text: "Abstract becomes practical", powerUp: "multishot" },
+    ],
+    negativeThoughts: [
+      "I can't decide because a better option may exist",
+      "This work is meaningless and beneath my potential",
+      "What if I'm missing out on something more interesting?",
+      "I have so many ideas but I never finish anything",
+      "Other people don't understand my creative vision",
+      "This conventional approach is boring and uninspiring",
+      "I should be innovating more in my life",
+    ]
+  }
+};
+
+//46 characters max
+
+const getCharacterArchetype = (characterData: { selectedBaseModel: any; selectedHairStyle: any; selectedEyeType: any; selectedMouthType: any; selectedShirtType: any; }) => {
+    const total = characterData.selectedBaseModel + characterData.selectedHairStyle + characterData.selectedEyeType +
+      characterData.selectedMouthType + characterData.selectedShirtType;
+    
+    if (total % 5 === 0) return CharacterArchetypes.scholar;
+    if (total % 5 === 1) return CharacterArchetypes.warrior;
+    if (total % 5 === 2) return CharacterArchetypes.sage;
+    if (total % 5 === 3) return CharacterArchetypes.healer;
+    return CharacterArchetypes.explorer;
+};
+
+const getPersonalityArchetype = (personalityData: string) => {
+  if (personalityData == "Openness") return CharacterArchetypes.explorer;
+    if (personalityData == "Conscientiousness") return CharacterArchetypes.scholar;
+  if (personalityData == "Extraversion") return CharacterArchetypes.warrior;
+  if (personalityData == "Agreeableness") return CharacterArchetypes.healer;
+  if (personalityData == "Neuroticsm") return CharacterArchetypes.sage;
+  return CharacterArchetypes.explorer
+};
 
 // TypeScript Interfaces
 interface Position {
@@ -98,9 +245,9 @@ const DIFFICULTY_LEVELS: Record<string, DifficultyConfig> = {
       powerUpChance: 0.5,
       scoreMultiplier: 0.8,
       livesStart: 5,
-      waveTarget: 15,
-      levelScaling: 0.2,
-      maxLevels: 3,
+      waveTarget: 8,
+      levelScaling: 0.1,
+      maxLevels: 2,
     }
   },
   normal: {
@@ -113,9 +260,9 @@ const DIFFICULTY_LEVELS: Record<string, DifficultyConfig> = {
       powerUpChance: 0.3,
       scoreMultiplier: 1.0,
       livesStart: 3,
-      waveTarget: 20,
-      levelScaling: 0.3,
-      maxLevels: 5,
+      waveTarget: 12,
+      levelScaling: 0.15,
+      maxLevels: 3,
     }
   },
   intense: {
@@ -128,9 +275,9 @@ const DIFFICULTY_LEVELS: Record<string, DifficultyConfig> = {
       powerUpChance: 0.2,
       scoreMultiplier: 1.5,
       livesStart: 2,
-      waveTarget: 25,
-      levelScaling: 0.4,
-      maxLevels: 7,
+      waveTarget: 15,
+      levelScaling: 0.2,
+      maxLevels: 4,
     }
   },
   nightmare: {
@@ -143,9 +290,9 @@ const DIFFICULTY_LEVELS: Record<string, DifficultyConfig> = {
       powerUpChance: 0.15,
       scoreMultiplier: 2.0,
       livesStart: 1,
-      waveTarget: 30,
-      levelScaling: 0.5,
-      maxLevels: 10,
+      waveTarget: 18,
+      levelScaling: 0.25,
+      maxLevels: 5,
     }
   }
 };
@@ -190,44 +337,27 @@ const POWER_UPS = {
   },
 };
 
-// Enhanced thought arrays with power-up types
-const POSITIVE_THOUGHTS = [
-  { text: "I am capable", powerUp: undefined },
-  { text: "I can handle this", powerUp: undefined },
-  { text: "I am growing", powerUp: undefined },
-  { text: "I am resilient", powerUp: "shield" },
-  { text: "I am worthy", powerUp: undefined },
-  { text: "I am enough", powerUp: undefined },
-  { text: "I am learning", powerUp: "multiplier" },
-  { text: "I am strong", powerUp: "extralife" },
-  { text: "I am focused", powerUp: "slowtime" },
-  { text: "I am powerful", powerUp: "multishot" },
-  { text: "I am quick", powerUp: "fastshoot" },
-];
-
-const NEGATIVE_THOUGHTS = [
-  "I can't do this",
-  "I'm not good enough",
-  "I always fail",
-  "I'm a burden",
-  "I'm worthless",
-  "I'm a failure",
-  "I'm not smart enough",
-  "I'm not strong enough",
-];
-
 interface ThoughtDefenderModalProps {
   visible: boolean;
   onClose: () => void;
-  onScoreUpdate?: (data: { score: number; level: number; won: boolean; difficulty: string }) => void;
+  onScoreUpdate?: (data: {
+    score: number;
+    level: number;
+    won: boolean;
+    difficulty: string;
+  }) => void;
+  isFullScreen?: boolean;
+  primaryTrait?: string; // Optional prop for primary trait
 }
 
 const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   visible,
   onClose,
   onScoreUpdate,
+  isFullScreen = false,
+  primaryTrait,
 }) => {
-  const { character, archive } = useMasterState();
+  const { ui } = useMasterState();
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [showDifficultySelect, setShowDifficultySelect] = useState<boolean>(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('normal');
@@ -240,6 +370,41 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     GAME_WIDTH / 2 - PADDLE_WIDTH / 2
   );
   const [canShoot, setCanShoot] = useState<boolean>(true);
+
+  // Game statistics for reward system
+  const [gameStartTime, setGameStartTime] = useState<number>(0);
+  const [totalThoughtsSpawned, setTotalThoughtsSpawned] = useState<number>(0);
+  const [positiveThoughtsCleared, setPositiveThoughtsCleared] = useState<number>(0);
+  const [negativeThoughtsCleared, setNegativeThoughtsCleared] = useState<number>(0);
+
+  const { wellness, character, theme } = useMasterState();
+  const homeData = wellness.homeData;
+  const backendCharacter = character.backendCharacter;
+  const hasHomeData = homeData?.character;
+  const hasBackendCharacter = backendCharacter;
+
+  const getThoughtsForCharacter = useCallback(() => {
+    if (hasHomeData && hasBackendCharacter) {
+      const characterArchetype = getCharacterArchetype(character);
+      return {
+        positiveThoughts: characterArchetype.positiveThoughts,
+        negativeThoughts: characterArchetype.negativeThoughts
+      };
+    }
+    if (primaryTrait) {
+      const personalityArchetype = getPersonalityArchetype(primaryTrait);
+      return {
+        positiveThoughts: personalityArchetype.positiveThoughts,
+        negativeThoughts: personalityArchetype.negativeThoughts
+      };
+    }
+    return {
+      positiveThoughts: CharacterArchetypes.scholar.positiveThoughts,
+      negativeThoughts: CharacterArchetypes.scholar.negativeThoughts
+    };
+  }, [hasHomeData, hasBackendCharacter, character]);
+
+  const { positiveThoughts: POSITIVE_THOUGHTS, negativeThoughts: NEGATIVE_THOUGHTS} = getThoughtsForCharacter();
 
   // New game state
   const [gameState, setGameState] = useState<GameState>({
@@ -255,16 +420,10 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   });
   const [activePowerUps, setActivePowerUps] = useState<PowerUp[]>([]);
 
-  // New state for experience rewards
-  const [showExperienceReward, setShowExperienceReward] = useState(false);
-  const [experienceRewardMessage, setExperienceRewardMessage] = useState("");
-  const [experienceRewardAmount, setExperienceRewardAmount] = useState(0);
-
   const gameLoopRef = useRef<number>(0);
   const spawnLoopRef = useRef<number>(0);
   const thoughtIdCounter = useRef<number>(0);
   const projectileIdCounter = useRef<number>(0);
-  const gameStartTime = useRef<number>(0);
 
   const getDifficultyConfig = useCallback((): DifficultyConfig => {
     return DIFFICULTY_LEVELS[selectedDifficulty] || DIFFICULTY_LEVELS.normal;
@@ -282,16 +441,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       Math.min(GAME_WIDTH - PADDLE_WIDTH - 32, x - PADDLE_WIDTH / 2)
     );
     setPlayerX(newX);
-    console.log("🎮 Player moved to:", newX);
   };
 
   const shoot = useCallback((): void => {
-    if (!canShoot || !gameStarted) {
-      console.log("❌ Cannot shoot:", { canShoot, gameStarted });
-      return;
-    }
-
-    console.log("🔫 Shooting!");
 
     const shootSpeed = gameState.fastShootActive ? 100 : 200; // Faster shooting with power-up
     const projectileSpeed = 8;
@@ -321,10 +473,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
       setProjectiles((prev) => {
         const updated = [...prev, ...projectiles];
-        console.log(
-          "✅ Multi-shot created. Total projectiles:",
-          updated.length
-        );
         return updated;
       });
     } else {
@@ -338,10 +486,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
       setProjectiles((prev) => {
         const updated = [...prev, newProjectile];
-        console.log(
-          "✅ Projectile created. Total projectiles:",
-          updated.length
-        );
         return updated;
       });
     }
@@ -357,7 +501,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   ]);
 
   const activatePowerUp = useCallback((powerUpType: string): void => {
-    console.log("🌟 Activating power-up:", powerUpType);
 
     const powerUp = POWER_UPS[powerUpType as keyof typeof POWER_UPS];
     if (!powerUp) return;
@@ -386,7 +529,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         break;
       case "extralife":
         setLives((prev) => Math.min(prev + 1, 5)); // Max 5 lives
-        console.log("❤️ Extra life gained!");
         break;
       case "multiplier":
         setGameState((prev) => ({ ...prev, scoreMultiplier: 2 }));
@@ -415,8 +557,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const negativeChance = Math.min(difficulty.modifiers.negativeThoughtChance + (level - 1) * 0.1, 0.9); // Increase negative thoughts
     const isPositive = Math.random() > negativeChance;
     
-    console.log('🎯 Spawning thought - Difficulty:', difficulty.name, 'Level:', level, 'Negative chance:', negativeChance.toFixed(2));
-    
     let text: string;
     let powerUpType: string | undefined;
 
@@ -426,17 +566,15 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       text = positiveThought.text;
       // 30% chance for power-up on positive thoughts
       powerUpType = Math.random() < difficulty.modifiers.powerUpChance ? positiveThought.powerUp : undefined;
-      console.log('💚 Positive thought:', text, powerUpType ? `with power-up: ${powerUpType}` : 'no power-up');
     } else {
       text =
         NEGATIVE_THOUGHTS[Math.floor(Math.random() * NEGATIVE_THOUGHTS.length)];
-      console.log("💀 Negative thought:", text);
     }
 
     // Speed increases with level and time slow effect
     const baseSpeed = isPositive 
       ? 1 + Math.random() * difficulty.modifiers.thoughtSpeed
-      : 2 + Math.random() * 2 * difficulty.modifiers.thoughtSpeed;
+      : 2 + Math.random() * difficulty.modifiers.thoughtSpeed;
     
     const levelSpeed = baseSpeed * levelMultiplier;
     const finalSpeed = gameState.timeSlowActive ? levelSpeed * 0.5 : levelSpeed;
@@ -453,23 +591,17 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
     setThoughts((prev) => {
       const updated = [...prev, newThought];
-      console.log(
-        "🧠 Thought spawned:",
-        text,
-        powerUpType ? `[${powerUpType}]` : "",
-        "Speed:",
-        finalSpeed.toFixed(1),
-        "Total thoughts:",
-        updated.length
-      );
       return updated;
     });
 
-    // Track wave progress
+    // Track wave progress and statistics
     setGameState((prev) => ({
       ...prev,
       thoughtsInWave: prev.thoughtsInWave + 1,
     }));
+    
+    // Track total thoughts spawned for reward calculation
+    setTotalThoughtsSpawned(prev => prev + 1);
   }, [gameStarted, lives, level, gameState.timeSlowActive, getDifficultyConfig]);
 
   const updateGame = useCallback((): void => {
@@ -480,15 +612,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       const updated = prev
         .map((p) => ({ ...p, y: p.y - p.speed }))
         .filter((p) => p.y > -20);
-
-      if (updated.length !== prev.length) {
-        console.log(
-          "⚡ Projectiles updated:",
-          prev.length,
-          "->",
-          updated.length
-        );
-      }
       return updated;
     });
 
@@ -504,15 +627,18 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
               if (!gameState.shieldActive) {
                 setLives((currentLives) => {
                   const newLives = Math.max(0, currentLives - 1);
-                  console.log("💀 Life lost! Lives remaining:", newLives);
                   return newLives;
                 });
-              } else {
-                console.log("🛡️ Shield protected from negative thought!");
               }
-            } else {
-              console.log("💚 Missed positive thought");
-            }
+              // Track negative thoughts cleared when they reach bottom
+              setNegativeThoughtsCleared(prev => prev + 1);
+            } 
+            // Track cleared thoughts
+            setGameState((prev) => ({
+              ...prev,
+              thoughtsCleared: prev.thoughtsCleared + 1,
+            }));
+
             return false;
           }
           return true;
@@ -536,11 +662,11 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
             const thought = updatedThoughts[j];
 
             if (!thought.isPositive) {
-              const dx = projectile.x - (thought.x + 35);
-              const dy = projectile.y - (thought.y + 17.5);
+              const dx = projectile.x - (thought.x + 40);
+              const dy = projectile.y - (thought.y + 20);
               const distance = Math.sqrt(dx * dx + dy * dy);
 
-              if (distance < 40) {
+              if (distance < 42) {
                 // Collision detected
                 updatedProjectiles.splice(i, 1);
                 updatedThoughts.splice(j, 1);
@@ -551,13 +677,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                 const points = Math.round(basePoints * gameState.scoreMultiplier);
                 setScore(prevScore => {
                   const newScore = prevScore + points;
-                  console.log(
-                    "💥 Hit! Score:",
-                    newScore,
-                    gameState.scoreMultiplier > 1
-                      ? `(x${gameState.scoreMultiplier})`
-                      : ""
-                  );
                   return newScore;
                 });
 
@@ -566,6 +685,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                   ...prev,
                   thoughtsCleared: prev.thoughtsCleared + 1,
                 }));
+                
+                // Track negative thoughts cleared by projectiles
+                setNegativeThoughtsCleared(prev => prev + 1);
 
                 break;
               }
@@ -581,24 +703,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   }, [gameStarted, lives, gameState.shieldActive, gameState.scoreMultiplier, getDifficultyConfig]);
 
   const handleThoughtPress = (thought: Thought): void => {
-    console.log(
-      "🎯 Thought pressed:",
-      thought.text,
-      "isPositive:",
-      thought.isPositive,
-      "powerUp:",
-      thought.powerUpType
-    );
-
-    if (!gameStarted || !thought.isPositive) {
-      console.log("❌ Cannot catch - game not started or negative thought");
-      return;
-    }
-
-    console.log(
-      "💚 Positive thought caught!",
-      thought.powerUpType ? `Power-up: ${thought.powerUpType}` : "No power-up"
-    );
 
     // Calculate score with multiplier
     const difficulty = getDifficultyConfig();
@@ -606,13 +710,15 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const points = Math.round(basePoints * gameState.scoreMultiplier);
     setScore(prev => {
       const newScore = prev + points;
-      console.log("📈 Score increased by", points, "new total:", newScore);
       return newScore;
     });
 
+    if (!thought.isPositive) {
+      return;
+    }
+
     // Activate power-up if available
     if (thought.powerUpType) {
-      console.log("🌟 Activating power-up:", thought.powerUpType);
       activatePowerUp(thought.powerUpType);
     }
 
@@ -622,12 +728,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       ...prev,
       thoughtsCleared: prev.thoughtsCleared + 1,
     }));
-
-    console.log("✅ Thought removed and progress updated");
+    
+    // Track positive thoughts cleared for reward calculation
+    setPositiveThoughtsCleared(prev => prev + 1);
   };
 
   const startGame = useCallback((): void => {
-    console.log('🚀 Starting game with difficulty:', selectedDifficulty);
     
     const difficulty = getDifficultyConfig();
 
@@ -653,113 +759,25 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     setActivePowerUps([]);
     setGameStarted(true);
     setShowDifficultySelect(false);
-    gameStartTime.current = Date.now();
     
-    console.log('✅ Game started with', difficulty.modifiers.livesStart, 'lives!');
+    // Initialize game statistics for reward system
+    setGameStartTime(Date.now());
+    setTotalThoughtsSpawned(0);
+    setPositiveThoughtsCleared(0);
+    setNegativeThoughtsCleared(0);
   }, [selectedDifficulty, getDifficultyConfig]);
 
-  const calculateExperienceReward = useCallback((finalScore: number, finalLevel: number, won: boolean, difficultyName: string): number => {
-    const difficultyConfig = getDifficultyConfig();
-    
-    // Base experience for playing
-    let baseExperience = 50;
-    
-    // Score-based experience (1 XP per 10 points)
-    const scoreExperience = Math.floor(finalScore / 10);
-    
-    // Level-based experience (bonus for reaching higher levels)
-    const levelExperience = finalLevel * 25;
-    
-    // Difficulty multiplier
-    const difficultyMultiplier = difficultyConfig.modifiers.scoreMultiplier;
-    
-    // Victory bonus
-    const victoryBonus = won ? 100 : 0;
-    
-    // Achievement bonuses
-    let achievementBonus = 0;
-    
-    // High score bonus (1000+ points)
-    if (finalScore >= 1000) achievementBonus += 50;
-    
-    // High level bonus (level 5+)
-    if (finalLevel >= 5) achievementBonus += 75;
-    
-    // Perfect game bonus (no lives lost)
-    if (lives === difficultyConfig.modifiers.livesStart) achievementBonus += 25;
-    
-    // Calculate total experience
-    const totalExperience = Math.floor(
-      (baseExperience + scoreExperience + levelExperience + victoryBonus + achievementBonus) * difficultyMultiplier
-    );
-    
-    console.log('🎁 Experience calculation:', {
-      baseExperience,
-      scoreExperience,
-      levelExperience,
-      victoryBonus,
-      achievementBonus,
-      difficultyMultiplier,
-      totalExperience
-    });
-    
-    return Math.max(10, totalExperience); // Minimum 10 XP
-  }, [getDifficultyConfig, lives]);
-
-  const awardExperience = useCallback(async (experienceAmount: number, source: string) => {
-    try {
-      console.log('🎁 Awarding experience:', experienceAmount, 'from source:', source);
-      console.log('🎁 Current character state:', character.backendCharacter);
-      
-      // Show floating reward notification immediately
-      setExperienceRewardAmount(experienceAmount);
-      setExperienceRewardMessage(`+${experienceAmount} Experience from Thought Defender!`);
-      setShowExperienceReward(true);
-      
-      // Try to load character if not available
-      if (!character.backendCharacter) {
-        console.log('🔄 No character loaded, attempting to load...');
-        try {
-          await character.loadCharacter(); // Load character
-          console.log('🔄 Character load attempt completed. New state:', character.backendCharacter);
-        } catch (loadError) {
-          console.error('❌ Failed to load character:', loadError);
-          // Show notification anyway - user gets visual feedback
-          return;
-        }
-      }
-      
-      // Award experience through the backend
-      console.log('🎁 Calling gainExperience with:', experienceAmount, source);
-      console.log('🎁 Character ID:', character.backendCharacter?.id);
-      
-      if (character.backendCharacter?.id) {
-        await character.gainExperience(experienceAmount, source);
-        console.log('✅ Experience awarded successfully');
-      } else {
-        console.error('❌ No character ID available for experience gain');
-        // Still show the notification - user gets visual feedback
-      }
-    } catch (error) {
-      console.error('❌ Failed to award experience:', error);
-      console.error('❌ Error details:', error);
-      // The notification is already shown, so user still sees the reward
-      // In a real app, you might want to queue this for retry later
-    }
-  }, [character]);
-
-  const checkWinCondition = useCallback(async (): Promise<void> => {
+  const checkWinCondition = useCallback((): void => {
     const difficulty = getDifficultyConfig();
     const currentWaveTarget = getCurrentWaveTarget();
 
+    // Debug logging
+    console.log(`🎯 Win Check: Level ${level}/${difficulty.modifiers.maxLevels}, Cleared ${gameState.thoughtsCleared}/${currentWaveTarget}`);
+
     // Win conditions
-    const TARGET_SCORE = (500 + (level - 1) * 200) * difficulty.modifiers.scoreMultiplier; // Increasing target score
-    
-    console.log('🎯 Checking win condition - Cleared:', gameState.thoughtsCleared, 'Target:', currentWaveTarget, 'Score:', score, 'Target Score:', TARGET_SCORE);
-    
     // Check if wave is complete
     if (gameState.thoughtsCleared >= currentWaveTarget) {
-      console.log("🌊 Wave completed!");
+      console.log(`✅ Wave ${level} Complete! Moving to next level...`);
       setGameState((prev) => ({ ...prev, waveComplete: true }));
         setTimeout(
           () => setGameState((prev) => ({ ...prev, waveComplete: false })),
@@ -769,42 +787,103 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
       // Check for overall victory
       if (level >= difficulty.modifiers.maxLevels) {
+        console.log(`🏆 VICTORY! Completed all ${difficulty.modifiers.maxLevels} levels!`);
         // VICTORY!
-        console.log("🏆 VICTORY ACHIEVED!");
         setGameStarted(false);
 
         if (gameLoopRef.current) clearInterval(gameLoopRef.current);
         if (spawnLoopRef.current) clearInterval(spawnLoopRef.current);
         
-        // Calculate and award experience for victory
-        const experienceGained = calculateExperienceReward(score, level, true, selectedDifficulty);
-        await awardExperience(experienceGained, `thought_defender_victory_${selectedDifficulty}`);
+        // Calculate game statistics for reward system
+        const survivalTime = Math.floor((Date.now() - gameStartTime) / 1000);
+        const totalThoughtsCleared = positiveThoughtsCleared + negativeThoughtsCleared;
+        const currentExperience = character.backendCharacter?.experience || 0;
         
-        // Update archive progress
-        await archive.handleMiniGameComplete("thoughtDefender", {
-          level,
+        // Process rewards using the new reward system
+        const rewardResult = processThoughtDefenderCompletion(
           score,
-          won: true,
-          difficulty: selectedDifficulty,
-          experienceGained,
-          gameTime: Date.now() - gameStartTime.current
-        });
-        
-        if (onScoreUpdate) onScoreUpdate({ score, level, won: true, difficulty: selectedDifficulty });
-        
-        Alert.alert(
-          '🏆 VICTORY! 🏆',
-          `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\nEXPERIENCE GAINED: ${experienceGained}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
-          [
-            { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
-            { text: '❌ EXIT', onPress: onClose }
-          ]
+          level,
+          true, // won
+          selectedDifficulty,
+          totalThoughtsCleared,
+          totalThoughtsSpawned,
+          survivalTime,
+          currentExperience
         );
+        
+        if (rewardResult.success) {
+          // Apply rewards to character based on research condition
+          // Use resonance for character condition, experience for personality condition
+          if (ui.researchCondition === "character") {
+            character.gainResonance(rewardResult.rewards.experience, 'ThoughtDefender');
+          } else {
+            character.gainExperience(rewardResult.rewards.experience, 'ThoughtDefender');
+          }
+          
+          // Map frontend attribute names to backend attribute names
+          const backendWellnessStats: Record<string, number> = {};
+          if (rewardResult.rewards.wellnessStats.exploration !== undefined) {
+            backendWellnessStats.awareness = rewardResult.rewards.wellnessStats.exploration;
+          }
+          if (rewardResult.rewards.wellnessStats.courage !== undefined) {
+            backendWellnessStats.resilience = rewardResult.rewards.wellnessStats.courage;
+          }
+          if (rewardResult.rewards.wellnessStats.connection !== undefined) {
+            backendWellnessStats.connection = rewardResult.rewards.wellnessStats.connection;
+          }
+          if (rewardResult.rewards.wellnessStats.fear !== undefined) {
+            backendWellnessStats.balance = rewardResult.rewards.wellnessStats.fear;
+          }
+          
+          character.gainWellness(backendWellnessStats);
+          
+          // Show detailed reward message
+          const rewardMessage = formatThoughtDefenderRewardMessage(
+            rewardResult.rewards, 
+            rewardResult.levelsGained || 0
+          );
+          
+          if (onScoreUpdate) onScoreUpdate({ 
+            score, 
+            level, 
+            won: true, 
+            difficulty: selectedDifficulty 
+          });
+
+          // apiService.updateGameData({score: score}); // Commented out - endpoint only supports GET
+
+          Alert.alert(
+            '🏆 VICTORY! 🏆',
+            `${rewardMessage}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
+            [
+              { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
+              { text: '❌ EXIT', onPress: onClose }
+            ]
+          );
+        } else {
+          // Fallback to original behavior if reward processing fails
+          if (onScoreUpdate) onScoreUpdate({ 
+            score, 
+            level, 
+            won: true, 
+            difficulty: selectedDifficulty 
+          });
+
+          // apiService.updateGameData({score: score}); // Commented out - endpoint only supports GET
+
+          Alert.alert(
+            '🏆 VICTORY! 🏆',
+            `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
+            [
+              { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
+              { text: '❌ EXIT', onPress: onClose }
+            ]
+          );
+        }
         return;
       }
 
       // Next level
-      console.log("📈 Advancing to next level:", level + 1);
       setLevel((prev) => prev + 1);
       setLives((prev) => Math.min(prev + 1, 5)); // Bonus life for completing wave
       setGameState((prev) => ({
@@ -814,14 +893,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         thoughtsCleared: 0,
       }));
     }
-  }, [gameState.thoughtsCleared, level, score, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, getCurrentWaveTarget, calculateExperienceReward, awardExperience]);
+  }, [gameState.thoughtsCleared, level, score, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, getCurrentWaveTarget, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, totalThoughtsSpawned, character]);
 
-  const endGame = useCallback(async (): Promise<void> => {
-    console.log("🎮 Game Over!");
-    console.log("🎮 Final Score:", score);
-    console.log("🎮 Final Level:", level);
-    console.log("🎮 Difficulty:", selectedDifficulty);
-    
+  const endGame = useCallback((): void => {
     setGameStarted(false);
 
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
@@ -829,39 +903,98 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
     const difficulty = getDifficultyConfig();
     
-    // Calculate and award experience for game over (partial completion)
-    const experienceGained = calculateExperienceReward(score, level, false, selectedDifficulty);
-    console.log("🎁 Experience calculated:", experienceGained);
+    // Calculate game statistics for reward system
+    const survivalTime = Math.floor((Date.now() - gameStartTime) / 1000);
+    const totalThoughtsCleared = positiveThoughtsCleared + negativeThoughtsCleared;
+    const currentExperience = character.backendCharacter?.experience || 0;
     
-    // Award experience
-    await awardExperience(experienceGained, `thought_defender_completion_${selectedDifficulty}`);
-    
-    // Update archive progress
-    await archive.handleMiniGameComplete("thoughtDefender", {
-      level,
+    // Process rewards using the new reward system
+    const rewardResult = processThoughtDefenderCompletion(
       score,
-      won: false,
-      difficulty: selectedDifficulty,
-      experienceGained,
-      gameTime: Date.now() - gameStartTime.current
-    });
-    
-    if (onScoreUpdate) onScoreUpdate({ score, level, won: false, difficulty: selectedDifficulty });
-    
-    Alert.alert(
-      '⚡ GAME OVER ⚡',
-      `DIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\nEXPERIENCE GAINED: ${experienceGained}\n\n🧠 MIND DEFENDED!`,
-      [
-        { text: '🔄 RETRY', onPress: () => setShowDifficultySelect(true) },
-        { text: '❌ EXIT', onPress: onClose }
-      ]
+      level,
+      false, // lost
+      selectedDifficulty,
+      totalThoughtsCleared,
+      totalThoughtsSpawned,
+      survivalTime,
+      currentExperience
     );
-  }, [score, level, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, calculateExperienceReward, awardExperience]);
+    
+    if (rewardResult.success) {
+      // Apply rewards to character (even for losses, players get some rewards)
+      // Use resonance for character condition, experience for personality condition
+      if (ui.researchCondition === "character") {
+        character.gainResonance(rewardResult.rewards.experience, 'ThoughtDefender');
+      } else {
+        character.gainExperience(rewardResult.rewards.experience, 'ThoughtDefender');
+      }
+      
+      // Map frontend attribute names to backend attribute names
+      const backendWellnessStats: Record<string, number> = {};
+      if (rewardResult.rewards.wellnessStats.exploration !== undefined) {
+        backendWellnessStats.awareness = rewardResult.rewards.wellnessStats.exploration;
+      }
+      if (rewardResult.rewards.wellnessStats.courage !== undefined) {
+        backendWellnessStats.resilience = rewardResult.rewards.wellnessStats.courage;
+      }
+      if (rewardResult.rewards.wellnessStats.connection !== undefined) {
+        backendWellnessStats.connection = rewardResult.rewards.wellnessStats.connection;
+      }
+      if (rewardResult.rewards.wellnessStats.fear !== undefined) {
+        backendWellnessStats.balance = rewardResult.rewards.wellnessStats.fear;
+      }
+      
+      character.gainWellness(backendWellnessStats);
+      
+      // Show detailed reward message
+      const rewardMessage = formatThoughtDefenderRewardMessage(
+        rewardResult.rewards, 
+        rewardResult.levelsGained || 0
+      );
+      
+      if (onScoreUpdate) onScoreUpdate({ 
+        score, 
+        level, 
+        won: false, 
+        difficulty: selectedDifficulty 
+      });
+
+      // apiService.updateGameData({score: score}); // Commented out - endpoint only supports GET
+
+      Alert.alert(
+        '⚡ GAME OVER ⚡',
+        `${rewardMessage}\n\n🧠 MIND DEFENDED!`,
+        [
+          { text: '🔄 RETRY', onPress: () => setShowDifficultySelect(true) },
+          { text: '❌ EXIT', onPress: onClose }
+        ]
+      );
+    } else {
+      // Fallback to original behavior if reward processing fails
+      if (onScoreUpdate) onScoreUpdate({ 
+        score, 
+        level, 
+        won: false, 
+        difficulty: selectedDifficulty 
+      });
+
+      // apiService.updateGameData({score: score}); // Commented out - endpoint only supports GET
+
+      Alert.alert(
+        '⚡ GAME OVER ⚡',
+        `DIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\n🧠 MIND DEFENDED!`,
+        [
+          { text: '🔄 RETRY', onPress: () => setShowDifficultySelect(true) },
+          { text: '❌ EXIT', onPress: onClose }
+        ]
+      );
+    }
+  }, [score, level, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, totalThoughtsSpawned, character]);
 
   // Check win condition
   useEffect(() => {
     if (gameStarted) {
-      checkWinCondition().catch(console.error);
+      checkWinCondition();
     }
   }, [gameStarted, checkWinCondition]);
 
@@ -870,17 +1003,14 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     if (!gameStarted) return;
 
     const difficulty = getDifficultyConfig();
-    console.log('🔄 Starting game loops with difficulty:', difficulty.name);
     
     gameLoopRef.current = setInterval(updateGame, 16) as unknown as number; // ~60 FPS
 
     // Spawn rate increases with level (faster spawning = more difficulty)
     const baseSpawnRate = 2000;
     const difficultySpawnRate = baseSpawnRate * difficulty.modifiers.spawnRate;
-    const levelSpawnRate = Math.max(800, difficultySpawnRate - (level - 1) * 150);
+    const levelSpawnRate = Math.max(800, difficultySpawnRate - ((level - 1) * 150));
     spawnLoopRef.current = setInterval(spawnThought, levelSpawnRate) as unknown as number;
-    
-    console.log('✅ Game loops started with spawn rate:', levelSpawnRate + 'ms', 'Difficulty modifier:', difficulty.modifiers.spawnRate);
     
     return () => {
       if (gameLoopRef.current) clearInterval(gameLoopRef.current);
@@ -891,7 +1021,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   // Check for game over
   useEffect(() => {
     if (gameStarted && lives <= 0) {
-      setTimeout(() => endGame().catch(console.error), 500);
+      setTimeout(endGame, 500);
     }
   }, [lives, gameStarted, endGame]);
 
@@ -907,51 +1037,71 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
   const renderDifficultySelect = () => (
     <View style={styles.difficultyScreen}>
-      <View style={styles.difficultyOptions}>
-        {Object.entries(DIFFICULTY_LEVELS).map(([key, config]) => (
-          <TouchableOpacity
-            key={key}
-            style={[
-              styles.difficultyOption,
-              selectedDifficulty === key && styles.selectedDifficulty
-            ]}
-            onPress={() => setSelectedDifficulty(key)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.difficultyName}>{config.icon}{config.name}</Text>
-            
-            <View style={styles.difficultyStats}>
-              <Text style={styles.difficultyStatText}>
-                Speed: {(config.modifiers.thoughtSpeed * 100).toFixed(0)}%
+      <Text style={styles.difficultyTitle}>SELECT DIFFICULTY</Text>
+      
+      <View style={styles.difficultyOptionsContainer}>
+        <ScrollView 
+          style={styles.difficultyOptions}
+          showsVerticalScrollIndicator={true}
+          contentContainerStyle={{ paddingBottom: 8 }}
+        >
+          {Object.entries(DIFFICULTY_LEVELS).map(([key, config]) => (
+            <TouchableOpacity
+              key={key}
+              style={[
+                styles.difficultyOption,
+                selectedDifficulty === key && styles.selectedDifficulty
+              ]}
+              onPress={() => setSelectedDifficulty(key)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.difficultyName}>{config.icon}{config.name}</Text>
+              
+              <View style={styles.difficultyStats}>
+                <Text style={styles.difficultyStatText}>
+                  Speed: {(config.modifiers.thoughtSpeed * 100).toFixed(0)}%
+                </Text>
+                <Text style={styles.difficultyStatText}>
+                  Lives: {config.modifiers.livesStart}
+                </Text>
+                <Text style={styles.difficultyStatText}>
+                  Score: {(config.modifiers.scoreMultiplier * 100).toFixed(0)}%
+                </Text>
+              </View>
+              
+              <Text style={{
+                color: '#FCD34D',
+                fontSize: 10,
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginTop: 4
+              }}>
+                Win: {config.modifiers.maxLevels} levels
               </Text>
-              <Text style={styles.difficultyStatText}>
-                Lives: {config.modifiers.livesStart}
-              </Text>
-              <Text style={styles.difficultyStatText}>
-                Score: {(config.modifiers.scoreMultiplier * 100).toFixed(0)}%
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
       
-      <TouchableOpacity 
-        style={styles.startButton} 
-        onPress={startGame}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.startButtonText}>
-        START {DIFFICULTY_LEVELS[selectedDifficulty].name}
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => setShowDifficultySelect(false)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.backButtonText}>← BACK</Text>
-      </TouchableOpacity>
+      <View style={styles.difficultyButtonsContainer}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => setShowDifficultySelect(false)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.backButtonText}>← BACK</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.startButton} 
+          onPress={startGame}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.startButtonText}>
+          START {DIFFICULTY_LEVELS[selectedDifficulty].name}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -982,9 +1132,13 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                   </Text>
                 </View>
                 <View style={styles.hudItem}>
-                  <Text style={styles.hudLabel}>WAVE</Text>
-                  <Text style={styles.hudValue}>
-                    {gameState.wave.toString().padStart(2, "0")}
+                  <Text style={styles.hudLabel}>LEVEL</Text>
+                  <Text style={[
+                    styles.hudValue,
+                    level >= getDifficultyConfig().modifiers.maxLevels && { color: '#FCD34D', fontWeight: 'bold' }
+                  ]}>
+                    {level}/{getDifficultyConfig().modifiers.maxLevels}
+                    {level >= getDifficultyConfig().modifiers.maxLevels && ' 🏆'}
                   </Text>
                 </View>
                 <View style={styles.hudItem}>
@@ -1002,13 +1156,18 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           </View>
 
           {/* Game Area */}
-          <View style={styles.gameArea}>
+          <View style={[
+            styles.gameArea,
+            { 
+              height: gameStarted ? GAME_HEIGHT : 'auto',
+            }
+          ]}>
             {!gameStarted && showDifficultySelect ? (
               renderDifficultySelect()
             ) : !gameStarted ? (
               // Start Screen
-              <View style={styles.startScreen}>
-                <Text style={styles.startSubtitle}>PROTECT YOUR THOUGHTS!</Text>
+              <View style={[styles.startScreen, { backgroundColor: theme.theme.archiveBackground }]}>
+                <Text style={styles.startTitle}>PROTECT YOUR THOUGHTS!</Text>
 
                 <View style={styles.startInstructions}>
                   <Text style={styles.startInstructionText}>
@@ -1018,7 +1177,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                     ⚡ SHOOT negative thoughts to defend
                   </Text>
                   <Text style={styles.startInstructionText}>
-                    🏆 Complete waves to win the game
+                    🏆 Complete {getDifficultyConfig().modifiers.maxLevels} levels to win
                   </Text>
                   <Text style={styles.startInstructionText}>
                     🛡️ Collect power-ups for special abilities
@@ -1028,20 +1187,20 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                 <Text style={styles.startSubtitle}>CURRENT DIFFICULTY:</Text>
                 <Text style={styles.startSubtitle}>{DIFFICULTY_LEVELS[selectedDifficulty].icon}{DIFFICULTY_LEVELS[selectedDifficulty].name}</Text>
 
-                <TouchableOpacity
-                  style={styles.difficultySelectButton}
-                  onPress={() => setShowDifficultySelect(true)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.difficultySelectButtonText}>🎯SELECT DIFFICULTY🎯</Text>
-                </TouchableOpacity>
-                
                 <TouchableOpacity 
                   style={styles.startButton} 
                   onPress={startGame}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.startButtonText}>🚀 START GAME 🚀</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.difficultySelectButton}
+                  onPress={() => setShowDifficultySelect(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.difficultySelectButtonText}>🎯SELECT DIFFICULTY🎯</Text>
                 </TouchableOpacity>
 
                 <Text style={styles.startHint}>
@@ -1075,23 +1234,46 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                   T: {thoughts.length} | P: {projectiles.length} | X:{" "}
                   {Math.round(playerX)}
                 </Text>
+                
+                {/* Final Level Indicator */}
+                {level >= getDifficultyConfig().modifiers.maxLevels && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 25,
+                    left: 0,
+                    right: 0,
+                    alignItems: 'center',
+                    zIndex: 50
+                  }}>
+                    <Text style={{
+                      color: '#FCD34D',
+                      fontSize: 16,
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      textShadowColor: '#000',
+                      textShadowOffset: { width: 1, height: 1 },
+                      textShadowRadius: 2,
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                      paddingHorizontal: 12,
+                      paddingVertical: 4,
+                      borderRadius: 8
+                    }}>
+                      🏆 FINAL LEVEL! 🏆
+                    </Text>
+                  </View>
+                )}
 
                 {/* Background touch area for movement */}
                 <View
                   style={styles.backgroundTouchArea}
                   onTouchStart={(evt) => {
                     const { locationX, locationY } = evt.nativeEvent;
-                    console.log("🎮 Background touch:", {
-                      locationX,
-                      locationY,
-                    });
 
                     // Move player
                     handlePlayerMove(locationX);
 
                     // Shoot if in bottom area
                     if (locationY > GAME_HEIGHT * 0.66) {
-                      console.log("🎯 Background touch in shooting zone");
                       shoot();
                     }
                   }}
@@ -1104,7 +1286,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                 <TouchableOpacity 
                   style={styles.shootingZone}
                   onPress={() => {
-                    console.log('🎯 Shooting zone overlay pressed');
                     shoot();
                   }}
                   activeOpacity={0.7}
@@ -1139,12 +1320,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                       },
                     ]}
                     onPress={() => {
-                      console.log(
-                        "🎯 THOUGHT TAPPED:",
-                        thought.text,
-                        "isPositive:",
-                        thought.isPositive
-                      );
                       handleThoughtPress(thought);
                     }}
                     activeOpacity={0.8}
@@ -1216,36 +1391,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           </TouchableOpacity>
             
         </View>
-        
-        {/* Floating Reward Notification */}
-        <FloatingRewardNotification
-          visible={showExperienceReward}
-          message={experienceRewardMessage}
-          type="experience"
-          onHide={() => setShowExperienceReward(false)}
-        />
-        
-        {/* Debug button for testing experience system */}
-        {__DEV__ && (
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 50,
-              right: 20,
-              backgroundColor: 'red',
-              padding: 10,
-              borderRadius: 5,
-              zIndex: 1000,
-            }}
-            onPress={() => {
-              console.log('🧪 Testing experience system...');
-              awardExperience(100, 'test_experience');
-            }}
-          >
-            <Text style={{ color: 'white', fontSize: 12 }}>Test XP</Text>
-          </TouchableOpacity>
-        )}
-        
       </View>
     </Modal>
   );
@@ -1254,23 +1399,26 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.95)",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 18,
   },
   modalpassages: {
-    width: GAME_WIDTH,
-    backgroundColor: "#1a1a2e",
-    borderRadius: 8,
-    borderWidth: 4,
-    borderColor: "#00ff41",
+    width: Math.min(GAME_WIDTH, width * 0.95),
+    maxWidth: 400,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d4af37',
     padding: 16,
     alignItems: "center",
-    shadowColor: "#00ff41",
-    shadowOffset: { width: 0, height: 0 },
+    shadowColor: '#d4af37',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowRadius: 8,
+    elevation: 8,
   },
   header: {
     width: "100%",
@@ -1278,26 +1426,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    color: "#00ff41",
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 12,
-    textShadowColor: "#00aa2a",
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 0,
-    letterSpacing: 2,
+    color: '#4ee6e6',
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    textShadowColor: 'rgba(78, 230, 230, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+    letterSpacing: 4,
   },
   hud: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    backgroundColor: "#0f0f23",
-    borderWidth: 2,
-    borderColor: "#00ff41",
+    backgroundColor: "rgba(30, 41, 59, 0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.3)",
     padding: 8,
     paddingHorizontal: 2,
-    borderRadius: 4,
+    borderRadius: 8,
   },
   hudItem: {
     alignItems: "center",
@@ -1306,7 +1454,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   hudLabel: {
-    color: "#00ff41",
+    color: "#d4af37",
     fontSize: 8,
     fontWeight: "bold",
     marginBottom: 2,
@@ -1318,12 +1466,12 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   gameArea: {
-    width: GAME_WIDTH - 32,
-    height: GAME_HEIGHT,
-    backgroundColor: "#0f0f23",
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: "#00ff41",
+    width: Math.min(GAME_WIDTH - 32, width * 0.95 - 32),
+    maxWidth: 368,
+    backgroundColor: "rgba(30, 41, 59, 0.9)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.3)",
     position: "relative",
     overflow: "hidden",
     marginBottom: 16,
@@ -1345,7 +1493,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 5,
     left: 5,
-    color: "#00ff41",
+    color: "#d4af37",
     fontSize: 10,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     zIndex: 100,
@@ -1366,106 +1514,120 @@ const styles = StyleSheet.create({
   },
   difficultyScreen: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   difficultyTitle: {
-    color: '#00ff41',
-    fontSize: 22,
+    color: '#4ee6e6',
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 8,
-    textShadowColor: '#00aa2a',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 0,
+    marginBottom: 16,
+    textShadowColor: 'rgba(78, 230, 230, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
     letterSpacing: 2,
   },
   difficultySubtitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: '#d4af37',
+    fontSize: 16,
+    fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 20,
-    letterSpacing: 1,
-    opacity: 0.8,
+  },
+  difficultyOptionsContainer: {
+    flex: 1,
+    width: '100%',
+    marginBottom: 16,
+    minHeight: 0,
   },
   difficultyOptions: {
     width: '100%',
-    marginBottom: 20,
+    flex: 1,
+  },
+  difficultyButtonsContainer: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
   difficultyOption: {
-    backgroundColor: '#1a1a2e',
-    borderWidth: 2,
-    borderColor: '#333366',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 4,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    borderWidth: 1,
+    borderColor: '#d4af37',
+    borderRadius: 12,
+    padding: height < 700 ? 12 : 16,
+    marginBottom: 8,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#d4af37',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  selectedDifficulty: {
-    borderColor: '#00ff41',
-    backgroundColor: '#1a2e1a',
-    shadowColor: '#00ff41',
-    shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 8,
+    minHeight: height < 700 ? 70 : 80,
+  },
+  selectedDifficulty: {
+    borderColor: '#d4af37',
+    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    shadowColor: '#d4af37',
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 12,
   },
   difficultyName: {
-    color: '#ffffff',
+    color: '#d4af37',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 4,
-    letterSpacing: 1,
+    marginBottom: 6,
   },
   difficultyDescription: {
-    color: '#cccccc',
-    fontSize: 12,
+    color: '#fff',
+    fontSize: 14,
+    lineHeight: 22,
+    fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 8,
-    fontStyle: 'italic',
   },
   difficultyStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
+    flexWrap: 'wrap',
   },
   difficultyStatText: {
-    color: '#00ff41',
-    fontSize: 10,
+    color: '#d4af37',
+    fontSize: 9,
     fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     textAlign: 'center',
     flex: 1,
+    marginHorizontal: 2,
   },
    difficultySelectButton: {
-    backgroundColor: '#ff6600',
-    borderWidth: 3,
-    borderColor: '#cc5500',
+    backgroundColor: '#d4af37',
+    borderWidth: 2,
+    borderColor: '#b8860b',
     borderRadius: 8,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    marginBottom: 8,
-    shadowColor: '#ff6600',
+    marginBottom: 20,
+    shadowColor: '#d4af37',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
+    shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 5,
-    minHeight: 50,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
   difficultySelectButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
+    color: '#000',
+    fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
     letterSpacing: 1,
@@ -1476,13 +1638,16 @@ const styles = StyleSheet.create({
     borderColor: '#888888',
     borderRadius: 8,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginTop: 0,
+    paddingVertical: 12,
     shadowColor: '#666666',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 3,
+    minHeight: 52,
+    minWidth: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backButtonText: {
     color: '#ffffff',
@@ -1492,63 +1657,62 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   startScreen: {
-    flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   startTitle: {
-    color: '#00ff41',
-    fontSize: 24,
+    color: '#4ee6e6',
+    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    textShadowColor: '#00aa2a',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 0,
-    letterSpacing: 2,
+    textShadowColor: 'rgba(78, 230, 230, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+    letterSpacing: 4,
   },
   startSubtitle: {
-    color: '#ffffff',
+    color: '#d4af37',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontStyle: 'italic',
     textAlign: 'center',
-    marginBottom: 24,
-    letterSpacing: 1,
+    marginBottom: 4,
   },
   startInstructions: {
-    marginBottom: 32,
+    marginBottom: 10,
     alignItems: "center",
   },
   startInstructionText: {
-    color: "#00ff41",
+    color: "#fff",
     fontSize: 14,
-    fontWeight: "bold",
+    lineHeight: 22,
+    fontStyle: "italic",
     textAlign: "center",
     marginBottom: 8,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   startButton: {
-    backgroundColor: "#00ff41",
-    borderWidth: 3,
-    borderColor: "#00aa2a",
+    backgroundColor: "#d4af37",
+    borderWidth: 2,
+    borderColor: "#b8860b",
     borderRadius: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    marginBottom: 16,
-    shadowColor: "#00ff41",
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    shadowColor: "#d4af37",
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
+    shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 5,
     zIndex: 10,
-    minHeight: 50,
+    minHeight: 48,
+    flex: 0.7,
     justifyContent: 'center',
     alignItems: 'center',
   },
   startButtonText: {
-    color: '#0f0f23',
+    color: '#000',
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -1576,10 +1740,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   startHint: {
-    color: "rgba(255, 255, 255, 0.6)",
+    color: '#d4af37',
     fontSize: 12,
+    fontWeight: '600',
     textAlign: "center",
-    fontStyle: "italic",
   },
   shootingZone: {
     position: "absolute",
@@ -1587,9 +1751,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: GAME_HEIGHT * 0.34,
-    backgroundColor: "rgba(0, 255, 65, 0.05)",
+    backgroundColor: "rgba(212, 175, 55, 0.05)",
     borderTopWidth: 1,
-    borderColor: "rgba(0, 255, 65, 0.3)",
+    borderColor: "rgba(212, 175, 55, 0.3)",
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
@@ -1597,7 +1761,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   shootingZoneText: {
-    color: "rgba(0, 255, 65, 0.5)",
+    color: "rgba(212, 175, 55, 0.5)",
     fontSize: 20,
     fontWeight: "bold",
   },
@@ -1625,10 +1789,10 @@ const styles = StyleSheet.create({
   thought: {
     position: "absolute",
     padding: 8,
-    borderRadius: 35,
+    borderRadius: 40,
     borderWidth: 2,
-    width: 75,
-    height: 75,
+    width: 80,
+    height: 80,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 2, height: 2 },
@@ -1665,6 +1829,7 @@ const styles = StyleSheet.create({
     textShadowColor: "#000",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 0,
+    outline: "1px solid #000",
   },
   projectile: {
     position: "absolute",
@@ -1675,19 +1840,19 @@ const styles = StyleSheet.create({
   },
   projectileText: {
     fontSize: 8,
-    color: "#00ff41",
+    color: "#d4af37",
   },
   instructions: {
     marginBottom: 16,
-    backgroundColor: "#0f0f23",
-    borderWidth: 2,
-    borderColor: "#00ff41",
-    borderRadius: 4,
+    backgroundColor: "rgba(30, 41, 59, 0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.3)",
+    borderRadius: 8,
     padding: 12,
     width: "100%",
   },
   instructionTitle: {
-    color: "#00ff41",
+    color: "#d4af37",
     fontSize: 14,
     fontWeight: "bold",
     textAlign: "center",

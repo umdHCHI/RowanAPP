@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { PERSONALITY_BUILDS, PersonalityConfigs, PersonalityKey } from '../imports';
+import { getPersonalityStyles } from '../styles/globalStyles';
 
 interface PersonalizedArchiveHeaderProps {
   primaryTrait: PersonalityKey;
@@ -23,13 +24,25 @@ const PersonalizedArchiveHeader = ({
   const config = PersonalityConfigs[primaryTrait];
   const personalityBuild = PERSONALITY_BUILDS[primaryTrait];
   
+  // Generate personality-specific styles
+  const personalityStyles = getPersonalityStyles(
+    config.theme.primary,
+    config.theme.secondary,
+    config.theme.accent
+  );
+  
   // Fallback to default config if the specific one is not found
   if (!config || !personalityBuild) {
     console.log("No config found for primaryTrait:", primaryTrait, "using default");
     const defaultConfig = PersonalityConfigs.Openness;
     const defaultBuild = PERSONALITY_BUILDS.Openness;
+    const defaultStyles = getPersonalityStyles(
+      defaultConfig.theme.primary,
+      defaultConfig.theme.secondary,
+      defaultConfig.theme.accent
+    );
     return (
-      <View style={[styles.headerContainer, { backgroundColor: defaultConfig.theme.background }]}>
+      <View style={[personalityStyles.headerContainer, { backgroundColor: defaultConfig.theme.background }]}>
         <Text style={{ color: '#fff', textAlign: 'center', padding: 20 }}>
           Loading personality configuration...
         </Text>
@@ -98,109 +111,63 @@ const PersonalizedArchiveHeader = ({
     return Math.floor(traitScores[primaryTrait] / 2) + 1;
   };
 
-  const dynamicStyles = {
-    headerContainer: {
-      ...styles.headerContainer,
-      backgroundColor: config.theme.background,
-      borderBottomColor: config.theme.primary,
-      shadowColor: config.theme.primary,
-    },
-    avatarGlow: {
-      ...styles.avatarGlow,
-      backgroundColor: config.mysticalElements.avatarGlow,
-    },
-    mysticalBorder: {
-      ...styles.mysticalBorder,
-      backgroundColor: config.mysticalElements.borderGlow,
-    },
-    backgroundRune: {
-      ...styles.backgroundRune,
-      color: config.theme.secondary,
-    },
-    scholarRank: {
-      ...styles.scholarRank,
-      color: config.theme.primary,
-    },
-    scholarClass: {
-      ...styles.scholarClass,
-      color: config.theme.accent,
-    },
-    archiveLabel: {
-      ...styles.archiveLabel,
-      color: config.theme.primary,
-    },
-    journeyIndicator: {
-      ...styles.journeyIndicator,
-      backgroundColor: `${config.theme.primary}20`,
-      borderLeftColor: config.theme.primary,
-    },
-    mindStateLabel: {
-      ...styles.mindStateLabel,
-      color: config.theme.secondary,
-    },
-    mindStateProgress: {
-      ...styles.mindStateProgress,
-      backgroundColor: config.theme.secondary,
-    }
-  };
-
   return (
-    <View style={dynamicStyles.headerContainer}>
+    <View style={[personalityStyles.headerContainer, { backgroundColor: config.theme.background }]}>
       {/* Personality-specific background elements */}
-      <View style={styles.backgroundElements}>
+      <View style={personalityStyles.backgroundElements}>
         {config.backgroundRunes.map((rune: string, index: number) => (
-          <Text key={index} style={dynamicStyles.backgroundRune}>
+          <Text key={index} style={personalityStyles.backgroundRune}>
             {rune}
           </Text>
         ))}
       </View>
 
       {/* Main header content */}
-      <View style={styles.headerContent}>
+      <View style={personalityStyles.headerContent}>
         {/* Left side - Avatar and Scholar Info */}
-        <View style={styles.leftSection}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarIcon}>{config.avatar}</Text>
-            <View style={dynamicStyles.avatarGlow} />
+        <View style={personalityStyles.leftSection}>
+          <View style={personalityStyles.avatarContainer}>
+            <Text style={personalityStyles.avatarIcon}>{config.avatar}</Text>
+            <View style={personalityStyles.avatarGlow} />
           </View>
 
-          <View style={styles.scholarInfo}>
-            <Text style={dynamicStyles.scholarRank}>Archive Scholar</Text>
-            <Text style={dynamicStyles.scholarClass}>{personalityBuild.class}</Text>
-            <Text style={styles.scholarLevel}>
+          <View style={personalityStyles.scholarInfo}>
+            <Text style={personalityStyles.scholarRank}>Archive Scholar</Text>
+            <Text style={personalityStyles.scholarClass}>{personalityBuild.class}</Text>
+            <Text style={personalityStyles.scholarLevel}>
               Level {getCharacterLevel()}
             </Text>
           </View>
         </View>
 
         {/* Right side - Game Title and Description */}
-        <View style={styles.rightSection}>
-          <View style={styles.gameInfo}>
-            <Text style={dynamicStyles.archiveLabel}>THE ARCHIVE</Text>
-            <Text style={styles.gameTitle}>{config.gameTitle}</Text>
-            <Text style={styles.archiveSection}>{config.archiveSection}</Text>
-            <Text style={styles.curatorNote}>{config.curatorNote}</Text>
+        <View style={personalityStyles.rightSection}>
+          <View style={personalityStyles.gameInfo}>
+            <Text style={personalityStyles.archiveLabel}>THE ARCHIVE</Text>
+            <Text style={personalityStyles.gameTitle}>{config.gameTitle}</Text>
+            <Text style={personalityStyles.archiveSection}>{config.archiveSection}</Text>
+            <Text style={personalityStyles.curatorNote}>{config.curatorNote}</Text>
           </View>
         </View>
       </View>
 
       {/* Journey section with personality-specific content */}
-      <View style={styles.journeySection}>
-        <View style={dynamicStyles.journeyIndicator}>
-          <Text style={styles.journeyIcon}>🗝️</Text>
-          <Text style={styles.journeyText}>{config.journeyDesc}</Text>
+      <View style={personalityStyles.journeySection}>
+        <View style={personalityStyles.journeyIndicator}>
+          <Text style={personalityStyles.journeyIcon}>🗝️</Text>
+          <Text style={personalityStyles.journeyText}>{config.journeyDesc}</Text>
         </View>
 
         {/* Personality-specific mind state indicators */}
-        <View style={styles.mindStateContainer}>
+        <View style={personalityStyles.mindStateContainer}>
           {config.mindStates.map((state: any, index: number) => (
-            <View key={index} style={styles.mindState}>
-              <Text style={styles.mindStateIcon}>{state.icon}</Text>
-              <Text style={dynamicStyles.mindStateLabel}>{state.label}</Text>
-              <View style={styles.mindStateBar}>
+            <View key={index} style={personalityStyles.mindState}>
+              <Text style={personalityStyles.mindStateIcon}>{state.icon}</Text>
+              <Text style={personalityStyles.mindStateLabel}>{state.label}</Text>
+              <View style={personalityStyles.mindStateBar}>
                 <View 
                   style={[
-                    dynamicStyles.mindStateProgress,
+                    personalityStyles.mindStateProgress,
                     { width: `${(calculateMindState(state.key) / 10) * 100}%` }
                   ]} 
                 />
@@ -211,204 +178,9 @@ const PersonalizedArchiveHeader = ({
       </View>
 
       {/* Mystical border with personality color */}
-      <View style={dynamicStyles.mysticalBorder} />
+      <View style={personalityStyles.mysticalBorder} />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  headerContainer: {
-    paddingTop: 45,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    position: 'relative',
-    borderBottomWidth: 2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-
-  backgroundElements: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    opacity: 0.1,
-  },
-
-  backgroundRune: {
-    fontSize: 60,
-    transform: [{ rotate: '15deg' }],
-  },
-
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 15,
-  },
-
-  avatarIcon: {
-    fontSize: 48,
-    zIndex: 2,
-  },
-
-  avatarGlow: {
-    position: 'absolute',
-    top: -5,
-    left: -5,
-    right: -5,
-    bottom: -5,
-    borderRadius: 35,
-    opacity: 0.3,
-    zIndex: 1,
-  },
-
-  scholarInfo: {
-    flex: 1,
-  },
-
-  scholarRank: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-
-  scholarClass: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-
-  scholarLevel: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-  rightSection: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-
-  gameInfo: {
-    alignItems: 'flex-end',
-  },
-
-  archiveLabel: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    marginBottom: 2,
-  },
-
-  gameTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'right',
-    marginBottom: 2,
-  },
-
-  archiveSection: {
-    color: '#ccc',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'right',
-    marginBottom: 4,
-  },
-
-  curatorNote: {
-    color: '#ccc',
-    fontSize: 11,
-    fontStyle: 'italic',
-    textAlign: 'right',
-  },
-
-  journeySection: {
-    marginTop: 10,
-  },
-
-  journeyIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    padding: 10,
-    borderRadius: 8,
-    borderLeftWidth: 3,
-  },
-
-  journeyIcon: {
-    fontSize: 16,
-    marginRight: 10,
-  },
-
-  journeyText: {
-    color: '#ccc',
-    fontSize: 13,
-    fontStyle: 'italic',
-    flex: 1,
-  },
-
-  mindStateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-
-  mindState: {
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 5,
-  },
-
-  mindStateIcon: {
-    fontSize: 18,
-    marginBottom: 4,
-  },
-
-  mindStateLabel: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-
-  mindStateBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: 'rgba(78, 230, 230, 0.2)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-
-  mindStateProgress: {
-    height: '100%',
-    borderRadius: 2,
-  },
-
-  mysticalBorder: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-  },
-});
 
 export default PersonalizedArchiveHeader;

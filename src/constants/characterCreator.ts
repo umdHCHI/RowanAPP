@@ -8,7 +8,7 @@ export const CHARACTER_CREATOR_CONSTANTS = {
   
   // Category Options
   STYLE_OPTIONS: {
-    BASE_MODEL: 9,
+    BASE_MODEL: 12,
     HAIR_STYLE: 12,
     EYES: 12,
     EYEBROW_STYLE: 12,

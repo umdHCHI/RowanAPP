@@ -261,11 +261,19 @@ const StoryCatalogModal = ({
       >
         <LinearGradient
           colors={[
-            "rgba(30, 41, 59, 0.95)",
-            "rgba(51, 65, 85, 0.8)",
-            "rgba(30, 41, 59, 0.95)",
+            "rgba(10, 11, 15, 0.95)",
+            "rgba(30, 41, 59, 0.8)",
+            "rgba(10, 11, 15, 0.95)",
           ]}
-          style={globalStyles.StoryCardGradient}
+          style={[globalStyles.StoryCardGradient, {
+            borderColor: '#d4af37',
+            borderWidth: 1,
+            shadowColor: '#d4af37',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 4,
+          }]}
         >
           <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
             {/* Rarity Border */}
@@ -294,11 +302,23 @@ const StoryCatalogModal = ({
             {/* Header */}
             <View style={globalStyles.StoryCardHeader}>
               <View style={globalStyles.StoryTitleSection}>
-                <Text style={[globalStyles.StoryCardTitle, { color: "#A855F7" }]}>
+                <Text style={[globalStyles.StoryCardTitle, { 
+                  color: "#4ee6e6",
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  textShadowColor: 'rgba(78, 230, 230, 0.5)',
+                  textShadowOffset: { width: 0, height: 2 },
+                  textShadowRadius: 4,
+                }]}>
                   {Story.title || "Untitled Story"}
                 </Text>
                 <Text
-                  style={[globalStyles.StoryCardCategory, { color: "#9CA3AF" }]}
+                  style={[globalStyles.StoryCardCategory, { 
+                    color: "#d4af37",
+                    fontSize: 14,
+                    fontStyle: 'italic',
+                    fontWeight: '600',
+                  }]}
                 >
                   {Story.category || "Unknown Category"}
                 </Text>
@@ -466,15 +486,24 @@ const StoryCatalogModal = ({
             {!Story.isLocked && (
               <View style={globalStyles.StoryActionButton}>
                 <LinearGradient
-                  colors={isCompleted ? ["#10B981", "#059669"] : ["#7C3AED", "#A855F7"]}
-                  style={globalStyles.StoryActionButtonGradient}
+                  colors={isCompleted ? ["#4ee6e6", "#06b6d4"] : ["#4ee6e6", "#06b6d4"]}
+                  style={[globalStyles.StoryActionButtonGradient, {
+                    shadowColor: '#4ee6e6',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 8,
+                    elevation: 8,
+                  }]}
                 >
                   <Icon 
                     name={isCompleted ? "check-circle" : hasProgress ? "play" : "book-open"} 
                     size={14} 
-                    color="#E0E7FF" 
+                    color="#0a0b0f" 
                   />
-                  <Text style={globalStyles.StoryActionButtonText}>
+                  <Text style={[globalStyles.StoryActionButtonText, {
+                    color: '#0a0b0f',
+                    fontWeight: 'bold',
+                  }]}>
                     {isCompleted 
                       ? "Replay Story" 
                       : hasProgress 
@@ -575,9 +604,9 @@ const StoryCatalogModal = ({
         <View style={globalStyles.StoryModalOverlay}>
           <LinearGradient
             colors={[
-              "rgba(30, 41, 59, 0.95)",
-              "rgba(51, 65, 85, 0.8)",
-              "rgba(30, 41, 59, 0.95)",
+              "rgba(10, 11, 15, 0.95)",
+              "rgba(30, 41, 59, 0.8)",
+              "rgba(10, 11, 15, 0.95)",
             ]}
             style={StyleSheet.absoluteFillObject}
           />
@@ -585,24 +614,40 @@ const StoryCatalogModal = ({
           <View style={globalStyles.StoryModalpassages}>
             <LinearGradient
               colors={[
-                "rgba(30, 41, 59, 0.95)",
-                "rgba(51, 65, 85, 0.8)",
-                "rgba(30, 41, 59, 0.95)",
+                "rgba(10, 11, 15, 0.95)",
+                "rgba(30, 41, 59, 0.8)",
+                "rgba(10, 11, 15, 0.95)",
               ]}
               style={[
                 globalStyles.StoryModalGradient,
-                { borderColor: "#374151" },
+                { 
+                  borderColor: "#d4af37",
+                  borderWidth: 2,
+                  shadowColor: '#d4af37',
+                  shadowOffset: { width: 2, height: 6 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 12,
+                  elevation: 12,
+                },
               ]}
             >
               <BlurView intensity={20} style={globalStyles.StoryModalBlur}>
                 {/* Header */}
                 <View style={globalStyles.StoryModalHeader}>
                   <View style={globalStyles.StoryHeaderpassages}>
-                    <Icon name="book" size={24} color="#A855F7" />
+                    <Icon name="book" size={24} color="#4ee6e6" />
                     <Text
                       style={[
                         globalStyles.StoryModalTitle,
-                        { color: "#A855F7" },
+                        { 
+                          color: "#4ee6e6",
+                          fontSize: 28,
+                          fontWeight: 'bold',
+                          letterSpacing: 3,
+                          textShadowColor: 'rgba(78, 230, 230, 0.5)',
+                          textShadowOffset: { width: 0, height: 2 },
+                          textShadowRadius: 8,
+                        },
                       ]}
                     >
                       Archive of Storys
@@ -619,12 +664,12 @@ const StoryCatalogModal = ({
                       >
                         <LinearGradient
                           colors={[
-                            "rgba(59, 130, 246, 0.8)",
-                            "rgba(37, 99, 235, 0.8)",
+                            "rgba(78, 230, 230, 0.8)",
+                            "rgba(6, 182, 212, 0.8)",
                           ]}
                           style={globalStyles.StoryCloseButtonGradient}
                         >
-                          <Text style={{ color: "#E0E7FF", fontSize: 12 }}>
+                          <Text style={{ color: "#0a0b0f", fontSize: 12, fontWeight: 'bold' }}>
                             Test
                           </Text>
                         </LinearGradient>
@@ -638,12 +683,12 @@ const StoryCatalogModal = ({
                       >
                         <LinearGradient
                           colors={[
-                            "rgba(16, 185, 129, 0.8)",
-                            "rgba(5, 150, 105, 0.8)",
+                            "rgba(212, 175, 55, 0.8)",
+                            "rgba(251, 191, 36, 0.8)",
                           ]}
                           style={globalStyles.StoryCloseButtonGradient}
                         >
-                          <Text style={{ color: "#E0E7FF", fontSize: 12 }}>
+                          <Text style={{ color: "#0a0b0f", fontSize: 12, fontWeight: 'bold' }}>
                             Refresh
                           </Text>
                         </LinearGradient>
@@ -669,38 +714,51 @@ const StoryCatalogModal = ({
                 {/* Progress Summary */}
                 {Object.keys(storyProgress).length > 0 && (
                   <View style={{
-                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                    borderRadius: 8,
+                    backgroundColor: 'rgba(78, 230, 230, 0.1)',
+                    borderRadius: 12,
                     padding: 12,
                     marginHorizontal: 16,
                     marginBottom: 16,
-                    borderWidth: 1,
-                    borderColor: 'rgba(6, 182, 212, 0.3)'
+                    borderWidth: 2,
+                    borderColor: '#4ee6e6',
+                    shadowColor: '#4ee6e6',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 4,
+                    elevation: 4,
                   }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                      <Icon name="trending-up" size={16} color="#06B6D4" />
-                      <Text style={{ color: '#06B981', fontSize: 14, fontWeight: '600', marginLeft: 6 }}>
+                      <Icon name="trending-up" size={16} color="#4ee6e6" />
+                      <Text style={{ 
+                        color: '#4ee6e6', 
+                        fontSize: 14, 
+                        fontWeight: 'bold',
+                        marginLeft: 6,
+                        textShadowColor: 'rgba(78, 230, 230, 0.3)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 2,
+                      }}>
                         Your Progress Summary
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                       <View style={{ alignItems: 'center' }}>
-                        <Text style={{ color: '#E0E7FF', fontSize: 18, fontWeight: 'bold' }}>
+                        <Text style={{ color: '#ffe066', fontSize: 18, fontWeight: 'bold' }}>
                           {Object.values(storyProgress).filter((p: any) => p.is_completed).length}
                         </Text>
-                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Completed</Text>
+                        <Text style={{ color: '#d4af37', fontSize: 12, fontStyle: 'italic' }}>Completed</Text>
                       </View>
                       <View style={{ alignItems: 'center' }}>
-                        <Text style={{ color: '#E0E7FF', fontSize: 18, fontWeight: 'bold' }}>
+                        <Text style={{ color: '#ffe066', fontSize: 18, fontWeight: 'bold' }}>
                           {Object.values(storyProgress).filter((p: any) => !p.is_completed && p.passages_visited_count > 0).length}
                         </Text>
-                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>In Progress</Text>
+                        <Text style={{ color: '#d4af37', fontSize: 12, fontStyle: 'italic' }}>In Progress</Text>
                       </View>
                       <View style={{ alignItems: 'center' }}>
-                        <Text style={{ color: '#E0E7FF', fontSize: 18, fontWeight: 'bold' }}>
+                        <Text style={{ color: '#ffe066', fontSize: 18, fontWeight: 'bold' }}>
                           {Math.round(Object.values(storyProgress).reduce((acc: number, p: any) => acc + (p.progress_percentage || 0), 0) / Math.max(Object.keys(storyProgress).length, 1))}%
                         </Text>
-                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Avg Progress</Text>
+                        <Text style={{ color: '#d4af37', fontSize: 12, fontStyle: 'italic' }}>Avg Progress</Text>
                       </View>
                     </View>
                   </View>
@@ -716,7 +774,7 @@ const StoryCatalogModal = ({
                 }}>
                   {/* Progress Filter */}
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ color: '#9CA3AF', fontSize: 12, marginRight: 8 }}>Filter:</Text>
+                    <Text style={{ color: '#d4af37', fontSize: 12, marginRight: 8, fontStyle: 'italic' }}>Filter:</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       <TouchableOpacity
                         style={{
@@ -724,13 +782,13 @@ const StoryCatalogModal = ({
                           paddingVertical: 6,
                           borderRadius: 16,
                           marginRight: 8,
-                          backgroundColor: progressFilter === 'all' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                          backgroundColor: progressFilter === 'all' ? 'rgba(78, 230, 230, 0.3)' : 'rgba(107, 114, 128, 0.2)',
                           borderWidth: 1,
-                          borderColor: progressFilter === 'all' ? '#A855F7' : '#374151'
+                          borderColor: progressFilter === 'all' ? '#4ee6e6' : '#374151'
                         }}
                         onPress={() => setProgressFilter('all')}
                       >
-                        <Text style={{ color: progressFilter === 'all' ? '#E0E7FF' : '#9CA3AF', fontSize: 11 }}>
+                        <Text style={{ color: progressFilter === 'all' ? '#0a0b0f' : '#d4af37', fontSize: 11, fontWeight: '600' }}>
                           All ({stories.length})
                         </Text>
                       </TouchableOpacity>
@@ -740,13 +798,13 @@ const StoryCatalogModal = ({
                           paddingVertical: 6,
                           borderRadius: 16,
                           marginRight: 8,
-                          backgroundColor: progressFilter === 'completed' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                          backgroundColor: progressFilter === 'completed' ? 'rgba(78, 230, 230, 0.3)' : 'rgba(107, 114, 128, 0.2)',
                           borderWidth: 1,
-                          borderColor: progressFilter === 'completed' ? '#10B981' : '#374151'
+                          borderColor: progressFilter === 'completed' ? '#4ee6e6' : '#374151'
                         }}
                         onPress={() => setProgressFilter('completed')}
                       >
-                        <Text style={{ color: progressFilter === 'completed' ? '#E0E7FF' : '#9CA3AF', fontSize: 11 }}>
+                        <Text style={{ color: progressFilter === 'completed' ? '#0a0b0f' : '#d4af37', fontSize: 11, fontWeight: '600' }}>
                           Completed ({Object.values(storyProgress).filter((p: any) => p.is_completed).length})
                         </Text>
                       </TouchableOpacity>
@@ -756,13 +814,13 @@ const StoryCatalogModal = ({
                           paddingVertical: 6,
                           borderRadius: 16,
                           marginRight: 8,
-                          backgroundColor: progressFilter === 'in-progress' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                          backgroundColor: progressFilter === 'in-progress' ? 'rgba(78, 230, 230, 0.3)' : 'rgba(107, 114, 128, 0.2)',
                           borderWidth: 1,
-                          borderColor: progressFilter === 'in-progress' ? '#06B6D4' : '#374151'
+                          borderColor: progressFilter === 'in-progress' ? '#4ee6e6' : '#374151'
                         }}
                         onPress={() => setProgressFilter('in-progress')}
                       >
-                        <Text style={{ color: progressFilter === 'in-progress' ? '#E0E7FF' : '#9CA3AF', fontSize: 11 }}>
+                        <Text style={{ color: progressFilter === 'in-progress' ? '#0a0b0f' : '#d4af37', fontSize: 11, fontWeight: '600' }}>
                           In Progress ({Object.values(storyProgress).filter((p: any) => !p.is_completed && p.passages_visited_count > 0).length})
                         </Text>
                       </TouchableOpacity>
@@ -771,13 +829,13 @@ const StoryCatalogModal = ({
                           paddingHorizontal: 12,
                           paddingVertical: 6,
                           borderRadius: 16,
-                          backgroundColor: progressFilter === 'not-started' ? 'rgba(107, 114, 128, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                          backgroundColor: progressFilter === 'not-started' ? 'rgba(78, 230, 230, 0.3)' : 'rgba(107, 114, 128, 0.2)',
                           borderWidth: 1,
-                          borderColor: progressFilter === 'not-started' ? '#6B7280' : '#374151'
+                          borderColor: progressFilter === 'not-started' ? '#4ee6e6' : '#374151'
                         }}
                         onPress={() => setProgressFilter('not-started')}
                       >
-                        <Text style={{ color: progressFilter === 'not-started' ? '#E0E7FF' : '#9CA3AF', fontSize: 11 }}>
+                        <Text style={{ color: progressFilter === 'not-started' ? '#0a0b0f' : '#d4af37', fontSize: 11, fontWeight: '600' }}>
                           Not Started ({stories.filter(story => !storyProgress[story.id] || storyProgress[story.id].passages_visited_count === 0).length})
                         </Text>
                       </TouchableOpacity>
@@ -786,20 +844,20 @@ const StoryCatalogModal = ({
 
                   {/* Sort Options */}
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ color: '#9CA3AF', fontSize: 12, marginRight: 8 }}>Sort:</Text>
+                    <Text style={{ color: '#d4af37', fontSize: 12, marginRight: 8, fontStyle: 'italic' }}>Sort:</Text>
                     <TouchableOpacity
                       style={{
                         paddingHorizontal: 8,
                         paddingVertical: 4,
                         borderRadius: 12,
                         marginRight: 4,
-                        backgroundColor: sortBy === 'progress' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                        backgroundColor: sortBy === 'progress' ? 'rgba(78, 230, 230, 0.3)' : 'rgba(107, 114, 128, 0.2)',
                         borderWidth: 1,
-                        borderColor: sortBy === 'progress' ? '#A855F7' : '#374151'
+                        borderColor: sortBy === 'progress' ? '#4ee6e6' : '#374151'
                       }}
                       onPress={() => setSortBy('progress')}
                     >
-                      <Text style={{ color: sortBy === 'progress' ? '#E0E7FF' : '#9CA3AF', fontSize: 10 }}>
+                      <Text style={{ color: sortBy === 'progress' ? '#0a0b0f' : '#d4af37', fontSize: 10, fontWeight: '600' }}>
                         Progress
                       </Text>
                     </TouchableOpacity>
@@ -809,13 +867,13 @@ const StoryCatalogModal = ({
                         paddingVertical: 4,
                         borderRadius: 12,
                         marginRight: 4,
-                        backgroundColor: sortBy === 'recent' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                        backgroundColor: sortBy === 'recent' ? 'rgba(78, 230, 230, 0.3)' : 'rgba(107, 114, 128, 0.2)',
                         borderWidth: 1,
-                        borderColor: sortBy === 'recent' ? '#A855F7' : '#374151'
+                        borderColor: sortBy === 'recent' ? '#4ee6e6' : '#374151'
                       }}
                       onPress={() => setSortBy('recent')}
                     >
-                      <Text style={{ color: sortBy === 'recent' ? '#E0E7FF' : '#9CA3AF', fontSize: 10 }}>
+                      <Text style={{ color: sortBy === 'recent' ? '#0a0b0f' : '#d4af37', fontSize: 10, fontWeight: '600' }}>
                         Recent
                       </Text>
                     </TouchableOpacity>
@@ -824,13 +882,13 @@ const StoryCatalogModal = ({
                         paddingHorizontal: 8,
                         paddingVertical: 4,
                         borderRadius: 12,
-                        backgroundColor: sortBy === 'title' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(107, 114, 128, 0.2)',
+                        backgroundColor: sortBy === 'title' ? 'rgba(78, 230, 230, 0.3)' : 'rgba(107, 114, 128, 0.2)',
                         borderWidth: 1,
-                        borderColor: sortBy === 'title' ? '#A855F7' : '#374151'
+                        borderColor: sortBy === 'title' ? '#4ee6e6' : '#374151'
                       }}
                       onPress={() => setSortBy('title')}
                     >
-                      <Text style={{ color: sortBy === 'title' ? '#E0E7FF' : '#9CA3AF', fontSize: 10 }}>
+                      <Text style={{ color: sortBy === 'title' ? '#0a0b0f' : '#d4af37', fontSize: 10, fontWeight: '600' }}>
                         Title
                       </Text>
                     </TouchableOpacity>

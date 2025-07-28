@@ -2,53 +2,60 @@
 // This file demonstrates how to integrate the new reward system into StoryScreen
 // Works with the actual backend data structure where rewards are in effects field
 
-import { getGearMapping, getGearTypeId } from '../assets/equipment';
+import { getEquipmentAssetByName } from '../assets/equipment';
 import { Choice, Passage, SavedRewards } from '../types/story';
 import {
-    applyChoiceRewards,
-    applyPassageRewards,
-    calculateTotalRewards,
-    createNotificationFromEffects,
-    handleStoryCompletionRewards,
-    hasChoiceRewards,
-    hasPassageRewards,
-    initializeRewardTracker,
-    StoryRewardTracker
+  applyChoiceRewards,
+  applyPassageRewards,
+  calculateTotalRewards,
+  // New upgrade system imports
+  checkItemOwnershipAndUpgrade,
+  createNotificationFromEffects,
+  createUpgradeNotification,
+  getRewardFieldName,
+  getRewardType,
+  handleStoryCompletionRewards,
+  hasChoiceRewards,
+  hasPassageRewards,
+  initializeRewardTracker,
+  StoryRewardTracker,
+  UpgradedEquipmentReward
 } from './rewardsUtils';
 
 // ===== INTEGRATION EXAMPLE FOR STORYSCREEN =====
 
 export class StoryRewardManager {
   private rewardTracker: StoryRewardTracker;
-  private showNotification: (message: string, type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact') => void;
+  private showNotification: (message: string, type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest') => void;
   private onStoryComplete: (completionData: any) => void;
   private apiService: any;
   private characterId: number;
   private processedPassages: Set<string> = new Set(); // Track processed passages to avoid duplicates
   private processedChoices: Set<string> = new Set(); // Track processed choices to avoid duplicates
+  private newlyAcquiredGear: Set<string> = new Set(); // Track newly acquired gear to avoid duplicate notifications
+  private sentNotifications: Set<string> = new Set();
+  private playerInventory: string[] = []; // Track player's current inventory
+  private storyReplayCount: number = 0; // Track how many times this story has been replayed
+  private researchCondition: "character" | "personality"; // Track research condition
 
   constructor(
-    storyId: string, 
-    showNotification: (message: string, type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact') => void,
+    storyId: string,
+    showNotification: (message: string, type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest') => void,
     onStoryComplete: (completionData: any) => void,
     apiService: any,
-    characterId: number
+    characterId: number,
+    playerInventory: string[] = [],
+    storyReplayCount: number = 0,
+    researchCondition: "character" | "personality" = "personality"
   ) {
-    console.log('=== STORY REWARD MANAGER CONSTRUCTOR ===');
-    console.log('Story ID:', storyId);
-    console.log('Character ID:', characterId);
-    console.log('Character ID type:', typeof characterId);
-    console.log('API Service available:', !!apiService);
-    
     this.rewardTracker = initializeRewardTracker(storyId);
     this.showNotification = showNotification;
     this.onStoryComplete = onStoryComplete;
     this.apiService = apiService;
     this.characterId = characterId;
-    
-    console.log('=== STORY REWARD MANAGER INITIALIZED ===');
-    console.log('Final character ID:', this.characterId);
-    console.log('Final character ID type:', typeof this.characterId);
+    this.playerInventory = playerInventory;
+    this.storyReplayCount = storyReplayCount;
+    this.researchCondition = researchCondition;
   }
 
   // Call this when visiting a passage
@@ -58,6 +65,10 @@ export class StoryRewardManager {
     console.log('Passage story_effects:', passage.story_effects);
     console.log('Passage effects:', passage.effects);
     console.log('Has rewards:', hasPassageRewards(passage));
+    console.log('Story_effects type:', typeof passage.story_effects);
+    console.log('Story_effects keys:', passage.story_effects ? Object.keys(passage.story_effects) : 'No story_effects');
+    console.log('Has quests in story_effects:', passage.story_effects?.quests);
+    console.log('Quests type:', typeof passage.story_effects?.quests);
     
     // ✅ Check if this passage has already been processed
     if (this.processedPassages.has(passage.passage_id)) {
@@ -68,29 +79,68 @@ export class StoryRewardManager {
     if (hasPassageRewards(passage)) {
       // Prioritize story_effects over effects (new format)
       const effects = passage.story_effects || passage.effects;
-      console.log('Using passage effects:', effects);
+      console.log('✅ Using passage effects:', effects);
       
       this.rewardTracker = applyPassageRewards(this.rewardTracker, passage);
       console.log('Reward tracker updated, total rewards:', this.rewardTracker.rewards.length);
       
-      // ✅ SAVE GEAR REWARDS IMMEDIATELY (but not stats/experience to avoid double-counting)
-      // Gear rewards should be saved immediately so they appear in inventory
+      // ✅ PROCESS UPGRADED GEAR REWARDS
       if (effects.rewards || effects.artifacts) {
-        console.log('=== SAVING GEAR REWARDS IMMEDIATELY ===');
-        await this.saveGearRewardsToBackend(effects, 'passage');
+        console.log('=== PROCESSING UPGRADED GEAR REWARDS ===');
+        await this.processUpgradedGearRewards(effects, 'passage');
+      }
+      
+      // ✅ SAVE EXPERIENCE AND STATS IMMEDIATELY
+      // Experience and stats should be saved immediately so they appear in character data
+      if (effects.experience || effects.stats || Object.keys(effects).some(key => ['awareness', 'resilience', 'connection', 'balance'].includes(key))) {
+        console.log('=== SAVING EXPERIENCE AND STATS IMMEDIATELY ===');
+        await this.saveRewardsToBackend(effects, 'passage');
       }
       
       // Show floating notifications for each reward
-      const notifications = createNotificationFromEffects(effects);
+      const notifications = createNotificationFromEffects(effects, this.researchCondition);
+      console.log('=== NOTIFICATION DEBUG ===');
       console.log('Created notifications:', notifications);
-      notifications.forEach(notification => {
+      console.log('Number of notifications:', notifications.length);
+      console.log('Effects that created notifications:', effects);
+      console.log('Research condition for notifications:', this.researchCondition);
+      console.log('Newly acquired gear:', Array.from(this.newlyAcquiredGear));
+      
+      // Filter out notifications for gear that wasn't newly acquired
+      const filteredNotifications = notifications.filter(notification => {
+        if (notification.type === 'item') {
+          // Extract item name from notification message
+          const itemName = notification.message.replace('Gained ', '').replace('Found ', '').replace('Acquired ', '');
+          const isNewlyAcquired = this.newlyAcquiredGear.has(itemName);
+          console.log(`Item notification: ${itemName}, Newly acquired: ${isNewlyAcquired}`);
+          return isNewlyAcquired;
+        }
+        return true; // Keep all non-item notifications
+      });
+      
+      console.log('Filtered notifications:', filteredNotifications);
+      
+      filteredNotifications.forEach((notification, index) => {
+        console.log(`Showing notification ${index + 1}:`, notification);
+        console.log(`🎁 CALLING showNotification: ${notification.message} (${notification.type})`);
+        
+        // Create a unique key for this notification to prevent duplicates
+        const notificationKey = `${notification.message}_${notification.type}`;
+        
+        if (this.sentNotifications.has(notificationKey)) {
+          console.log(`⚠️ Notification already sent, skipping: ${notificationKey}`);
+          return;
+        }
+        
+        console.log(`✅ Sending new notification: ${notificationKey}`);
+        this.sentNotifications.add(notificationKey);
         this.showNotification(notification.message, notification.type);
       });
-    } else {
-      console.log('No rewards found in passage');
+      
+      console.log('=== END NOTIFICATION DEBUG ===');
     }
     
-    // Mark this passage as processed
+    // Mark passage as processed
     this.processedPassages.add(passage.passage_id);
   }
 
@@ -108,31 +158,218 @@ export class StoryRewardManager {
       return;
     }
     
-    // Only process choice rewards if no passage rewards were found for this passage
-    if (hasChoiceRewards(choice) && !this.processedPassages.has(passageId)) {
-      console.log('Choice effects:', choice.effects);
+    // Process choice rewards if the choice has rewards (regardless of passage processing)
+    if (hasChoiceRewards(choice)) {
+      console.log('✅ Processing choice rewards:', choice.effects);
       this.rewardTracker = applyChoiceRewards(this.rewardTracker, choice, passageId);
       console.log('Reward tracker updated, total rewards:', this.rewardTracker.rewards.length);
       
-      // ✅ SAVE GEAR REWARDS IMMEDIATELY (but not stats/experience to avoid double-counting)
-      // Gear rewards should be saved immediately so they appear in inventory
+      // ✅ PROCESS UPGRADED GEAR REWARDS
       if (choice.effects.rewards || choice.effects.artifacts) {
-        console.log('=== SAVING GEAR REWARDS IMMEDIATELY ===');
-        await this.saveGearRewardsToBackend(choice.effects, 'choice');
+        console.log('=== PROCESSING UPGRADED GEAR REWARDS ===');
+        await this.processUpgradedGearRewards(choice.effects, 'choice');
+      }
+      
+      // ✅ SAVE EXPERIENCE AND STATS IMMEDIATELY
+      // Experience and stats should be saved immediately so they appear in character data
+      if (choice.effects.experience || choice.effects.stats || Object.keys(choice.effects).some(key => ['awareness', 'resilience', 'connection', 'balance'].includes(key))) {
+        console.log('=== SAVING EXPERIENCE AND STATS IMMEDIATELY ===');
+        await this.saveRewardsToBackend(choice.effects, 'choice');
       }
       
       // Show floating notifications for each reward
-      const notifications = createNotificationFromEffects(choice.effects);
+      const notifications = createNotificationFromEffects(choice.effects, this.researchCondition);
+      console.log('=== NOTIFICATION DEBUG ===');
       console.log('Created notifications:', notifications);
-      notifications.forEach(notification => {
+      console.log('Number of notifications:', notifications.length);
+      console.log('Effects that created notifications:', choice.effects);
+      console.log('Newly acquired gear:', Array.from(this.newlyAcquiredGear));
+      
+      // Filter out notifications for gear that wasn't newly acquired
+      const filteredNotifications = notifications.filter(notification => {
+        if (notification.type === 'item') {
+          // Extract item name from notification message
+          const itemName = notification.message.replace('Gained ', '').replace('Found ', '').replace('Acquired ', '');
+          const isNewlyAcquired = this.newlyAcquiredGear.has(itemName);
+          console.log(`Item notification: ${itemName}, Newly acquired: ${isNewlyAcquired}`);
+          return isNewlyAcquired;
+        }
+        return true; // Keep all non-item notifications
+      });
+      
+      console.log('Filtered notifications:', filteredNotifications);
+      
+      filteredNotifications.forEach((notification, index) => {
+        console.log(`Showing notification ${index + 1}:`, notification);
+        console.log(`🎁 CALLING showNotification: ${notification.message} (${notification.type})`);
+        
+        // Create a unique key for this notification to prevent duplicates
+        const notificationKey = `${notification.message}_${notification.type}`;
+        
+        if (this.sentNotifications.has(notificationKey)) {
+          console.log(`⚠️ Notification already sent, skipping: ${notificationKey}`);
+          return;
+        }
+        
+        console.log(`✅ Sending new notification: ${notificationKey}`);
+        this.sentNotifications.add(notificationKey);
         this.showNotification(notification.message, notification.type);
       });
-    } else {
-      console.log('No rewards found in choice or passage already processed');
+      
+      console.log('=== END NOTIFICATION DEBUG ===');
     }
     
-    // Mark this choice as processed
+    // Mark choice as processed
     this.processedChoices.add(choiceKey);
+  }
+
+  // Process upgraded gear rewards using the new upgrade system
+  private async processUpgradedGearRewards(effects: Record<string, any>, source: 'passage' | 'choice'): Promise<void> {
+    try {
+      console.log('=== PROCESSING UPGRADED GEAR REWARDS ===');
+      console.log('Effects:', effects);
+      console.log('Source:', source);
+      console.log('Player inventory:', this.playerInventory);
+      console.log('Story replay count:', this.storyReplayCount);
+
+      // Process gear/items with upgrade system
+      if (effects.rewards || effects.artifacts) {
+        const items = [...(effects.rewards || []), ...(effects.artifacts || [])];
+        console.log('Processing gear items:', items);
+        
+        for (const itemName of items) {
+          try {
+            console.log(`=== PROCESSING ITEM: ${itemName} ===`);
+            
+            // Check for upgrade opportunities
+            const upgradeResult = checkItemOwnershipAndUpgrade(
+              itemName, 
+              this.playerInventory, 
+              this.storyReplayCount
+            );
+            
+            if (upgradeResult) {
+              console.log('Upgrade result:', upgradeResult);
+              
+              // Create upgrade notification
+              const upgradeNotification = createUpgradeNotification(upgradeResult.upgrade);
+              console.log('Upgrade notification:', upgradeNotification);
+              
+              // Show upgrade notification
+              this.showNotification(
+                upgradeNotification.message, 
+                upgradeNotification.type
+              );
+              
+              // Save the upgraded item to backend
+              if (upgradeResult.isUpgrade || upgradeResult.upgrade.statBonus > 0) {
+                await this.saveUpgradedItemToBackend(upgradeResult);
+              }
+              
+              // Update local inventory
+              this.updateLocalInventory(upgradeResult);
+              
+            } else {
+              console.log(`No upgrade path found for: ${itemName}`);
+              // Fall back to regular item acquisition
+              await this.saveRegularItemToBackend(itemName);
+            }
+            
+          } catch (error) {
+            console.error(`❌ Failed to process item ${itemName}:`, error);
+            this.showNotification(`Failed to process ${itemName}`, 'item');
+          }
+        }
+      } else {
+        console.log('No gear items to process');
+      }
+
+      console.log('=== UPGRADED GEAR REWARDS PROCESSED ===');
+    } catch (error) {
+      console.error('Error processing upgraded gear rewards:', error);
+    }
+  }
+
+  // Save upgraded item to backend
+  private async saveUpgradedItemToBackend(upgradeResult: UpgradedEquipmentReward): Promise<void> {
+    try {
+      console.log('=== SAVING UPGRADED ITEM TO BACKEND ===');
+      console.log('Upgrade result:', upgradeResult);
+      
+      const { upgradedItem, upgrade } = upgradeResult;
+      
+      // Map the upgraded item name to gear type ID
+      const gearTypeId = this.mapItemNameToGearTypeId(upgradedItem);
+      
+      if (gearTypeId) {
+        console.log(`Calling apiService.acquireGear with gearTypeId: ${gearTypeId}`);
+        
+        try {
+          const gearResult = await this.apiService.acquireGear(gearTypeId);
+          console.log(`✅ Upgraded gear acquired successfully: ${upgradedItem}`, gearResult);
+          
+          // Mark as newly acquired for notification purposes
+          this.newlyAcquiredGear.add(upgradedItem);
+          
+          // If this is a stat boost (not a new item), also apply the stat boost
+          if (upgrade.statBonus > 0 && !upgradeResult.isUpgrade) {
+            console.log(`Applying stat boost: +${upgrade.statBonus} to all stats`);
+            // You might want to call a separate API to apply stat boosts
+            // await this.apiService.applyStatBoost(this.characterId, upgrade.statBonus);
+          }
+          
+        } catch (gearError: any) {
+          console.error(`❌ Failed to acquire upgraded gear ${upgradedItem}:`, gearError);
+          this.showNotification(`Failed to acquire ${upgradedItem}`, 'item');
+        }
+      } else {
+        console.log(`❌ No gear type mapping found for upgraded item: ${upgradedItem}`);
+        this.showNotification(`Found ${upgradedItem} (not equippable)`, 'item');
+      }
+      
+    } catch (error) {
+      console.error('Error saving upgraded item to backend:', error);
+    }
+  }
+
+  // Save regular item to backend (fallback)
+  private async saveRegularItemToBackend(itemName: string): Promise<void> {
+    try {
+      console.log(`=== SAVING REGULAR ITEM: ${itemName} ===`);
+      
+      const gearTypeId = this.mapItemNameToGearTypeId(itemName);
+      
+      if (gearTypeId) {
+        const gearResult = await this.apiService.acquireGear(gearTypeId);
+        console.log(`✅ Regular gear acquired: ${itemName}`, gearResult);
+        this.newlyAcquiredGear.add(itemName);
+      } else {
+        console.log(`❌ No gear type mapping found for: ${itemName}`);
+        this.showNotification(`Found ${itemName} (not equippable)`, 'item');
+      }
+    } catch (error) {
+      console.error(`Failed to save regular item ${itemName}:`, error);
+      this.showNotification(`Failed to acquire ${itemName}`, 'item');
+    }
+  }
+
+  // Update local inventory tracking
+  private updateLocalInventory(upgradeResult: UpgradedEquipmentReward): void {
+    const { originalItem, upgradedItem, isUpgrade } = upgradeResult;
+    
+    // Remove original item if it was upgraded
+    if (isUpgrade) {
+      this.playerInventory = this.playerInventory.filter(item => 
+        item.toLowerCase().trim() !== originalItem.toLowerCase().trim()
+      );
+    }
+    
+    // Add the new/upgraded item
+    if (!this.playerInventory.includes(upgradedItem)) {
+      this.playerInventory.push(upgradedItem);
+    }
+    
+    console.log('Updated local inventory:', this.playerInventory);
   }
 
   // Save rewards to backend using your API endpoints
@@ -142,53 +379,72 @@ export class StoryRewardManager {
       console.log('Effects:', effects);
       console.log('Source:', source);
       console.log('Character ID:', this.characterId);
+      console.log('Research condition:', this.researchCondition);
 
-      // Save experience gains
-      let experienceToSave = 0;
+      // Determine reward type based on research condition
+      const rewardType = getRewardType(this.researchCondition);
+      const rewardFieldName = getRewardFieldName(this.researchCondition);
       
-      // Check for experience directly in effects (new format)
-      if (effects.experience) {
-        console.log('Processing experience directly:', effects.experience);
-        const expValue = typeof effects.experience === 'number' 
-          ? effects.experience 
-          : parseInt(effects.experience as string, 10);
+      console.log(`Using reward type: ${rewardType} (field: ${rewardFieldName})`);
+
+      // Save experience/resonance gains
+      let rewardToSave = 0;
+      
+      // Check for reward directly in effects (new format)
+      if (effects[rewardFieldName]) {
+        console.log(`Processing ${rewardFieldName} directly:`, effects[rewardFieldName]);
+        const rewardValue = typeof effects[rewardFieldName] === 'number' 
+          ? effects[rewardFieldName] 
+          : parseInt(effects[rewardFieldName] as string, 10);
         
-        console.log(`Experience value: ${effects.experience}, Parsed: ${expValue}`);
+        console.log(`${rewardFieldName} value: ${effects[rewardFieldName]}, Parsed: ${rewardValue}`);
         
-        if (!isNaN(expValue) && expValue > 0) {
-          experienceToSave += expValue;
+        if (!isNaN(rewardValue) && rewardValue > 0) {
+          rewardToSave += rewardValue;
         } else {
-          console.log(`Invalid experience value: ${effects.experience}`);
+          console.log(`Invalid ${rewardFieldName} value: ${effects[rewardFieldName]}`);
         }
       }
       
-      // Check for experience in stats object (legacy format)
-      if (effects.stats && effects.stats.experience) {
-        console.log('Processing experience from stats:', effects.stats.experience);
-        const expValue = typeof effects.stats.experience === 'number' 
-          ? effects.stats.experience 
-          : parseInt(effects.stats.experience as string, 10);
+      // Check for reward in stats object (legacy format)
+      if (effects.stats && effects.stats[rewardFieldName]) {
+        console.log(`Processing ${rewardFieldName} from stats:`, effects.stats[rewardFieldName]);
+        const rewardValue = typeof effects.stats[rewardFieldName] === 'number' 
+          ? effects.stats[rewardFieldName] 
+          : parseInt(effects.stats[rewardFieldName] as string, 10);
         
-        console.log(`Experience from stats: ${effects.stats.experience}, Parsed: ${expValue}`);
+        console.log(`${rewardFieldName} from stats: ${effects.stats[rewardFieldName]}, Parsed: ${rewardValue}`);
         
-        if (!isNaN(expValue) && expValue > 0) {
-          experienceToSave += expValue;
+        if (!isNaN(rewardValue) && rewardValue > 0) {
+          rewardToSave += rewardValue;
         } else {
-          console.log(`Invalid experience value from stats: ${effects.stats.experience}`);
+          console.log(`Invalid ${rewardFieldName} value from stats: ${effects.stats[rewardFieldName]}`);
         }
       }
       
-      // Save total experience
-      if (experienceToSave > 0) {
-        console.log(`Saving total ${experienceToSave} experience to backend...`);
-        const expResult = await this.apiService.gainExperience(
-          this.characterId, 
-          experienceToSave, 
-          `story_${source}`
-        );
-        console.log('Experience saved:', expResult);
+      // Save total reward (only for character users)
+      if (rewardToSave > 0 && this.characterId > 0) {
+        console.log(`Saving total ${rewardToSave} ${rewardFieldName} to backend...`);
+        
+        if (rewardType === 'experience') {
+          const expResult = await this.apiService.gainExperience(
+            this.characterId, 
+            rewardToSave, 
+            `story_${source}`
+          );
+          console.log('Experience saved:', expResult);
+        } else {
+          const resonanceResult = await this.apiService.gainResonance(
+            this.characterId, 
+            rewardToSave, 
+            `story_${source}`
+          );
+          console.log('Resonance saved:', resonanceResult);
+        }
+      } else if (rewardToSave > 0 && this.characterId === 0) {
+        console.log(`Skipping ${rewardFieldName} save for personality user (no character ID)`);
       } else {
-        console.log('No experience to save');
+        console.log(`No ${rewardFieldName} to save`);
       }
 
       // Save wellness stats from direct properties (new format)
@@ -240,10 +496,12 @@ export class StoryRewardManager {
         console.log('No stats found in effects');
       }
 
-      if (Object.keys(wellnessStats).length > 0) {
+      if (Object.keys(wellnessStats).length > 0 && this.characterId > 0) {
         console.log('Saving wellness stats to backend:', wellnessStats);
         const wellnessResult = await this.apiService.gainWellness(this.characterId, wellnessStats);
         console.log('Wellness stats saved:', wellnessResult);
+      } else if (Object.keys(wellnessStats).length > 0 && this.characterId === 0) {
+        console.log('Skipping wellness stats save for personality user (no character ID)');
       } else {
         console.log('No valid wellness stats to save');
       }
@@ -276,92 +534,30 @@ export class StoryRewardManager {
     }
   }
 
-  // Save only gear rewards to backend immediately (for inventory updates)
-  private async saveGearRewardsToBackend(effects: Record<string, any>, source: 'passage' | 'choice'): Promise<void> {
-    try {
-      console.log('=== SAVING GEAR REWARDS TO BACKEND ===');
-      console.log('Effects:', effects);
-      console.log('Source:', source);
-      console.log('Character ID:', this.characterId);
-
-      // Save gear/items only (not stats/experience to avoid double-counting)
-      if (effects.rewards || effects.artifacts) {
-        const items = [...(effects.rewards || []), ...(effects.artifacts || [])];
-        console.log('Processing gear items:', items);
-        
-        for (const itemName of items) {
-          try {
-            console.log(`=== ATTEMPTING TO ACQUIRE GEAR: ${itemName} ===`);
-            const gearTypeId = this.mapItemNameToGearTypeId(itemName);
-            
-            if (gearTypeId) {
-              console.log(`Calling apiService.acquireGear with gearTypeId: ${gearTypeId}`);
-              try {
-                const gearResult = await this.apiService.acquireGear(gearTypeId);
-                console.log(`✅ Gear acquired successfully: ${itemName}`, gearResult);
-                
-                // Show notification for successful gear acquisition
-                this.showNotification(`Acquired ${itemName}!`, 'item');
-              } catch (gearError: any) {
-                console.error(`❌ Failed to acquire gear ${itemName}:`, gearError);
-                console.error('Gear error details:', {
-                  itemName,
-                  gearTypeId,
-                  error: gearError,
-                  response: gearError.response?.data,
-                  status: gearError.response?.status
-                });
-                
-                // Show notification for failed acquisition
-                this.showNotification(`Failed to acquire ${itemName}`, 'item');
-              }
-            } else {
-              console.log(`❌ No gear type mapping found for: ${itemName}`);
-              console.log(`This item will not be added to the character's inventory`);
-              
-              // Show notification for unmapped item
-              this.showNotification(`Found ${itemName} (not equippable)`, 'item');
-            }
-          } catch (error) {
-            console.error(`❌ Failed to acquire gear ${itemName}:`, error);
-            
-            // Show notification for failed acquisition
-            this.showNotification(`Failed to acquire ${itemName}`, 'item');
-          }
-        }
-      } else {
-        console.log('No gear items to save');
-      }
-
-      console.log('=== GEAR REWARDS SAVED TO BACKEND ===');
-    } catch (error) {
-      console.error('Error saving gear rewards to backend:', error);
-      // Don't throw - we still want to show the notification even if saving fails
-    }
-  }
-
-  // Map item names to gear type IDs using the gear mapping system
+  // Map item names to gear type IDs using the proper backend mapping
   private mapItemNameToGearTypeId(itemName: string): number | null {
     console.log(`=== MAPPING ITEM NAME TO GEAR TYPE ID ===`);
     console.log(`Item name: ${itemName}`);
     
-    // Use the gear mapping system to get the gear type ID
-    const gearTypeId = getGearTypeId(itemName);
+    // Import the proper mapping function
+    const { getBackendGearTypeId } = require('./rewardsUtils');
+    const gearTypeId = getBackendGearTypeId(itemName);
     
     if (gearTypeId) {
-      console.log(`Found gear type ID: ${gearTypeId} for item: ${itemName}`);
-      const mapping = getGearMapping(itemName);
-      if (mapping) {
-        console.log(`Gear mapping details:`, {
-          name: mapping.name,
-          slot: mapping.slot,
-          description: mapping.description,
-          statBonuses: mapping.statBonuses,
-          emojiIcon: mapping.emojiIcon
+      console.log(`Found backend gear type ID: ${gearTypeId} for item: ${itemName}`);
+      
+      // Get equipment asset info for logging
+      const assetInfo = getEquipmentAssetByName(itemName);
+      if (assetInfo) {
+        console.log(`Equipment asset info:`, {
+          displayName: assetInfo.displayName,
+          type: assetInfo.type,
+          subtype: assetInfo.subtype
         });
       }
     } else {
-      console.log(`No gear type mapping found for: ${itemName}`);
+      console.log(`No backend gear type mapping found for: ${itemName}`);
+      console.log(`This item will not be added to the character's inventory`);
     }
     
     return gearTypeId;
@@ -565,6 +761,10 @@ export class StoryRewardManager {
     this.rewardTracker = initializeRewardTracker(storyId);
     this.processedPassages.clear();
     this.processedChoices.clear();
+    this.newlyAcquiredGear.clear(); // Clear newly acquired gear on reset
+    this.sentNotifications.clear(); // Clear sent notifications on reset
+    this.playerInventory = []; // Clear player inventory on reset
+    this.storyReplayCount = 0; // Reset story replay count
   }
 
   // Debug method to test reward detection
@@ -574,6 +774,7 @@ export class StoryRewardManager {
     console.log('Character ID:', this.characterId);
     console.log('Processed passages:', Array.from(this.processedPassages));
     console.log('Processed choices:', Array.from(this.processedChoices));
+    console.log('Newly acquired gear:', Array.from(this.newlyAcquiredGear)); // Debug newly acquired gear
     console.log('Current reward tracker:', this.rewardTracker);
     
     console.log('=== END STORY REWARD MANAGER DEBUG ===');
@@ -790,8 +991,16 @@ export async function testGearAcquisition(apiService: any, characterId: number):
     try {
       console.log(`Testing gear acquisition for: ${itemName}`);
       
-      // Get the gear type ID
-      const gearTypeId = getGearTypeId(itemName);
+      // Create a simple hash-based ID (this is a temporary solution)
+      const normalizedName = itemName.toLowerCase().trim();
+      let hash = 0;
+      for (let i = 0; i < normalizedName.length; i++) {
+        const char = normalizedName.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      const gearTypeId = Math.abs(hash) % 1000 + 1;
+      
       console.log(`Gear type ID for ${itemName}:`, gearTypeId);
       
       if (gearTypeId) {
@@ -823,3 +1032,4 @@ export async function testGearAcquisition(apiService: any, characterId: number):
 
 // Export the debug function for use in story components
 export { debugRewardDetection } from './rewardsUtils';
+
