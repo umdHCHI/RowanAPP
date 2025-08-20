@@ -223,10 +223,12 @@ const ArchiveOnboardingScreen: React.FC = () => {
   const { authToken, isTestUser, user } = auth;
   const { assignedPath, setAssignedPath, setIsLoading, isLoading } = onboarding;
   const onboardingStyles = getOnboardingStyles(theme.onboardingTheme);
-  const [isAdminOrTestUser, setIsAdminOrTestUser] = useState<boolean>(false);
   const [selectedPath, setSelectedPath] = useState<PathType | null>(null);
   const [showCurator, setShowCurator] = useState<boolean>(false);
   const [animationStep, setAnimationStep] = useState<number>(0);
+
+  // Use isTestUser directly from auth context and also check for admin users
+  const isAdminOrTestUser = isTestUser || user?.username === 'admin';
 
   // Entrance animation sequence
   useEffect(() => {
@@ -242,47 +244,33 @@ const ArchiveOnboardingScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const checkUserType = async (): Promise<void> => {
-      try {
-        if (authToken) {
-       //   console.log('=== TESTING TOKEN AUTHENTICATION ===');
-          const tokenTest = await apiService.testTokenAuth();
-      //    console.log('Token test result:', tokenTest);
-          
-          const isAdminByUsername: boolean = user?.username === 'admin';
-          
-          let isTestByAPI: boolean = false;
-          if (tokenTest.success) {
-            try {
-              const status = await apiService.checkOnboardingStatus();
-              isTestByAPI = status.isTestUser || status.username === 'admin';
-            } catch (error) {
-         //     console.log('API onboarding check failed, using other methods');
-            }
-          }
-          
-          const isAdminOrTest: boolean = isAdminByUsername || isTestByAPI;
-        //  console.log('Final isAdminOrTest:', isAdminOrTest);
-          setIsAdminOrTestUser(isAdminOrTest);
-        }
-      } catch (error) {
-     //   console.error('Error checking user type:', error);
-        setIsAdminOrTestUser(isTestUser);
-      }
-    };
+    // Debug log to understand the state
+    console.log('🔍 WelcomeScreen useEffect - State check:', {
+      authToken: !!authToken,
+      assignedPath,
+      isAdminOrTestUser,
+      isTestUserFromAuth: isTestUser,
+      isComplete: onboarding.isComplete,
+      shouldRedirect: authToken && assignedPath && !isAdminOrTestUser && onboarding.isComplete
+    });
 
-    checkUserType();
-  }, [authToken, user, isTestUser]);
-
-  useEffect(() => {
-    if (authToken && assignedPath && !isAdminOrTestUser) {
+    // Only auto-redirect if user has already completed onboarding and we know their path
+    // For new users who need to see the welcome screen, isComplete should be false
+    if (authToken && assignedPath && !isAdminOrTestUser && onboarding.isComplete) {
+      console.log('🚀 WelcomeScreen - Auto-redirecting to:', assignedPath);
       if (assignedPath === 'character') {
         router.replace('/(onboarding)/character-creator');
       } else if (assignedPath === 'survey') {
+        console.log('⚠️ WelcomeScreen - Redirecting to survey/personality screen');
         router.replace('/(onboarding)/personality-test');
       }
+    } else {
+      console.log('✋ WelcomeScreen - Staying on welcome screen to allow user choice');
+      if (isAdminOrTestUser) {
+        console.log('👑 Admin/Test user detected in WelcomeScreen - staying for path selection');
+      }
     }
-  }, [authToken, assignedPath, isAdminOrTestUser]);
+  }, [authToken, assignedPath, isAdminOrTestUser, onboarding.isComplete, isTestUser]);
 
   const handlePathChoice = async (pathType: PathType): Promise<void> => {
     if (!authToken) {
@@ -290,32 +278,51 @@ const ArchiveOnboardingScreen: React.FC = () => {
       return;
     }
 
-  //  console.log(`=== ${pathType.toUpperCase()} CHOICE DEBUG ===`);
- //   console.log('Auth token present:', authToken ? 'Yes' : 'No');
- //   console.log('Is admin or test user:', isAdminOrTestUser);
- //   console.log('Username:', user?.username);
+    console.log(`🔄 handlePathChoice: Starting ${pathType} path selection...`);
+    console.log('Auth token present:', authToken ? 'Yes' : 'No');
+    console.log('Is admin or test user:', isAdminOrTestUser);
+    console.log('Username:', user?.username);
 
     setIsLoading(true);
     try {
-      // Let the API service handle all the research group assignment and onboarding logic
       if (isAdminOrTestUser) {
-       // console.log(`Admin/Test user choosing ${pathType} path - setting locally`);
+        // Admin/Test users don't call the API - just set local state
+        console.log(`👑 Admin/Test user choosing ${pathType} path - setting locally only`);
+        console.log('Admin/Test user details:', { isTestUser, username: user?.username });
         await setAssignedPath(pathType);
       } else {
-      //  console.log(`Regular user choosing ${pathType} path - completing onboarding via API service`);
+        // Regular users complete onboarding via API service
+        console.log(`👤 Regular user choosing ${pathType} path - completing onboarding via API service`);
+        console.log('Regular user details:', { username: user?.username, isTestUser, authToken: !!authToken });
+        
+        console.log('🔄 About to call apiService.completeOnboarding...');
         const updatedProfile = await apiService.completeOnboarding(pathType);
+        console.log('✅ Onboarding completed via API service:', updatedProfile);
+        
+        // Verify the profile was updated correctly
+        if (updatedProfile?.profile?.has_completed_onboarding) {
+          console.log('✅ Profile confirmed as onboarded');
+        } else {
+          console.warn('⚠️ Profile onboarding status unclear:', updatedProfile?.profile);
+        }
+        
+        // Set local state to match the API response
         await setAssignedPath(pathType);
+        console.log('✅ Local state updated with assigned path:', pathType);
       }
       
+      // Navigate to the appropriate onboarding screen
       if (pathType === 'character') {
+        console.log('🚀 Navigating to character creator...');
         router.replace('/(onboarding)/character-creator');
       } else {
+        console.log('🚀 Navigating to personality test...');
         router.replace('/(onboarding)/personality-test');
       }
     } catch (error: any) {
-    //  console.error(`Error in handle${pathType}Choice:`, error);
+      console.error(`❌ Error in handlePathChoice for ${pathType}:`, error);
       Alert.alert(
-        'Error', 
+        'Onboarding Error', 
         `Failed to start ${pathType} onboarding: ${error.message || 'Unknown error'}. Please try again or contact support.`
       );
     } finally {

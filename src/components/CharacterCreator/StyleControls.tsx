@@ -1,11 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { CategoryConfig } from '../../types/user';
-
-interface StyleControlsProps {
-  category: CategoryConfig;
-  styles: any;
-}
+import { StyleControlsProps } from '../../types/characterCreator';
 
 export const StyleControls: React.FC<StyleControlsProps> = ({
   category,

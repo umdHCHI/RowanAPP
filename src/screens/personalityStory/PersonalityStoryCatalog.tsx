@@ -32,7 +32,7 @@ const PersonalityThemes = {
     modalTitle: 'Infinite Possibilities Archive',
     modalSubtitle: 'Explore boundless stories that spark imagination and creativity. Each tale opens new dimensions of thought.',
     atmosphereIcon: 'star',
-    skillIcon: 'lightbulb',
+    skillIcon: 'zap',
     actionText: 'Discover',
     cardStyle: 'cosmic'
   },

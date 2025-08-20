@@ -1,11 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { CategoryConfig } from '../../types/user';
-
-interface ColorOptionControlsProps {
-  category: CategoryConfig;
-  styles: any;
-}
+import { ColorOptionControlsProps } from '../../types/characterCreator';
 
 export const ColorOptionControls: React.FC<ColorOptionControlsProps> = ({
   category,

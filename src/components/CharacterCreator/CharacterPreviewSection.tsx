@@ -1,38 +1,20 @@
 import React from 'react';
 import { Dimensions, View } from 'react-native';
+import { CharacterPreviewSectionProps } from '../../types/characterCreator';
 import CharacterFrame from './CharacterFrame';
 import CharacterPreview from './CharacterPreview';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-interface CharacterPreviewSectionProps {
-  character: {
-    getCurrentBackgroundAsset: (useLocalState?: boolean) => any;
-    getBaseAsset: (useLocalState?: boolean) => any;
-    getHairAsset: (useLocalState?: boolean) => any;
-    getClothesAsset: (useLocalState?: boolean) => any;
-    getEyesAsset: (useLocalState?: boolean) => any;
-    getEyebrowsAsset: (useLocalState?: boolean) => any;
-    getMouthAsset: (useLocalState?: boolean) => any;
-    getHairIndex: () => number;
-    getClothesIndex: () => number;
-    getEyesIndex: () => number;
-    getEyebrowsIndex: () => number;
-    getCharacterName: () => string;
-    selectedMouthType: number;
-  };
-  styles: any;
-}
-
 export const CharacterPreviewSection: React.FC<CharacterPreviewSectionProps> = ({
   character,
   styles
 }) => {
-  // Calculate responsive frame size
-  const frameSize = Math.min(screenWidth * 0.4, screenHeight * 0.25, 200); // Reduced sizes for mobile-friendly character
-  
+  // Use the preview section's maxHeight as the frame size for a true fit
+  const frameSize = styles.characterCreatorPreviewSection?.maxHeight || 250;
+
   return (
-    <View style={styles.characterCreatorPreviewSection}>
+    <View style={[styles.characterCreatorPreviewSection, { alignItems: 'center', justifyContent: 'center' }]}> 
       <CharacterFrame frame={character.getCurrentBackgroundAsset(true)} size={frameSize}>
         <CharacterPreview
           selectedName={character.getCharacterName()}
@@ -48,7 +30,8 @@ export const CharacterPreviewSection: React.FC<CharacterPreviewSectionProps> = (
           eyesIndex={character.getEyesIndex()}
           eyebrowsIndex={character.getEyebrowsIndex()}
           mouthIndex={character.selectedMouthType || 0}
-          size={frameSize} // Match the CharacterFrame size
+          size={frameSize}
+          fitToFrame // new prop to indicate full fit
         />
       </CharacterFrame>
     </View>

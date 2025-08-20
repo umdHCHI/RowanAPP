@@ -73,7 +73,7 @@ export default ({ config }) => {
       package: "com.roesorcerer.thearchivethesisproject",
       adaptiveIcon: {
         foregroundImage: "./assets/images/icon.png",
-        backgroundColor: "#ffffff"
+        backgroundColor: "#070707ff"
       },
       edgeToEdgeEnabled: true,
       permissions: [

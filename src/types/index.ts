@@ -1,5 +1,7 @@
 // Export all types from a single location for cleaner imports
 
+import { Character, PersonalityKey, UserProfile } from '../imports';
+
 // User and authentication types
 export type {
     AuthContextType, Character,
@@ -8,11 +10,28 @@ export type {
     GameData, LoginResponse, ResearchGroup, UserProfile
 } from './user';
 
+// Character Creator component types
+export type {
+    CategorySelectorProps,
+    CharacterCreationSetters,
+    CharacterCreationState,
+    CharacterCreatorData,
+    CharacterCreatorStylesType,
+    CharacterFrameProps,
+    CharacterNameInputProps,
+    CharacterObject,
+    CharacterPreviewProps,
+    CharacterPreviewSectionProps,
+    ColorOptionControlsProps,
+    GlobalCharacterCreatorStyles,
+    StyleControlsProps
+} from './characterCreator';
+
 
 
 // Equipment types
 export type {
-    CharacterGear, EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems
+    CharacterGear, CopingTool, CopingToolsCollectionProps, EQUIPMENT_CATEGORIES, EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems, RARITY_COLORS
 } from './equipment';
 
 // Game types
@@ -21,7 +40,17 @@ export type {
 } from './game';
 
 // Journal types
-export type { CodexEntry, CodexModalProps, JournalEntry, JournalPrompt, WellnessStats } from './journal';
+export type {
+    CodexEntry,
+    CodexEntryData,
+    CodexModalProps,
+    CodexStatistics,
+    DailyPromptResponse,
+    JournalApiError,
+    JournalEntry,
+    JournalPrompt,
+    WellnessStats
+} from './journal';
 
 // Wellness system types -- might need to be standardized further
 export type {
@@ -39,4 +68,12 @@ export type { ArchiveProgress, Chapter, ChapterPassage, ChapterSummary, Choice, 
 export type { GameState, PowerUp, Projectile, Thought } from './thoughtGame';
 
 
-export type { DailyCuratorMessages, PersonalityKey, PersonalityQuests, PersonalityType, PersonalityWellnessAttributes } from './personality';
+export type { DailyCuratorMessages, PersonalityHomeData, PersonalityKey, PersonalityQuests, PersonalityWellnessAttributes } from './personality';
+
+// Unified HomeData type for consistent data structure
+export type HomeData = {
+  userProfile: UserProfile;
+  character?: Character;         // present for character users
+  primaryTrait?: PersonalityKey; // present for personality users
+};
+

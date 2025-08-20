@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
 interface UseCharacterCreationProps {
@@ -19,11 +19,27 @@ export const useCharacterCreation = ({
   updateCharacterCustomization,
   completeCharacter
 }: UseCharacterCreationProps) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const isCreatingRef = useRef(false);
+
   const validateCharacterName = useCallback((name: string): boolean => {
     return Boolean(name && name.trim() !== '');
   }, []);
 
   const handleCharacterCreation = useCallback(async () => {
+    // Prevent multiple simultaneous calls
+    if (isCreatingRef.current) {
+      console.log('Character creation already in progress, ignoring duplicate call');
+      return;
+    }
+    
+    // Set loading state immediately and synchronously
+    setIsCreating(true);
+    isCreatingRef.current = true;
+    
+    // Small delay to ensure UI updates before continuing
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     console.log('=== CHARACTER CREATION STARTED ===');
     console.log('Character name:', characterName);
     console.log('Name validation passed:', validateCharacterName(characterName));
@@ -34,6 +50,8 @@ export const useCharacterCreation = ({
         'Please enter a name for your character before creating it.',
         [{ text: 'OK', style: 'default' }]
       );
+      setIsCreating(false);
+      isCreatingRef.current = false;
       return;
     }
     
@@ -66,11 +84,16 @@ export const useCharacterCreation = ({
         'There was an error creating your character. Please try again.',
         [{ text: 'OK', style: 'default' }]
       );
+    } finally {
+      // Always reset loading state
+      setIsCreating(false);
+      isCreatingRef.current = false;
     }
-  }, [characterName, createCharacter, validateCharacterName]);
+  }, [characterName, createCharacter, validateCharacterName, characterId, updateCharacterCustomization]);
 
   return {
     handleCharacterCreation,
-    validateCharacterName
+    validateCharacterName,
+    isCreating
   };
 }; 

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { createGlobalStyles } from '../styles/globalStyles';
-import { ThemeColors, darkTheme, lightTheme, loginTheme, onboardingTheme } from '../styles/theme';
+import { ThemeColors, characterCreatorTheme, characterHomeScreenTheme, darkTheme, lightTheme, loginTheme, onboardingTheme, personalitySurveyTheme } from '../styles/theme';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -17,6 +17,9 @@ interface ThemeContextType {
   isDark: boolean;
   loginTheme: ThemeColors;
   onboardingTheme: ThemeColors;
+  characterCreatorTheme: ThemeColors;
+  characterHomeScreenTheme: ThemeColors;
+  personalitySurveyTheme: ThemeColors; 
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -62,6 +65,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setThemeMode,
     loginTheme,
     onboardingTheme,
+    characterCreatorTheme,
+    characterHomeScreenTheme,
+    personalitySurveyTheme,
     // Backward compatibility
     styles,
     isDark,

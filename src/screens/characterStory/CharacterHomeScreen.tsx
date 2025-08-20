@@ -1,3 +1,4 @@
+import { characterHomeScreenStyles, getStoryStyles } from "@/src/styles/globalStyles";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Linking } from "react-native";
 import EquipmentModal from "../../components/EquipmentModal";
@@ -25,14 +26,85 @@ import {
   useEffect,
   useState
 } from "../../imports";
+import { getDisplayPrompt } from "../../utils/codexUtils";
 // Import StoryScreen directly to avoid circular dependency issues
 import React from "react";
 import { archiveHeaderIcon, equipmentIcons } from "../../assets/equipment";
+
 import { apiService } from "../../services/apiService";
+
 import ChapterScreen from "./ChapterScreen";
 import StoryScreen from "./StoryScreen";
 
 const { width, height } = Dimensions.get("window"); //remove
+
+// Tutorial steps for first-time users
+const TUTORIAL_STEPS = [
+  {
+    id: 1,
+    title: "🎮 Welcome to The Archive!",
+    message: "This is your personal stress management adventure game. You'll navigate through interactive stories, equip wellness gear, and build your mental resilience. Let's learn how to play!",
+    highlight: "header",
+    tip: "The Archive is your safe space to explore and grow. Take your time with each feature!"
+  },
+  {
+    id: 2,
+    title: "📚 Your Character & Stats",
+    message: "This is your character! Your wellness stats (Awareness, Resilience, Connection, Balance) show your progress. Each stat represents different aspects of mental wellness. Click on them to see detailed information and track your growth.",
+    highlight: "character",
+    tip: "Higher stats unlock new stories and equipment. Focus on areas that feel most challenging to you."
+  },
+  {
+    id: 3,
+    title: "⚔️ Equipment System",
+    message: "Equip items to boost your stats! Weapons improve focus and concentration, armor provides comfort and social support, helmets help set healthy boundaries, and boots keep you grounded and active. Each piece of gear has unique benefits.",
+    highlight: "equipment",
+    tip: "Mix and match gear to create your perfect wellness loadout. Different combinations work for different situations!"
+  },
+  {
+    id: 4,
+    title: "📖 Story Adventures",
+    message: "The 'Tomes' tab contains interactive stories where you make choices and learn coping strategies. Each choice affects your character's growth and can unlock new paths. Stories are designed to help you practice real-life stress management techniques.",
+    highlight: "tomes",
+    tip: "There are no wrong choices! Each path teaches valuable lessons. Replay stories to explore different outcomes."
+  },
+  {
+    id: 5,
+    title: "🔧 Restoration & Growth",
+    message: "The 'Restoration' tab shows your progress through stories and unlocks new content as you complete adventures. Track your achievements, see your growth over time, and discover new challenges as you level up.",
+    highlight: "restoration",
+    tip: "Progress is saved automatically. You can always return to stories you've started and continue your journey."
+  },
+  {
+    id: 6,
+    title: "📝 The Codex",
+    message: "Your personal journal for reflections and insights. Record your thoughts, draw your feelings, or record voice memos to track your journey. The Codex helps you reflect on your experiences and see patterns in your growth.",
+    highlight: "codex",
+    tip: "Regular journaling can help you identify triggers and track your progress. Try to write something every day!"
+  },
+  {
+    id: 7,
+    title: "🎯 Daily Quests",
+    message: "Complete daily wellness activities like journaling, drawing, or voice recording to earn experience and strengthen your character. These quests are designed to build healthy habits and provide structure to your wellness routine.",
+    highlight: "quests",
+    tip: "Daily quests refresh each day. Even small activities count - consistency is more important than perfection!"
+  },
+  {
+    id: 8,
+    title: "🌟 You're Ready!",
+    message: "Congratulations! You now know the basics of The Archive. Explore stories, equip gear, and build your wellness foundations. Remember: every choice helps you grow stronger, and there's no rush. Take your time and enjoy the journey!",
+    highlight: "none",
+    tip: "You can always restart this tutorial by clicking the '?' button in the top right corner. Happy adventuring!"
+  }
+];
+
+// Helper function to correctly extract profile and character data from homeData
+const selectProfileAndCharacter = (homeData?: any) => {
+  const hd = homeData ?? null;
+  const profile = hd?.userProfile ?? hd ?? null; // works for unified or legacy
+  const backendCharacter = hd?.character ?? profile?.character ?? null;
+  return { profile, backendCharacter };
+};
 
 const ArchiveInterface: React.FC = () => {
   // Use MasterStateContext instead of individual contexts
@@ -45,24 +117,117 @@ const ArchiveInterface: React.FC = () => {
     archive,
     ui,
     loading,
-    wellness,
+    wellness
   } = useMasterState();
 
   const router = useRouter();
-
+  const homeStyles = characterHomeScreenStyles(theme.characterHomeScreenTheme);
+  const homeTheme = theme.characterHomeScreenTheme;
   // Local state for stories
   const [stories, setStories] = useState<any[]>([]);
   const [isLoadingStories, setIsLoadingStories] = useState(false);
+
+  // Tutorial state
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
+  const [hasSeenTutorial, setHasSeenTutorial] = useState(false);
+
+  // Debug data flow on component mount (commented out to prevent endless loop)
+  // useEffect(() => {
+  //   const runDebug = async () => {
+  //     // Wait a bit for the context to load
+  //     setTimeout(async () => {
+  //       console.log('🔍 DEBUG: Auto-running data flow debug...');
+  //       try {
+  //         const debugResult = await apiService.debugCharacterHomeData();
+  //         console.log('📊 DEBUG: Auto-debug results:', debugResult);
+  //       } catch (error) {
+  //         console.error('❌ DEBUG: Auto-debug failed:', error);
+  //       }
+  //     }, 2000);
+  //   };
+  //   
+  //   runDebug();
+  // }, []);
 
   // Chapter selection state
   const [isChapterScreenVisible, setIsChapterScreenVisible] = useState(false);
   const [selectedStory, setSelectedStory] = useState<any>(null);
 
   const [showEquipmentModal, setShowEquipmentModal] = useState(false);
+  const storyStyles = getStoryStyles(theme.theme);
+
+  // Tutorial functions
+  const startTutorial = () => {
+    setShowTutorial(true);
+    setCurrentTutorialStep(0);
+  };
+
+  const nextTutorialStep = () => {
+    if (currentTutorialStep < TUTORIAL_STEPS.length - 1) {
+      setCurrentTutorialStep(currentTutorialStep + 1);
+    } else {
+      completeTutorial();
+    }
+  };
+
+  const previousTutorialStep = () => {
+    if (currentTutorialStep > 0) {
+      setCurrentTutorialStep(currentTutorialStep - 1);
+    }
+  };
+
+  const completeTutorial = async () => {
+    setShowTutorial(false);
+    setHasSeenTutorial(true);
+    try {
+      await AsyncStorage.setItem('hasSeenTutorial', 'true');
+    } catch (error) {
+      console.log('Could not save tutorial completion');
+    }
+  };
+
+  const skipTutorial = () => {
+    setShowTutorial(false);
+    setHasSeenTutorial(true);
+    AsyncStorage.setItem('hasSeenTutorial', 'true').catch(() => {});
+  };
+
+  // Check if user has seen tutorial on component mount
+  useEffect(() => {
+    const checkTutorialStatus = async () => {
+      try {
+        const tutorialSeen = await AsyncStorage.getItem('hasSeenTutorial');
+        if (tutorialSeen === 'true') {
+          setHasSeenTutorial(true);
+        } else {
+          // Show tutorial for first-time users after a short delay
+          setTimeout(() => {
+            if (!hasSeenTutorial) {
+              startTutorial();
+            }
+          }, 2000);
+        }
+      } catch (error) {
+        console.log('Could not check tutorial status');
+      }
+    };
+    
+    checkTutorialStatus();
+  }, []);
 
   // Helper function to get equipped gear for a specific slot
   const getEquippedGearForSlot = (slot: 'weapon' | 'armor' | 'helmet' | 'boots') => {
-    return equipment.equippedGear.find(gear => gear.gear_type.slot === slot);
+    console.log('🔧 getEquippedGearForSlot:', {
+      slot,
+      equippedGear: equipment.equippedGear,
+      gearCount: equipment.equippedGear.length
+    });
+    
+    const foundGear = equipment.equippedGear.find(gear => gear.gear_type.slot === slot);
+    console.log('🔧 Found gear for slot', slot, ':', foundGear);
+    
+    return foundGear;
   };
 
   // Helper function to get equipment image for gear slots
@@ -103,6 +268,8 @@ const ArchiveInterface: React.FC = () => {
             equipmentType = 'combat';
             subtype = 'ironShield';
           } else {
+
+
             equipmentType = 'combat';
             subtype = 'woodenShield';
           }
@@ -227,9 +394,160 @@ const ArchiveInterface: React.FC = () => {
     }
   };
 
-
-
-
+  // Calculate wellness stats for Archive Foundations display
+  const wellnessStatsForDisplay = (() => {
+    // Extract character data from the proper backend structure using the helper
+    const homeData = wellness.homeData;
+    const { profile: userProfile, backendCharacter: backendCharacterData } = selectProfileAndCharacter(homeData);
+    
+    // Normalize backendCharacter - unwrap arrays and nested .character
+    const normalizedBackendCharacter = (() => {
+      let char: any = character.backendCharacter;
+      
+      // Unwrap arrays
+      if (Array.isArray(char)) {
+        char = char[0];
+      }
+      
+      // Unwrap nested .character
+      if (char && typeof char === 'object' && 'character' in char) {
+        char = char.character;
+      }
+      
+      return char;
+    })();
+    
+    console.log('🔍 Archive Foundations Debug:', {
+      hasHomeData: !!homeData,
+      hasUserProfile: !!userProfile,
+      userProfileKeys: userProfile ? Object.keys(userProfile) : [],
+      backendCharacterData,
+      normalizedBackendCharacter,
+      normalizedBackendCharacterKeys: normalizedBackendCharacter ? Object.keys(normalizedBackendCharacter) : [],
+      homeDataType: homeData && 'userProfile' in homeData ? 'PersonalityHomeData' : 'UserProfile',
+      completionType: userProfile?.completion_type || (normalizedBackendCharacter as any)?.completion_type,
+      hasCompletionDataId: !!(userProfile?.completion_data_id || (normalizedBackendCharacter as any)?.completion_data_id)
+    });
+    
+    // First, try to get the actual wellness_stats array from the normalized character object
+    const characterWellnessStats = (normalizedBackendCharacter as any)?.wellness_stats || backendCharacterData?.wellness_stats;
+    if (characterWellnessStats && Array.isArray(characterWellnessStats) && characterWellnessStats.length > 0) {
+      console.log('✅ Using actual wellness_stats from backend:', characterWellnessStats);
+      return characterWellnessStats;
+    }
+    
+    // Second, prioritize building stats from character.awareness/resilience/connection/balance
+    if (normalizedBackendCharacter && (
+      (normalizedBackendCharacter as any).awareness !== undefined || 
+      (normalizedBackendCharacter as any).resilience !== undefined ||
+      (normalizedBackendCharacter as any).connection !== undefined ||
+      (normalizedBackendCharacter as any).balance !== undefined
+    )) {
+      console.log('✅ Building wellness stats from individual character values:', {
+        awareness: (normalizedBackendCharacter as any).awareness,
+        resilience: (normalizedBackendCharacter as any).resilience,
+        connection: (normalizedBackendCharacter as any).connection,
+        balance: (normalizedBackendCharacter as any).balance
+      });
+      return [
+        { 
+          icon: "🧘", 
+          label: "Awareness", 
+          value: (normalizedBackendCharacter as any).awareness || 0, 
+          color: "#4A90E2" 
+        },
+        { 
+          icon: "💪", 
+          label: "Resilience", 
+          value: (normalizedBackendCharacter as any).resilience || 0, 
+          color: "#2ECC71" 
+        },
+        { 
+          icon: "🤝", 
+          label: "Connection", 
+          value: (normalizedBackendCharacter as any).connection || 0, 
+          color: "#E74C3C" 
+        },
+        { 
+          icon: "⚖️", 
+          label: "Balance", 
+          value: (normalizedBackendCharacter as any).balance || 0, 
+          color: "#F39C12" 
+        }
+      ];
+    }
+    
+    // Third, fall back to wellness_average if available
+    const wellnessAverage = (normalizedBackendCharacter as any)?.wellness_average || backendCharacterData?.wellness_average;
+    if (wellnessAverage !== undefined) {
+      console.log('⚠️ Falling back to wellness_average distribution');
+      const baseValue = Math.floor(wellnessAverage * 5); // Convert 0-1 scale to 0-20 scale
+      return [
+        { 
+          icon: "🧘", 
+          label: "Awareness", 
+          value: baseValue, 
+          color: "#4A90E2" 
+        },
+        { 
+          icon: "💪", 
+          label: "Resilience", 
+          value: baseValue, 
+          color: "#2ECC71" 
+        },
+        { 
+          icon: "🤝", 
+          label: "Connection", 
+          value: baseValue, 
+          color: "#E74C3C" 
+        },
+        { 
+          icon: "⚖️", 
+          label: "Balance", 
+          value: baseValue, 
+          color: "#F39C12" 
+        }
+      ];
+    }
+    
+    // Fourth, if user has completion_type: 'character' but no character data, create default character stats
+    const completionType = userProfile?.completion_type || (normalizedBackendCharacter as any)?.completion_type;
+    const hasCompletionDataId = !!(userProfile?.completion_data_id || (normalizedBackendCharacter as any)?.completion_data_id);
+    
+    if (completionType === 'character' && hasCompletionDataId) {
+      console.log('⚠️ User has character completion_type but no wellness data - creating default character stats');
+      return [
+        { 
+          icon: "🧘", 
+          label: "Awareness", 
+          value: 0, 
+          color: "#4A90E2" 
+        },
+        { 
+          icon: "💪", 
+          label: "Resilience", 
+          value: 0, 
+          color: "#2ECC71" 
+        },
+        { 
+          icon: "🤝", 
+          label: "Connection", 
+          value: 0, 
+          color: "#E74C3C" 
+        },
+        { 
+          icon: "⚖️", 
+          label: "Balance", 
+          value: 0, 
+          color: "#F39C12" 
+        }
+      ];
+    }
+    
+    // Final fallback to archive foundations
+    console.log('⚠️ No character wellness data found, using archive foundations fallback');
+    return archive.archiveFoundations;
+  })();
 
   const loadStories = async () => {
     setIsLoadingStories(true);
@@ -250,12 +568,36 @@ const ArchiveInterface: React.FC = () => {
       });
 
       setStories(storiesWithProgress);
-      ui.setMemoryStorys(storiesWithProgress);
+      ui.setMemoryStories(storiesWithProgress);
     } catch (error) {
       console.error("Failed to load stories:", error);
       setStories([]);
     } finally {
       setIsLoadingStories(false);
+    }
+  };
+
+  // Debug function to test data flow
+  const debugDataFlow = async () => {
+    try {
+      console.log('🔍 DEBUG: Testing data flow...');
+      const debugResult = await apiService.debugCharacterHomeData();
+      
+      Alert.alert(
+        'Data Flow Debug Results',
+        `Success: ${debugResult.success}\n\n` +
+        `Profile: ${debugResult.dataSummary.hasProfile ? '✅' : '❌'}\n` +
+        `Character: ${debugResult.dataSummary.hasCharacter ? '✅' : '❌'}\n` +
+        `Experience: ${debugResult.dataSummary.hasExperience ? '✅' : '❌'}\n` +
+        `Wellness Stats: ${debugResult.dataSummary.hasWellnessStats ? '✅' : '❌'}\n` +
+        `Equipped Gear: ${debugResult.dataSummary.hasEquippedGear ? '✅' : '❌'}\n\n` +
+        `Level: ${debugResult.dataSummary.characterLevel || 'N/A'}\n` +
+        `Experience: ${debugResult.dataSummary.characterExperience || 'N/A'}\n\n` +
+        `Errors: ${debugResult.errors.length > 0 ? debugResult.errors.join('\n') : 'None'}`
+      );
+    } catch (error) {
+      console.error('Debug failed:', error);
+      Alert.alert('Debug Error', 'Failed to run debug: ' + error);
     }
   };
 
@@ -312,9 +654,13 @@ const ArchiveInterface: React.FC = () => {
             key.includes('chapter') ||
             key.includes('choice')
           );
+          
           if (storyCacheKeys.length > 0) {
             console.log('🧹 Clearing story cache keys:', storyCacheKeys);
             await AsyncStorage.multiRemove(storyCacheKeys);
+            console.log(`🧹 Successfully cleared ${storyCacheKeys.length} cache keys`);
+          } else {
+            console.log('🧹 No story cache keys found to clear');
           }
         } catch (cacheError) {
           console.warn('⚠️ Could not clear story cache:', cacheError);
@@ -364,10 +710,29 @@ const ArchiveInterface: React.FC = () => {
   // Load home data and journal prompts on mount (only once)
   useFocusEffect(
     React.useCallback(() => {
+      console.log('🔄 CharacterHomeScreen: Loading data on focus...');
       loadStories();
       equipment.loadBackendGear();
-      character.loadCharacter();
-      wellness.loadHomeData();
+      
+      // Load complete home data which includes all character information
+      console.log('🔄 CharacterHomeScreen: Loading home data...');
+      wellness.loadHomeData().then(() => {
+        console.log('✅ CharacterHomeScreen: Home data loaded successfully');
+        console.log('📊 CharacterHomeScreen: Current homeData:', wellness.homeData);
+        
+        // Debug equipment data
+        console.log('🔧 CharacterHomeScreen: Equipment data:', {
+          equippedGear: equipment.equippedGear,
+          backendGear: equipment.backendGear,
+          inventory: equipment.inventory
+        });
+        
+        // Now load character data from the homeData (optimized - no redundant API call)
+        console.log('🔄 CharacterHomeScreen: Loading character data from homeData...');
+        character.loadCharacter();
+      }).catch((error) => {
+        console.error('❌ CharacterHomeScreen: Failed to load home data:', error);
+      });
 
     }, [])
   );
@@ -467,7 +832,7 @@ const ArchiveInterface: React.FC = () => {
     }
   };
 
-  //Equipment handlers - now using backend gear system
+  //Equipment handlers - now using backend gear system might need to be removed 
   const handleEquip = async (item: EquipmentItem) => {
     try {
       // Find the corresponding backend gear item by ID (since we pass gearId in the modal)
@@ -492,7 +857,7 @@ const ArchiveInterface: React.FC = () => {
     }
   };
   
-  const handleUnequip = async (item: EquipmentItem) => {
+  const handleUnequip = async (item: EquipmentItem) => { //might need to be removed 
     try {
       // Find the corresponding backend gear item by ID
       const backendGearItem = equipment.backendGear.find(gear => 
@@ -523,25 +888,23 @@ const ArchiveInterface: React.FC = () => {
     onPress: () => void;
   }> = ({ title, icon, isActive, onPress }) => (
     <TouchableOpacity
-      style={[theme.styles.tabButton, isActive && theme.styles.activeTab]}
+      style={[homeStyles.tabButton, isActive && homeStyles.activeTab]}
       onPress={onPress}
       activeOpacity={0.8}
     >
       {isActive && (
         <LinearGradient
-          colors={["rgba(78, 230, 230, 0.4)", "rgba(6, 182, 212, 0.4)"]}
+          colors={[homeTheme.tabIsActiveGradient, homeTheme.tabIsActiveSecondaryGradient]}
           style={StyleSheet.absoluteFillObject}
         />
       )}
-      <Icon name={icon} size={18} color={isActive ? "#4ee6e6" : "#9CA3AF"} />
+      <Icon name={icon} size={18} color={isActive ? homeTheme.tabTextColor : homeTheme.tabTextSecondColor} />
       <Text
-        style={[theme.styles.tabText, isActive && {
-          color: '#4ee6e6',
-          fontWeight: '700',
-          textShadowColor: '#4ee6e6',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 2,
-        }]}
+        style={[
+          homeStyles.tabText,
+          isActive ? homeStyles.tabTextActive : homeStyles.tabTextInactive,
+          { color: isActive ? homeTheme.tabTextColor : homeTheme.tabTextSecondColor }
+        ]}
       >
         {title}
       </Text>
@@ -554,25 +917,43 @@ const ArchiveInterface: React.FC = () => {
     const homeData = wellness.homeData;
     const backendCharacter = character.backendCharacter;
 
-
+    // Debug logging to see what data is available
+    console.log('🔍 CharacterDisplay - homeData:', homeData);
+    console.log('🔍 CharacterDisplay - backendCharacter:', backendCharacter);
+    console.log('🔍 CharacterDisplay - homeData type check:', homeData && 'userProfile' in homeData ? 'PersonalityHomeData' : 'CharacterHomeData');
+    
+    // Check if homeData is PersonalityHomeData (fallback for admin users)
+    const isPersonalityHomeData = homeData && 'userProfile' in homeData;
+    
+    if (isPersonalityHomeData) {
+      console.log('🔍 CharacterDisplay - Using PersonalityHomeData fallback for admin user');
+      console.log('🔍 CharacterDisplay - userProfile:', (homeData as any).userProfile);
+      // Character data is now directly on UserProfile, not nested under profile.character
+      console.log('🔍 CharacterDisplay - userProfile.character:', (homeData as any).userProfile?.character);
+    } else {
+      console.log('🔍 CharacterDisplay - Using regular character data');
+      console.log('🔍 CharacterDisplay - homeData?.name:', backendCharacter?.name);
+      console.log('🔍 CharacterDisplay - homeData?.wellness_stats:', (homeData as any)?.wellness_stats);
+      console.log('🔍 CharacterDisplay - homeData?.equipped_gear:', (homeData as any)?.equipped_gear);
+    }
 
     // Check if we have character data from home_data endpoint
-    const hasHomeData = homeData?.character;
+    const hasHomeData = homeData;
     const hasBackendCharacter = backendCharacter;
 
     if (!hasHomeData && !hasBackendCharacter) {
       return (
-        <View style={theme.styles.centralCharacterDisplay}>
+        <View style={homeStyles.centralCharacterDisplay || homeStyles.centralCharacterDisplay}>
           <LinearGradient
             colors={[
               "rgba(139, 92, 246, 0.3)",
               "rgba(79, 70, 229, 0.2)",
               "rgba(6, 182, 212, 0.3)",
             ]}
-            style={theme.styles.characterFrame}
+            style={homeStyles.characterFrame}
           >
-            <View style={theme.styles.characterFrameInner}>
-              <Text style={[theme.styles.archiveText, { textAlign: "center" }]}>
+            <View style={homeStyles.characterFrameInner}>
+              <Text style={[homeStyles.archiveText, { textAlign: "center" }]}>
                 No character created yet
               </Text>
             </View>
@@ -581,28 +962,89 @@ const ArchiveInterface: React.FC = () => {
       );
     }
 
-    // Use home_data character if available, otherwise fall back to backend character
-    const characterData = hasHomeData ? homeData.character : backendCharacter;
+    // Extract character data properly from the nested structure using the helper
+    let characterData, characterAppearanceData, wellnessStats, characterName;
     
-    // wellness_stats comes from home_data, not from the character object directly
-    const wellnessStats = hasHomeData && (homeData as any).character?.wellness_stats
-      ? (homeData as any).character.wellness_stats
-      : null;
+    const { profile: userProfile, backendCharacter: backendCharacterData } = selectProfileAndCharacter(homeData);
+    
+    if (isPersonalityHomeData) {
+      // For admin users with PersonalityHomeData fallback, provide default character values
+      characterName = userProfile?.username || userProfile?.email || "Admin User";
+      characterData = {
+        name: characterName,
+        level: 1,
+        // Provide default appearance values
+        selected_hair_style: 0,
+        selected_shirt_type: 0,
+        selected_eye_type: 0,
+        selected_eyebrow_style: 0,
+        selected_mouth_type: 0
+      };
+      characterAppearanceData = characterData;
+      wellnessStats = null; // Admin users don't have wellness stats
+    } else {
+      // For character users, extract data from the proper backend character object
+      if (backendCharacterData) {
+        // Use the actual character data from backend
+        characterData = {
+          name: backendCharacterData.name || userProfile?.username || character.getCharacterName(),
+          level: backendCharacterData.level || 1,
+          experience: backendCharacterData.experience || 0,
+          experience_progress_percentage: backendCharacterData.experience_needed || 0,
+          wellness_average: backendCharacterData.wellness_average || 0,
+          character_config: backendCharacterData.character_config || null,
+          equipped_gear: backendCharacterData.equipped_gear || []
+        };
+        characterAppearanceData = backendCharacterData.character_config || backendCharacterData;
+        characterName = backendCharacterData?.name || userProfile?.username || userProfile?.email || character.getCharacterName();
+        
+        console.log('✅ CharacterDisplay - Using backend character data:', {
+          name: characterName,
+          level: backendCharacterData.level,
+          experience_progress_percentage: backendCharacterData.experience_needed,
+          wellness_average: backendCharacterData.wellness_average,
+          equippedGear: backendCharacterData.equipped_gear,
+          wellnessStats: backendCharacterData.wellness_stats
+        });
+      } else {
+        // Fallback to legacy structure if character object not found
+        characterData = {
+          name: userProfile?.username || character.getCharacterName(),
+          level: 1,
+          experience: 0,
+          experience_progress_percentage: userProfile?.experience_needed || 0,
+          wellness_average: userProfile?.wellness_average || 0,
+          character_config: userProfile?.character_config || null,
+          equipped_gear: userProfile?.equipped_gear || []
+        };
+        characterAppearanceData = userProfile?.character_config || characterData;
+        characterName = characterData.name;
+        
+        console.log('⚠️ CharacterDisplay - Using legacy structure fallback:', {
+          name: characterName,
+          level: characterData.level
+        });
+      }
+      
+      wellnessStats = null; // Will be calculated from wellness_stats in wellnessStatsForDisplay
+    }
+
+
 
     // Ensure characterData is not null before using it
     if (!characterData) {
       return (
-        <View style={theme.styles.centralCharacterDisplay}>
+        <View style={homeStyles.centralCharacterDisplay || homeStyles.centralCharacterDisplay}>
           <LinearGradient
             colors={[
               "rgba(139, 92, 246, 0.3)",
               "rgba(79, 70, 229, 0.2)",
               "rgba(6, 182, 212, 0.3)",
             ]}
-            style={theme.styles.characterFrame}
+            style={homeStyles.characterFrame}
           >
-            <View style={theme.styles.characterFrameInner}>
-              <Text style={[theme.styles.archiveText, { textAlign: "center" }]}>
+            <View style={homeStyles.characterFrameInner}>
+              <Text style={[homeStyles.archiveText, { textAlign: "center" }]}>
                 Character data unavailable
               </Text>
             </View>
@@ -612,55 +1054,44 @@ const ArchiveInterface: React.FC = () => {
     }
 
     return (
-      <View style={theme.styles.centralCharacterDisplay}>
+      <View style={homeStyles.centralCharacterDisplay || homeStyles.centralCharacterDisplay}>
         <LinearGradient
           colors={[
             "rgba(78, 230, 230, 0.3)",
             "rgba(6, 182, 212, 0.2)",
             "rgba(78, 230, 230, 0.3)",
           ]}
-          style={[theme.styles.characterFrame, {
-            borderColor: '#d4af37',
-            borderWidth: 2,
-            shadowColor: '#d4af37',
-            shadowOffset: { width: 2, height: 6 },
-            shadowOpacity: 0.4,
-            shadowRadius: 12,
-            elevation: 12,
-          }]}
+          style={homeStyles.characterFrame}
         >
-          <View style={theme.styles.characterFrameInner}>
-            {/* Use CharacterPreview component for consistent display with CharacterCreatorScreen */}
-            <CharacterPreview
-              selectedName={character.getCharacterName()}
-              baseAsset={character.getBaseAsset(false)}
-              background={character.getCurrentBackgroundAsset(false)}
-              hairSheet={character.getHairAsset(false)}
-              clothesSheet={character.getClothesAsset(false)}
-              eyesSheet={character.getEyesAsset(false)}
-              eyebrowsSheet={character.getEyebrowsAsset(false)}
-              mouthSheet={character.getMouthAsset(false)}
-              hairIndex={character.getHairIndex()}
-              clothesIndex={character.getClothesIndex()}
-              eyesIndex={character.getEyesIndex()}
-              eyebrowsIndex={character.getEyebrowsIndex()}
-              mouthIndex={backendCharacter?.selected_mouth_type ?? character.selectedMouthType}
-              size={170}
-            />
+                      <View style={homeStyles.characterFrameInner}>
+              {/* Use CharacterPreview component for consistent display with CharacterCreatorScreen */}
+
+              <CharacterPreview
+                selectedName={characterName}
+                baseAsset={character.getBaseAsset(false)}
+                background={character.getCurrentBackgroundAsset(false)}
+                hairSheet={character.getHairAsset(false)}
+                clothesSheet={character.getClothesAsset(false)}
+                eyesSheet={character.getEyesAsset(false)}
+                eyebrowsSheet={character.getEyebrowsAsset(false)}
+                mouthSheet={character.getMouthAsset(false)}
+                hairIndex={(characterAppearanceData as any)?.selected_hair_style || character.getHairIndex() || 0}
+                clothesIndex={(characterAppearanceData as any)?.selected_shirt_type || character.getClothesIndex() || 0}
+                eyesIndex={(characterAppearanceData as any)?.selected_eye_type || character.getEyesIndex() || 0}
+                eyebrowsIndex={(characterAppearanceData as any)?.selected_eyebrow_style || character.getEyebrowsIndex() || 0}
+                mouthIndex={(characterAppearanceData as any)?.selected_mouth_type || character.selectedMouthType || 0}
+                size={homeStyles.characterFrame?.height || 180}
+                fitToFrame
+              />
 
             {/* Character Level and Status */}
-            <View style={theme.styles.characterLevelBadge}>
+            <View style={homeStyles.characterLevelBadge}>
               <LinearGradient
                 colors={["#4ee6e6", "#06b6d4"]}
-                style={theme.styles.levelBadgeGradient}
+                style={homeStyles.levelBadgeGradient}
               >
-                <Text style={{
-                  ...theme.styles.levelBadgeText,
-                  color: '#0a0b0f',
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                }}>
-                  Lv.{characterData.level || 1}
+                <Text style={homeStyles.levelBadgeText}>
+                  Lv.{characterData?.level || 1}
                 </Text>
               </LinearGradient>
             </View>
@@ -670,25 +1101,12 @@ const ArchiveInterface: React.FC = () => {
 
 
         {/* Character Mood Bubble */}
-        <View style={theme.styles.characterMoodBubble}>
+        <View style={homeStyles.characterMoodBubble}>
           <LinearGradient
             colors={["rgba(244, 241, 232, 0.95)", "rgba(212, 175, 55, 0.8)"]}
-            style={[theme.styles.moodBubbleGradient, {
-              borderColor: '#d4af37',
-              shadowColor: '#8b4513',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 4,
-              elevation: 4,
-            }]}
+            style={homeStyles.moodBubbleGradient}
           >
-            <Text style={{
-              ...theme.styles.moodBubbleText,
-              color: '#2c1810',
-              fontSize: 12,
-              fontStyle: 'italic',
-              textAlign: 'center',
-            }}>
+            <Text style={homeStyles.moodBubbleText}>
               "Ready to explore the depths of memory..."
             </Text>
           </LinearGradient>
@@ -699,8 +1117,245 @@ const ArchiveInterface: React.FC = () => {
     );
   };
 
+  // Tutorial Modal Component
+  const TutorialModal = () => {
+    if (!showTutorial) return null;
+    
+    const currentStep = TUTORIAL_STEPS[currentTutorialStep];
+    const isFirstStep = currentTutorialStep === 0;
+    const isLastStep = currentTutorialStep === TUTORIAL_STEPS.length - 1;
+    
+    return (
+      <View style={StyleSheet.absoluteFillObject}>
+        {/* Semi-transparent overlay */}
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          zIndex: 1000,
+        }} />
+        
+        {/* Tutorial content */}
+        <View style={{
+          position: 'absolute',
+          top: '20%',
+          left: 20,
+          right: 20,
+          backgroundColor: 'rgba(10, 11, 15, 0.95)',
+          borderRadius: 20,
+          borderWidth: 2,
+          borderColor: '#4ee6e6',
+          padding: 24,
+          zIndex: 1001,
+          shadowColor: '#4ee6e6',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.5,
+          shadowRadius: 20,
+          elevation: 20,
+        }}>
+          {/* Progress indicator */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            marginBottom: 20,
+          }}>
+            {TUTORIAL_STEPS.map((_, index) => (
+              <View
+                key={index}
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: index === currentTutorialStep ? '#4ee6e6' : 'rgba(78, 230, 230, 0.3)',
+                  marginHorizontal: 4,
+                }}
+              />
+            ))}
+          </View>
+          
+          {/* Step title */}
+          <Text style={{
+            color: '#4ee6e6',
+            fontSize: 24,
+            fontWeight: 'bold',
+            textAlign: 'center',
+            marginBottom: 16,
+            textShadowColor: 'rgba(78, 230, 230, 0.5)',
+            textShadowOffset: { width: 0, height: 2 },
+            textShadowRadius: 4,
+          }}>
+            {currentStep.title}
+          </Text>
+          
+          {/* Step message */}
+          <Text style={{
+            color: '#ffffff',
+            fontSize: 16,
+            lineHeight: 24,
+            textAlign: 'center',
+            marginBottom: 16,
+            textShadowColor: 'rgba(0, 0, 0, 0.5)',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 2,
+          }}>
+            {currentStep.message}
+          </Text>
+          
+          {/* Pro tip */}
+          {currentStep.tip && (
+            <View style={{
+              backgroundColor: 'rgba(212, 175, 55, 0.1)',
+              borderWidth: 1,
+              borderColor: 'rgba(212, 175, 55, 0.3)',
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 24,
+            }}>
+              <Text style={{
+                color: '#d4af37',
+                fontSize: 14,
+                fontStyle: 'italic',
+                textAlign: 'center',
+                textShadowColor: 'rgba(212, 175, 55, 0.3)',
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 2,
+              }}>
+                💡 Pro Tip: {currentStep.tip}
+              </Text>
+            </View>
+          )}
+          
+          {/* Navigation buttons */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            {/* Skip button */}
+            <TouchableOpacity
+              onPress={skipTutorial}
+              style={{
+                paddingVertical: 12,
+                paddingHorizontal: 20,
+                borderRadius: 25,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                backgroundColor: 'transparent',
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: 14,
+                fontWeight: '500',
+              }}>
+                Skip Tutorial
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Navigation buttons */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+              {!isFirstStep && (
+                <TouchableOpacity
+                  onPress={previousTutorialStep}
+                  style={{
+                    paddingVertical: 12,
+                    paddingHorizontal: 20,
+                    borderRadius: 25,
+                    backgroundColor: 'rgba(78, 230, 230, 0.2)',
+                    borderWidth: 1,
+                    borderColor: '#4ee6e6',
+                    marginRight: 12,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{
+                    color: '#4ee6e6',
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}>
+                    ← Previous
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              <TouchableOpacity
+                onPress={nextTutorialStep}
+                style={{
+                  paddingVertical: 12,
+                  paddingHorizontal: 24,
+                  borderRadius: 25,
+                  backgroundColor: '#4ee6e6',
+                  shadowColor: '#4ee6e6',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 8,
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={{
+                  color: '#0a0b0f',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                }}>
+                  {isLastStep ? 'Get Started!' : 'Next →'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  // Tutorial Highlight Component for pulsing effects
+  const TutorialHighlight = ({ children, isHighlighted, style }: { 
+    children: React.ReactNode; 
+    isHighlighted: boolean; 
+    style?: any;
+  }) => {
+    const [pulseOpacity, setPulseOpacity] = useState(0.3);
+    
+    useEffect(() => {
+      if (isHighlighted) {
+        const pulseInterval = setInterval(() => {
+          setPulseOpacity(prev => prev === 0.3 ? 0.8 : 0.3);
+        }, 800);
+        
+        return () => clearInterval(pulseInterval);
+      }
+    }, [isHighlighted]);
+    
+    if (!isHighlighted) return <>{children}</>;
+    
+    return (
+      <View style={[style, { position: 'relative' }]}>
+        {children}
+        <View style={{
+          position: 'absolute',
+          top: -4,
+          left: -4,
+          right: -4,
+          bottom: -4,
+          borderWidth: 3,
+          borderColor: '#4ee6e6',
+          borderRadius: 8,
+          opacity: pulseOpacity,
+          zIndex: 999,
+        }} />
+      </View>
+    );
+  };
+
   return (
-    <View style={[theme.styles.archiveContainer, { paddingTop: 50 }]}>
+    <View style={[homeStyles.archiveContainer, { paddingTop: 20 }]}>
       <StatusBar
         barStyle={
           theme.themeMode === "dark" ? "light-content" : "dark-content"
@@ -719,24 +1374,24 @@ const ArchiveInterface: React.FC = () => {
       />
 
       {/* Atmospheric Overlay - Enhanced to match login screen */}
-      <View style={[theme.styles.atmosphericOverlay, { opacity: 0.15 }]} />
+      <View style={[homeStyles.atmosphericOverlay, { opacity: 0.15 }]} />
 
-      <View style={theme.styles.archivepassages}>
+      <View style={homeStyles.archivepassages}>
         {/* Archive Header - Updated to match login screen styling */}
-        <View style={theme.styles.archiveHeader}>
+        <View style={homeStyles.archiveHeader}>
           <LinearGradient
             colors={[
               "rgba(10, 11, 15, 0.9)",
               "rgba(30, 41, 59, 0.8)",
               "rgba(10, 11, 15, 0.9)",
             ]}
-            style={theme.styles.archiveHeaderGradient}
+            style={homeStyles.archiveHeaderGradient}
           >
-            <BlurView intensity={15} style={theme.styles.archiveHeaderpassages}>
-              <View style={theme.styles.archiveHeaderLeft}>
+            <BlurView intensity={15} style={homeStyles.archiveHeaderpassages}>
+              <View style={homeStyles.archiveHeaderLeft}>
                 <LinearGradient
                   colors={["#4ee6e6", "#06b6d4", "#0891b2"]}
-                  style={theme.styles.archiveHeaderIcon}
+                  style={homeStyles.archiveHeaderIcon}
                 >
                   <Image 
                     source={archiveHeaderIcon}
@@ -746,13 +1401,51 @@ const ArchiveInterface: React.FC = () => {
                     }}
                     resizeMode="contain"
                   />
-                  <View style={theme.styles.archiveHeaderIconOverlay}>
+                  <View style={homeStyles.archiveHeaderIconOverlay}>
                     <Icon name="zap" size={12} color="#ffe066" />
                   </View>
                 </LinearGradient>
-                <View style={theme.styles.archiveHeaderTextContainer}>
+                
+                {/* Debug Button - Remove in production */}
+                <TouchableOpacity
+                  onPress={debugDataFlow}
+                  style={{
+                    position: 'absolute',
+                    top: -10,
+                    right: -10,
+                    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                    borderRadius: 12,
+                    width: 24,
+                    height: 24,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000,
+                  }}
+                >
+                  <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>D</Text>
+                </TouchableOpacity>
+                
+                {/* Tutorial Button */}
+                <TouchableOpacity
+                  onPress={startTutorial}
+                  style={{
+                    position: 'absolute',
+                    top: -10,
+                    right: 30,
+                    backgroundColor: 'rgba(78, 230, 230, 0.8)',
+                    borderRadius: 12,
+                    width: 24,
+                    height: 24,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000,
+                  }}
+                >
+                  <Text style={{ color: '#0a0b0f', fontSize: 10, fontWeight: 'bold' }}>?</Text>
+                </TouchableOpacity>
+                <View style={homeStyles.archiveHeaderTextContainer}>
                   <Text style={{
-                    ...theme.styles.archiveHeaderTitle,
+                    ...homeStyles.archiveHeaderTitle,
                     color: '#4ee6e6',
                     fontSize: 32,
                     fontWeight: 'bold',
@@ -764,7 +1457,7 @@ const ArchiveInterface: React.FC = () => {
                     The Archive
                   </Text>
                   <Text style={{
-                    ...theme.styles.archiveHeaderSubtitle,
+                    ...homeStyles.archiveHeaderSubtitle,
                     color: '#d4af37',
                     fontSize: 16,
                     fontStyle: 'italic',
@@ -772,10 +1465,77 @@ const ArchiveInterface: React.FC = () => {
                   }}>
                     Keeper of Memory • Curator of Hidden Knowledge
                   </Text>
-                  <View style={theme.styles.archiveStatusIndicator}>
-                    <View style={[theme.styles.archiveStatusDot, { backgroundColor: '#4ee6e6' }]} />
+                  
+                  {/* Tutorial Button - More prominent */}
+                  {!hasSeenTutorial ? (
+                    <View style={{
+                      alignItems: 'center',
+                      marginTop: 8,
+                    }}>
+                      <Text style={{
+                        color: '#ffe066',
+                        fontSize: 12,
+                        fontStyle: 'italic',
+                        marginBottom: 8,
+                        textAlign: 'center',
+                        textShadowColor: 'rgba(255, 224, 102, 0.3)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 2,
+                      }}>
+                        New to The Archive? Start here!
+                      </Text>
+                      <TouchableOpacity
+                        onPress={startTutorial}
+                        style={{
+                          backgroundColor: 'rgba(78, 230, 230, 0.2)',
+                          borderWidth: 1,
+                          borderColor: '#4ee6e6',
+                          borderRadius: 20,
+                          paddingVertical: 8,
+                          paddingHorizontal: 16,
+                          alignSelf: 'center',
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={{
+                          color: '#4ee6e6',
+                          fontSize: 14,
+                          fontWeight: '600',
+                          textAlign: 'center',
+                        }}>
+                          🎮 Start Tutorial
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={startTutorial}
+                      style={{
+                        backgroundColor: 'rgba(212, 175, 55, 0.2)',
+                        borderWidth: 1,
+                        borderColor: '#d4af37',
+                        borderRadius: 20,
+                        paddingVertical: 6,
+                        paddingHorizontal: 12,
+                        marginTop: 8,
+                        alignSelf: 'center',
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={{
+                        color: '#d4af37',
+                        fontSize: 12,
+                        fontWeight: '500',
+                        textAlign: 'center',
+                      }}>
+                        📚 Tutorial
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <View style={homeStyles.archiveStatusIndicator}>
+                    <View style={[homeStyles.archiveStatusDot, { backgroundColor: '#4ee6e6' }]} />
                     <Text style={{
-                      ...theme.styles.archiveStatusText,
+                      ...homeStyles.archiveStatusText,
                       color: '#4ee6e6',
                       fontSize: 12,
                       fontStyle: 'italic',
@@ -791,20 +1551,13 @@ const ArchiveInterface: React.FC = () => {
         </View>
 
         {/* Tab Navigation - Updated styling */}
-        <View style={theme.styles.archiveTabContainer}>
-          <LinearGradient
-            colors={[
-              "rgba(10, 11, 15, 0.8)",
-              "rgba(30, 41, 59, 0.9)",
-              "rgba(10, 11, 15, 0.8)",
-            ]}
-            style={theme.styles.archiveTabGradient}
-          >
-            <BlurView intensity={20} style={theme.styles.archiveTabpassages}>
+        <View style={homeStyles.archiveTabContainer}>
+
+            <BlurView intensity={20} style={homeStyles.archiveTabpassages}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={theme.styles.archiveTabScrollpassages}
+                contentContainerStyle={homeStyles.archiveTabScrollpassages}
               >
                 <TabButton
                   title="Entrance Hall"
@@ -840,27 +1593,27 @@ const ArchiveInterface: React.FC = () => {
 
               </ScrollView>
             </BlurView>
-          </LinearGradient>
+       
         </View>
 
         {/* Tab passages */}
         <ScrollView
-          style={theme.styles.archiveTabpassagesContainer}
+          style={homeStyles.archiveTabpassagesContainer}
           showsVerticalScrollIndicator={false}
         >
           {/* Entrance Hall Tab */}
           {ui.activeTab === "entrance" && (
-            <View style={theme.styles.tabpassagesArea}>
+            <View style={homeStyles.tabpassagesArea}>
               {/* Avatar Showcase Section - Updated styling */}
-              <View style={theme.styles.avatarShowcaseSection}>
+              <View style={homeStyles.avatarShowcaseHeader}>
                 <LinearGradient
                   colors={[
                     "rgba(10, 11, 15, 0.95)",
                     "rgba(30, 41, 59, 0.8)",
                     "rgba(10, 11, 15, 0.95)",
                   ]}
-                  style={[theme.styles.avatarShowcaseGradient, {
-                    borderColor: '#d4af37',
+                  style={[homeStyles.archiveHeaderGradient, {
+                    borderColor: '#9e8532ff',
                     borderWidth: 2,
                     shadowColor: '#d4af37',
                     shadowOffset: { width: 2, height: 6 },
@@ -869,30 +1622,16 @@ const ArchiveInterface: React.FC = () => {
                     elevation: 12,
                   }]}
                 >
-                  {/* Header - Updated to match login screen */}
+                  {/* Header  */}
 
 
                   {/* Character Info Bar - Updated styling */}
-                  <View style={theme.styles.characterInfoBar}>
-                    <View style={theme.styles.characterDetails}>
-                      <Text style={{
-                        ...theme.styles.characterRarity,
-                        color: '#4ee6e6',
-                        fontSize: 18,
-                        fontWeight: 'bold',
-                        textShadowColor: 'rgba(78, 230, 230, 0.3)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 2,
-                      }}>
+                  <View style={homeStyles.characterInfoBar}>
+                    <View style={homeStyles.characterDetails}>
+                      <Text style={homeStyles.characterName}>
                         Memory Archivist
                       </Text>
-                      <Text style={{
-                        ...theme.styles.characterClass,
-                        color: '#d4af37',
-                        fontSize: 13,
-                        fontStyle: 'italic',
-                        fontWeight: '600',
-                      }}>
+                      <Text style={homeStyles.characterClass}>
                         Keeper of Hidden Knowledge
                       </Text>
                     </View>
@@ -904,17 +1643,12 @@ const ArchiveInterface: React.FC = () => {
                       flex: 1,
                       marginLeft: 16
                     }}>
-                      <Text style={{
-                        ...theme.styles.characterName,
-                        textAlign: 'right',
-                        fontSize: 16,
-                        fontWeight: 'bold',
-                        color: '#ffe066',
-                        textShadowColor: 'rgba(255, 224, 102, 0.5)',
-                        textShadowOffset: { width: 0, height: 2 },
-                        textShadowRadius: 4,
-                      }}>
-                        {character.getCharacterName() || "Unnamed Character"}
+                      <Text style={homeStyles.foundationsTitle}>
+                        {(() => {
+                          // Extract character name from the proper backend structure using the helper
+                          const { profile: userProfile, backendCharacter } = selectProfileAndCharacter(wellness.homeData);
+                          return backendCharacter?.name || userProfile?.username || userProfile?.email || character.getCharacterName() || "Unnamed Character";
+                        })()}
                       </Text>
                     </View>
 
@@ -922,46 +1656,52 @@ const ArchiveInterface: React.FC = () => {
 
                   </View>
 
-                  {/* Essence Resonance Indicator - Moved above character preview */}
-                  <View style={{
-                    marginTop: 12,
-                    marginBottom: 8,
-                    alignSelf: 'center'
-                  }}>
-                    <LinearGradient
-                      colors={["rgba(78, 230, 230, 0.8)", "rgba(6, 182, 212, 0.8)"]}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        paddingVertical: 6,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#4ee6e6',
-                        shadowColor: '#4ee6e6',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.3,
-                        shadowRadius: 4,
-                        elevation: 4,
-                      }}
-                    >
-                      <Icon name="zap" size={14} color="#0a0b0f" />
-                      <Text style={{
-                        color: '#0a0b0f',
-                        fontSize: 12,
-                        fontWeight: '600',
-                        marginLeft: 6,
-                      }}>
-                        {character.backendCharacter?.experience_progress_percentage}% Experience to Next Level
-                      </Text>
-                    </LinearGradient>
+                  {/* XP Progress */}
+                  <View style={{ alignItems: 'center' }}>
+                    <View style={homeStyles.experienceProgressContainer}>
+                      <LinearGradient
+                        colors={["rgba(78, 230, 230, 0.8)", "rgba(6, 182, 212, 0.8)"]}
+                        style={homeStyles.experienceProgressGradient}
+                      >
+                        <Icon name="zap" size={14} color="#0a0b0f" />
+                        <Text style={homeStyles.experienceProgressText}>
+                          {(() => {
+                            // Extract experience data from the proper backend structure using the helper
+                            const homeData = wellness.homeData;
+                            const { profile: userProfile, backendCharacter } = selectProfileAndCharacter(homeData);
+
+                            const currentExperience = backendCharacter?.experience || 0;
+                            const experienceNeeded = backendCharacter?.experience_needed_for_next_level || backendCharacter?.experience_needed || 1000;
+                            const progressPercentage = backendCharacter?.experience_progress_percentage || 0;
+                            
+                            console.log('🔍 Experience Progress Debug:', {
+                              hasHomeData: !!homeData,
+                              hasUserProfile: !!userProfile,
+                              hasBackendCharacter: !!backendCharacter,
+                              currentExperience,
+                              experienceNeeded,
+                              progressPercentage,
+                              characterKeys: backendCharacter ? Object.keys(backendCharacter) : []
+                            });
+                            
+                            if (progressPercentage !== undefined) {
+                              return `${Math.round(progressPercentage)}% (${currentExperience}/${experienceNeeded} XP)`;
+                            } else if (currentExperience !== undefined && experienceNeeded !== undefined) {
+                              const calculatedPercentage = Math.round((currentExperience / experienceNeeded) * 100);
+                              return `${calculatedPercentage}% (${currentExperience}/${experienceNeeded} XP)`;
+                            } else {
+                              return 'Experience data loading...';
+                            }
+                          })()}
+                        </Text>
+                      </LinearGradient>
+                    </View>
                   </View>
 
                   {/* Main Character Display with Gear - Updated for Backend Integration */}
-                  <View style={theme.styles.characterDisplaySection}>
+                  <View style={homeStyles.characterDisplaySection}>
                     {/* Left Gear Column */}
-                    <View style={theme.styles.gearColumn}>
+                    <View style={homeStyles.gearColumnLeft}>
                       {[
                         {
                           type: "focus" as keyof EquippedItems,
@@ -970,18 +1710,17 @@ const ArchiveInterface: React.FC = () => {
                           slot: "weapon" as const,
                         },
                         {
-                          type: "comfort" as keyof EquippedItems,
-                          label: "Comfort Layer",
-                          icon: "📜",
-                          slot: "armor" as const,
+                          type: "shield" as keyof EquippedItems,
+                          label: "Mind Shield",
+                          icon: "🛡️",
+                          slot: "helmet" as const,
                         },
                       ].map((slot, i) => (
                         <TouchableOpacity
                           key={i}
-                          style={theme.styles.gearSlot}
+                          style={homeStyles.gearSlot}
                           onPress={async () => {
                             try {
-                              // Refresh gear data before opening modal
                               await equipment.loadBackendGear();
                               setShowEquipmentModal(true);
                             } catch (error) {
@@ -993,25 +1732,17 @@ const ArchiveInterface: React.FC = () => {
                         >
                           <LinearGradient
                             colors={[
-                              "rgba(10, 11, 15, 0.9)",
-                              "rgba(30, 41, 59, 0.7)",
+                              homeTheme.gearSlotGradientStart,
+                              homeTheme.gearSlotGradientEnd,
                             ]}
-                            style={[theme.styles.gearSlotGradient, {
-                              borderColor: '#d4af37',
-                              borderWidth: 1,
-                              shadowColor: '#d4af37',
-                              shadowOffset: { width: 0, height: 2 },
-                              shadowOpacity: 0.2,
-                              shadowRadius: 4,
-                              elevation: 4,
-                            }]}
+                            style={homeStyles.gearSlotGradient}
                           >
                             {(() => {
                               const equippedGear = getEquippedGearForSlot(slot.slot);
                               if (equippedGear) {
                                 const gearImage = getGearSlotImage(equippedGear);
                                 return (
-                                  <View style={theme.styles.equippedGearSlot}>
+                                  <View style={homeStyles.equippedGearSlot}>
                                     <Image 
                                       source={gearImage}
                                       style={{
@@ -1021,26 +1752,21 @@ const ArchiveInterface: React.FC = () => {
                                       }}
                                       resizeMode="contain"
                                     />
-                                    <Text style={theme.styles.gearSlotLabel}>
+                                    <Text style={homeStyles.gearSlotLabel}>
                                       {equippedGear.gear_type.name}
                                     </Text>
                                   </View>
                                 );
                               } else {
                                 return (
-                                  <View style={theme.styles.emptyGearSlot}>
-                                    <Text style={theme.styles.gearSlotIcon}>
+                                  <View style={homeStyles.emptyGearSlot}>
+                                    <Text style={homeStyles.gearSlotIcon}>
                                       {slot.icon}
                                     </Text>
-                                    <Text style={theme.styles.gearSlotLabel}>
+                                    <Text style={homeStyles.gearSlotLabel}>
                                       {slot.label}
                                     </Text>
-                                    <Text style={{
-                                      color: '#6B7280',
-                                      fontSize: 6,
-                                      textAlign: 'center',
-                                      marginTop: 2
-                                    }}>
+                                    <Text style={homeStyles.gearSlotLockedText}>
                                       Locked
                                     </Text>
                                   </View>
@@ -1056,13 +1782,13 @@ const ArchiveInterface: React.FC = () => {
                     <CharacterDisplay />
 
                     {/* Right Gear Column */}
-                    <View style={theme.styles.gearColumn}>
+                    <View style={homeStyles.gearColumnRight}>
                       {[
                         {
-                          type: "shield" as keyof EquippedItems,
-                          label: "Mind Shield",
-                          icon: "🛡️",
-                          slot: "helmet" as const,
+                          type: "comfort" as keyof EquippedItems,
+                          label: "Comfort Layer",
+                          icon: "📜",
+                          slot: "armor" as const,
                         },
                         {
                           type: "ground" as keyof EquippedItems,
@@ -1073,10 +1799,9 @@ const ArchiveInterface: React.FC = () => {
                       ].map((slot, i) => (
                         <TouchableOpacity
                           key={i}
-                          style={theme.styles.gearSlot}
+                          style={homeStyles.gearSlot}
                           onPress={async () => {
                             try {
-                              // Refresh gear data before opening modal
                               await equipment.loadBackendGear();
                               setShowEquipmentModal(true);
                             } catch (error) {
@@ -1088,25 +1813,17 @@ const ArchiveInterface: React.FC = () => {
                         >
                           <LinearGradient
                             colors={[
-                              "rgba(10, 11, 15, 0.9)",
-                              "rgba(30, 41, 59, 0.7)",
+                              homeTheme.gearSlotGradientStart,
+                              homeTheme.gearSlotGradientEnd,
                             ]}
-                            style={[theme.styles.gearSlotGradient, {
-                              borderColor: '#d4af37',
-                              borderWidth: 1,
-                              shadowColor: '#d4af37',
-                              shadowOffset: { width: 0, height: 2 },
-                              shadowOpacity: 0.2,
-                              shadowRadius: 4,
-                              elevation: 4,
-                            }]}
+                            style={homeStyles.gearSlotGradient}
                           >
                             {(() => {
                               const equippedGear = getEquippedGearForSlot(slot.slot);
                               if (equippedGear) {
                                 const gearImage = getGearSlotImage(equippedGear);
                                 return (
-                                  <View style={theme.styles.equippedGearSlot}>
+                                  <View style={homeStyles.equippedGearSlot}>
                                     <Image 
                                       source={gearImage}
                                       style={{
@@ -1116,26 +1833,21 @@ const ArchiveInterface: React.FC = () => {
                                       }}
                                       resizeMode="contain"
                                     />
-                                    <Text style={theme.styles.gearSlotLabel}>
+                                    <Text style={homeStyles.gearSlotLabel}>
                                       {equippedGear.gear_type.name}
                                     </Text>
                                   </View>
                                 );
                               } else {
                                 return (
-                                  <View style={theme.styles.emptyGearSlot}>
-                                    <Text style={theme.styles.gearSlotIcon}>
+                                  <View style={homeStyles.emptyGearSlot}>
+                                    <Text style={homeStyles.gearSlotIcon}>
                                       {slot.icon}
                                     </Text>
-                                    <Text style={theme.styles.gearSlotLabel}>
+                                    <Text style={homeStyles.gearSlotLabel}>
                                       {slot.label}
                                     </Text>
-                                    <Text style={{
-                                      color: '#6B7280',
-                                      fontSize: 6,
-                                      textAlign: 'center',
-                                      marginTop: 2
-                                    }}>
+                                    <Text style={homeStyles.gearSlotLockedText}>
                                       Locked
                                     </Text>
                                   </View>
@@ -1149,126 +1861,93 @@ const ArchiveInterface: React.FC = () => {
                   </View>
 
                   {/* Research Condition Info Could maybe be removed as this is a differernt page */}
-                  {ui.researchCondition === "personality" ? null : null}
+                  {ui.researchCondition === "survey" ? null : null}
                 </LinearGradient>
               </View>
 
               {/* Archive Foundations Section - Updated to use home_data metrics */}
-              <View style={theme.styles.foundationsSection}>
+              <View style={homeStyles.foundationsSection}>
                 <LinearGradient
                   colors={[
-                    "rgba(10, 11, 15, 0.95)",
-                    "rgba(30, 41, 59, 0.8)",
-                    "rgba(10, 11, 15, 0.95)",
+                    homeTheme.foundationCardGradientStart,
+                    homeTheme.foundationCardGradientMiddle,
+                    homeTheme.foundationCardGradientEnd,
                   ]}
-                  style={[theme.styles.foundationsSectionGradient, {
-                    borderColor: '#d4af37',
-                    borderWidth: 2,
-                    shadowColor: '#d4af37',
-                    shadowOffset: { width: 2, height: 6 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 12,
-                    elevation: 12,
-                  }]}
+                  style={homeStyles.foundationsSectionGradient}
                 >
-                  <View style={theme.styles.foundationsHeader}>
+                  <View style={homeStyles.foundationsHeader}>
                     <Icon name="anchor" size={20} color="#4ee6e6" />
-                    <Text style={{
-                      ...theme.styles.foundationsTitle,
-                      color: '#4ee6e6',
-                      fontSize: 20,
-                      fontWeight: 'bold',
-                      letterSpacing: 2,
-                      textShadowColor: 'rgba(78, 230, 230, 0.5)',
-                      textShadowOffset: { width: 0, height: 2 },
-                      textShadowRadius: 4,
-                    }}>
+                    <Text style={homeStyles.foundationsTitle}>
                       Archive Foundations
                     </Text>
                     <Icon name="anchor" size={20} color="#4ee6e6" />
                   </View>
-                  <Text style={{
-                    ...theme.styles.foundationsSubtitle,
-                    color: '#d4af37',
-                    fontSize: 14,
-                    fontStyle: 'italic',
-                    textAlign: 'center',
-                    marginBottom: 16,
-                  }}>
+                  <Text style={homeStyles.foundationsSubtitle}>
                     The ethereal pillars that support your mental architecture
                   </Text>
 
-                  <View style={theme.styles.foundationsGrid}>
-                    {/* Use home_data wellness_stats if available, otherwise fall back to local archive foundations */}
-                    {(
-                      (wellness.homeData as any)?.character?.wellness_stats ||
-                      archive.archiveFoundations
-                    ).map((foundation: any, index: number) => {
+                  <View style={homeStyles.foundationsGrid}>
+                    {/* Use pre-calculated wellness stats */}
+                    {wellnessStatsForDisplay.map((foundation: any, index: number) => {
                       // Handle both wellness_stats format and archive foundations format
                       const isWellnessStats =
                         "label" in foundation && "value" in foundation;
 
                       if (isWellnessStats) {
-                        // Format from home_data endpoint
+                        // Format from backend wellness_stats - proper calculation
+                        const currentValue = foundation.value || 0;
+                        const maxValue = 20; // Assuming max wellness value is 20
+                        const currentLevel = Math.floor(currentValue / 5) + 1; // Levels 1-4 based on 0-20 scale
+                        const progressInCurrentLevel = currentValue % 5; // Progress within current level (0-4)
+                        const xpToNextLevel = currentValue >= maxValue ? 0 : 5 - progressInCurrentLevel;
+                        
                         return (
                           <TouchableOpacity
                             key={index}
-                            style={theme.styles.foundationCard}
+                            style={homeStyles.foundationCard}
                             onPress={() =>
                               Alert.alert(
-                                `${foundation.label} - Level ${
-                                  Math.floor(foundation.value / 5) + 1
-                                }`,
-                                `Your ${foundation.label.toLowerCase()} foundation\n\n🎯 Current Value: ${
-                                  foundation.value
-                                }/20`
+                                `${foundation.label} - Level ${currentLevel}`,
+                                `Your ${foundation.label.toLowerCase()} foundation\n\n🎯 Current Value: ${currentValue}/${maxValue}\n📈 Progress in Level ${currentLevel}: ${progressInCurrentLevel}/5\n⚡ XP needed for next level: ${xpToNextLevel}`
                               )
                             }
                             activeOpacity={0.8}
                           >
                             <LinearGradient
                               colors={[
-                                "rgba(10, 11, 15, 0.9)",
-                                "rgba(30, 41, 59, 0.7)",
-                                "rgba(10, 11, 15, 0.9)",
+                                homeTheme.foundationCardGradientStart,
+                                homeTheme.foundationCardGradientMiddle,
+                                homeTheme.foundationCardGradientEnd,
                               ]}
-                              style={[theme.styles.foundationCardGradient, {
-                                borderColor: '#d4af37',
-                                borderWidth: 1,
-                                shadowColor: '#d4af37',
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.2,
-                                shadowRadius: 4,
-                                elevation: 4,
-                              }]}
+                              style={homeStyles.foundationCardGradient}
                             >
                               <View
-                                style={theme.styles.foundationIconContainer}
+                                style={homeStyles.foundationIconContainer}
                               >
-                                <Text style={theme.styles.foundationIcon}>
+                                <Text style={homeStyles.foundationIcon}>
                                   {foundation.icon}
                                 </Text>
                               </View>
 
                               <View
-                                style={theme.styles.foundationValueContainer}
+                                style={homeStyles.foundationValueContainer}
                               >
-                                <Text style={theme.styles.foundationValue}>
-                                  {foundation.value}
-                                  <Text style={theme.styles.foundationMaxValue}>
-                                    /20
+                                <Text style={homeStyles.foundationValue}>
+                                  {currentValue}
+                                  <Text style={homeStyles.foundationMaxValue}>
+                                    /{maxValue}
                                   </Text>
                                 </Text>
-                                <Text style={theme.styles.foundationLevel}>
-                                  Level {Math.floor(foundation.value / 5) + 1}
+                                <Text style={homeStyles.foundationLevel}>
+                                  Level {currentLevel}
                                 </Text>
                               </View>
 
                               <View
-                                style={theme.styles.foundationProgressContainer}
+                                style={homeStyles.foundationProgressContainer}
                               >
                                 <View
-                                  style={theme.styles.foundationProgressBar}
+                                  style={homeStyles.foundationProgressBar}
                                 >
                                   <LinearGradient
                                     colors={[
@@ -1276,24 +1955,22 @@ const ArchiveInterface: React.FC = () => {
                                       foundation.color,
                                     ]}
                                     style={[
-                                      theme.styles.foundationProgressFill,
+                                      homeStyles.foundationProgressFill,
                                       {
-                                        width: `${
-                                          (foundation.value / 20) * 100
-                                        }%`,
+                                        width: `${Math.min((currentValue / maxValue) * 100, 100)}%`,
                                       },
                                     ]}
                                   />
                                 </View>
-                                <Text style={theme.styles.xpToNext}>
-                                  {5 - (foundation.value % 5)} XP to next unlock
+                                <Text style={homeStyles.xpToNext}>
+                                  {currentValue >= maxValue ? "Max Level!" : `${xpToNextLevel} XP to next level`}
                                 </Text>
                               </View>
 
-                              <Text style={theme.styles.foundationLabel}>
+                              <Text style={homeStyles.foundationLabel}>
                                 {foundation.label}
                               </Text>
-                              <Text style={theme.styles.foundationDescription}>
+                              <Text style={homeStyles.foundationDescription}>
                                 Your {foundation.label.toLowerCase()} foundation
                               </Text>
                             </LinearGradient>
@@ -1304,7 +1981,7 @@ const ArchiveInterface: React.FC = () => {
                         return (
                           <TouchableOpacity
                             key={index}
-                            style={theme.styles.foundationCard}
+                            style={homeStyles.foundationCard}
                             onPress={() =>
                               Alert.alert(
                                 `${foundation.label} - Level ${
@@ -1317,33 +1994,25 @@ const ArchiveInterface: React.FC = () => {
                           >
                             <LinearGradient
                               colors={[
-                                "rgba(10, 11, 15, 0.9)",
-                                "rgba(30, 41, 59, 0.7)",
-                                "rgba(10, 11, 15, 0.9)",
+                                homeTheme.foundationCardGradientStart,
+                                homeTheme.foundationCardGradientMiddle,
+                                homeTheme.foundationCardGradientEnd,
                               ]}
-                              style={[theme.styles.foundationCardGradient, {
-                                borderColor: '#d4af37',
-                                borderWidth: 1,
-                                shadowColor: '#d4af37',
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.2,
-                                shadowRadius: 4,
-                                elevation: 4,
-                              }]}
+                              style={homeStyles.foundationCardGradient}
                             >
                               <View
-                                style={theme.styles.foundationIconContainer}
+                                style={homeStyles.foundationIconContainer}
                               >
-                                <Text style={theme.styles.foundationIcon}>
+                                <Text style={homeStyles.foundationIcon}>
                                   {foundation.icon}
                                 </Text>
                                 {foundation.recentGain > 0 && (
-                                  <View style={theme.styles.recentGainBadge}>
+                                  <View style={homeStyles.recentGainBadge}>
                                     <LinearGradient
                                       colors={["#10B981", "#34D399"]}
-                                      style={theme.styles.recentGainGradient}
+                                      style={homeStyles.recentGainGradient}
                                     >
-                                      <Text style={theme.styles.recentGainText}>
+                                      <Text style={homeStyles.recentGainText}>
                                         +{foundation.recentGain}
                                       </Text>
                                     </LinearGradient>
@@ -1352,29 +2021,29 @@ const ArchiveInterface: React.FC = () => {
                               </View>
 
                               <View
-                                style={theme.styles.foundationValueContainer}
+                                style={homeStyles.foundationValueContainer}
                               >
-                                <Text style={theme.styles.foundationValue}>
+                                <Text style={homeStyles.foundationValue}>
                                   {foundation.value}
-                                  <Text style={theme.styles.foundationMaxValue}>
+                                  <Text style={homeStyles.foundationMaxValue}>
                                     /{foundation.maxValue}
                                   </Text>
                                 </Text>
-                                <Text style={theme.styles.foundationLevel}>
+                                <Text style={homeStyles.foundationLevel}>
                                   Level {Math.floor(foundation.value / 5) + 1}
                                 </Text>
                               </View>
 
                               <View
-                                style={theme.styles.foundationProgressContainer}
+                                style={homeStyles.foundationProgressContainer}
                               >
                                 <View
-                                  style={theme.styles.foundationProgressBar}
+                                  style={homeStyles.foundationProgressBar}
                                 >
                                   <LinearGradient
                                     colors={foundation.colors as any}
                                     style={[
-                                      theme.styles.foundationProgressFill,
+                                      homeStyles.foundationProgressFill,
                                       {
                                         width: `${
                                           (foundation.value /
@@ -1385,21 +2054,21 @@ const ArchiveInterface: React.FC = () => {
                                     ]}
                                   />
                                 </View>
-                                <Text style={theme.styles.xpToNext}>
+                                <Text style={homeStyles.xpToNext}>
                                   {5 - (foundation.value % 5)} XP to next unlock
                                 </Text>
                               </View>
 
-                              <Text style={theme.styles.foundationLabel}>
+                              <Text style={homeStyles.foundationLabel}>
                                 {foundation.label}
                               </Text>
-                              <Text style={theme.styles.foundationDescription}>
+                              <Text style={homeStyles.foundationDescription}>
                                 {foundation.description}
                               </Text>
 
-                              <View style={theme.styles.nextUnlockContainer}>
+                              <View style={homeStyles.nextUnlockContainer}>
                                 <Icon name="lock" size={10} color="#FCD34D" />
-                                <Text style={theme.styles.nextUnlockText}>
+                                <Text style={homeStyles.nextUnlockText}>
                                   {foundation.nextUnlock}
                                 </Text>
                               </View>
@@ -1414,113 +2083,23 @@ const ArchiveInterface: React.FC = () => {
             </View>
           )}
 
-          {/* Ancient Storys Tab - Show Story list directly */}
+          {/* Ancient Stories Tab - Show Story list directly */}
           {ui.activeTab === "tomes" && (
-            <View style={theme.styles.tabpassagesArea}>
-              {/* Refresh Progress Button */}
-              <View style={{
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                marginBottom: 16,
-                flexDirection: 'row',
-                gap: 8
-              }}>
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: 'rgba(78, 230, 230, 0.1)',
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    borderWidth: 1,
-                    borderColor: 'rgba(78, 230, 230, 0.4)',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    shadowColor: 'rgba(78, 230, 230, 0.2)',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 2,
-                    elevation: 2,
-                    justifyContent: 'center',
-                    flex: 1
-                  }}
-                  onPress={() => {
-                    restartAllStories();
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Icon name="refresh-cw" size={16} color="rgba(78, 230, 230, 0.7)" style={{ marginRight: 8 }} />
-                  <Text style={{
-                    color: 'rgba(78, 230, 230, 0.7)',
-                    fontSize: 14,
-                    fontWeight: '500'
-                  }}>
-                    Restart All Stories
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: 'rgba(212, 175, 55, 0.2)',
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    borderWidth: 2,
-                    borderColor: '#d4af37',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flex: 1,
-                    shadowColor: '#d4af37',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 4,
-                    elevation: 4,
-                  }}
-                  onPress={async () => {
-                    try {
-                      const debugInfo = await apiService.debugStoryFiltering();
-                      console.log('=== STORY FILTERING DEBUG INFO ===');
-                      console.log('Total stories:', debugInfo.totalStories);
-                      console.log('Character stories:', debugInfo.characterStories);
-                      console.log('Personality stories:', debugInfo.personalityStories);
-                      console.log('User trait:', debugInfo.userTrait);
-                      console.log('Character story titles:', debugInfo.characterStoryTitles);
-                      console.log('Personality story titles:', debugInfo.personalityStoryTitles);
-                      console.log('All story details:', debugInfo.allStoryDetails);
-                      Alert.alert(
-                        'Story Filtering Debug',
-                        `Total: ${debugInfo.totalStories}\nCharacter: ${debugInfo.characterStories}\nPersonality: ${debugInfo.personalityStories}\nUser Trait: ${debugInfo.userTrait || 'None'}\n\nCheck console for details.`
-                      );
-                    } catch (error) {
-                      console.error('Debug failed:', error);
-                      Alert.alert('Debug Failed', 'Check console for error details.');
-                    }
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Icon name="help-circle" size={16} color="#d4af37" style={{ marginRight: 8 }} />
-                  <Text style={{
-                    color: '#d4af37',
-                    fontSize: 14,
-                    fontWeight: '600'
-                  }}>
-                    Debug Filtering
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            <View style={homeStyles.tabpassagesArea}>
+       
 
               {isLoadingStories ? (
-                <View style={theme.styles.centeredMessageContainer}>
+                <View style={storyStyles.centeredMessageContainer}>
                   <Icon
                     name="loader"
                     size={40}
                     color="#A855F7"
                     style={{ marginBottom: 16 }}
                   />
-                  <Text style={theme.styles.centeredMessageTitle}>
-                    Loading Storys...
-                  </Text>
-                  <Text style={theme.styles.centeredMessageText}>
+                                  <Text style={storyStyles.centeredMessageTitle}>
+                  Loading Stories...
+                </Text>
+                  <Text style={storyStyles.centeredMessageText}>
                     Fetching ancient wisdom from the Archive...
                   </Text>
                 </View>
@@ -1528,7 +2107,7 @@ const ArchiveInterface: React.FC = () => {
                 stories.map((Story, index) => (
                                         <TouchableOpacity
                         key={index}
-                        style={theme.styles.chronicleCard}
+                        style={storyStyles.chronicleCard}
                         onPress={() => {
                           handleOpenStory(Story);
                         }}
@@ -1542,7 +2121,7 @@ const ArchiveInterface: React.FC = () => {
                           "rgba(10, 11, 15, 0.95)",
                         ] as const
                       }
-                      style={[theme.styles.chronicleGradient, {
+                      style={[storyStyles.chronicleGradient, {
                         borderColor: '#d4af37',
                         borderWidth: 2,
                         shadowColor: '#d4af37',
@@ -1552,21 +2131,21 @@ const ArchiveInterface: React.FC = () => {
                         elevation: 12,
                       }]}
                     >
-                      <View style={theme.styles.chronicleTopBorder} />
+                      <View style={storyStyles.chronicleTopBorder} />
 
-                      <View style={theme.styles.chronicleHeader}>
-                        <View style={theme.styles.chronicleInfo}>
-                          <Text style={theme.styles.chronicleTitle}>
+                      <View style={storyStyles.chronicleHeader}>
+                        <View style={storyStyles.chronicleInfo}>
+                          <Text style={storyStyles.chronicleTitle}>
                             {Story.title || "Untitled Story"}
                           </Text>
-                          <View style={theme.styles.chronicleBadges}>
-                            <View style={theme.styles.categoryBadge}>
-                              <Text style={theme.styles.categoryBadgeText}>
+                          <View style={storyStyles.chronicleBadges}>
+                            <View style={storyStyles.categoryBadge}>
+                              <Text style={storyStyles.categoryBadgeText}>
                                 {Story.category || "Unknown"}
                               </Text>
                             </View>
-                            <View style={theme.styles.difficultyBadge}>
-                              <Text style={theme.styles.difficultyBadgeText}>
+                            <View style={storyStyles.difficultyBadge}>
+                              <Text style={storyStyles.difficultyBadgeText}>
                                 {Story.difficulty || "Unknown"}
                               </Text>
                             </View>
@@ -1574,55 +2153,55 @@ const ArchiveInterface: React.FC = () => {
                         </View>
                       </View>
 
-                      <View style={theme.styles.chronicleDescriptionContainer}>
-                        <Text style={theme.styles.chronicleDescription}>
+                      <View style={storyStyles.chronicleDescriptionContainer}>
+                        <Text style={storyStyles.chronicleDescription}>
                           {Story.description || "No description available"}
                         </Text>
-                        <Text style={theme.styles.chronicleAtmosphere}>
+                        <Text style={storyStyles.chronicleAtmosphere}>
                           ✦ {Story.atmosphere || "Mysterious atmosphere"} ✦
                         </Text>
                       </View>
 
-                      <View style={theme.styles.explorationContainer}>
-                        <View style={theme.styles.explorationHeader}>
+                      <View style={storyStyles.explorationContainer}>
+                        <View style={storyStyles.explorationHeader}>
                           <Icon name="compass" size={16} color="#06B6D4" />
-                          <Text style={theme.styles.explorationLabel}>
+                          <Text style={storyStyles.explorationLabel}>
                             Exploration Progress
                           </Text>
-                          <Text style={theme.styles.explorationValue}>
+                          <Text style={storyStyles.explorationValue}>
                             {Story.exploration || 0}%
                           </Text>
                         </View>
-                        <View style={theme.styles.explorationBar}>
+                        <View style={storyStyles.explorationBar}>
                           <LinearGradient
                             colors={["#06B6D4", "#A855F7", "#4F46E5"] as const}
                             style={[
-                              theme.styles.explorationFill,
+                              storyStyles.explorationFill,
                               { width: `${Story.exploration || 0}%` },
                             ]}
                           />
                         </View>
                       </View>
 
-                      <View style={theme.styles.chronicleStats}>
-                        <View style={theme.styles.chronicleStat}>
+                      <View style={storyStyles.chronicleStats}>
+                        <View style={storyStyles.chronicleStat}>
                           <Icon name="key" size={16} color="#FCD34D" />
-                          <Text style={theme.styles.chronicleStatText}>
+                          <Text style={storyStyles.chronicleStatText}>
                             {Story.revelations || 0} revelations
                           </Text>
                         </View>
-                        <View style={theme.styles.chronicleStat}>
+                        <View style={storyStyles.chronicleStat}>
                           <Icon name="clock" size={16} color="#FB923C" />
-                          <Text style={theme.styles.chronicleStatText}>
+                          <Text style={storyStyles.chronicleStatText}>
                             {Story.timeToComplete || "Unknown time"}
                           </Text>
                         </View>
                       </View>
 
-                      <View style={theme.styles.chronicleButton}>
+                      <View style={storyStyles.chronicleButton}>
                         <LinearGradient
                           colors={["rgba(78, 230, 230, 0.4)", "rgba(6, 182, 212, 0.4)", "rgba(78, 230, 230, 0.4)"] as const}
-                          style={[theme.styles.chronicleButtonGradient, {
+                          style={[storyStyles.chronicleButtonGradient, {
                             shadowColor: 'rgba(78, 230, 230, 0.2)',
                             shadowOffset: { width: 0, height: 2 },
                             shadowOpacity: 0.2,
@@ -1632,7 +2211,7 @@ const ArchiveInterface: React.FC = () => {
                         >
                           <Icon name="book-open" size={18} color="rgba(78, 230, 230, 0.9)" />
                           <Text style={{
-                            ...theme.styles.chronicleButtonText,
+                            ...homeStyles.chronicleButtonText,
                             color: 'rgba(78, 230, 230, 0.9)',
                             fontWeight: '600',
                           }}>
@@ -1648,17 +2227,17 @@ const ArchiveInterface: React.FC = () => {
                   </TouchableOpacity>
                 ))
               ) : (
-                <View style={theme.styles.centeredMessageContainer}>
+                <View style={homeStyles.centeredMessageContainer}>
                   <Icon
                     name="book"
                     size={40}
                     color="#A855F7"
                     style={{ marginBottom: 16 }}
                   />
-                  <Text style={theme.styles.centeredMessageTitle}>
-                    No Storys Available
+                  <Text style={homeStyles.centeredMessageTitle}>
+                    No Stories Available
                   </Text>
-                  <Text style={theme.styles.centeredMessageText}>
+                  <Text style={homeStyles.centeredMessageText}>
                     The Archive is currently empty. Check back later for new
                     wisdom to discover.
                   </Text>
@@ -1669,10 +2248,9 @@ const ArchiveInterface: React.FC = () => {
 
           {/* Codex Tab */}
           {ui.activeTab === "codex" && (
-            <View style={theme.styles.tabpassagesArea}>
+            <View style={homeStyles.tabpassagesArea}>
               {/* Journal Prompts Test Section */}
-              <View style={[theme.styles.centeredMessageContainer, {
-                backgroundColor: 'rgba(10, 11, 15, 0.95)',
+              <View style={[homeStyles.centeredMessageContainer, {
                 borderColor: '#d4af37',
                 borderWidth: 2,
                 shadowColor: '#d4af37',
@@ -1680,9 +2258,18 @@ const ArchiveInterface: React.FC = () => {
                 shadowOpacity: 0.4,
                 shadowRadius: 12,
                 elevation: 12,
+                overflow: 'hidden',
               }]}>
+                <LinearGradient
+                  colors={[
+                    homeTheme.foundationCardGradientStart,
+                    homeTheme.foundationCardGradientMiddle,
+                    homeTheme.foundationCardGradientEnd,
+                  ]}
+                  style={StyleSheet.absoluteFillObject}
+                />
 
-                <Text style={[theme.styles.centeredMessageTitle, { 
+                <Text style={[homeStyles.centeredMessageTitle, { 
                   fontSize: 18, 
                   marginBottom: 12,
                   color: 'rgba(78, 230, 230, 0.8)',
@@ -1777,8 +2364,7 @@ const ArchiveInterface: React.FC = () => {
                 </View>
               </View>
               
-              <View style={[theme.styles.centeredMessageContainer, {
-                backgroundColor: 'rgba(10, 11, 15, 0.95)',
+              <View style={[homeStyles.centeredMessageContainer, {
                 borderColor: '#d4af37',
                 borderWidth: 2,
                 shadowColor: '#d4af37',
@@ -1786,23 +2372,34 @@ const ArchiveInterface: React.FC = () => {
                 shadowOpacity: 0.4,
                 shadowRadius: 12,
                 elevation: 12,
+                overflow: 'hidden',
               }]}>
-                <Icon
-                  name="edit-3"
-                  size={40}
-                  color="#4ee6e6"
-                  style={{ marginBottom: 16 }}
+                <LinearGradient
+                  colors={[
+                    homeTheme.foundationCardGradientStart,
+                    homeTheme.foundationCardGradientMiddle,
+                    homeTheme.foundationCardGradientEnd,
+                  ]}
+                  style={StyleSheet.absoluteFillObject}
                 />
-                <Text style={[theme.styles.centeredMessageTitle, {
-                  color: 'rgba(78, 230, 230, 0.8)',
-                  fontSize: 24,
-                  fontWeight: '600',
-                  letterSpacing: 2,
-                  textShadowColor: 'rgba(78, 230, 230, 0.3)',
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 2,
-                }]}>The Codex</Text>
-                <Text style={[theme.styles.centeredMessageText, {
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                  <Icon
+                    name="edit-3"
+                    size={40}
+                    color="#4ee6e6"
+                    style={{ marginRight: 12 }}
+                  />
+                  <Text style={[homeStyles.centeredMessageTitle, {
+                    color: 'rgba(78, 230, 230, 0.8)',
+                    fontSize: 24,
+                    fontWeight: '600',
+                    letterSpacing: 2,
+                    textShadowColor: 'rgba(78, 230, 230, 0.3)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 2,
+                  }]}>The Codex</Text>
+                </View>
+                <Text style={[homeStyles.centeredMessageText, {
                   color: '#d4af37',
                   textShadowColor: 'rgba(212, 175, 55, 0.3)',
                   textShadowOffset: { width: 0, height: 1 },
@@ -1845,10 +2442,10 @@ const ArchiveInterface: React.FC = () => {
 
           {/* Mind Defender Tab */}
           {ui.activeTab === "defender" && (
-            <View style={theme.styles.tabpassagesArea}>
+            <View style={homeStyles.tabpassagesArea}>
               {/* Main Game Section */}
               <View style={[
-                theme.styles.centeredMessageContainer,
+                homeStyles.centeredMessageContainer,
                 {
                   paddingHorizontal: 16,
                   paddingVertical: 16,
@@ -1866,7 +2463,7 @@ const ArchiveInterface: React.FC = () => {
                   maxWidth: '100%'
                 }
               ]}>
-                <Text style={[theme.styles.centeredMessageTitle, {
+                <Text style={[homeStyles.centeredMessageTitle, {
                   color: '#4ee6e6',
                   fontSize: 24,
                   fontWeight: 'bold',
@@ -1877,7 +2474,7 @@ const ArchiveInterface: React.FC = () => {
                 }]}>
                   ⚡ Mind Defender
                 </Text>
-                <Text style={[theme.styles.centeredMessageText, {
+                <Text style={[homeStyles.centeredMessageText, {
                   color: '#d4af37',
                   textShadowColor: 'rgba(212, 175, 55, 0.3)',
                   textShadowOffset: { width: 0, height: 1 },
@@ -1918,7 +2515,7 @@ const ArchiveInterface: React.FC = () => {
 
 
               {/* Performance Scenarios */}
-              <View style={[theme.styles.foundationsSection, {
+              <View style={[homeStyles.foundationsSection, {
                 backgroundColor: 'rgba(10, 11, 15, 0.95)',
                 borderColor: '#d4af37',
                 borderWidth: 2,
@@ -1928,12 +2525,12 @@ const ArchiveInterface: React.FC = () => {
                 shadowRadius: 12,
                 elevation: 12,
               }]}>
-                <View style={[theme.styles.foundationsHeader, {
+                <View style={[homeStyles.foundationsHeader, {
                   borderBottomColor: '#d4af37',
                   borderBottomWidth: 1,
                 }]}>
                   <Icon name="target" size={20} color="#4ee6e6" />
-                  <Text style={[theme.styles.foundationsTitle, {
+                  <Text style={[homeStyles.foundationsTitle, {
                     color: '#4ee6e6',
                     fontWeight: 'bold',
                     letterSpacing: 2,
@@ -1945,7 +2542,7 @@ const ArchiveInterface: React.FC = () => {
                   </Text>
                   <Icon name="target" size={20} color="#4ee6e6" />
                 </View>
-                <Text style={[theme.styles.foundationsSubtitle, {
+                <Text style={[homeStyles.foundationsSubtitle, {
                   color: '#d4af37',
                   textShadowColor: 'rgba(212, 175, 55, 0.3)',
                   textShadowOffset: { width: 0, height: 1 },
@@ -1954,10 +2551,10 @@ const ArchiveInterface: React.FC = () => {
                   Your performance contributes to overall foundation growth
                 </Text>
 
-                  <View style={theme.styles.foundationsGrid}>
+                  <View style={homeStyles.foundationsGrid}>
                     {/* Excellent Performance */}
                     <TouchableOpacity
-                      style={theme.styles.foundationCard}
+                      style={homeStyles.foundationCard}
                       onPress={() => Alert.alert(
                         "🏆 Master Level Performance",
                         "High score + Win + Long survival\n\n✨ Experience: +400+\n🧠 Awareness: +3\n💪 Resilience: +3\n🤝 Connection: +2\n⚖️ Balance: +2\n\n🎯 Strategy: Focus on accuracy, survive long, clear positive thoughts!\n\n📈 Contributes significantly to foundation growth"
@@ -1970,7 +2567,7 @@ const ArchiveInterface: React.FC = () => {
                           "rgba(30, 41, 59, 0.7)",
                           "rgba(10, 11, 15, 0.9)",
                         ]}
-                        style={[theme.styles.foundationCardGradient, {
+                        style={[homeStyles.foundationCardGradient, {
                           borderColor: '#d4af37',
                           borderWidth: 1,
                           shadowColor: '#d4af37',
@@ -1980,37 +2577,37 @@ const ArchiveInterface: React.FC = () => {
                           elevation: 4,
                         }]}
                       >
-                        <View style={theme.styles.foundationIconContainer}>
-                          <Text style={theme.styles.foundationIcon}>
+                        <View style={homeStyles.foundationIconContainer}>
+                          <Text style={homeStyles.foundationIcon}>
                             🏆
                           </Text>
                         </View>
-                        <View style={theme.styles.foundationValueContainer}>
-                          <Text style={theme.styles.foundationValue}>
+                        <View style={homeStyles.foundationValueContainer}>
+                          <Text style={homeStyles.foundationValue}>
                             12
-                            <Text style={theme.styles.foundationMaxValue}>
+                            <Text style={homeStyles.foundationMaxValue}>
                               /12
                             </Text>
                           </Text>
-                          <Text style={theme.styles.foundationLevel}>
+                          <Text style={homeStyles.foundationLevel}>
                             Master Level
                           </Text>
                         </View>
-                        <View style={theme.styles.foundationProgressContainer}>
-                          <View style={theme.styles.foundationProgressBar}>
+                        <View style={homeStyles.foundationProgressContainer}>
+                          <View style={homeStyles.foundationProgressBar}>
                             <LinearGradient
                               colors={["#FCD34D", "#F59E0B"]}
-                              style={[theme.styles.foundationProgressFill, { width: "100%" }]}
+                              style={[homeStyles.foundationProgressFill, { width: "100%" }]}
                             />
                           </View>
-                          <Text style={theme.styles.xpToNext}>
+                          <Text style={homeStyles.xpToNext}>
                             Maximum performance achieved
                           </Text>
                         </View>
-                        <Text style={theme.styles.foundationLabel}>
+                        <Text style={homeStyles.foundationLabel}>
                           Master
                         </Text>
-                        <Text style={theme.styles.foundationDescription}>
+                        <Text style={homeStyles.foundationDescription}>
                           Contributes to foundation growth
                         </Text>
                       </LinearGradient>
@@ -2018,7 +2615,7 @@ const ArchiveInterface: React.FC = () => {
 
                     {/* Mixed Performance */}
                     <TouchableOpacity
-                      style={theme.styles.foundationCard}
+                      style={homeStyles.foundationCard}
                       onPress={() => Alert.alert(
                         "🔄 Adept Level Performance",
                         "Decent score + Loss + Moderate effort\n\n✨ Experience: +200\n🧠 Awareness: +1\n💪 Resilience: +1\n🤝 Connection: +2\n⚖️ Balance: 0\n\n🎯 Strategy: Focus on positive thoughts, improve accuracy!\n\n📈 Steady foundation building progress"
@@ -2031,7 +2628,7 @@ const ArchiveInterface: React.FC = () => {
                           "rgba(30, 41, 59, 0.7)",
                           "rgba(10, 11, 15, 0.9)",
                         ]}
-                        style={[theme.styles.foundationCardGradient, {
+                        style={[homeStyles.foundationCardGradient, {
                           borderColor: '#d4af37',
                           borderWidth: 1,
                           shadowColor: '#d4af37',
@@ -2041,37 +2638,37 @@ const ArchiveInterface: React.FC = () => {
                           elevation: 4,
                         }]}
                       >
-                        <View style={theme.styles.foundationIconContainer}>
-                          <Text style={theme.styles.foundationIcon}>
+                        <View style={homeStyles.foundationIconContainer}>
+                          <Text style={homeStyles.foundationIcon}>
                             🔄
                           </Text>
                         </View>
-                        <View style={theme.styles.foundationValueContainer}>
-                          <Text style={theme.styles.foundationValue}>
+                        <View style={homeStyles.foundationValueContainer}>
+                          <Text style={homeStyles.foundationValue}>
                             4
-                            <Text style={theme.styles.foundationMaxValue}>
+                            <Text style={homeStyles.foundationMaxValue}>
                               /12
                             </Text>
                           </Text>
-                          <Text style={theme.styles.foundationLevel}>
+                          <Text style={homeStyles.foundationLevel}>
                             Adept Level
                           </Text>
                         </View>
-                        <View style={theme.styles.foundationProgressContainer}>
-                          <View style={theme.styles.foundationProgressBar}>
+                        <View style={homeStyles.foundationProgressContainer}>
+                          <View style={homeStyles.foundationProgressBar}>
                             <LinearGradient
                               colors={["#06B6D4", "#0891B2"]}
-                              style={[theme.styles.foundationProgressFill, { width: "33%" }]}
+                              style={[homeStyles.foundationProgressFill, { width: "33%" }]}
                             />
                           </View>
-                          <Text style={theme.styles.xpToNext}>
+                          <Text style={homeStyles.xpToNext}>
                             8 XP to next level
                           </Text>
                         </View>
-                        <Text style={theme.styles.foundationLabel}>
+                        <Text style={homeStyles.foundationLabel}>
                           Adept
                         </Text>
-                        <Text style={theme.styles.foundationDescription}>
+                        <Text style={homeStyles.foundationDescription}>
                           Steady foundation building
                         </Text>
                       </LinearGradient>
@@ -2079,7 +2676,7 @@ const ArchiveInterface: React.FC = () => {
 
                     {/* Poor Performance */}
                     <TouchableOpacity
-                      style={theme.styles.foundationCard}
+                      style={homeStyles.foundationCard}
                       onPress={() => Alert.alert(
                         "⚠️ Novice Level Performance",
                         "Low score + Quick loss + Low accuracy\n\n✨ Experience: +50\n🧠 Awareness: -1\n💪 Resilience: -1\n🤝 Connection: +1\n⚖️ Balance: -1\n\n🎯 Strategy: Practice accuracy, focus on survival time!\n\n📈 Learning phase - every attempt builds experience"
@@ -2092,7 +2689,7 @@ const ArchiveInterface: React.FC = () => {
                           "rgba(30, 41, 59, 0.7)",
                           "rgba(10, 11, 15, 0.9)",
                         ]}
-                        style={[theme.styles.foundationCardGradient, {
+                        style={[homeStyles.foundationCardGradient, {
                           borderColor: '#d4af37',
                           borderWidth: 1,
                           shadowColor: '#d4af37',
@@ -2102,37 +2699,37 @@ const ArchiveInterface: React.FC = () => {
                           elevation: 4,
                         }]}
                       >
-                        <View style={theme.styles.foundationIconContainer}>
-                          <Text style={theme.styles.foundationIcon}>
+                        <View style={homeStyles.foundationIconContainer}>
+                          <Text style={homeStyles.foundationIcon}>
                             ⚠️
                           </Text>
                         </View>
-                        <View style={theme.styles.foundationValueContainer}>
-                          <Text style={theme.styles.foundationValue}>
+                        <View style={homeStyles.foundationValueContainer}>
+                          <Text style={homeStyles.foundationValue}>
                             -2
-                            <Text style={theme.styles.foundationMaxValue}>
+                            <Text style={homeStyles.foundationMaxValue}>
                               /12
                             </Text>
                           </Text>
-                          <Text style={theme.styles.foundationLevel}>
+                          <Text style={homeStyles.foundationLevel}>
                             Novice Level
                           </Text>
                         </View>
-                        <View style={theme.styles.foundationProgressContainer}>
-                          <View style={theme.styles.foundationProgressBar}>
+                        <View style={homeStyles.foundationProgressContainer}>
+                          <View style={homeStyles.foundationProgressBar}>
                             <LinearGradient
                               colors={["#EF4444", "#DC2626"]}
-                              style={[theme.styles.foundationProgressFill, { width: "8%" }]}
+                              style={[homeStyles.foundationProgressFill, { width: "8%" }]}
                             />
                           </View>
-                          <Text style={theme.styles.xpToNext}>
+                          <Text style={homeStyles.xpToNext}>
                             14 XP to next level
                           </Text>
                         </View>
-                        <Text style={theme.styles.foundationLabel}>
+                        <Text style={homeStyles.foundationLabel}>
                           Novice
                         </Text>
-                        <Text style={theme.styles.foundationDescription}>
+                        <Text style={homeStyles.foundationDescription}>
                           Learning and growing
                         </Text>
                       </LinearGradient>
@@ -2141,7 +2738,7 @@ const ArchiveInterface: React.FC = () => {
               </View>
 
               {/* Tips Section */}
-              <View style={[theme.styles.foundationsSection, {
+              <View style={[homeStyles.foundationsSection, {
                 backgroundColor: 'rgba(10, 11, 15, 0.95)',
                 borderColor: '#d4af37',
                 borderWidth: 2,
@@ -2151,12 +2748,12 @@ const ArchiveInterface: React.FC = () => {
                 shadowRadius: 12,
                 elevation: 12,
               }]}>
-                <View style={[theme.styles.foundationsHeader, {
+                <View style={[homeStyles.foundationsHeader, {
                   borderBottomColor: '#d4af37',
                   borderBottomWidth: 1,
                 }]}>
                   <Icon name="lightbulb" size={20} color="#4ee6e6" />
-                  <Text style={[theme.styles.foundationsTitle, {
+                  <Text style={[homeStyles.foundationsTitle, {
                     color: '#4ee6e6',
                     fontWeight: 'bold',
                     letterSpacing: 2,
@@ -2168,7 +2765,7 @@ const ArchiveInterface: React.FC = () => {
                   </Text>
                   <Icon name="lightbulb" size={20} color="#4ee6e6" />
                 </View>
-                <Text style={[theme.styles.foundationsSubtitle, {
+                <Text style={[homeStyles.foundationsSubtitle, {
                   color: '#d4af37',
                   textShadowColor: 'rgba(212, 175, 55, 0.3)',
                   textShadowOffset: { width: 0, height: 1 },
@@ -2287,34 +2884,34 @@ const ArchiveInterface: React.FC = () => {
 
           {/* Restoration Tab - Updated to use actual story data */}
           {ui.activeTab === "restoration" && (
-            <View style={theme.styles.archiveTabpassagesArea}>
+            <View style={homeStyles.archiveTabpassagesArea}>
               {/* Loading state */}
               {isLoadingStories ? (
-                <View style={theme.styles.centeredMessageContainer}>
+                <View style={homeStyles.centeredMessageContainer}>
                   <Icon
                     name="loader"
                     size={40}
                     color="#A855F7"
                     style={{ marginBottom: 16 }}
                   />
-                  <Text style={theme.styles.centeredMessageTitle}>
+                  <Text style={homeStyles.centeredMessageTitle}>
                     Loading Archive Data...
                   </Text>
-                  <Text style={theme.styles.centeredMessageText}>
+                  <Text style={homeStyles.centeredMessageText}>
                     Retrieving your journey statistics from the Archive...
                   </Text>
                 </View>
               ) : (
                 <>
                   {/* Story Progress Section */}
-                  <View style={theme.styles.foundationsSection}>
+                  <View style={homeStyles.foundationsSection}>
                     <LinearGradient
                       colors={[
                         "rgba(10, 11, 15, 0.95)",
                         "rgba(30, 41, 59, 0.8)",
                         "rgba(10, 11, 15, 0.95)",
                       ]}
-                      style={[theme.styles.foundationsSectionGradient, {
+                      style={[homeStyles.foundationsSectionGradient, {
                         borderColor: '#d4af37',
                         borderWidth: 2,
                         shadowColor: '#d4af37',
@@ -2324,10 +2921,10 @@ const ArchiveInterface: React.FC = () => {
                         elevation: 12,
                       }]}
                     >
-                      <View style={theme.styles.foundationsHeader}>
+                      <View style={homeStyles.foundationsHeader}>
                         <Icon name="book-open" size={20} color="#4ee6e6" />
                         <Text style={{
-                          ...theme.styles.foundationsTitle,
+                          ...homeStyles.foundationsTitle,
                           color: 'rgba(78, 230, 230, 0.8)',
                           fontSize: 20,
                           fontWeight: '600',
@@ -2341,7 +2938,7 @@ const ArchiveInterface: React.FC = () => {
                         <Icon name="book-open" size={20} color="#4ee6e6" />
                       </View>
                       <Text style={{
-                        ...theme.styles.foundationsSubtitle,
+                        ...homeStyles.foundationsSubtitle,
                         color: '#d4af37',
                         fontSize: 14,
                         fontStyle: 'italic',
@@ -2354,10 +2951,10 @@ const ArchiveInterface: React.FC = () => {
                         Your journey through the ancient stories
                       </Text>
 
-                      <View style={theme.styles.foundationsGrid}>
+                      <View style={homeStyles.foundationsGrid}>
                         {/* Stories Completed Card */}
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
                             const completedCount = stories.filter(story => story.exploration >= 100).length;
                             const totalStories = stories.length;
@@ -2376,7 +2973,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: 'rgba(78, 230, 230, 0.4)',
                               borderWidth: 1,
                               shadowColor: 'rgba(78, 230, 230, 0.2)',
@@ -2386,28 +2983,28 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 4,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 🏆
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
                                 {stories.filter(story => story.exploration >= 100).length}
-                                <Text style={theme.styles.foundationMaxValue}>
+                                <Text style={homeStyles.foundationMaxValue}>
                                   /{stories.length}
                                 </Text>
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 {stories.length > 0 ? Math.round((stories.filter(story => story.exploration >= 100).length / stories.length) * 100) : 0}% Complete
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationProgressContainer}>
-                              <View style={theme.styles.foundationProgressBar}>
+                            <View style={homeStyles.foundationProgressContainer}>
+                              <View style={homeStyles.foundationProgressBar}>
                                 <LinearGradient
                                   colors={["#10B981", "#059669"]}
                                   style={[
-                                    theme.styles.foundationProgressFill,
+                                    homeStyles.foundationProgressFill,
                                     {
                                       width: `${stories.length > 0 ? (stories.filter(story => story.exploration >= 100).length / stories.length) * 100 : 0}%`,
                                     },
@@ -2415,10 +3012,10 @@ const ArchiveInterface: React.FC = () => {
                                 />
                               </View>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Stories Completed
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Tales you've fully explored and mastered
                             </Text>
                             {/* Interactive Indicator */}
@@ -2441,7 +3038,7 @@ const ArchiveInterface: React.FC = () => {
 
                         {/* Chapters Explored Card */}
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
                             const totalChapters = stories.reduce((total, story) => total + (story.chapter_count || 0), 0);
                             const exploredChapters = stories.reduce((total, story) => {
@@ -2466,7 +3063,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: 'rgba(78, 230, 230, 0.4)',
                               borderWidth: 1,
                               shadowColor: 'rgba(78, 230, 230, 0.2)',
@@ -2476,13 +3073,13 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 4,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 📖
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
                                 {stories.reduce((total, story) => {
                                   if (story.exploration > 0) {
                                     const chaptersExplored = Math.ceil((story.exploration / 100) * (story.chapter_count || 1));
@@ -2490,20 +3087,20 @@ const ArchiveInterface: React.FC = () => {
                                   }
                                   return total;
                                 }, 0)}
-                                <Text style={theme.styles.foundationMaxValue}>
+                                <Text style={homeStyles.foundationMaxValue}>
                                   /{stories.reduce((total, story) => total + (story.chapter_count || 0), 0)}
                                 </Text>
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 Chapters Explored
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationProgressContainer}>
-                              <View style={theme.styles.foundationProgressBar}>
+                            <View style={homeStyles.foundationProgressContainer}>
+                              <View style={homeStyles.foundationProgressBar}>
                                 <LinearGradient
                                   colors={["#06B6D4", "#0891B2"]}
                                   style={[
-                                    theme.styles.foundationProgressFill,
+                                    homeStyles.foundationProgressFill,
                                     {
                                       width: `${(() => {
                                         const totalChapters = stories.reduce((total, story) => total + (story.chapter_count || 0), 0);
@@ -2521,10 +3118,10 @@ const ArchiveInterface: React.FC = () => {
                                 />
                               </View>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Chapters Explored
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Story chapters you've ventured through
                             </Text>
                             {/* Interactive Indicator */}
@@ -2547,7 +3144,7 @@ const ArchiveInterface: React.FC = () => {
 
                         {/* Revelations Unlocked Card */}
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
                             const totalRevelations = stories.reduce((total, story) => total + (story.revelations || 0), 0);
                             Alert.alert(
@@ -2564,7 +3161,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: '#4ee6e6',
                               borderWidth: 2,
                               shadowColor: '#4ee6e6',
@@ -2574,23 +3171,23 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 8,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 ✨
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
                                 {stories.reduce((total, story) => total + (story.revelations || 0), 0)}
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 Revelations Found
                               </Text>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Hidden Truths
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Profound insights you've discovered
                             </Text>
                             {/* Interactive Indicator */}
@@ -2615,14 +3212,14 @@ const ArchiveInterface: React.FC = () => {
                   </View>
 
                   {/* Journal Progress Section */}
-                  <View style={theme.styles.foundationsSection}>
+                  <View style={homeStyles.foundationsSection}>
                     <LinearGradient
                       colors={[
                         "rgba(10, 11, 15, 0.95)",
                         "rgba(30, 41, 59, 0.8)",
                         "rgba(10, 11, 15, 0.95)",
                       ]}
-                      style={[theme.styles.foundationsSectionGradient, {
+                      style={[homeStyles.foundationsSectionGradient, {
                         borderColor: '#d4af37',
                         borderWidth: 2,
                         shadowColor: '#d4af37',
@@ -2632,10 +3229,10 @@ const ArchiveInterface: React.FC = () => {
                         elevation: 12,
                       }]}
                     >
-                      <View style={theme.styles.foundationsHeader}>
+                      <View style={homeStyles.foundationsHeader}>
                         <Icon name="edit-3" size={20} color="#4ee6e6" />
                         <Text style={{
-                          ...theme.styles.foundationsTitle,
+                          ...homeStyles.foundationsTitle,
                           color: '#4ee6e6',
                           fontSize: 20,
                           fontWeight: 'bold',
@@ -2649,7 +3246,7 @@ const ArchiveInterface: React.FC = () => {
                         <Icon name="edit-3" size={20} color="#4ee6e6" />
                       </View>
                       <Text style={{
-                        ...theme.styles.foundationsSubtitle,
+                        ...homeStyles.foundationsSubtitle,
                         color: '#d4af37',
                         fontSize: 14,
                         fontStyle: 'italic',
@@ -2662,11 +3259,11 @@ const ArchiveInterface: React.FC = () => {
                         Your reflections and insights captured in the Archive
                       </Text>
 
-                      <View style={theme.styles.foundationsGrid}>
+                      <View style={homeStyles.foundationsGrid}>
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
-                            const recentReflections = wellness.homeData?.recent_reflections || [];
+                            const recentReflections: any[] = [];
                             const journalEntries = recentReflections.filter((reflection: any) => reflection.entry_type === 'journal').length;
                             const drawEntries = recentReflections.filter((reflection: any) => reflection.entry_type === 'draw').length;
                             const voiceEntries = recentReflections.filter((reflection: any) => reflection.entry_type === 'voice').length;
@@ -2685,7 +3282,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: '#4ee6e6',
                               borderWidth: 2,
                               shadowColor: '#4ee6e6',
@@ -2695,23 +3292,23 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 8,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 📝
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
-                                {(wellness.homeData?.recent_reflections || []).length}
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
+                                0
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 Total Entries
                               </Text>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Reflections
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Your captured thoughts and insights
                             </Text>
                             {/* Interactive Indicator */}
@@ -2733,16 +3330,16 @@ const ArchiveInterface: React.FC = () => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
-                            const recentReflections = wellness.homeData?.recent_reflections || [];
+                            const recentReflections: any[] = [];
                             const journalEntries = recentReflections.filter((reflection: any) => reflection.entry_type === 'journal');
                             const latestEntry = journalEntries[0];
                             
                             if (latestEntry) {
                               Alert.alert(
                                 "Latest Journal Entry",
-                                `"${latestEntry.title}"\n\n${latestEntry.content.substring(0, 100)}${latestEntry.content.length > 100 ? '...' : ''}\n\nPrompt: ${latestEntry.prompt}`,
+                                `"${latestEntry.title}"\n\n${latestEntry.content.substring(0, 100)}${latestEntry.content.length > 100 ? '...' : ''}\n\nPrompt: ${getDisplayPrompt(latestEntry.prompt)}`,
                                 [{ text: "Continue Exploring", style: "default" }]
                               );
                             } else {
@@ -2761,7 +3358,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: '#4ee6e6',
                               borderWidth: 2,
                               shadowColor: '#4ee6e6',
@@ -2771,23 +3368,23 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 8,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 ✨
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
-                                {(wellness.homeData?.recent_reflections || []).filter((reflection: any) => reflection.entry_type === 'journal').length}
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
+                                0
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 Journal Entries
                               </Text>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Written Reflections
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Your thoughts captured in words
                             </Text>
                             {/* Interactive Indicator */}
@@ -2809,9 +3406,9 @@ const ArchiveInterface: React.FC = () => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
-                            const recentReflections = wellness.homeData?.recent_reflections || [];
+                            const recentReflections: any[] = [];
                             const drawEntries = recentReflections.filter((reflection: any) => reflection.entry_type === 'draw');
                             const voiceEntries = recentReflections.filter((reflection: any) => reflection.entry_type === 'voice');
                             const totalCreative = drawEntries.length + voiceEntries.length;
@@ -2830,7 +3427,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: '#4ee6e6',
                               borderWidth: 2,
                               shadowColor: '#4ee6e6',
@@ -2840,25 +3437,23 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 8,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 🎨
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
-                                {(wellness.homeData?.recent_reflections || []).filter((reflection: any) => 
-                                  reflection.entry_type === 'draw' || reflection.entry_type === 'voice'
-                                ).length}
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
+                                0
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 Creative Entries
                               </Text>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Artistic Expression
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Your drawings and voice recordings
                             </Text>
                             {/* Interactive Indicator */}
@@ -2883,14 +3478,14 @@ const ArchiveInterface: React.FC = () => {
                   </View>
 
                   {/* Archive Progress Section */}
-                  <View style={theme.styles.foundationsSection}>
+                  <View style={homeStyles.foundationsSection}>
                     <LinearGradient
                       colors={[
                         "rgba(10, 11, 15, 0.95)",
                         "rgba(30, 41, 59, 0.8)",
                         "rgba(10, 11, 15, 0.95)",
                       ]}
-                      style={[theme.styles.foundationsSectionGradient, {
+                      style={[homeStyles.foundationsSectionGradient, {
                         borderColor: '#d4af37',
                         borderWidth: 2,
                         shadowColor: '#d4af37',
@@ -2900,10 +3495,10 @@ const ArchiveInterface: React.FC = () => {
                         elevation: 12,
                       }]}
                     >
-                      <View style={theme.styles.foundationsHeader}>
+                      <View style={homeStyles.foundationsHeader}>
                         <Icon name="archive" size={20} color="#4ee6e6" />
                         <Text style={{
-                          ...theme.styles.foundationsTitle,
+                          ...homeStyles.foundationsTitle,
                           color: '#4ee6e6',
                           fontSize: 20,
                           fontWeight: 'bold',
@@ -2917,7 +3512,7 @@ const ArchiveInterface: React.FC = () => {
                         <Icon name="archive" size={20} color="#4ee6e6" />
                       </View>
                       <Text style={{
-                        ...theme.styles.foundationsSubtitle,
+                        ...homeStyles.foundationsSubtitle,
                         color: '#d4af37',
                         fontSize: 14,
                         fontStyle: 'italic',
@@ -2930,9 +3525,9 @@ const ArchiveInterface: React.FC = () => {
                         Your discoveries and insights within the Archive
                       </Text>
 
-                      <View style={theme.styles.foundationsGrid}>
+                      <View style={homeStyles.foundationsGrid}>
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
                             const totalProgress = stories.reduce((total, story) => total + (story.exploration || 0), 0);
                             const averageProgress = stories.length > 0 ? Math.round(totalProgress / stories.length) : 0;
@@ -2950,7 +3545,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: '#4ee6e6',
                               borderWidth: 2,
                               shadowColor: '#4ee6e6',
@@ -2960,23 +3555,23 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 8,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 📊
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
                                 {stories.length > 0 ? Math.round(stories.reduce((total, story) => total + (story.exploration || 0), 0) / stories.length) : 0}%
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 Average Progress
                               </Text>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Overall Progress
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Your journey through all stories
                             </Text>
                             {/* Interactive Indicator */}
@@ -2998,7 +3593,7 @@ const ArchiveInterface: React.FC = () => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
                             const storiesInProgress = stories.filter(story => story.exploration > 0 && story.exploration < 100).length;
                             Alert.alert(
@@ -3015,7 +3610,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: '#4ee6e6',
                               borderWidth: 2,
                               shadowColor: '#4ee6e6',
@@ -3025,23 +3620,23 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 8,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 🔄
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
                                 {stories.filter(story => story.exploration > 0 && story.exploration < 100).length}
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 In Progress
                               </Text>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Active Explorations
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Stories you're currently exploring
                             </Text>
                             {/* Interactive Indicator */}
@@ -3063,7 +3658,7 @@ const ArchiveInterface: React.FC = () => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={theme.styles.foundationCard}
+                          style={homeStyles.foundationCard}
                           onPress={() => {
                             const unstartedStories = stories.filter(story => story.exploration === 0).length;
                             Alert.alert(
@@ -3080,7 +3675,7 @@ const ArchiveInterface: React.FC = () => {
                               "rgba(30, 41, 59, 0.7)",
                               "rgba(10, 11, 15, 0.9)",
                             ]}
-                            style={[theme.styles.foundationCardGradient, {
+                            style={[homeStyles.foundationCardGradient, {
                               borderColor: '#4ee6e6',
                               borderWidth: 2,
                               shadowColor: '#4ee6e6',
@@ -3090,23 +3685,23 @@ const ArchiveInterface: React.FC = () => {
                               elevation: 8,
                             }]}
                           >
-                            <View style={theme.styles.foundationIconContainer}>
-                              <Text style={theme.styles.foundationIcon}>
+                            <View style={homeStyles.foundationIconContainer}>
+                              <Text style={homeStyles.foundationIcon}>
                                 🔓
                               </Text>
                             </View>
-                            <View style={theme.styles.foundationValueContainer}>
-                              <Text style={theme.styles.foundationValue}>
+                            <View style={homeStyles.foundationValueContainer}>
+                              <Text style={homeStyles.foundationValue}>
                                 {stories.filter(story => story.exploration === 0).length}
                               </Text>
-                              <Text style={theme.styles.foundationLevel}>
+                              <Text style={homeStyles.foundationLevel}>
                                 Available
                               </Text>
                             </View>
-                            <Text style={theme.styles.foundationLabel}>
+                            <Text style={homeStyles.foundationLabel}>
                               Untold Tales
                             </Text>
-                            <Text style={theme.styles.foundationDescription}>
+                            <Text style={homeStyles.foundationDescription}>
                               Stories waiting to be discovered
                             </Text>
                             {/* Interactive Indicator */}
@@ -3131,14 +3726,14 @@ const ArchiveInterface: React.FC = () => {
                   </View>
 
                   {/* Settings Section */}
-                  <View style={theme.styles.foundationsSection}>
+                  <View style={homeStyles.foundationsSection}>
                     <LinearGradient
                       colors={[
                         "rgba(10, 11, 15, 0.95)",
                         "rgba(30, 41, 59, 0.8)",
                         "rgba(10, 11, 15, 0.95)",
                       ]}
-                      style={[theme.styles.foundationsSectionGradient, {
+                      style={[homeStyles.foundationsSectionGradient, {
                         borderColor: '#d4af37',
                         borderWidth: 2,
                         shadowColor: '#d4af37',
@@ -3148,10 +3743,10 @@ const ArchiveInterface: React.FC = () => {
                         elevation: 12,
                       }]}
                     >
-                      <View style={theme.styles.foundationsHeader}>
+                      <View style={homeStyles.foundationsHeader}>
                         <Icon name="settings" size={20} color="#4ee6e6" />
                         <Text style={{
-                          ...theme.styles.foundationsTitle,
+                          ...homeStyles.foundationsTitle,
                           color: '#4ee6e6',
                           fontSize: 20,
                           fontWeight: 'bold',
@@ -3165,7 +3760,7 @@ const ArchiveInterface: React.FC = () => {
                         <Icon name="settings" size={20} color="#4ee6e6" />
                       </View>
                       <Text style={{
-                        ...theme.styles.foundationsSubtitle,
+                        ...homeStyles.foundationsSubtitle,
                         color: '#d4af37',
                         fontSize: 14,
                         fontStyle: 'italic',
@@ -3178,7 +3773,13 @@ const ArchiveInterface: React.FC = () => {
                         Customize your journey through The Archive
                       </Text>
 
-                      <View style={theme.styles.foundationsGrid}>
+                      <View style={[homeStyles.foundationsGrid, {
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: 8,
+                      }]}>
                         <TouchableOpacity
                           style={{
                             backgroundColor: '#2a8a8a',
@@ -3194,22 +3795,22 @@ const ArchiveInterface: React.FC = () => {
                             elevation: 8,
                             marginBottom: 8,
                             width: '48%',
+                            minHeight: 50,
                           }}
                           onPress={() => {
-                            Alert.alert(
-                              "Character Customization",
-                              "Would you like to return to the character creator to modify your avatar?",
-                              [
-                                { text: "Cancel", style: "cancel" },
-                                { 
-                                  text: "Customize", 
-                                  onPress: () => {
-                                    // Navigate to character creator
-                                    router.push('/(onboarding)/character-creator');
-                                  }
-                                }
-                              ]
-                            );
+                            console.log('🎨 Customize Avatar button pressed!');
+                            console.log('🎨 Router object:', router);
+                            console.log('🎨 Router push function:', typeof router?.push);
+                            
+                            // Test with immediate navigation first
+                            try {
+                              console.log('🎨 Attempting direct navigation...');
+                              router.push('/(onboarding)/character-creator');
+                              console.log('🎨 Direct navigation call completed');
+                            } catch (error) {
+                              console.error('🎨 Direct navigation error:', error);
+                              Alert.alert('Navigation Error', `Failed to navigate: ${error.message}`);
+                            }
                           }}
                           activeOpacity={0.8}
                         >
@@ -3241,6 +3842,7 @@ const ArchiveInterface: React.FC = () => {
                             elevation: 8,
                             marginBottom: 8,
                             width: '48%',
+                            minHeight: 50,
                           }}
                           onPress={() => {
                             theme.toggleTheme();
@@ -3275,20 +3877,27 @@ const ArchiveInterface: React.FC = () => {
                             elevation: 8,
                             marginBottom: 8,
                             width: '48%',
+                            minHeight: 50,
                           }}
                           onPress={() => {
-                            Alert.alert(
-                              "Logout",
-                              "Are you sure you want to leave The Archive?",
-                              [
-                                { text: "Cancel", style: "cancel" },
-                                { 
-                                  text: "Logout", 
-                                  style: "destructive",
-                                  onPress: () => auth.logout()
-                                }
-                              ]
-                            );
+                            console.log('🚪 Logout button pressed!');
+                            console.log('🚪 Auth object:', auth);
+                            console.log('🚪 Auth logout function:', typeof auth?.logout);
+                            
+                            // Test with immediate logout first
+                            if (auth && auth.logout) {
+                              try {
+                                console.log('🚪 Attempting direct logout...');
+                                auth.logout();
+                                console.log('🚪 Direct logout call completed');
+                              } catch (error) {
+                                console.error('🚪 Direct logout error:', error);
+                                Alert.alert('Logout Error', `Failed to logout: ${error.message}`);
+                              }
+                            } else {
+                              console.error('🚪 Auth or logout function not available');
+                              Alert.alert('Error', 'Logout function not available');
+                            }
                           }}
                           activeOpacity={0.8}
                         >
@@ -3309,14 +3918,14 @@ const ArchiveInterface: React.FC = () => {
                   </View>
 
                   {/* Mental Health Resources Section */}
-                  <View style={theme.styles.foundationsSection}>
+                  <View style={homeStyles.foundationsSection}>
                     <LinearGradient
                       colors={[
                         "rgba(10, 11, 15, 0.95)",
                         "rgba(30, 41, 59, 0.8)",
                         "rgba(10, 11, 15, 0.95)",
                       ]}
-                      style={[theme.styles.foundationsSectionGradient, {
+                      style={[homeStyles.foundationsSectionGradient, {
                         borderColor: '#d4af37',
                         borderWidth: 2,
                         shadowColor: '#d4af37',
@@ -3326,10 +3935,10 @@ const ArchiveInterface: React.FC = () => {
                         elevation: 12,
                       }]}
                     >
-                      <View style={theme.styles.foundationsHeader}>
+                      <View style={homeStyles.foundationsHeader}>
                         <Icon name="heart" size={20} color="#4ee6e6" />
                         <Text style={{
-                          ...theme.styles.foundationsTitle,
+                          ...homeStyles.foundationsTitle,
                           color: '#4ee6e6',
                           fontSize: 20,
                           fontWeight: 'bold',
@@ -3343,7 +3952,7 @@ const ArchiveInterface: React.FC = () => {
                         <Icon name="heart" size={20} color="#4ee6e6" />
                       </View>
                       <Text style={{
-                        ...theme.styles.foundationsSubtitle,
+                        ...homeStyles.foundationsSubtitle,
                         color: '#d4af37',
                         fontSize: 14,
                         fontStyle: 'italic',
@@ -3356,7 +3965,7 @@ const ArchiveInterface: React.FC = () => {
                         If you're struggling, these resources are here to help
                       </Text>
 
-                      <View style={theme.styles.foundationsGrid}>
+                      <View style={homeStyles.foundationsGrid}>
                         <TouchableOpacity
                           style={{
                             backgroundColor: '#2a8a8a',
@@ -3566,6 +4175,9 @@ const ArchiveInterface: React.FC = () => {
         backendGear={equipment.backendGear}
         equippedGear={equipment.equippedGear}
       />
+
+      {/* Tutorial Modal */}
+      <TutorialModal />
 
     </View>
   );

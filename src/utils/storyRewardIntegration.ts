@@ -2,8 +2,9 @@
 // This file demonstrates how to integrate the new reward system into StoryScreen
 // Works with the actual backend data structure where rewards are in effects field
 
-import { getEquipmentAssetByName } from '../assets/equipment';
+import { CopingTools, toPersonalityKey } from '../types/personality';
 import { Choice, Passage, SavedRewards } from '../types/story';
+import { filterByPersonality, normalizePersonalitySlug } from './personalityFilter';
 import {
   applyChoiceRewards,
   applyPassageRewards,
@@ -12,6 +13,7 @@ import {
   checkItemOwnershipAndUpgrade,
   createNotificationFromEffects,
   createUpgradeNotification,
+  getQuestInfo,
   getRewardFieldName,
   getRewardType,
   handleStoryCompletionRewards,
@@ -30,6 +32,7 @@ export class StoryRewardManager {
   private onStoryComplete: (completionData: any) => void;
   private apiService: any;
   private characterId: number;
+  private userId?: number; // Add userId for personality users
   private processedPassages: Set<string> = new Set(); // Track processed passages to avoid duplicates
   private processedChoices: Set<string> = new Set(); // Track processed choices to avoid duplicates
   private newlyAcquiredGear: Set<string> = new Set(); // Track newly acquired gear to avoid duplicate notifications
@@ -37,6 +40,8 @@ export class StoryRewardManager {
   private playerInventory: string[] = []; // Track player's current inventory
   private storyReplayCount: number = 0; // Track how many times this story has been replayed
   private researchCondition: "character" | "personality"; // Track research condition
+  private primaryTrait?: string; // Store personality trait for personality users
+  private storyId: string; // Store story ID
 
   constructor(
     storyId: string,
@@ -46,8 +51,11 @@ export class StoryRewardManager {
     characterId: number,
     playerInventory: string[] = [],
     storyReplayCount: number = 0,
-    researchCondition: "character" | "personality" = "personality"
+    researchCondition: "character" | "personality" = "personality",
+    userId?: number, // Add userId for personality users
+    primaryTrait?: string // Add personality trait for personality users
   ) {
+    this.storyId = storyId;
     this.rewardTracker = initializeRewardTracker(storyId);
     this.showNotification = showNotification;
     this.onStoryComplete = onStoryComplete;
@@ -56,6 +64,195 @@ export class StoryRewardManager {
     this.playerInventory = playerInventory;
     this.storyReplayCount = storyReplayCount;
     this.researchCondition = researchCondition;
+    this.userId = userId;
+    this.primaryTrait = primaryTrait;
+  }
+
+  // Filter effects based on research condition and personality trait
+  private filterEffectsByUserType(effects: any): any {
+    console.log('=== FILTERING EFFECTS BY USER TYPE ===');
+    console.log('Original effects:', effects);
+    console.log('Research condition:', this.researchCondition);
+    console.log('Primary trait:', this.primaryTrait);
+    
+    if (this.researchCondition === "personality") {
+      // For personality users, filter out character-specific rewards
+      const filteredEffects = { ...effects };
+      
+      // Log user personality trait for verification
+      if (this.primaryTrait) {
+        const personalityKey = toPersonalityKey(this.primaryTrait);
+        console.log('User personality trait:', this.primaryTrait);
+        console.log('User personality key:', personalityKey);
+      }
+      
+      // Remove resonance (personality users get experience instead)
+      if (filteredEffects.resonance) {
+        console.log('Filtering out resonance rewards for personality user');
+        delete filteredEffects.resonance;
+      }
+      
+      // Filter character items/artifacts by personality tags before removing them
+      if (this.researchCondition === "personality") {
+        // Personality users: filter by personality tags
+        if (filteredEffects.rewards && this.primaryTrait) {
+          console.log('Items in:', filteredEffects.rewards.length);
+          const userSlug = normalizePersonalitySlug(this.primaryTrait);
+          filteredEffects.rewards = filterByPersonality(filteredEffects.rewards, userSlug);
+          console.log('Items out:', filteredEffects.rewards.length);
+          
+          // Remove character items/artifacts (personality users don't get gear)
+          if (filteredEffects.rewards.length === 0) {
+            console.log('Filtering out character items/rewards for personality user');
+            delete filteredEffects.rewards;
+          }
+        } else if (filteredEffects.rewards) {
+          console.log('Filtering out character items/rewards for personality user');
+          delete filteredEffects.rewards;
+        }
+        
+        if (filteredEffects.artifacts && this.primaryTrait) {
+          console.log('Artifacts in:', filteredEffects.artifacts.length);
+          const userSlug = normalizePersonalitySlug(this.primaryTrait);
+          filteredEffects.artifacts = filterByPersonality(filteredEffects.artifacts, userSlug);
+          console.log('Artifacts out:', filteredEffects.artifacts.length);
+          
+          if (filteredEffects.artifacts.length === 0) {
+            console.log('Filtering out character artifacts for personality user');
+            delete filteredEffects.artifacts;
+          }
+        } else if (filteredEffects.artifacts) {
+          console.log('Filtering out character artifacts for personality user');
+          delete filteredEffects.artifacts;
+        }
+      } else {
+        // Character users: keep all items/artifacts (no personality filtering)
+        console.log('Character user: keeping all items and artifacts');
+      }
+      
+      // Filter tools by personality trait
+      if (filteredEffects.tools) {
+        if (this.primaryTrait) {
+          // Personality users: filter by personality trait
+          console.log('Filtering tools by personality trait:', filteredEffects.tools);
+          const originalTools = filteredEffects.tools;
+          filteredEffects.tools = originalTools.filter((toolId: string) => {
+            // Check if this tool belongs to the user's personality type
+            const personalityTools = CopingTools[this.primaryTrait as keyof typeof CopingTools];
+            if (personalityTools) {
+              const toolExists = personalityTools.some((tool: any) => tool.id === toolId);
+              if (!toolExists) {
+                console.log(`Filtering out tool ${toolId} for personality user with trait ${this.primaryTrait}`);
+              } else {
+                console.log(`Keeping tool ${toolId} for personality user with trait ${this.primaryTrait}`);
+              }
+              return toolExists;
+            }
+            console.log(`Keeping tool ${toolId} (no personality tools found for trait ${this.primaryTrait})`);
+            return true; // Keep tools if we can't determine personality mapping
+          });
+          
+          if (filteredEffects.tools.length === 0) {
+            console.log('No tools remaining after filtering, deleting tools field');
+            delete filteredEffects.tools;
+          } else {
+            console.log('Tools remaining after filtering:', filteredEffects.tools);
+          }
+        } else {
+          // Character users: remove tools entirely (they don't get coping tools)
+          console.log('Character user: removing tools field');
+          delete filteredEffects.tools;
+        }
+      }
+      
+      // Filter quests by personality trait
+      if (filteredEffects.quests) {
+        if (this.primaryTrait) {
+          // Personality users: filter by personality trait
+          console.log('Filtering quests by personality trait:', filteredEffects.quests);
+          const originalQuests = filteredEffects.quests;
+          filteredEffects.quests = originalQuests.filter((questId: string) => {
+            const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+            if (questTraitMatch && this.primaryTrait) {
+              const questTrait = questTraitMatch[1];
+              const userTrait = this.primaryTrait!.toLowerCase();
+              const matches = questTrait.toLowerCase() === userTrait;
+              console.log(`Quest filtering: questId=${questId}, questTrait=${questTrait}, userTrait=${userTrait}, matches=${matches}`);
+              if (!matches) {
+                console.log(`Filtering out quest ${questId} for personality user with trait ${this.primaryTrait}`);
+              } else {
+                console.log(`Keeping quest ${questId} for personality user with trait ${this.primaryTrait}`);
+              }
+              return matches;
+            }
+            console.log(`Keeping quest ${questId} (no trait match pattern)`);
+            return true; // Keep quests that don't match the pattern
+          });
+          
+          if (filteredEffects.quests.length === 0) {
+            console.log('No quests remaining after filtering, deleting quests field');
+            delete filteredEffects.quests;
+          } else {
+            console.log('Quests remaining after filtering:', filteredEffects.quests);
+          }
+        } else {
+          // Character users: keep all quests (no personality filtering)
+          console.log('Character user: keeping all quests');
+        }
+      }
+      
+      // Filter quest_progress by personality trait
+      if (filteredEffects.quest_progress) {
+        if (this.primaryTrait) {
+          // Personality users: filter by personality trait
+          console.log('Filtering quest_progress by personality trait:', filteredEffects.quest_progress);
+          const originalQuestProgress = filteredEffects.quest_progress;
+          filteredEffects.quest_progress = originalQuestProgress.filter((questId: string) => {
+            const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+            if (questTraitMatch && this.primaryTrait) {
+              const questTrait = questTraitMatch[1];
+              const userTrait = this.primaryTrait!.toLowerCase();
+              const matches = questTrait.toLowerCase() === userTrait;
+              console.log(`Quest progress filtering: questId=${questId}, questTrait=${questTrait}, userTrait=${userTrait}, matches=${matches}`);
+              if (!matches) {
+                console.log(`Filtering out quest progress ${questId} for personality user with trait ${this.primaryTrait}`);
+              } else {
+                console.log(`Keeping quest progress ${questId} for personality user with trait ${this.primaryTrait}`);
+              }
+              return matches;
+            }
+            console.log(`Keeping quest progress ${questId} (no trait match pattern)`);
+            return true; // Keep quest progress that don't match the pattern
+          });
+          
+          if (filteredEffects.quest_progress.length === 0) {
+            console.log('No quest_progress remaining after filtering, deleting quest_progress field');
+            delete filteredEffects.quest_progress;
+          } else {
+            console.log('Quest_progress remaining after filtering:', filteredEffects.quest_progress);
+          }
+        } else {
+          // Character users: keep all quest progress (no personality filtering)
+          console.log('Character user: keeping all quest progress');
+        }
+      }
+      
+      console.log('Filtered effects for personality user:', filteredEffects);
+      return filteredEffects;
+    } else {
+      // For character users, filter out personality-specific rewards
+      const filteredEffects = { ...effects };
+      
+      // Remove experience (character users get resonance instead)
+      if (filteredEffects.experience) {
+        console.log('Filtering out experience rewards for character user');
+        delete filteredEffects.experience;
+      }
+      
+      // Keep character items, artifacts, and all quests for character users
+      console.log('Filtered effects for character user:', filteredEffects);
+      return filteredEffects;
+    }
   }
 
   // Call this when visiting a passage
@@ -78,26 +275,44 @@ export class StoryRewardManager {
     
     if (hasPassageRewards(passage)) {
       // Prioritize story_effects over effects (new format)
-      const effects = passage.story_effects || passage.effects;
-      console.log('✅ Using passage effects:', effects);
+      const originalEffects = passage.story_effects || passage.effects;
+      console.log('✅ Original passage effects:', originalEffects);
+      
+      // ✅ FILTER EFFECTS BASED ON USER TYPE AND PERSONALITY TRAIT
+      const effects = this.filterEffectsByUserType(originalEffects);
+      console.log('✅ Filtered passage effects:', effects);
       
       this.rewardTracker = applyPassageRewards(this.rewardTracker, passage);
       console.log('Reward tracker updated, total rewards:', this.rewardTracker.rewards.length);
       
-      // ✅ PROCESS UPGRADED GEAR REWARDS
+      // ✅ PROCESS UPGRADED GEAR REWARDS (only for filtered effects)
       if (effects.rewards || effects.artifacts) {
         console.log('=== PROCESSING UPGRADED GEAR REWARDS ===');
-        await this.processUpgradedGearRewards(effects, 'passage');
+        await this.processItemRewards(effects, 'passage');
       }
       
-      // ✅ SAVE EXPERIENCE AND STATS IMMEDIATELY
+      // ✅ SAVE EXPERIENCE AND STATS IMMEDIATELY (only for filtered effects)
       // Experience and stats should be saved immediately so they appear in character data
       if (effects.experience || effects.stats || Object.keys(effects).some(key => ['awareness', 'resilience', 'connection', 'balance'].includes(key))) {
         console.log('=== SAVING EXPERIENCE AND STATS IMMEDIATELY ===');
         await this.saveRewardsToBackend(effects, 'passage');
       }
+
+      // ✅ SEND QUEST COMPLETION EVENTS IMMEDIATELY (only for filtered effects)
+      // Quest completion events should be sent immediately so they appear in the quest achievements
+      if (effects.quests || effects.quest_progress) {
+        console.log('=== SENDING QUEST COMPLETION EVENTS IMMEDIATELY ===');
+        await this.sendQuestCompletionEvents(effects, this.storyId, passage.passage_id);
+      }
       
-      // Show floating notifications for each reward
+      // Show floating notifications for each reward (using filtered effects)
+      console.log('=== NOTIFICATION CREATION DEBUG ===');
+      console.log('Effects being passed to createNotificationFromEffects:', effects);
+      console.log('Effects.rewards exists:', !!effects.rewards);
+      console.log('Effects.artifacts exists:', !!effects.artifacts);
+      console.log('Effects.rewards value:', effects.rewards);
+      console.log('Effects.artifacts value:', effects.artifacts);
+      
       const notifications = createNotificationFromEffects(effects, this.researchCondition);
       console.log('=== NOTIFICATION DEBUG ===');
       console.log('Created notifications:', notifications);
@@ -106,16 +321,70 @@ export class StoryRewardManager {
       console.log('Research condition for notifications:', this.researchCondition);
       console.log('Newly acquired gear:', Array.from(this.newlyAcquiredGear));
       
-      // Filter out notifications for gear that wasn't newly acquired
+      // Filter notifications based on user type
       const filteredNotifications = notifications.filter(notification => {
-        if (notification.type === 'item') {
-          // Extract item name from notification message
-          const itemName = notification.message.replace('Gained ', '').replace('Found ', '').replace('Acquired ', '');
-          const isNewlyAcquired = this.newlyAcquiredGear.has(itemName);
-          console.log(`Item notification: ${itemName}, Newly acquired: ${isNewlyAcquired}`);
-          return isNewlyAcquired;
+        // Filter based on reward type for each user type
+        if (this.researchCondition === "personality") {
+          // Personality users should only see:
+          // - Experience rewards (not resonance)
+          // - Wellness stat gains (awareness, resilience, connection, balance)
+          // - Coping tools/skills (but not traditional items/artifacts)
+          // - Quest progress (only for their personality trait)
+          
+          if (notification.type === 'resonance') {
+            console.log(`Filtering out resonance notification for personality user: ${notification.message}`);
+            return false;
+          }
+          
+          if (notification.type === 'item' || notification.type === 'artifact') {
+            // Skip item/artifact notifications - coping tools are handled separately
+            console.log(`Filtering out item/artifact notification for personality user: ${notification.message}`);
+            return false;
+          }
+          
+          // For quest notifications, only show if they match the user's personality trait
+          if (notification.type === 'quest' && this.primaryTrait) {
+            const questIdMatch = notification.message.match(/quest_id:\s*(\w+_\d+)/);
+            if (questIdMatch) {
+              const questId = questIdMatch[1];
+              const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+              if (questTraitMatch) {
+                const questTrait = questTraitMatch[1];
+                const matches = questTrait.toLowerCase() === this.primaryTrait.toLowerCase();
+                if (!matches) {
+                  console.log(`Filtering out quest notification for different personality trait: ${questId} (user trait: ${this.primaryTrait})`);
+                  return false;
+                }
+              }
+            }
+          }
+          
+          // Keep experience, stats, skills, and quest notifications (quest already filtered above)
+          return ['experience', 'stat', 'skill', 'quest'].includes(notification.type);
+          
+        } else {
+          // Character users should only see:
+          // - Resonance rewards (not experience)  
+          // - Character stat gains
+          // - Traditional items/artifacts/gear
+          // - Quest progress
+          
+          if (notification.type === 'experience') {
+            console.log(`Filtering out experience notification for character user: ${notification.message}`);
+            return false;
+          }
+          
+          if (notification.type === 'item') {
+            // For character users, filter out notifications for gear that wasn't newly acquired
+            const itemName = notification.message.replace('Gained ', '').replace('Found ', '').replace('Acquired ', '');
+            const isNewlyAcquired = this.newlyAcquiredGear.has(itemName);
+            console.log(`Item notification: ${itemName}, Newly acquired: ${isNewlyAcquired}`);
+            return isNewlyAcquired;
+          }
+          
+          // Keep resonance, stats, items, artifacts, and quest notifications
+          return ['resonance', 'stat', 'item', 'artifact', 'quest'].includes(notification.type);
         }
-        return true; // Keep all non-item notifications
       });
       
       console.log('Filtered notifications:', filteredNotifications);
@@ -160,41 +429,107 @@ export class StoryRewardManager {
     
     // Process choice rewards if the choice has rewards (regardless of passage processing)
     if (hasChoiceRewards(choice)) {
-      console.log('✅ Processing choice rewards:', choice.effects);
+      console.log('✅ Original choice effects:', choice.effects);
+      
+      // ✅ FILTER EFFECTS BASED ON USER TYPE AND PERSONALITY TRAIT
+      const effects = this.filterEffectsByUserType(choice.effects);
+      console.log('✅ Filtered choice effects:', effects);
+      
       this.rewardTracker = applyChoiceRewards(this.rewardTracker, choice, passageId);
       console.log('Reward tracker updated, total rewards:', this.rewardTracker.rewards.length);
       
-      // ✅ PROCESS UPGRADED GEAR REWARDS
-      if (choice.effects.rewards || choice.effects.artifacts) {
+      // ✅ PROCESS UPGRADED GEAR REWARDS (only for filtered effects)
+      if (effects.rewards || effects.artifacts) {
         console.log('=== PROCESSING UPGRADED GEAR REWARDS ===');
-        await this.processUpgradedGearRewards(choice.effects, 'choice');
+        await this.processItemRewards(effects, 'choice');
       }
       
-      // ✅ SAVE EXPERIENCE AND STATS IMMEDIATELY
+      // ✅ SAVE EXPERIENCE AND STATS IMMEDIATELY (only for filtered effects)
       // Experience and stats should be saved immediately so they appear in character data
-      if (choice.effects.experience || choice.effects.stats || Object.keys(choice.effects).some(key => ['awareness', 'resilience', 'connection', 'balance'].includes(key))) {
+      if (effects.experience || effects.stats || Object.keys(effects).some(key => ['awareness', 'resilience', 'connection', 'balance'].includes(key))) {
         console.log('=== SAVING EXPERIENCE AND STATS IMMEDIATELY ===');
-        await this.saveRewardsToBackend(choice.effects, 'choice');
+        await this.saveRewardsToBackend(effects, 'choice');
+      }
+
+      // ✅ SEND QUEST COMPLETION EVENTS IMMEDIATELY (only for filtered effects)
+      // Quest completion events should be sent immediately so they appear in the quest achievements
+      if (effects.quests || effects.quest_progress) {
+        console.log('=== SENDING QUEST COMPLETION EVENTS IMMEDIATELY ===');
+        await this.sendQuestCompletionEvents(effects, this.storyId, passageId);
       }
       
-      // Show floating notifications for each reward
-      const notifications = createNotificationFromEffects(choice.effects, this.researchCondition);
+      // Show floating notifications for each reward (using filtered effects)
+      const notifications = createNotificationFromEffects(effects, this.researchCondition);
       console.log('=== NOTIFICATION DEBUG ===');
       console.log('Created notifications:', notifications);
       console.log('Number of notifications:', notifications.length);
-      console.log('Effects that created notifications:', choice.effects);
+      console.log('Effects that created notifications:', effects);
       console.log('Newly acquired gear:', Array.from(this.newlyAcquiredGear));
       
-      // Filter out notifications for gear that wasn't newly acquired
+      // Filter notifications based on user type
       const filteredNotifications = notifications.filter(notification => {
-        if (notification.type === 'item') {
-          // Extract item name from notification message
-          const itemName = notification.message.replace('Gained ', '').replace('Found ', '').replace('Acquired ', '');
-          const isNewlyAcquired = this.newlyAcquiredGear.has(itemName);
-          console.log(`Item notification: ${itemName}, Newly acquired: ${isNewlyAcquired}`);
-          return isNewlyAcquired;
+        // Filter based on reward type for each user type
+        if (this.researchCondition === "personality") {
+          // Personality users should only see:
+          // - Experience rewards (not resonance)
+          // - Wellness stat gains (awareness, resilience, connection, balance)
+          // - Coping tools/skills (but not traditional items/artifacts)
+          // - Quest progress (only for their personality trait)
+          
+          if (notification.type === 'resonance') {
+            console.log(`Filtering out resonance notification for personality user: ${notification.message}`);
+            return false;
+          }
+          
+          if (notification.type === 'item' || notification.type === 'artifact') {
+            // Skip item/artifact notifications - coping tools are handled separately
+            console.log(`Filtering out item/artifact notification for personality user: ${notification.message}`);
+            return false;
+          }
+          
+          // For quest notifications, only show if they match the user's personality trait
+          if (notification.type === 'quest' && this.primaryTrait) {
+            const questIdMatch = notification.message.match(/quest_id:\s*(\w+_\d+)/);
+            if (questIdMatch) {
+              const questId = questIdMatch[1];
+              const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+              if (questTraitMatch) {
+                const questTrait = questTraitMatch[1];
+                const matches = questTrait.toLowerCase() === this.primaryTrait.toLowerCase();
+                if (!matches) {
+                  console.log(`Filtering out quest notification for different personality trait: ${questId} (user trait: ${this.primaryTrait})`);
+                  return false;
+                }
+              }
+            }
+          }
+          
+          // Keep experience, stats, skills, and quest notifications (quest already filtered above)
+          return ['experience', 'stat', 'skill', 'quest'].includes(notification.type);
+          
+        } else {
+          // Character users should only see:
+          // - Resonance rewards (not experience)  
+          // - Character stat gains
+          // - Traditional items/artifacts/gear
+          // - Quest progress
+          
+          if (notification.type === 'experience') {
+            console.log(`Filtering out experience notification for character user: ${notification.message}`);
+            return false;
+          }
+          
+          if (notification.type === 'item') {
+            // For character users, filter out notifications for gear that wasn't newly acquired
+            const itemName = notification.message.replace('Gained ', '').replace('Found ', '').replace('Acquired ', '');
+            const isNewlyAcquired = this.newlyAcquiredGear.has(itemName);
+            console.log(`Item notification: ${itemName}, Newly acquired: ${isNewlyAcquired}`);
+            return isNewlyAcquired;
+          }
+          
+          // Keep resonance, stats, items, artifacts, and quest notifications
+          return ['resonance', 'stat', 'item', 'artifact', 'quest'].includes(notification.type);
         }
-        return true; // Keep all non-item notifications
       });
       
       console.log('Filtered notifications:', filteredNotifications);
@@ -223,56 +558,30 @@ export class StoryRewardManager {
     this.processedChoices.add(choiceKey);
   }
 
-  // Process upgraded gear rewards using the new upgrade system
-  private async processUpgradedGearRewards(effects: Record<string, any>, source: 'passage' | 'choice'): Promise<void> {
+  private async processItemRewards(effects: Record<string, any>, source: 'passage' | 'choice'): Promise<void> {
     try {
-      console.log('=== PROCESSING UPGRADED GEAR REWARDS ===');
+      console.log('=== PROCESSING ITEM REWARDS ===');
       console.log('Effects:', effects);
       console.log('Source:', source);
-      console.log('Player inventory:', this.playerInventory);
-      console.log('Story replay count:', this.storyReplayCount);
+      console.log('Research condition:', this.researchCondition);
+      console.log('Character ID:', this.characterId);
+      console.log('User ID:', this.userId);
 
-      // Process gear/items with upgrade system
+      // Process items from effects
       if (effects.rewards || effects.artifacts) {
         const items = [...(effects.rewards || []), ...(effects.artifacts || [])];
-        console.log('Processing gear items:', items);
+        console.log('Processing items:', items);
         
         for (const itemName of items) {
           try {
             console.log(`=== PROCESSING ITEM: ${itemName} ===`);
             
-            // Check for upgrade opportunities
-            const upgradeResult = checkItemOwnershipAndUpgrade(
-              itemName, 
-              this.playerInventory, 
-              this.storyReplayCount
-            );
-            
-            if (upgradeResult) {
-              console.log('Upgrade result:', upgradeResult);
-              
-              // Create upgrade notification
-              const upgradeNotification = createUpgradeNotification(upgradeResult.upgrade);
-              console.log('Upgrade notification:', upgradeNotification);
-              
-              // Show upgrade notification
-              this.showNotification(
-                upgradeNotification.message, 
-                upgradeNotification.type
-              );
-              
-              // Save the upgraded item to backend
-              if (upgradeResult.isUpgrade || upgradeResult.upgrade.statBonus > 0) {
-                await this.saveUpgradedItemToBackend(upgradeResult);
-              }
-              
-              // Update local inventory
-              this.updateLocalInventory(upgradeResult);
-              
+            if (this.researchCondition === 'character') {
+              // Character users get gear
+              await this.processCharacterGearReward(itemName);
             } else {
-              console.log(`No upgrade path found for: ${itemName}`);
-              // Fall back to regular item acquisition
-              await this.saveRegularItemToBackend(itemName);
+              // Personality users get coping tools
+              await this.processPersonalityCopingToolReward(itemName);
             }
             
           } catch (error) {
@@ -281,12 +590,213 @@ export class StoryRewardManager {
           }
         }
       } else {
-        console.log('No gear items to process');
+        console.log('No items to process');
       }
 
-      console.log('=== UPGRADED GEAR REWARDS PROCESSED ===');
+      console.log('=== ITEM REWARDS PROCESSED ===');
     } catch (error) {
-      console.error('Error processing upgraded gear rewards:', error);
+      console.error('Error processing item rewards:', error);
+    }
+  }
+
+  private async processCharacterGearReward(itemName: string): Promise<void> {
+    console.log(`=== PROCESSING CHARACTER GEAR REWARD: ${itemName} ===`);
+    
+    try {
+      // Step 1: Get available gear types from the master gear list
+      console.log('Step 1: Fetching available gear types from master list...');
+      const availableGearTypes = await this.apiService.getAvailableGearTypes();
+      console.log('Available gear types from master list:', availableGearTypes);
+      
+      // Step 2: Check if the story reward item exists in the master gear list
+      const matchingGearType = availableGearTypes.find((gearType: any) => 
+        gearType.name?.toLowerCase() === itemName.toLowerCase()
+      );
+      
+      if (!matchingGearType) {
+        console.log(`❌ Gear "${itemName}" not found in master gear list, skipping...`);
+        return;
+      }
+      
+      console.log(`✅ Found matching gear type in master list: ${matchingGearType.name} (ID: ${matchingGearType.id})`);
+      
+      // Step 3: Get character's current gear using the equipped_gear endpoint
+      console.log('Step 2: Fetching character\'s current gear...');
+      const characterWithGear = await this.apiService.getCharacterWithGear(this.characterId);
+      console.log('Character equipped_gear:', characterWithGear.equipped_gear);
+      
+      // Step 4: Check if character already has this gear equipped
+      const alreadyEquipped = characterWithGear.equipped_gear?.some((gear: any) => 
+        gear?.name?.toLowerCase() === itemName.toLowerCase() ||
+        gear?.id === matchingGearType.id
+      );
+      
+      if (alreadyEquipped) {
+        console.log(`⚠️ Character already has "${itemName}" equipped, checking for upgrade opportunities...`);
+        
+        // Check for upgrade opportunities
+        const upgradeResult = checkItemOwnershipAndUpgrade(
+          itemName, 
+          this.playerInventory, 
+          this.storyReplayCount
+        );
+        
+        if (upgradeResult && (upgradeResult.isUpgrade || upgradeResult.upgrade.statBonus > 0)) {
+          console.log('Upgrade opportunity found:', upgradeResult);
+          
+          // Create upgrade notification
+          const upgradeNotification = createUpgradeNotification(upgradeResult.upgrade);
+          console.log('Showing upgrade notification:', upgradeNotification);
+          
+          this.showNotification(
+            upgradeNotification.message, 
+            upgradeNotification.type
+          );
+          
+          // Save the upgraded item to backend
+          await this.saveUpgradedItemToBackend(upgradeResult);
+          this.updateLocalInventory(upgradeResult);
+        } else {
+          console.log('No upgrade opportunity, character already has this gear');
+          // Don't show notification for already owned gear without upgrade
+        }
+        
+        return;
+      }
+      
+      // Step 5: Get character's unequipped gear to check full inventory
+      console.log('Step 3: Checking character\'s full gear inventory...');
+      const myGear = await this.apiService.getMyGear();
+      console.log('Character\'s full gear inventory:', myGear);
+      
+      const alreadyOwned = myGear.some((characterGear: any) => 
+        characterGear.gear_type?.id === matchingGearType.id ||
+        characterGear.gear_type?.name?.toLowerCase() === itemName.toLowerCase()
+      );
+      
+      if (alreadyOwned) {
+        console.log(`⚠️ Character already owns "${itemName}" in inventory, checking for upgrade...`);
+        
+        // Check for upgrade opportunities
+        const upgradeResult = checkItemOwnershipAndUpgrade(
+          itemName, 
+          this.playerInventory, 
+          this.storyReplayCount
+        );
+        
+        if (upgradeResult && (upgradeResult.isUpgrade || upgradeResult.upgrade.statBonus > 0)) {
+          console.log('Upgrade opportunity found for owned gear:', upgradeResult);
+          
+          // Create upgrade notification
+          const upgradeNotification = createUpgradeNotification(upgradeResult.upgrade);
+          this.showNotification(
+            upgradeNotification.message, 
+            upgradeNotification.type
+          );
+          
+          // Save the upgraded item to backend
+          await this.saveUpgradedItemToBackend(upgradeResult);
+          this.updateLocalInventory(upgradeResult);
+        } else {
+          console.log('No upgrade available, gear already owned');
+        }
+        
+        return;
+      }
+      
+      // Step 6: Character doesn't have this gear, acquire it
+      console.log(`✅ Character doesn't have "${itemName}", acquiring new gear...`);
+      
+      try {
+        const acquiredGear = await this.apiService.acquireGear(matchingGearType.id);
+        console.log(`✅ Successfully acquired new gear: ${itemName}`, acquiredGear);
+        
+        // Mark as newly acquired for notification purposes
+        this.newlyAcquiredGear.add(itemName);
+        
+        // Show notification for the new gear
+        this.showNotification(
+          `Acquired ${matchingGearType.name}! ${matchingGearType.emoji_icon || '🎒'}`, 
+          'item'
+        );
+        
+      } catch (gearError: any) {
+        console.error(`❌ Failed to acquire new gear ${itemName}:`, gearError);
+        
+        // Handle specific error cases
+        if (gearError.response?.status === 400) {
+          console.log('Gear acquisition failed due to validation error, might already exist');
+        } else if (gearError.response?.status === 500 && gearError.response?.data?.includes('duplicate key')) {
+          console.log('Duplicate key error - gear probably already exists');
+          // Don't show error notification for duplicates
+        } else {
+          this.showNotification(`Failed to acquire ${itemName}`, 'item');
+        }
+      }
+      
+    } catch (error) {
+      console.error(`❌ Failed to process character gear reward ${itemName}:`, error);
+      
+      // Fallback: Try to save as regular item
+      console.log('Falling back to regular item acquisition...');
+      
+      // Guard against personality-tagged gear during fallback
+      if (this.researchCondition === 'personality' && this.primaryTrait) {
+        const userSlug = normalizePersonalitySlug(this.primaryTrait);
+        // For now, skip fallback for personality users to avoid awarding character gear
+        console.log('Skipping fallback item acquisition for personality user:', itemName);
+        return; // do not award character gear to personality users
+      }
+      
+      await this.saveRegularItemToBackend(itemName);
+    }
+  }
+
+  private async processPersonalityCopingToolReward(itemName: string): Promise<void> {
+    console.log(`=== PROCESSING PERSONALITY COPING TOOL REWARD: ${itemName} ===`);
+    
+    try {
+      // Get available coping tools from the API
+      const availableCopingTools = await this.apiService.getAvailableCopingTools();
+      console.log('Available coping tools:', availableCopingTools);
+      
+      // Find the coping tool by name (case-insensitive)
+      const matchingTool = availableCopingTools.find((tool: any) => 
+        tool.name.toLowerCase() === itemName.toLowerCase()
+      );
+      
+      if (matchingTool) {
+        console.log(`✅ Found matching coping tool: ${matchingTool.name}`);
+        
+        // Acquire the coping tool directly since we can't check ownership without character-tools endpoints
+        try {
+          const acquiredTool = await this.apiService.acquireCopingToolByName(matchingTool.name);
+          console.log(`✅ Successfully acquired coping tool: ${acquiredTool?.name || matchingTool.name}`);
+          
+          // Show notification for the successfully acquired coping tool
+          this.showNotification(
+            `Unlocked ${matchingTool.name}! ${matchingTool.emoji_icon}`, 
+            'skill'
+          );
+          
+        } catch (apiError) {
+          console.error(`❌ API error while acquiring coping tool "${matchingTool.name}":`, apiError);
+          // Still show notification for the coping tool
+          this.showNotification(
+            `Unlocked ${matchingTool.name}! ${matchingTool.emoji_icon}`, 
+            'skill'
+          );
+        }
+        
+      } else {
+        console.log(`❌ Coping tool "${itemName}" not found in available tools`);
+        // Don't show notification for non-existent tools
+        return;
+      }
+      
+    } catch (error) {
+      console.error(`❌ Failed to process personality coping tool reward ${itemName}:`, error);
+      throw error;
     }
   }
 
@@ -295,36 +805,100 @@ export class StoryRewardManager {
     try {
       console.log('=== SAVING UPGRADED ITEM TO BACKEND ===');
       console.log('Upgrade result:', upgradeResult);
+      console.log('Research condition:', this.researchCondition);
+      console.log('Character ID:', this.characterId);
+      
+      // Skip character gear acquisition for personality users
+      if (this.researchCondition === 'personality') {
+        console.log('🚫 Skipping character gear acquisition for personality user');
+        return;
+      }
       
       const { upgradedItem, upgrade } = upgradeResult;
       
-      // Map the upgraded item name to gear type ID
-      const gearTypeId = this.mapItemNameToGearTypeId(upgradedItem);
+      // Get available gear types from the master list
+      const availableGearTypes = await this.apiService.getAvailableGearTypes();
+      console.log('Available gear types from master list:', availableGearTypes);
       
-      if (gearTypeId) {
-        console.log(`Calling apiService.acquireGear with gearTypeId: ${gearTypeId}`);
+      // Find the gear type by name (case-insensitive)
+      const matchingGearType = availableGearTypes.find((gearType: any) => 
+        gearType.name?.toLowerCase() === upgradedItem.toLowerCase()
+      );
+      
+      if (!matchingGearType) {
+        console.log(`❌ Gear type "${upgradedItem}" not found in master gear list`);
+        return;
+      }
+      
+      console.log(`✅ Found matching gear type for upgrade: ${matchingGearType.name} (ID: ${matchingGearType.id})`);
+      
+      // Check if user already has this gear using the proper endpoints
+      const characterWithGear = await this.apiService.getCharacterWithGear(this.characterId);
+      const myGear = await this.apiService.getMyGear();
+      
+      // Check equipped gear
+      const alreadyEquipped = characterWithGear.equipped_gear?.some((gear: any) => 
+        gear?.name?.toLowerCase() === upgradedItem.toLowerCase() ||
+        gear?.id === matchingGearType.id
+      );
+      
+      // Check full inventory
+      const alreadyOwned = myGear.some((characterGear: any) => 
+        characterGear.gear_type?.id === matchingGearType.id ||
+        characterGear.gear_type?.name?.toLowerCase() === upgradedItem.toLowerCase()
+      );
+      
+      if (alreadyEquipped || alreadyOwned) {
+        console.log(`⚠️ User already has upgraded gear: ${matchingGearType.name}`);
         
-        try {
-          const gearResult = await this.apiService.acquireGear(gearTypeId);
-          console.log(`✅ Upgraded gear acquired successfully: ${upgradedItem}`, gearResult);
-          
-          // Mark as newly acquired for notification purposes
-          this.newlyAcquiredGear.add(upgradedItem);
-          
-          // If this is a stat boost (not a new item), also apply the stat boost
-          if (upgrade.statBonus > 0 && !upgradeResult.isUpgrade) {
-            console.log(`Applying stat boost: +${upgrade.statBonus} to all stats`);
-            // You might want to call a separate API to apply stat boosts
-            // await this.apiService.applyStatBoost(this.characterId, upgrade.statBonus);
-          }
-          
-        } catch (gearError: any) {
-          console.error(`❌ Failed to acquire upgraded gear ${upgradedItem}:`, gearError);
+        // For upgrades, show the upgrade notification but don't acquire new gear
+        if (upgradeResult.isUpgrade) {
+          this.showNotification(
+            `${matchingGearType.name} upgraded! ${matchingGearType.emoji_icon || '⬆️'}`, 
+            'upgrade'
+          );
+        } else if (upgrade.statBonus > 0) {
+          this.showNotification(
+            `${matchingGearType.name} strengthened! +${upgrade.statBonus} stats`, 
+            'strengthen'
+          );
+        }
+        
+        return;
+      }
+      
+      // User doesn't have this gear, acquire it
+      try {
+        const gearResult = await this.apiService.acquireGear(matchingGearType.id);
+        console.log(`✅ Upgraded gear acquired successfully: ${upgradedItem}`, gearResult);
+        
+        // Mark as newly acquired for notification purposes
+        this.newlyAcquiredGear.add(upgradedItem);
+        
+        // Show appropriate upgrade notification
+        if (upgradeResult.isUpgrade) {
+          this.showNotification(
+            `Acquired upgraded ${matchingGearType.name}! ${matchingGearType.emoji_icon || '🎒'}`, 
+            'upgrade'
+          );
+        } else {
+          this.showNotification(
+            `Acquired ${matchingGearType.name}! ${matchingGearType.emoji_icon || '🎒'}`, 
+            'new'
+          );
+        }
+        
+      } catch (gearError: any) {
+        console.error(`❌ Failed to acquire upgraded gear ${upgradedItem}:`, gearError);
+        
+        // Handle specific error cases
+        if (gearError.response?.status === 400) {
+          console.log('Gear acquisition failed due to validation error');
+        } else if (gearError.response?.status === 500 && gearError.response?.data?.includes('duplicate key')) {
+          console.log('Duplicate key error - gear already exists');
+        } else {
           this.showNotification(`Failed to acquire ${upgradedItem}`, 'item');
         }
-      } else {
-        console.log(`❌ No gear type mapping found for upgraded item: ${upgradedItem}`);
-        this.showNotification(`Found ${upgradedItem} (not equippable)`, 'item');
       }
       
     } catch (error) {
@@ -337,16 +911,77 @@ export class StoryRewardManager {
     try {
       console.log(`=== SAVING REGULAR ITEM: ${itemName} ===`);
       
-      const gearTypeId = this.mapItemNameToGearTypeId(itemName);
-      
-      if (gearTypeId) {
-        const gearResult = await this.apiService.acquireGear(gearTypeId);
-        console.log(`✅ Regular gear acquired: ${itemName}`, gearResult);
-        this.newlyAcquiredGear.add(itemName);
-      } else {
-        console.log(`❌ No gear type mapping found for: ${itemName}`);
-        this.showNotification(`Found ${itemName} (not equippable)`, 'item');
+      // Skip character gear acquisition for personality users
+      if (this.researchCondition === 'personality') {
+        console.log('🚫 Skipping character gear acquisition for personality user');
+        return;
       }
+      
+      // Get available gear types from the master list
+      const availableGearTypes = await this.apiService.getAvailableGearTypes();
+      console.log('Available gear types from master list:', availableGearTypes);
+      
+      // Find the gear type by name (case-insensitive)
+      const matchingGearType = availableGearTypes.find((gearType: any) => 
+        gearType.name?.toLowerCase() === itemName.toLowerCase()
+      );
+      
+      if (!matchingGearType) {
+        console.log(`❌ Gear type "${itemName}" not found in master gear list`);
+        return;
+      }
+      
+      console.log(`✅ Found matching gear type: ${matchingGearType.name} (ID: ${matchingGearType.id})`);
+      
+      // Check if user already has this gear using proper endpoints
+      const characterWithGear = await this.apiService.getCharacterWithGear(this.characterId);
+      const myGear = await this.apiService.getMyGear();
+      
+      // Check equipped gear
+      const alreadyEquipped = characterWithGear.equipped_gear?.some((gear: any) => 
+        gear?.name?.toLowerCase() === itemName.toLowerCase() ||
+        gear?.id === matchingGearType.id
+      );
+      
+      // Check full inventory
+      const alreadyOwned = myGear.some((characterGear: any) => 
+        characterGear.gear_type?.id === matchingGearType.id ||
+        characterGear.gear_type?.name?.toLowerCase() === itemName.toLowerCase()
+      );
+      
+      if (alreadyEquipped || alreadyOwned) {
+        console.log(`⚠️ User already has gear: ${matchingGearType.name}`);
+        // Don't show notification for already owned gear in fallback
+        return;
+      }
+      
+      // Acquire the gear
+      try {
+        const gearResult = await this.apiService.acquireGear(matchingGearType.id);
+        console.log(`✅ Successfully acquired gear: ${gearResult.gear_type?.name || matchingGearType.name}`);
+        
+        // Mark as newly acquired for notification purposes
+        this.newlyAcquiredGear.add(matchingGearType.name);
+        
+        // Show notification for the successfully acquired gear
+        this.showNotification(
+          `Acquired ${matchingGearType.name}! ${matchingGearType.emoji_icon || '🎒'}`, 
+          'item'
+        );
+        
+      } catch (apiError: any) {
+        console.error(`❌ API error while acquiring gear "${matchingGearType.name}":`, apiError);
+        
+        // Handle specific error cases
+        if (apiError.response?.status === 400) {
+          console.log('Gear acquisition failed due to validation error');
+        } else if (apiError.response?.status === 500 && apiError.response?.data?.includes('duplicate key')) {
+          console.log('Duplicate key error - gear already exists');
+        } else {
+          this.showNotification(`Failed to acquire ${itemName}`, 'item');
+        }
+      }
+      
     } catch (error) {
       console.error(`Failed to save regular item ${itemName}:`, error);
       this.showNotification(`Failed to acquire ${itemName}`, 'item');
@@ -511,18 +1146,21 @@ export class StoryRewardManager {
         const items = [...(effects.rewards || []), ...(effects.artifacts || [])];
         for (const itemName of items) {
           try {
-            console.log(`Attempting to acquire gear: ${itemName}`);
-            // For now, we'll use a simple mapping approach
-            // In a real implementation, you'd have a mapping table
-            const gearTypeId = this.mapItemNameToGearTypeId(itemName);
-            if (gearTypeId) {
-              const gearResult = await this.apiService.acquireGear(gearTypeId);
-              console.log(`Gear acquired: ${itemName}`, gearResult);
+            console.log(`Attempting to acquire item: ${itemName}`);
+            console.log(`Research condition: ${this.researchCondition}`);
+            console.log(`Character ID: ${this.characterId}, User ID: ${this.userId}`);
+            
+            if (this.researchCondition === "personality" && this.userId) {
+              // For personality users, process coping tools
+              await this.processPersonalityCopingToolReward(itemName);
+            } else if (this.researchCondition === "character" && this.characterId > 0) {
+              // For character users, process gear
+              await this.processCharacterGearReward(itemName);
             } else {
-              console.log(`No gear type mapping found for: ${itemName}`);
+              console.log(`Skipping item acquisition - invalid conditions: researchCondition=${this.researchCondition}, characterId=${this.characterId}, userId=${this.userId}`);
             }
           } catch (error) {
-            console.error(`Failed to acquire gear ${itemName}:`, error);
+            console.error(`Failed to acquire item ${itemName}:`, error);
           }
         }
       }
@@ -534,34 +1172,114 @@ export class StoryRewardManager {
     }
   }
 
-  // Map item names to gear type IDs using the proper backend mapping
-  private mapItemNameToGearTypeId(itemName: string): number | null {
-    console.log(`=== MAPPING ITEM NAME TO GEAR TYPE ID ===`);
-    console.log(`Item name: ${itemName}`);
-    
-    // Import the proper mapping function
-    const { getBackendGearTypeId } = require('./rewardsUtils');
-    const gearTypeId = getBackendGearTypeId(itemName);
-    
-    if (gearTypeId) {
-      console.log(`Found backend gear type ID: ${gearTypeId} for item: ${itemName}`);
+  // Save quest progress directly to backend
+  private async sendQuestCompletionEvents(effects: Record<string, any>, storyId: string, currentPassageId: string): Promise<void> {
+    try {
+      console.log('=== SAVING QUEST PROGRESS ===');
+      console.log('Effects:', effects);
+      console.log('Story ID:', storyId);
+      console.log('Current passage ID:', currentPassageId);
+      console.log('Research condition:', this.researchCondition);
+      console.log('Primary trait:', this.primaryTrait);
       
-      // Get equipment asset info for logging
-      const assetInfo = getEquipmentAssetByName(itemName);
-      if (assetInfo) {
-        console.log(`Equipment asset info:`, {
-          displayName: assetInfo.displayName,
-          type: assetInfo.type,
-          subtype: assetInfo.subtype
+      // Extract quest progress from effects
+      const questProgress: Record<string, number> = {};
+      
+      console.log('Extracting quest progress from effects...');
+      
+      // Handle quest_progress field (new format)
+      if (effects.quest_progress && Array.isArray(effects.quest_progress)) {
+        console.log('Found quest_progress array:', effects.quest_progress);
+        effects.quest_progress.forEach((questId: string) => {
+          questProgress[questId] = (questProgress[questId] || 0) + 1;
+          console.log(`Added quest progress for ${questId}: ${questProgress[questId]}`);
         });
       }
-    } else {
-      console.log(`No backend gear type mapping found for: ${itemName}`);
-      console.log(`This item will not be added to the character's inventory`);
+      
+      // Handle quests field (legacy format)
+      if (effects.quests) {
+        console.log('Found quests field:', effects.quests);
+        if (Array.isArray(effects.quests)) {
+          effects.quests.forEach((questId: string) => {
+            questProgress[questId] = (questProgress[questId] || 0) + 1;
+            console.log(`Added quest progress for ${questId}: ${questProgress[questId]}`);
+          });
+        } else if (typeof effects.quests === 'string') {
+          questProgress[effects.quests] = (questProgress[effects.quests] || 0) + 1;
+          console.log(`Added quest progress for ${effects.quests}: ${questProgress[effects.quests]}`);
+        }
+      }
+      
+      if (Object.keys(questProgress).length > 0) {
+        console.log('Quest progress to save:', questProgress);
+        console.log('Research condition:', this.researchCondition);
+        console.log('Primary trait:', this.primaryTrait);
+        console.log('=== QUEST PROGRESS SAVING DEBUG ===');
+        console.log('Effects received by sendQuestCompletionEvents:', effects);
+        console.log('Quest progress extracted:', questProgress);
+        console.log('Number of quests to save:', Object.keys(questProgress).length);
+        
+        try {
+          // Save quest progress directly to backend - one call per quest
+          for (const [questId, progress] of Object.entries(questProgress)) {
+            console.log(`=== SAVING QUEST: ${questId} ===`);
+            console.log(`Quest ID: ${questId}`);
+            console.log(`Progress: ${progress}`);
+            console.log(`Story ID: ${this.storyId}`);
+            console.log(`Primary trait: ${this.primaryTrait}`);
+            
+            // Double-check if this quest should be saved for this personality type
+            const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+            if (questTraitMatch && this.primaryTrait) {
+              const questTrait = questTraitMatch[1];
+              const matches = questTrait.toLowerCase() === this.primaryTrait.toLowerCase();
+              console.log(`Quest trait: ${questTrait}, User trait: ${this.primaryTrait}, Matches: ${matches}`);
+              
+              if (!matches) {
+                console.log(`⚠️ WARNING: Saving quest ${questId} for user with trait ${this.primaryTrait} - this should have been filtered out!`);
+              } else {
+                console.log(`✅ Quest ${questId} matches user trait ${this.primaryTrait}`);
+              }
+            }
+            
+            await this.apiService.saveQuestProgress({
+              storyId: this.storyId,
+              questSlug: questId,
+              storyVariables: {
+                progress: progress,
+                source: 'story_passage'
+              },
+              playerState: {
+                quest_progress: { [questId]: progress }
+              }
+            });
+            console.log(`✅ Quest progress saved for ${questId}: ${progress}`);
+          }
+          console.log('✅ All quest progress saved successfully');
+          
+          // Show quest completion notifications
+          Object.entries(questProgress).forEach(([questId, progress]) => {
+            const questInfo = getQuestInfo(questId);
+            const questTitle = questInfo?.title || questId;
+            this.showNotification(`🎯 Quest Progress: ${questTitle}`, 'quest');
+          });
+          
+        } catch (questError) {
+          console.error('❌ Failed to save quest progress:', questError);
+        }
+              } else {
+          console.log('No quest progress to save');
+          console.log('Quest progress object is empty');
+        }
+      
+    } catch (error) {
+      console.error('❌ Failed to save quest progress:', error);
     }
-    
-    return gearTypeId;
   }
+
+
+
+
 
   // Call this when story is completed
   async handleStoryCompletion(currentSavedRewards: SavedRewards): Promise<void> {
@@ -1029,6 +1747,196 @@ export async function testGearAcquisition(apiService: any, characterId: number):
   
   console.log('=== GEAR ACQUISITION TEST COMPLETE ===');
 } 
+
+/**
+ * Test function to verify the new equipment reward system
+ * This function tests the proper integration with master gear list and character equipped gear
+ */
+export async function testEquipmentRewardSystem(apiService: any, characterId: number): Promise<void> {
+  console.log('=== TESTING NEW EQUIPMENT REWARD SYSTEM ===');
+  
+  try {
+    // Test 1: Get available gear types from master list
+    console.log('\n--- Test 1: Master Gear List ---');
+    const availableGearTypes = await apiService.getAvailableGearTypes();
+    console.log('Available gear types from master list:', availableGearTypes);
+    console.log('Number of available gear types:', availableGearTypes.length);
+    
+    if (availableGearTypes.length > 0) {
+      const firstGear = availableGearTypes[0];
+      console.log('First available gear:', firstGear);
+      console.log('Gear properties:', Object.keys(firstGear));
+    }
+    
+    // Test 2: Get character's current gear
+    console.log('\n--- Test 2: Character Gear Check ---');
+    const characterWithGear = await apiService.getCharacterWithGear(characterId);
+    console.log('Character equipped_gear array:', characterWithGear.equipped_gear);
+    
+    const myGear = await apiService.getMyGear();
+    console.log('Character full gear inventory:', myGear);
+    console.log('Number of owned gear items:', myGear.length);
+    
+    const equippedGear = await apiService.getEquippedGear();
+    console.log('Equipped gear only:', equippedGear);
+    console.log('Number of equipped gear items:', equippedGear.length);
+    
+    // Test 3: Test reward processing logic
+    console.log('\n--- Test 3: Reward Processing Logic ---');
+    
+    // Create a mock story reward manager
+    const mockShowNotification = (message: string, type: string) => {
+      console.log(`📢 NOTIFICATION: ${message} (${type})`);
+    };
+    
+    const mockOnStoryComplete = (data: any) => {
+      console.log('Story completed with data:', data);
+    };
+    
+    const rewardManager = new StoryRewardManager(
+      'test-story',
+      mockShowNotification,
+      mockOnStoryComplete,
+      apiService,
+      characterId,
+      [], // empty inventory
+      0,  // no replays
+      'character', // character user
+      undefined, // no user ID
+      undefined  // no primary trait
+    );
+    
+    // Test with some common gear names
+    const testGearNames = ['Ancient Scroll', 'Lens of Gentle Seeing', 'Focus Crystal', 'Shield of Resolve'];
+    
+    for (const gearName of testGearNames) {
+      console.log(`\n--- Testing gear reward: ${gearName} ---`);
+      
+      // Check if this gear exists in the master list
+      const matchingGear = availableGearTypes.find((gear: any) => 
+        gear.name?.toLowerCase() === gearName.toLowerCase()
+      );
+      
+      if (matchingGear) {
+        console.log(`✅ ${gearName} found in master list:`, matchingGear);
+        
+        // Check if character already has this gear
+        const alreadyEquipped = characterWithGear.equipped_gear?.some((gear: any) => 
+          gear?.name?.toLowerCase() === gearName.toLowerCase() ||
+          gear?.id === matchingGear.id
+        );
+        
+        const alreadyOwned = myGear.some((characterGear: any) => 
+          characterGear.gear_type?.id === matchingGear.id ||
+          characterGear.gear_type?.name?.toLowerCase() === gearName.toLowerCase()
+        );
+        
+        console.log(`   Already equipped: ${alreadyEquipped}`);
+        console.log(`   Already owned: ${alreadyOwned}`);
+        
+        if (!alreadyEquipped && !alreadyOwned) {
+          console.log(`   → Would acquire ${gearName} as new gear`);
+        } else {
+          console.log(`   → Would check for upgrade opportunities for ${gearName}`);
+        }
+        
+      } else {
+        console.log(`❌ ${gearName} NOT found in master list`);
+      }
+    }
+    
+    // Test 4: Test reward processing with actual effects
+    console.log('\n--- Test 4: Story Effects Processing ---');
+    
+    const testPassageEffects = {
+      experience: 10,
+      awareness: 2,
+      rewards: ['Ancient Scroll', 'Focus Crystal']
+    };
+    
+    console.log('Test passage effects:', testPassageEffects);
+    console.log('Processing test rewards...');
+    
+    // Test the private method through a mock passage visit
+    const mockPassage = {
+      id: 1,
+      chapter: 1,
+      passage_id: 'test-passage',
+      content: 'Test passage content',
+      passage_type: 'narration' as const,
+      speaker: null,
+      required_conditions: {},
+      story_effects: testPassageEffects,
+      mood: '',
+      background_music: '',
+      background_image: null,
+      order: 1,
+      choices: []
+    };
+    
+    // This tests the full reward processing pipeline
+    await rewardManager.handlePassageVisit(mockPassage);
+    
+    console.log('✅ Test reward processing completed');
+    
+  } catch (error: any) {
+    console.error('❌ Equipment reward system test failed:', error);
+    console.error('Error details:', {
+      name: error?.name || 'Unknown',
+      message: error?.message || 'No message',
+      stack: error?.stack || 'No stack trace'
+    });
+  }
+  
+  console.log('\n=== EQUIPMENT REWARD SYSTEM TEST COMPLETE ===');
+}
+
+/**
+ * Debug function to check API endpoints are working correctly
+ */
+export async function debugEquipmentEndpoints(apiService: any): Promise<void> {
+  console.log('=== DEBUGGING EQUIPMENT API ENDPOINTS ===');
+  
+  try {
+    // Test each endpoint individually
+    console.log('\n1. Testing gear-types/available endpoint...');
+    try {
+      const availableGear = await apiService.getAvailableGearTypes();
+      console.log('✅ Available gear types:', availableGear?.length || 0, 'items');
+    } catch (error) {
+      console.error('❌ Failed to get available gear types:', error);
+    }
+    
+    console.log('\n2. Testing character-gear/my_gear endpoint...');
+    try {
+      const myGear = await apiService.getMyGear();
+      console.log('✅ My gear:', myGear?.length || 0, 'items');
+    } catch (error) {
+      console.error('❌ Failed to get my gear:', error);
+    }
+    
+    console.log('\n3. Testing character-gear/equipped endpoint...');
+    try {
+      const equippedGear = await apiService.getEquippedGear();
+      console.log('✅ Equipped gear:', equippedGear?.length || 0, 'items');
+    } catch (error) {
+      console.error('❌ Failed to get equipped gear:', error);
+    }
+    
+    console.log('\n4. Testing characters/{id}/ endpoint for equipped_gear...');
+    try {
+      const character = await apiService.getMyCharacter();
+      console.log('✅ Character equipped_gear array:', character.equipped_gear?.length || 0, 'items');
+    } catch (error) {
+      console.error('❌ Failed to get character with gear:', error);
+    }
+    
+  } catch (error) {
+    console.error('❌ Equipment endpoint debugging failed:', error);
+  }
+  
+  console.log('\n=== EQUIPMENT ENDPOINT DEBUGGING COMPLETE ===');
+}
 
 // Export the debug function for use in story components
 export { debugRewardDetection } from './rewardsUtils';

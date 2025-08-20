@@ -11,6 +11,10 @@ import {
   View
 } from "react-native";
 import { useMasterState } from "../context/MasterStateContext";
+import { convertGameDataToPerformance, useDDA } from "../hooks/useDDA";
+import { useProgressLogger } from "../hooks/useProgressLogger";
+import { TDifficulty } from "../services/apiService";
+import { ThoughtDefenderRunDTO } from "../types/thoughtDefender";
 import {
   formatThoughtDefenderRewardMessage,
   processThoughtDefenderCompletion
@@ -365,6 +369,11 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const [lives, setLives] = useState<number>(3);
   const [level, setLevel] = useState<number>(1);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
+  
+  // Update thoughts ref whenever thoughts state changes
+  useEffect(() => {
+    thoughtsRef.current = thoughts;
+  }, [thoughts]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [playerX, setPlayerX] = useState<number>(
     GAME_WIDTH / 2 - PADDLE_WIDTH / 2
@@ -376,11 +385,32 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const [totalThoughtsSpawned, setTotalThoughtsSpawned] = useState<number>(0);
   const [positiveThoughtsCleared, setPositiveThoughtsCleared] = useState<number>(0);
   const [negativeThoughtsCleared, setNegativeThoughtsCleared] = useState<number>(0);
+  
+  // Game statistics for logging
+  const [shotsFired, setShotsFired] = useState<number>(0);
+  const [hits, setHits] = useState<number>(0);
+  const [powerupsCollected, setPowerupsCollected] = useState<number>(0);
 
-  const { wellness, character, theme } = useMasterState();
+  // DDA (Dynamic Difficulty Adjustment) system
+  const {
+    ddaState,
+    calculateDifficulty,
+    updateBaseline,
+    getAdaptiveDifficulty,
+    getAdaptiveModifiers
+  } = useDDA();
+
+  // Event-based progress logger
+  const logger = useProgressLogger({
+    game: 'thought_defender',
+    flushIntervalMs: 4000,
+    maxBuffer: 200
+  });
+
+  const { wellness, character, theme, archive } = useMasterState();
   const homeData = wellness.homeData;
   const backendCharacter = character.backendCharacter;
-  const hasHomeData = homeData?.character;
+  const hasHomeData = homeData && 'userProfile' in homeData ? homeData.userProfile?.character : homeData;
   const hasBackendCharacter = backendCharacter;
 
   const getThoughtsForCharacter = useCallback(() => {
@@ -424,10 +454,68 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const spawnLoopRef = useRef<number>(0);
   const thoughtIdCounter = useRef<number>(0);
   const projectileIdCounter = useRef<number>(0);
+  const thoughtsRef = useRef<Thought[]>([]);
 
   const getDifficultyConfig = useCallback((): DifficultyConfig => {
-    return DIFFICULTY_LEVELS[selectedDifficulty] || DIFFICULTY_LEVELS.normal;
-  }, [selectedDifficulty]);
+    const baseDifficulty = DIFFICULTY_LEVELS[selectedDifficulty] || DIFFICULTY_LEVELS.normal;
+    
+    // Apply DDA adaptive modifiers if available
+    if (ddaState.lastResult) {
+      const adaptiveModifiers = getAdaptiveModifiers(baseDifficulty.modifiers);
+      return {
+        ...baseDifficulty,
+        modifiers: adaptiveModifiers
+      };
+    }
+    
+    return baseDifficulty;
+  }, [selectedDifficulty, ddaState.lastResult, getAdaptiveModifiers]);
+
+  // Handle Thought Defender game over and logging
+  const handleGameOver = async (finalStats: {
+    score: number;
+    level: number;
+    wavesCleared: number;
+    shotsFired: number;
+    hits: number;
+    livesRemaining: number;
+    durationMs: number;
+    difficulty: string;
+    result: 'win' | 'lose' | 'quit';
+    perksUsed?: string[];
+    powerupsCollected?: number;
+    startedAt: number;   // epoch ms
+    finishedAt: number;  // epoch ms
+  }) => {
+    const accuracy = finalStats.shotsFired > 0 ? finalStats.hits / finalStats.shotsFired : 0;
+
+    const payload: ThoughtDefenderRunDTO = {
+      score: finalStats.score,
+      level: finalStats.level,
+      wavesCleared: finalStats.wavesCleared,
+      shotsFired: finalStats.shotsFired,
+      hits: finalStats.hits,
+      accuracy,
+      livesRemaining: finalStats.livesRemaining,
+      durationMs: finalStats.durationMs,
+      difficulty: finalStats.difficulty,
+      result: finalStats.result,
+      perksUsed: finalStats.perksUsed ?? [],
+      powerupsCollected: finalStats.powerupsCollected ?? 0,
+      startedAt: new Date(finalStats.startedAt).toISOString(),
+      finishedAt: new Date(finalStats.finishedAt).toISOString(),
+      clientVersion: process.env.EXPO_PUBLIC_APP_VERSION ?? 'web',
+    };
+
+    // Non-blocking save with subtle UI feedback
+    console.log('🕹️ Saving Thought Defender run...');
+    try {
+      await archive.logThoughtDefenderRun(payload);
+      console.log('✅ Thought Defender run saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save Thought Defender run:', error);
+    }
+  };
 
   const getCurrentWaveTarget = useCallback((): number => {
     const difficulty = getDifficultyConfig();
@@ -490,6 +578,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       });
     }
 
+    setShotsFired(prev => prev + 1);
     setCanShoot(false);
     setTimeout(() => setCanShoot(true), shootSpeed);
   }, [
@@ -504,6 +593,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
     const powerUp = POWER_UPS[powerUpType as keyof typeof POWER_UPS];
     if (!powerUp) return;
+
+    // Log powerup collected event
+    logger.powerupCollected(level, powerUpType);
 
     switch (powerUpType) {
       case "shield":
@@ -545,7 +637,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         );
         break;
     }
-  }, []);
+  }, [logger, level]);
 
   const spawnThought = useCallback((): void => {
     if (!gameStarted || lives <= 0) return;
@@ -615,9 +707,10 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       return updated;
     });
 
-    // Update thoughts
+    // Update thoughts and handle collisions in a single operation
     setThoughts((prev) => {
-      const updated = prev
+      // First, update positions and handle thoughts reaching bottom
+      let updated = prev
         .map((t) => ({ ...t, y: t.y + t.speed }))
         .filter((t) => {
           // Remove thoughts that reached bottom and handle life loss
@@ -627,6 +720,8 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
               if (!gameState.shieldActive) {
                 setLives((currentLives) => {
                   const newLives = Math.max(0, currentLives - 1);
+                  // Log player hit event (non-blocking)
+                  logger.playerHit(level, 1, newLives);
                   return newLives;
                 });
               }
@@ -644,63 +739,90 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           return true;
         });
 
-      return updated;
-    });
+      // Then handle collisions with projectiles using the current projectiles state
+      const currentProjectiles = projectiles; // This will be stale, but we'll handle it differently
+      const thoughtsToRemove = new Set<number>();
 
-    // Check collisions
-    setProjectiles((prevProjectiles) => {
-      let updatedProjectiles = [...prevProjectiles];
+      // Check each projectile against each negative thought
+      for (let i = currentProjectiles.length - 1; i >= 0; i--) {
+        const projectile = currentProjectiles[i];
 
-      setThoughts((prevThoughts) => {
-        let updatedThoughts = [...prevThoughts];
+        for (let j = updated.length - 1; j >= 0; j--) {
+          const thought = updated[j];
 
-        // Check each projectile against each negative thought
-        for (let i = updatedProjectiles.length - 1; i >= 0; i--) {
-          const projectile = updatedProjectiles[i];
+          if (!thought.isPositive && !thoughtsToRemove.has(thought.id)) {
+            const dx = projectile.x - (thought.x + 40);
+            const dy = projectile.y - (thought.y + 20);
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-          for (let j = updatedThoughts.length - 1; j >= 0; j--) {
-            const thought = updatedThoughts[j];
+            if (distance < 42) {
+              // Collision detected - mark thought for removal
+              thoughtsToRemove.add(thought.id);
 
-            if (!thought.isPositive) {
-              const dx = projectile.x - (thought.x + 40);
-              const dy = projectile.y - (thought.y + 20);
-              const distance = Math.sqrt(dx * dx + dy * dy);
+              // Score with multiplier
+              const difficulty = getDifficultyConfig();
+              const basePoints = 15 * difficulty.modifiers.scoreMultiplier;
+              const points = Math.round(basePoints * gameState.scoreMultiplier);
+              setScore(prevScore => {
+                const newScore = prevScore + points;
+                return newScore;
+              });
 
-              if (distance < 42) {
-                // Collision detected
-                updatedProjectiles.splice(i, 1);
-                updatedThoughts.splice(j, 1);
+              // Track cleared thoughts
+              setGameState((prev) => ({
+                ...prev,
+                thoughtsCleared: prev.thoughtsCleared + 1,
+              }));
+              
+                             // Track negative thoughts cleared by projectiles
+               setNegativeThoughtsCleared(prev => prev + 1);
+               
+               // Log enemy destroyed event (non-blocking)
+               logger.enemyDestroyed(level, 'thought', points);
 
-                // Score with multiplier
-                const difficulty = getDifficultyConfig();
-                const basePoints = 15 * difficulty.modifiers.scoreMultiplier;
-                const points = Math.round(basePoints * gameState.scoreMultiplier);
-                setScore(prevScore => {
-                  const newScore = prevScore + points;
-                  return newScore;
-                });
-
-                // Track cleared thoughts
-                setGameState((prev) => ({
-                  ...prev,
-                  thoughtsCleared: prev.thoughtsCleared + 1,
-                }));
-                
-                // Track negative thoughts cleared by projectiles
-                setNegativeThoughtsCleared(prev => prev + 1);
-
-                break;
-              }
+              break;
             }
           }
         }
+      }
 
-        return updatedThoughts;
-      });
+      // Remove thoughts that were hit by projectiles
+      updated = updated.filter(thought => !thoughtsToRemove.has(thought.id));
 
-      return updatedProjectiles;
+      return updated;
     });
-  }, [gameStarted, lives, gameState.shieldActive, gameState.scoreMultiplier, getDifficultyConfig]);
+
+    // Update projectiles to remove those that hit thoughts
+    setProjectiles((prevProjectiles) => {
+      const updatedProjectiles = [...prevProjectiles];
+      const currentThoughts = thoughtsRef.current; // Use ref to get current thoughts
+      const projectilesToRemove = new Set<number>();
+
+      // Check each projectile against each negative thought
+      for (let i = updatedProjectiles.length - 1; i >= 0; i--) {
+        const projectile = updatedProjectiles[i];
+
+        for (let j = currentThoughts.length - 1; j >= 0; j--) {
+          const thought = currentThoughts[j];
+
+          if (!thought.isPositive) {
+            const dx = projectile.x - (thought.x + 40);
+            const dy = projectile.y - (thought.y + 20);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 42) {
+              // Collision detected - mark projectile for removal
+              projectilesToRemove.add(projectile.id);
+              break;
+            }
+          }
+        }
+      }
+
+      // Remove projectiles that hit thoughts
+      return updatedProjectiles.filter(projectile => !projectilesToRemove.has(projectile.id));
+    });
+  }, [gameStarted, lives, gameState.shieldActive, gameState.scoreMultiplier, getDifficultyConfig, logger, level, positiveThoughtsCleared, negativeThoughtsCleared, gameStartTime, score, selectedDifficulty, character, ui, onScoreUpdate, projectiles]);
 
   const handleThoughtPress = (thought: Thought): void => {
 
@@ -720,6 +842,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     // Activate power-up if available
     if (thought.powerUpType) {
       activatePowerUp(thought.powerUpType);
+      setPowerupsCollected(prev => prev + 1);
     }
 
     // Remove thought and track progress
@@ -731,9 +854,22 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     
     // Track positive thoughts cleared for reward calculation
     setPositiveThoughtsCleared(prev => prev + 1);
+    
+    // Track hits for logging
+    setHits(prev => prev + 1);
+
+    // Log enemy destroyed event
+    logger.enemyDestroyed(level, 'thought', points);
   };
 
   const startGame = useCallback((): void => {
+    
+    // Apply adaptive difficulty if DDA is available
+    const adaptiveDifficulty = getAdaptiveDifficulty(selectedDifficulty);
+    if (adaptiveDifficulty !== selectedDifficulty) {
+      console.log(`DDA: Adjusting difficulty from ${selectedDifficulty} to ${adaptiveDifficulty}`);
+      setSelectedDifficulty(adaptiveDifficulty);
+    }
     
     const difficulty = getDifficultyConfig();
 
@@ -765,7 +901,18 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     setTotalThoughtsSpawned(0);
     setPositiveThoughtsCleared(0);
     setNegativeThoughtsCleared(0);
-  }, [selectedDifficulty, getDifficultyConfig]);
+    
+    // Initialize game statistics for logging
+    setShotsFired(0);
+    setHits(0);
+    setPowerupsCollected(0);
+
+    // Start event-based logging
+    const difficultyName: TDifficulty = DIFFICULTY_LEVELS[selectedDifficulty].name as TDifficulty;
+    logger.start(difficultyName);
+    // If you already track wave 1 begin:
+    logger.waveStart(1);
+  }, [selectedDifficulty, getDifficultyConfig, getAdaptiveDifficulty, logger]);
 
   const checkWinCondition = useCallback((): void => {
     const difficulty = getDifficultyConfig();
@@ -798,6 +945,61 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         const survivalTime = Math.floor((Date.now() - gameStartTime) / 1000);
         const totalThoughtsCleared = positiveThoughtsCleared + negativeThoughtsCleared;
         const currentExperience = character.backendCharacter?.experience || 0;
+        
+        // Calculate DDA for winning scenario
+        const gameEndTime = Date.now();
+        const performance = convertGameDataToPerformance(
+          score,
+          level,
+          true, // won
+          totalThoughtsCleared,
+          totalThoughtsSpawned,
+          survivalTime,
+          gameStartTime,
+          gameEndTime
+        );
+        
+        // Calculate DDA and update baseline
+        const ddaResult = calculateDifficulty(performance);
+        updateBaseline(performance);
+        
+        console.log('DDA Result (WIN):', {
+          difficulty: ddaResult.difficulty.toFixed(3),
+          ease: ddaResult.ease.toFixed(3),
+          rpd: ddaResult.rpd.toFixed(3),
+          performanceRatio: ddaResult.performanceRatio.toFixed(3),
+          recommendation: ddaResult.recommendedAdjustment,
+          reason: ddaResult.adjustmentReason
+        });
+        
+        // Log the Thought Defender run
+        handleGameOver({
+          score,
+          level,
+          wavesCleared: gameState.wave,
+          shotsFired,
+          hits,
+          livesRemaining: lives,
+          durationMs: Date.now() - gameStartTime,
+          difficulty: selectedDifficulty,
+          result: 'win',
+          powerupsCollected,
+          startedAt: gameStartTime,
+          finishedAt: Date.now(),
+        });
+
+        // Log session end for event-based logging (non-blocking)
+        const durationMs = Date.now() - gameStartTime;
+        const difficultyName: TDifficulty = DIFFICULTY_LEVELS[selectedDifficulty].name as TDifficulty;
+        logger.end({
+          duration_ms: durationMs,
+          waves_cleared: level,
+          kills: positiveThoughtsCleared + negativeThoughtsCleared,
+          score,
+          difficulty: difficultyName,
+          quit_reason: 'completed',
+          accuracy: shotsFired > 0 ? Math.round((hits / shotsFired) * 100) : undefined,
+        });
         
         // Process rewards using the new reward system
         const rewardResult = processThoughtDefenderCompletion(
@@ -892,8 +1094,11 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         thoughtsInWave: 0,
         thoughtsCleared: 0,
       }));
+
+      // Log wave start for the new level
+      logger.waveStart(level + 1);
     }
-  }, [gameState.thoughtsCleared, level, score, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, getCurrentWaveTarget, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, totalThoughtsSpawned, character]);
+  }, [gameState.thoughtsCleared, level, score, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, getCurrentWaveTarget, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, totalThoughtsSpawned, character, logger, ui]);
 
   const endGame = useCallback((): void => {
     setGameStarted(false);
@@ -907,6 +1112,61 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const survivalTime = Math.floor((Date.now() - gameStartTime) / 1000);
     const totalThoughtsCleared = positiveThoughtsCleared + negativeThoughtsCleared;
     const currentExperience = character.backendCharacter?.experience || 0;
+    
+    // Calculate DDA performance metrics
+    const gameEndTime = Date.now();
+    const performance = convertGameDataToPerformance(
+      score,
+      level,
+      false, // won will be determined by game state
+      totalThoughtsCleared,
+      totalThoughtsSpawned,
+      survivalTime,
+      gameStartTime,
+      gameEndTime
+    );
+    
+    // Calculate DDA and update baseline
+    const ddaResult = calculateDifficulty(performance);
+    updateBaseline(performance);
+    
+    console.log('DDA Result:', {
+      difficulty: ddaResult.difficulty.toFixed(3),
+      ease: ddaResult.ease.toFixed(3),
+      rpd: ddaResult.rpd.toFixed(3),
+      performanceRatio: ddaResult.performanceRatio.toFixed(3),
+      recommendation: ddaResult.recommendedAdjustment,
+      reason: ddaResult.adjustmentReason
+    });
+    
+    // Log the Thought Defender run
+    handleGameOver({
+      score,
+      level,
+      wavesCleared: gameState.wave - 1,
+      shotsFired,
+      hits,
+      livesRemaining: lives,
+      durationMs: Date.now() - gameStartTime,
+      difficulty: selectedDifficulty,
+      result: 'lose',
+      powerupsCollected,
+      startedAt: gameStartTime,
+      finishedAt: Date.now(),
+    });
+
+    // Log session end for event-based logging (non-blocking)
+    const durationMs = Date.now() - gameStartTime;
+    const difficultyName: TDifficulty = DIFFICULTY_LEVELS[selectedDifficulty].name as TDifficulty;
+    logger.end({
+      duration_ms: durationMs,
+      waves_cleared: level,
+      kills: positiveThoughtsCleared + negativeThoughtsCleared,
+      score,
+      difficulty: difficultyName,
+      quit_reason: 'dead',
+      accuracy: shotsFired > 0 ? Math.round((hits / shotsFired) * 100) : undefined,
+    });
     
     // Process rewards using the new reward system
     const rewardResult = processThoughtDefenderCompletion(
@@ -989,7 +1249,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         ]
       );
     }
-  }, [score, level, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, totalThoughtsSpawned, character]);
+  }, [score, level, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, totalThoughtsSpawned, character, logger, ui]);
 
   // Check win condition
   useEffect(() => {
@@ -1038,6 +1298,53 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const renderDifficultySelect = () => (
     <View style={styles.difficultyScreen}>
       <Text style={styles.difficultyTitle}>SELECT DIFFICULTY</Text>
+      
+      {/* DDA Status Display */}
+      {!ddaState.isFirstGame && ddaState.lastResult && (
+        <View style={{
+          backgroundColor: '#1a1a1a',
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 16,
+          borderWidth: 1,
+          borderColor: '#4ee6e6'
+        }}>
+          <Text style={{
+            color: '#4ee6e6',
+            fontSize: 14,
+            fontWeight: 'bold',
+            textAlign: 'center',
+            marginBottom: 8
+          }}>
+            🧠 Adaptive Difficulty Active
+          </Text>
+          <Text style={{
+            color: '#ccc',
+            fontSize: 12,
+            textAlign: 'center',
+            marginBottom: 4
+          }}>
+            Games played: {ddaState.gamesPlayed}
+          </Text>
+          <Text style={{
+            color: '#ccc',
+            fontSize: 12,
+            textAlign: 'center',
+            marginBottom: 4
+          }}>
+            Difficulty: {(ddaState.lastResult.difficulty * 100).toFixed(1)}% | 
+            Ease: {(ddaState.lastResult.ease * 100).toFixed(1)}%
+          </Text>
+          <Text style={{
+            color: '#FCD34D',
+            fontSize: 11,
+            textAlign: 'center',
+            fontStyle: 'italic'
+          }}>
+            {ddaState.lastResult.adjustmentReason}
+          </Text>
+        </View>
+      )}
       
       <View style={styles.difficultyOptionsContainer}>
         <ScrollView 

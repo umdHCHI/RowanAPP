@@ -1,6 +1,6 @@
 import React from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { CharacterFrameProps } from "../../types/user";
+import { CharacterFrameProps } from "../../types/characterCreator";
 
 const DEFAULT_FRAME = require("../../../assets/character-creator/BGs/brown/brown_one.png");
 
@@ -23,7 +23,7 @@ const CharacterFrame: React.FC<CharacterFrameProps> = ({
       >
         <Image source={frame} style={{ width: size, height: size }} />
       </View>
-      <View style={[styles.passages, { width: size * 1.1, height: size * 1.1 }]}>{children}</View>
+      <View style={[styles.passages, { width: size * 1.3, height: size * 1.3 }]}>{children}</View>
     </View>
   );
 };

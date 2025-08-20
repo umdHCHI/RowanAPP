@@ -1,3 +1,4 @@
+import { PersonalityKey } from './personality';
 export type EquipmentType = 'focus' | 'comfort' | 'shield' | 'ground';
 
 export type EquipmentSubtype = 
@@ -61,3 +62,34 @@ export const RARITY_COLORS = {
   epic: '#A855F7',
   legendary: '#F97316'
 } as const; 
+
+
+
+export interface CopingToolsCollectionProps {
+  unlockedTools: string[];
+  primaryTrait: PersonalityKey;
+  authToken: string | null;
+  globalStyles: any;
+}
+
+export interface CopingTool {
+    id: number;
+    name: string;
+    tool_type: string; // aligns with base stats
+    subtype: string;
+    description: string;
+    emoji_icon: string;
+    awareness_bonus: number;
+    resilience_bonus: number;
+    connection_bonus: number;
+    balance_bonus: number;
+    level_required: number;
+    memories_required: number;
+    insights_required: number;
+    wellness_bonuses: Record<string, number>;
+    personality_type: string;
+    tool_id: string; // Unique identifier for the tool
+    is_unlocked_for_character: boolean;
+    created_at: string;
+}
+

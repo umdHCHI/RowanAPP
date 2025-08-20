@@ -1,16 +1,6 @@
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { CategoryConfig } from '../../types/user';
-
-interface CategorySelectorProps {
-  title: string;
-  categories: CategoryConfig[];
-  selectedIndex: number;
-  onCategorySelect: (index: number) => void;
-  styles: any;
-  horizontal?: boolean;
-  maxHeight?: number;
-}
+import { CategorySelectorProps } from '../../types/characterCreator';
 
 export const CategorySelector: React.FC<CategorySelectorProps> = ({
   title,

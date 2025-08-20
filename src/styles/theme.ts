@@ -106,6 +106,139 @@ export type ThemeColors = {
   authErrorText?: string;
   authErrorButton?: string;
   authErrorButtonText?: string;
+
+  // Character Home Screen specific colors
+  tabTextColor?: string; // Color for tab text
+  tabTextSecondColor?: string; // Color for secondary tab text
+  tabIsActiveGradient?: string; // Gradient for active tab background
+  tabIsActiveSecondaryGradient?: string; // Secondary gradient for active tab background
+  tabTextShadowColor?: string; // Shadow color for tab text
+  
+  // Character display colors
+  characterFrameBorder?: string;
+  characterFrameShadow?: string;
+  characterLevelBadgeText?: string;
+  characterMoodBubbleBorder?: string;
+  characterMoodBubbleShadow?: string;
+  characterMoodBubbleText?: string;
+  characterRarityText?: string;
+  characterRarityShadow?: string;
+  characterClassText?: string;
+  characterNameText?: string;
+  characterNameShadow?: string;
+  experienceProgressBorder?: string;
+  experienceProgressShadow?: string;
+  experienceProgressText?: string;
+  
+  // Gear system colors
+  gearSlotBorder?: string;
+  gearSlotShadow?: string;
+  gearSlotLockedText?: string;
+  gearSlotGradientStart?: string;
+  gearSlotGradientEnd?: string;
+  
+  // Foundation section colors
+  foundationsSectionBorder?: string;
+  foundationsSectionShadow?: string;
+  foundationsTitleText?: string;
+  foundationsTitleShadow?: string;
+  foundationsSubtitleText?: string;
+  foundationsSubtitleShadow?: string;
+  foundationCardBorder?: string;
+  foundationCardShadow?: string;
+  foundationCardGradientStart?: string;
+  foundationCardGradientMiddle?: string;
+  foundationCardGradientEnd?: string;
+  
+  // Story/Chronicle colors
+  chronicleCardBorder?: string;
+  chronicleCardShadow?: string;
+  chronicleGradientStart?: string;
+  chronicleGradientMiddle?: string;
+  chronicleGradientEnd?: string;
+  chronicleButtonGradientStart?: string;
+  chronicleButtonGradientMiddle?: string;
+  chronicleButtonGradientEnd?: string;
+  chronicleButtonShadow?: string;
+  chronicleButtonText?: string;
+  
+  // Button colors
+  restartButtonBackground?: string;
+  restartButtonBorder?: string;
+  restartButtonShadow?: string;
+  restartButtonText?: string;
+  debugButtonBackground?: string;
+  debugButtonBorder?: string;
+  debugButtonShadow?: string;
+  debugButtonText?: string;
+  playButtonBackground?: string;
+  playButtonBorder?: string;
+  playButtonShadow?: string;
+  playButtonText?: string;
+  playButtonTextShadow?: string;
+  
+  // Section container colors
+  sectionContainerBackground?: string;
+  sectionContainerBorder?: string;
+  sectionContainerShadow?: string;
+  sectionHeaderBorder?: string;
+  
+  // Codex specific colors
+  codexSectionBackground?: string;
+  codexSectionBorder?: string;
+  codexSectionShadow?: string;
+  codexTitleText?: string;
+  codexTitleShadow?: string;
+  codexSubtitleText?: string;
+  codexSubtitleShadow?: string;
+  codexButtonBackground?: string;
+  codexButtonBorder?: string;
+  codexButtonShadow?: string;
+  codexButtonText?: string;
+  codexButtonTextShadow?: string;
+  codexPromptBackground?: string;
+  codexPromptBorder?: string;
+  codexPromptShadow?: string;
+  codexPromptTitleText?: string;
+  codexPromptTitleShadow?: string;
+  codexPromptContentText?: string;
+  codexPromptContentShadow?: string;
+  
+  // Mind Defender specific colors
+  mindDefenderSectionBackground?: string;
+  mindDefenderSectionBorder?: string;
+  mindDefenderSectionShadow?: string;
+  mindDefenderTitleText?: string;
+  mindDefenderTitleShadow?: string;
+  mindDefenderSubtitleText?: string;
+  mindDefenderSubtitleShadow?: string;
+  mindDefenderTipsBackground?: string;
+  mindDefenderTipsBorder?: string;
+  mindDefenderTipsShadow?: string;
+  mindDefenderTipsTitleText?: string;
+  mindDefenderTipsTitleShadow?: string;
+  mindDefenderTipsContentText?: string;
+  mindDefenderTipsContentShadow?: string;
+  
+  // Progress and stats colors
+  explorationBarFillStart?: string;
+  explorationBarFillMiddle?: string;
+  explorationBarFillEnd?: string;
+  categoryBadgeBackground?: string;
+  categoryBadgeText?: string;
+  difficultyBadgeBackground?: string;
+  difficultyBadgeText?: string;
+  chronicleStatText?: string;
+  explorationLabelText?: string;
+  explorationValueText?: string;
+  
+  // Loading and empty state colors
+  loadingIconColor?: string;
+  loadingTitleText?: string;
+  loadingSubtitleText?: string;
+  emptyStateIconColor?: string;
+  emptyStateTitleText?: string;
+  emptyStateSubtitleText?: string;
 };
 
 // The new theme designed to evoke an "old library" feeling.
@@ -319,6 +452,168 @@ export const onboardingTheme: ThemeColors = {
   authErrorText: "#ccc",
   authErrorButton: "#4ee6e6",
   authErrorButtonText: "#0a0b0f",
+};
+
+export const characterCreatorTheme: ThemeColors = {
+};
+
+export const personalitySurveyTheme: ThemeColors = {
+  background: '#0a0b0f',
+  gradientOverlayBackground: 'rgba(180, 126, 126, 0.5)',
+  primary: 'rgba(56, 139, 211, 0.38)',
+  tabBarInactive: '#9CA3AF', // Light gray for unselected option text
+  text: '#ffffff', // White text for selected options and other text
+  buttonTextColor: '#ffffff',
+  modalOverlayBackground: 'rgba(0,0,0,0.5)',
+  placeholderTextColor: '#9CA3AF',
+  floatingIconColor: '#4ee6e6',
+  avatarGlow: '#4ee6e6',
+  gameTitle: '#4ee6e6',
+  gameTitleShadow: 'rgba(78, 230, 230, 0.5)',
+  gameSubtitle: '#d4af37',
+  personalityClass: '#ffe066',
+  researchHint: '#4ee6e6',
+  curatorCard: 'rgba(212, 175, 55, 0.15)',
+  curatorCardBorder: '#d4af37',
+  curatorCardShadowColor: '#d4af37',
+  curatorName: '#d4af37',
+  curatorTitle: '#ccc',
+  curatorText: '#fff',
+  curatorHint: '#d4af37',
+};
+
+export const characterHomeScreenTheme: ThemeColors = {
+  tabTextColor:  '#4ee6e6',
+  tabTextSecondColor: '#9CA3AF', // Dark brown shadow for text
+  tabIsActiveGradient: "rgba(78, 230, 230, 0.4)",
+  tabIsActiveSecondaryGradient: "rgba(6, 182, 212, 0.4)", // Secondary gradient for active tab background
+  tabTextShadowColor: 'rgba(78, 230, 230, 0.5)',
+  
+  // Character display colors
+  characterFrameBorder: '#d4af37',
+  characterFrameShadow: '#d4af37',
+  characterLevelBadgeText: '#0a0b0f',
+  characterMoodBubbleBorder: '#d4af37',
+  characterMoodBubbleShadow: '#8b4513',
+  characterMoodBubbleText: '#2c1810',
+  characterRarityText: '#4ee6e6',
+  characterRarityShadow: 'rgba(78, 230, 230, 0.3)',
+  characterClassText: '#d4af37',
+  characterNameText: '#ffe066',
+  characterNameShadow: 'rgba(255, 224, 102, 0.5)',
+  experienceProgressBorder: '#4ee6e6',
+  experienceProgressShadow: '#4ee6e6',
+  experienceProgressText: '#0a0b0f',
+  
+  // Gear system colors
+  gearSlotBorder: '#d4af37',
+  gearSlotShadow: '#d4af37',
+  gearSlotLockedText: '#6B7280',
+  gearSlotGradientStart: 'rgba(10, 11, 15, 0.9)',
+  gearSlotGradientEnd: 'rgba(30, 41, 59, 0.7)',
+  
+  // Foundation section colors
+  foundationsSectionBorder: '#d4af37',
+  foundationsSectionShadow: '#d4af37',
+  foundationsTitleText: '#4ee6e6',
+  foundationsTitleShadow: 'rgba(78, 230, 230, 0.5)',
+  foundationsSubtitleText: '#d4af37',
+  foundationsSubtitleShadow: 'rgba(212, 175, 55, 0.3)',
+  foundationCardBorder: '#d4af37',
+  foundationCardShadow: '#d4af37',
+  foundationCardGradientStart: 'rgba(10, 11, 15, 0.9)',
+  foundationCardGradientMiddle: 'rgba(30, 41, 59, 0.7)',
+  foundationCardGradientEnd: 'rgba(10, 11, 15, 0.9)',
+  
+  // Story/Chronicle colors
+  chronicleCardBorder: '#d4af37',
+  chronicleCardShadow: '#d4af37',
+  chronicleGradientStart: 'rgba(10, 11, 15, 0.95)',
+  chronicleGradientMiddle: 'rgba(30, 41, 59, 0.8)',
+  chronicleGradientEnd: 'rgba(10, 11, 15, 0.95)',
+  chronicleButtonGradientStart: 'rgba(78, 230, 230, 0.4)',
+  chronicleButtonGradientMiddle: 'rgba(6, 182, 212, 0.4)',
+  chronicleButtonGradientEnd: 'rgba(78, 230, 230, 0.4)',
+  chronicleButtonShadow: 'rgba(78, 230, 230, 0.2)',
+  chronicleButtonText: 'rgba(78, 230, 230, 0.9)',
+  
+  // Button colors
+  restartButtonBackground: 'rgba(78, 230, 230, 0.1)',
+  restartButtonBorder: 'rgba(78, 230, 230, 0.4)',
+  restartButtonShadow: 'rgba(78, 230, 230, 0.2)',
+  restartButtonText: 'rgba(78, 230, 230, 0.7)',
+  debugButtonBackground: 'rgba(212, 175, 55, 0.2)',
+  debugButtonBorder: '#d4af37',
+  debugButtonShadow: '#d4af37',
+  debugButtonText: '#d4af37',
+  playButtonBackground: '#2a8a8a',
+  playButtonBorder: '#2a8a8a',
+  playButtonShadow: '#2a8a8a',
+  playButtonText: '#ffffff',
+  playButtonTextShadow: 'rgba(0, 0, 0, 0.3)',
+  
+  // Section container colors
+  sectionContainerBackground: 'rgba(10, 11, 15, 0.95)',
+  sectionContainerBorder: '#d4af37',
+  sectionContainerShadow: '#d4af37',
+  sectionHeaderBorder: '#d4af37',
+  
+  // Codex specific colors
+  codexSectionBackground: 'rgba(10, 11, 15, 0.95)',
+  codexSectionBorder: '#d4af37',
+  codexSectionShadow: '#d4af37',
+  codexTitleText: 'rgba(78, 230, 230, 0.8)',
+  codexTitleShadow: 'rgba(78, 230, 230, 0.3)',
+  codexSubtitleText: '#d4af37',
+  codexSubtitleShadow: 'rgba(212, 175, 55, 0.3)',
+  codexButtonBackground: 'rgba(78, 230, 230, 0.3)',
+  codexButtonBorder: 'rgba(78, 230, 230, 0.5)',
+  codexButtonShadow: 'rgba(78, 230, 230, 0.2)',
+  codexButtonText: 'rgba(78, 230, 230, 0.9)',
+  codexButtonTextShadow: 'rgba(78, 230, 230, 0.2)',
+  codexPromptBackground: 'rgba(78, 230, 230, 0.1)',
+  codexPromptBorder: '#4ee6e6',
+  codexPromptShadow: '#4ee6e6',
+  codexPromptTitleText: 'rgba(78, 230, 230, 0.7)',
+  codexPromptTitleShadow: 'rgba(78, 230, 230, 0.2)',
+  codexPromptContentText: '#ffe066',
+  codexPromptContentShadow: 'rgba(255, 224, 102, 0.3)',
+  
+  // Mind Defender specific colors
+  mindDefenderSectionBackground: 'rgba(10, 11, 15, 0.95)',
+  mindDefenderSectionBorder: '#d4af37',
+  mindDefenderSectionShadow: '#d4af37',
+  mindDefenderTitleText: 'rgba(78, 230, 230, 0.8)',
+  mindDefenderTitleShadow: 'rgba(78, 230, 230, 0.3)',
+  mindDefenderSubtitleText: '#d4af37',
+  mindDefenderSubtitleShadow: 'rgba(212, 175, 55, 0.3)',
+  mindDefenderTipsBackground: 'rgba(10, 11, 15, 0.95)',
+  mindDefenderTipsBorder: '#d4af37',
+  mindDefenderTipsShadow: '#d4af37',
+  mindDefenderTipsTitleText: '#4ee6e6',
+  mindDefenderTipsTitleShadow: 'rgba(78, 230, 230, 0.5)',
+  mindDefenderTipsContentText: '#d4af37',
+  mindDefenderTipsContentShadow: 'rgba(212, 175, 55, 0.3)',
+  
+  // Progress and stats colors
+  explorationBarFillStart: '#06B6D4',
+  explorationBarFillMiddle: '#A855F7',
+  explorationBarFillEnd: '#4F46E5',
+  categoryBadgeBackground: 'rgba(78, 230, 230, 0.2)',
+  categoryBadgeText: '#4ee6e6',
+  difficultyBadgeBackground: 'rgba(212, 175, 55, 0.2)',
+  difficultyBadgeText: '#d4af37',
+  chronicleStatText: '#e0dcd3',
+  explorationLabelText: '#06B6D4',
+  explorationValueText: '#06B6D4',
+  
+  // Loading and empty state colors
+  loadingIconColor: '#A855F7',
+  loadingTitleText: '#4ee6e6',
+  loadingSubtitleText: '#d4af37',
+  emptyStateIconColor: '#A855F7',
+  emptyStateTitleText: '#4ee6e6',
+  emptyStateSubtitleText: '#d4af37',
 };
 
 // Updated getTheme function to properly switch between themes

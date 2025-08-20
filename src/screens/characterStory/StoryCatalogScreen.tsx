@@ -50,7 +50,7 @@ const StoryCatalogModal = ({
 
   // Load stories when modal becomes visible
   useEffect(() => {
-    const loadStorys = async () => {
+    const loadStories = async () => {
       if (!visible) return;
 
       setIsLoading(true);
@@ -75,7 +75,7 @@ const StoryCatalogModal = ({
       }
     };
 
-    loadStorys();
+          loadStories();
   }, [visible]);
 
   // Load story progress for all stories
@@ -217,7 +217,10 @@ const StoryCatalogModal = ({
   };
 
   const getRarityColors = (rarity: string): readonly [string, string] => {
-    switch (rarity) {
+    // Normalize rarity to handle both uppercase and lowercase inputs
+    const normalizedRarity = rarity.charAt(0).toUpperCase() + rarity.slice(1).toLowerCase();
+    
+    switch (normalizedRarity) {
       case "Legendary":
         return ["#F97316", "#FCD34D"];
       case "Epic":
@@ -230,7 +233,10 @@ const StoryCatalogModal = ({
   };
 
   const getRarityGlow = (rarity: string): string => {
-    switch (rarity) {
+    // Normalize rarity to handle both uppercase and lowercase inputs
+    const normalizedRarity = rarity.charAt(0).toUpperCase() + rarity.slice(1).toLowerCase();
+    
+    switch (normalizedRarity) {
       case "Legendary":
         return "rgba(249, 115, 22, 0.3)";
       case "Epic":
@@ -539,7 +545,7 @@ const StoryCatalogModal = ({
             style={{ marginBottom: 16 }}
           />
           <Text style={{ color: "white", fontSize: 18, margin: 20 }}>
-            Loading Storys from the Archive...
+                            Loading Stories from the Archive...
           </Text>
         </View>
       </Modal>
@@ -650,7 +656,7 @@ const StoryCatalogModal = ({
                         },
                       ]}
                     >
-                      Archive of Storys
+                      Archive of Stories
                     </Text>
                     <View
                       style={{ flexDirection: "row", alignItems: "center" }}
@@ -927,7 +933,7 @@ const StoryCatalogModal = ({
                           textAlign: "center",
                         }}
                       >
-                        {progressFilter === 'all' ? 'No Storys Available' : `No ${progressFilter.replace('-', ' ')} Stories`}
+                        {progressFilter === 'all' ? 'No Stories Available' : `No ${progressFilter.replace('-', ' ')} Stories`}
                       </Text>
                       <Text
                         style={{

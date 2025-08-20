@@ -15,11 +15,13 @@ export const isStoryPersonalityMatched = async (story: any): Promise<boolean> =>
 
 /**
  * Get stories filtered by the current user's personality type
- * @param includeGeneral - Whether to include stories with empty personality_type (general stories)
+ * Excludes general stories (empty personality_focus) except for the Introduction story
+ * @param includeGeneral - Legacy parameter, no longer used - general stories are always excluded except introduction
  * @returns Promise<any[]> - Filtered array of stories
  */
 export const getStoriesByUserPersonality = async (includeGeneral: boolean = true): Promise<any[]> => {
   const userPrimaryTrait = await apiService.getUserPrimaryPersonalityTrait();
+  // Note: includeGeneral is ignored - we always exclude general stories except introduction
   return await apiService.getStoriesByPersonality(userPrimaryTrait || undefined, includeGeneral);
 };
 
@@ -46,55 +48,83 @@ export const getUserPrimaryPersonalityTrait = async (): Promise<string | null> =
 };
 
 /**
- * Check if a story is a general story (no specific personality type)
+ * Check if a story is a general story (no specific personality focus)
  * @param story - The story object to check
- * @returns boolean - True if the story is general (empty personality_type)
+ * @returns boolean - True if the story is general (empty personality_focus array) and NOT the introduction story
  */
 export const isGeneralStory = (story: any): boolean => {
-  const storyPersonalityType = story.personality_type;
-  return !storyPersonalityType || Object.keys(storyPersonalityType).length === 0;
+  // Introduction story (ID 12) should always be included for everyone
+  if (story.id === 12) {
+    return false; // Don't filter out introduction story
+  }
+  
+  const personalityFocus = story.personality_focus;
+  
+  // Check if personality_focus is empty or null
+  if (!personalityFocus) {
+    return true; // This is a general story that should be filtered out
+  }
+  
+  // Check if personality_focus is an empty array
+  if (Array.isArray(personalityFocus) && personalityFocus.length === 0) {
+    return true; // This is a general story that should be filtered out
+  }
+  
+  return false; // This story has specific personality focus, don't filter it out
 };
 
 /**
- * Check if a story is personality-specific (has a personality type)
+ * Check if a story is personality-specific (has a personality focus)
  * @param story - The story object to check
- * @returns boolean - True if the story has a specific personality type
+ * @returns boolean - True if the story has a specific personality focus or is the introduction story
  */
 export const isPersonalitySpecificStory = (story: any): boolean => {
+  // Introduction story (ID 12) should always be included
+  if (story.id === 12) {
+    return true;
+  }
+  
   return !isGeneralStory(story);
 };
 
 /**
- * Get personality type display name for a story
+ * Get personality focus display name for a story
  * @param story - The story object
- * @returns string - Display name for the personality type or "General" if no specific type
+ * @returns string - Display name for the personality focus or "General" if no specific focus
  */
 export const getStoryPersonalityDisplayName = (story: any): string => {
+  // Introduction story should be labeled as "Universal"
+  if (story.id === 12) {
+    return "Universal";
+  }
+  
   if (isGeneralStory(story)) {
     return "General";
   }
   
-  const storyPersonalityType = story.personality_type;
+  const personalityFocus = story.personality_focus;
   
-  // Handle different formats
-  if (typeof storyPersonalityType === 'string') {
-    return storyPersonalityType;
+  // Handle array format
+  if (Array.isArray(personalityFocus) && personalityFocus.length > 0) {
+    return personalityFocus[0]; // Return the first personality focus
   }
   
-  if (storyPersonalityType && typeof storyPersonalityType === 'object') {
-    if (storyPersonalityType.personality_type) {
-      return storyPersonalityType.personality_type;
+  // Handle string format
+  if (typeof personalityFocus === 'string') {
+    return personalityFocus;
+  }
+  
+  // Handle object format
+  if (personalityFocus && typeof personalityFocus === 'object') {
+    if (personalityFocus.personality_focus) {
+      return personalityFocus.personality_focus;
     }
     
     // Return the first personality trait if it's an object with trait names as keys
-    const keys = Object.keys(storyPersonalityType);
+    const keys = Object.keys(personalityFocus);
     if (keys.length > 0) {
       return keys[0];
     }
-  }
-  
-  if (Array.isArray(storyPersonalityType) && storyPersonalityType.length > 0) {
-    return storyPersonalityType[0];
   }
   
   return "Unknown";

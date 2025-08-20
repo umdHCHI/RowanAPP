@@ -71,18 +71,50 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
   };
 
   const getStatColor = (stat: string) => {
-    switch (stat) {
-      case "awareness":
-        return "#4A90E2";
-      case "resilience":
-        return "#2ECC71";
-      case "connection":
-        return "#E74C3C";
-      case "balance":
-        return "#F39C12";
-      default:
-        return "#fff";
+    const colors: Record<string, string> = {
+      awareness: '#4ee6e6',
+      resilience: '#2a9d8f',
+      connection: '#f72585',
+      balance: '#ffd60a',
+      mindfulness: '#4ee6e6',
+      focus: '#4ee6e6',
+      confidence: '#2a9d8f',
+      empathy: '#f72585',
+      organization: '#ffd60a'
+    };
+    return colors[stat] || '#ffffff';
+  };
+
+  // Map backend gear stat bonuses to frontend wellness stats
+  const mapBackendStatsToWellnessStats = (statBonuses: Record<string, number>): Record<string, number> => {
+    const wellnessStats: Record<string, number> = {
+      awareness: 0,
+      resilience: 0,
+      connection: 0,
+      balance: 0
+    };
+    
+    // Map backend attributes to frontend wellness stats
+    if (statBonuses.mindfulness) {
+      wellnessStats.awareness += statBonuses.mindfulness;
     }
+    if (statBonuses.focus) {
+      wellnessStats.awareness += statBonuses.focus;
+    }
+    if (statBonuses.confidence) {
+      wellnessStats.resilience += statBonuses.confidence;
+    }
+    if (statBonuses.resilience) {
+      wellnessStats.resilience += statBonuses.resilience;
+    }
+    if (statBonuses.empathy) {
+      wellnessStats.connection += statBonuses.empathy;
+    }
+    if (statBonuses.organization) {
+      wellnessStats.balance += statBonuses.organization;
+    }
+    
+    return wellnessStats;
   };
 
   const getItemImage = (gear: CharacterGear) => {
@@ -169,15 +201,16 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
   );
 
   const renderBackendGearItem = (gear: CharacterGear, isEquipped: boolean) => {
+    const wellnessStats = mapBackendStatsToWellnessStats(gear.gear_type.stat_bonuses);
     const item: EquipmentItem = {
       id: gear.id.toString(),
       name: gear.gear_type.name,
       type: mapBackendSlotToFrontendType(gear.gear_type.slot),
-      subtype: 'meditation' as any, // Default subtype
+      subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot),
       description: gear.gear_type.description,
       unlockCondition: 'Unlocked through story completion',
-      wellnessStats: gear.gear_type.stat_bonuses,
-      effect: `Provides ${Object.entries(gear.gear_type.stat_bonuses).map(([stat, value]) => `${stat} +${value}`).join(', ')}`,
+      wellnessStats: wellnessStats,
+      effect: `Provides ${Object.entries(wellnessStats).map(([stat, value]) => value > 0 ? `${stat} +${value}` : '').filter(Boolean).join(', ')}`,
       rarity: 'common',
       level: 1
     };
@@ -192,6 +225,68 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       case 'helmet': return 'shield';
       case 'boots': return 'ground';
       default: return 'focus';
+    }
+  };
+
+  const mapBackendGearToSubtype = (gearName: string, slot: 'weapon' | 'armor' | 'helmet' | 'boots'): EquipmentSubtype => {
+    const name = gearName.toLowerCase();
+    
+    switch (slot) {
+      case 'weapon':
+        // Story reward items
+        if (name.includes('ancient scroll')) return 'meditation';
+        if (name.includes('clarity lens')) return 'meditation';
+        if (name.includes('explorer') && name.includes('notebook')) return 'journaling';
+        if (name.includes('intuition compass')) return 'meditation';
+        if (name.includes('empathy conduit')) return 'meditation';
+        if (name.includes('toolkit story')) return 'meditation';
+        
+        // Generic weapon types
+        if (name.includes('meditation') || name.includes('breathing')) return 'meditation';
+        if (name.includes('journal')) return 'journaling';
+        return 'meditation'; // default for focus items
+        
+      case 'armor':
+        // Story reward items
+        if (name.includes('personal style cloak')) return 'social';
+        if (name.includes('cultural wisdom wrap')) return 'social';
+        if (name.includes('adaptation shield')) return 'social';
+        if (name.includes('sanctuary shroud')) return 'social';
+        
+        // Generic armor types
+        if (name.includes('social') || name.includes('friend')) return 'social';
+        if (name.includes('hobby') || name.includes('activity')) return 'hobby';
+        if (name.includes('nature') || name.includes('outdoor')) return 'nature';
+        return 'social'; // default for comfort items
+        
+      case 'helmet':
+        // Story reward items
+        if (name.includes('reality filter')) return 'boundary';
+        if (name.includes('growth mindset crown')) return 'affirmation';
+        if (name.includes('authenticity guard')) return 'boundary';
+        if (name.includes('guardian ward')) return 'boundary';
+        
+        // Generic helmet types
+        if (name.includes('boundary') || name.includes('limit')) return 'boundary';
+        if (name.includes('affirmation') || name.includes('positive')) return 'affirmation';
+        if (name.includes('routine') || name.includes('habit')) return 'routine';
+        return 'boundary'; // default for shield items
+        
+      case 'boots':
+        // Story reward items
+        if (name.includes('personal values foundation')) return 'exercise';
+        if (name.includes('support network roots')) return 'exercise';
+        if (name.includes('self-compassion stone')) return 'exercise';
+        if (name.includes('foundation stone')) return 'exercise';
+        
+        // Generic boot types
+        if (name.includes('exercise') || name.includes('movement')) return 'exercise';
+        if (name.includes('sleep') || name.includes('rest')) return 'sleep';
+        if (name.includes('nutrition') || name.includes('food')) return 'nutrition';
+        return 'exercise'; // default for ground items
+        
+      default:
+        return 'meditation';
     }
   };
 

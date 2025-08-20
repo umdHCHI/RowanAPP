@@ -1,102 +1,89 @@
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 
 // Get API URLs from environment configuration
 const envApiBaseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
 
-// Determine which API URL to use based on platform and environment
+// Determine which API URL to use
 const getApiBaseUrl = (): string => {
-
-    const baseUrl = envApiBaseUrl || 'http://131.212.41.8/api/';
-    
-    
-    if (baseUrl.includes(':8000')) {
+    const baseUrl = envApiBaseUrl;  // Prod environment variable  
+    if (baseUrl.includes(':8000')) { // If the URL already has port 8000, return it as is(local development)
         return baseUrl;
-    }
-    
-    
+    }    
     const url = new URL(baseUrl);
     url.port = '8000';
-    return url.href;
-    
+    return url.href;    
 };
 
 export const apiBaseUrl = getApiBaseUrl();
 
-console.log('=== API Configuration ===');
-console.log('Platform:', Platform.OS);
-console.log('Environment API Base URL:', envApiBaseUrl);
-console.log('Environment API Local URL:', envApiBaseUrl);
-console.log('Selected API Base URL:', apiBaseUrl);
-console.log('Is Development:', __DEV__);
-console.log('========================');
-
-if (!apiBaseUrl) {
-    console.error('Failed to determine API base URL');
-    throw new Error('API_BASE_URL could not be determined');
-}
-
 // Updated API endpoints to match the new simplified backend structure
 export const API_ENDPOINTS = {
     // Authentication
-    login: 'auth/login/',
-    logout: 'auth/logout/',
-    // Note: tokenVerify endpoint doesn't exist on backend
+    login: 'auth/login/', //okay
+    logout: 'auth/logout/', //has bugs 
+
     
     // User endpoints
     users: 'users/',
+    currentUser: 'users/me/',
     userProfile: 'users/', //{id}/full_profile/
     //PATCH to update user profile
     updateUserProfile: 'users/update-profile/',
 
-
+    researchGroupPost: 'users/research-groups/', // POST to join a research group
     
-    // Character endpoints - updated to match actual backend structure
-    characters: 'characters/characters/', // Base character endpoint for POST/GET
-    
-    characterHomeData: 'characters/characters/home_data/', // Character home data endpoint
-    characterStats: 'characters/characters/stats/', // Character stats endpoint
-    gainExperience: 'characters/characters/', // {id}/gain_experience/ USE ME
-    gainWellness: 'characters/characters/', // {id}/gain_wellness/ USE ME
-    updateCustomization: 'characters/characters/', // {id}/update_customization/ USE ME
+    // ----------------- Character endpoints -----------------
+    characters: 'characters/', // Base character endpoint for POST/GET
+    characterHomeData: 'characters/', // Character home data endpoint - updated to use direct endpoint
+    characterStats: 'characters/', // Character stats endpoint
+    gainExperience: 'characters/', // {id}/gain_experience/ USE ME
+    gainWellness: 'characters/', // {id}/gain_wellness/ USE ME
+    updateCustomization: 'characters/', // {id}/update_customization/ USE ME
+
+    // Wellness & Coping Tools --- for personality type 
+    copingTools: 'coping-tools/',
+    availableCopingTools: 'coping-tools/available/',
+    awardCopingTool: 'coping-tools/award-tool/',
+    myTools: 'coping-tools/my-tools/',
+    equippedTools: 'coping-tools/equipped/',
+    characterTools: 'coping-tools/character-tools/',
+    equipTool: 'coping-tools/',
+    unequipTool: 'coping-tools/',
+    useTool: 'coping-tools/',
 
 
-
-
-    // User survey endpoints - now handled directly via updateUserProfile
-    // postUserSurvey: 'users/update_profile/', // Removed - using updateUserProfile directly
-    
-    // Wellness & Coping Tools 
-    copingTools: 'characters/coping-tools/',
-    availableCopingTools: 'characters/coping-tools/available/',
-    copingToolsByType: 'characters/coping-tools/by-type/',
-    
-    // Character Tools 
-    myTools: 'characters/character-tools/my-tools/',
-    equippedTools: 'characters/character-tools/equipped/',
-    equipTool: 'characters/character-tools/', // {id}/equip/
-    unequipTool: 'characters/character-tools/', // {id}/unequip/
-    useTool: 'characters/character-tools/', // {id}/use/
-    toolUsageStats: 'characters/character-tools/usage-stats/',
-    characterTools: 'characters/character-tools/',    // Journal & Codex (your actual backend structure)
-    journalPrompts: 'journal/journal-prompts/',
-    //post to journal 
-    codexEntries: 'journal/codex-entries/',
-    myCodexEntries: 'journal/codex-entries/my-entries/',
-    createCodexEntry: 'journal/codex-entries/',
+    // Journal & Codex - All users use journal endpoints for compliance
+    journalPrompts: 'journal/journal-prompts/', 
+    journalPromptsAvailable: 'journal/journal-prompts/available/',
+    journalPromptsDaily: 'journal/journal-prompts/daily/',
+    journalPromptsCompleted: 'journal/journal-prompts/completed/',
+    journalPromptsByStoryTag: 'journal/journal-prompts/by_story_tag/',
+    codexEntries: 'journal/codex-entries/', 
+    codexEntriesStats: 'journal/codex-entries/stats/',
+    codexEntriesRecent: 'journal/codex-entries/recent/',
+    createCodexEntry: 'journal/codex-entries/', 
     uploadAudio: 'journal/upload-audio/',
     uploadDrawing: 'journal/upload-drawing/',
     
-    // Gear
-    gearTypes: 'characters/gear-types/',
-    characterGear: 'characters/character-gear/',
-    myGear: 'characters/character-gear/my_gear/',
-    availableGear: 'characters/gear-types/',
-    equippedGear: 'characters/character-gear/equipped/',
-    equipGear: 'characters/character-gear/', // {id}/equip/
-    unequipGear: 'characters/character-gear/', // {id}/unequip/
-    acquireGear: 'characters/character-gear/',
+    // Legacy reflections endpoints (deprecated - maintained for backward compatibility only)
+    myReflections: 'reflections/my_reflections/', 
+    recentReflections: 'reflections/recent/',
+    createReflection: 'reflections/',
     
+    // User-scoped journal endpoints (Note: These may not be implemented yet)
+    userJournalPrompts: 'users/', // {userId}/journal/prompts/by-category/
+    // userCodexEntries: 'users/', // {userId}/codex/entries/ - NOT IMPLEMENTED IN BACKEND
+    
+    // Gear
+    gearTypes: 'gear-types/',
+    characterGear: 'character-gear/',
+    myGear: 'character-gear/my_gear/',
+    availableGear: 'gear-types/',
+    equippedGear: 'character-gear/equipped/',
+    equipGear: 'character-gear/', // {id}/equip/
+    unequipGear: 'character-gear/', // {id}/unequip/
+    acquireGear: 'character-gear/',
+
     // Personality & Survey endpoints
     personalityTraits: 'personality/traits/',
     myTraits: 'personality/traits/my-traits/',
@@ -152,6 +139,20 @@ export const API_ENDPOINTS = {
     surveySubmit: 'surveys/submit/',
     personality: 'personality/',
     gameData: 'game/my-data/',
+    
+    // Game endpoints
+    // PRIMARY: matches nova.urls
+    gameDataLogThoughtDefenderRun: 'game/game-data/thought-defender/run/',
+    
+    // GENERIC progress (DRF ViewSet)
+    gameProgressRecord: 'game/progress/record_progress/',
+    
+    // Quest progress is handled through the existing make_choice endpoint
+    // No separate quest progress endpoints needed
+    
+    // LEGACY fallbacks (keep for compatibility)
+    recordActivity: 'game/record-activity/',
+    recordProgressLegacy: 'game/record-progress/',
 } as const;
 
 // Helper to get full URL

@@ -3,6 +3,7 @@ import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../src/context/AuthContext';
 import { MasterStateProvider } from '../src/context/MasterStateContext';
+import { PersonalityProvider } from '../src/context/PersonalityContext';
 import { ThemeProvider } from '../src/context/ThemeContext';
 
 export default function RootLayout() {
@@ -11,15 +12,15 @@ export default function RootLayout() {
       <ThemeProvider>
         <AuthProvider>
           <MasterStateProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(onboarding)" />
-              <Stack.Screen name="(character)" />
-              <Stack.Screen name="(personality)" />
-              <Stack.Screen name="profile" />
-              <Stack.Screen name="settings" />
-            </Stack>
+            <PersonalityProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(onboarding)" />
+                <Stack.Screen name="(character)" />
+                <Stack.Screen name="(personality)" />
+              </Stack>
+            </PersonalityProvider>
           </MasterStateProvider>
         </AuthProvider>
       </ThemeProvider>

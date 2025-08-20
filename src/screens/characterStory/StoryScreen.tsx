@@ -1,21 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Modal,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import FloatingRewardNotification from '../../components/FloatingRewardNotification';
 import { useMasterState } from '../../context/MasterStateContext';
+import { usePersonality } from '../../context/PersonalityContext';
 import { useStoryEngine } from '../../hooks/useStoryEngine'; // Make sure this path is correct
 import { apiService } from '../../services/apiService';
 import { createGlobalStyles } from '../../styles/globalStyles';
 import { Chapter, Choice, Passage, Story } from '../../types/story';
+import { getQuestInfo } from '../../utils/rewardsUtils';
 import { StoryRewardManager } from '../../utils/storyRewardIntegration';
-
 interface StoryScreenProps {
   visible: boolean;
   onClose: () => void;
@@ -37,6 +38,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   onStoryComplete,
 }) => {
   const { theme, character } = useMasterState();
+  const { primaryTrait, isPersonalityUser } = usePersonality();
   const globalStyles = createGlobalStyles(theme.theme);
   const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(null);
   const [rewardNotification, setRewardNotification] = useState<{
@@ -55,6 +57,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   }>>([]);
 
   const [isShowingNotification, setIsShowingNotification] = useState(false);
+
 
   // Use refs to track current state for queue processing
   const notificationQueueRef = useRef<Array<{
@@ -101,42 +104,34 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     if (visible && story?.id && isInitialized) {
       const initializeRewardManager = async () => {
         try {
-          // Determine if user is personality or character based
-          let isPersonalityUser = false;
-          let characterId = character.backendCharacter?.id;
+          // Check if we have a valid character from backend AND personality profile
+          const characterId = character.backendCharacter?.id;
+          const hasCharacter = characterId && characterId > 0;
+          const hasPersonalityProfile = primaryTrait && primaryTrait.length > 0;
           
-          // Try to load character data first
-          if (!characterId) {
-            console.log('🔄 No character loaded, trying to load character...');
-            try {
-              await character.loadCharacter();
-              characterId = character.backendCharacter?.id;
-            } catch (error) {
-              console.log('🔄 Character loading failed, user might be personality-based');
-            }
-          }
+          // Determine research condition based on personality profile first, then character existence
+          // If user has a personality profile, they should be treated as personality user
+          // regardless of whether they have a character (backend might be wrong)
+          const researchCondition = hasPersonalityProfile ? "personality" : (hasCharacter ? "character" : "personality");
           
-          // If still no character, try direct API call
-          if (!characterId) {
-            console.log('🔄 Trying direct API call to load character...');
-            try {
-              const characterData = await apiService.getMyCharacter();
-              if (characterData?.id) {
-                console.log('✅ Character loaded via direct API call:', characterData.id);
-                characterId = characterData.id;
-              }
-            } catch (apiError) {
-              console.log('🔄 Direct API call failed, user is likely personality-based');
-              isPersonalityUser = true;
-            }
-          }
-          
-          // Determine research condition based on whether we have character data
-          const researchCondition = isPersonalityUser || !characterId ? "personality" : "character";
-          console.log('=== DETERMINED RESEARCH CONDITION ===');
-          console.log('Is personality user:', isPersonalityUser);
-          console.log('Character ID:', characterId);
+          console.log('=== ENHANCED USER TYPE DETERMINATION ===');
+          console.log('Backend character ID:', characterId);
+          console.log('Has valid character:', hasCharacter);
+          console.log('Has personality profile:', hasPersonalityProfile);
+          console.log('Primary trait:', primaryTrait);
           console.log('Research condition:', researchCondition);
+          
+          // Get user ID for personality users
+          let userId = undefined;
+          if (!hasCharacter) {
+            try {
+              const userProfile = await apiService.getProfile();
+              userId = userProfile?.id;
+              console.log('User ID for personality user:', userId);
+            } catch (error) {
+              console.warn('Failed to get user ID for personality user:', error);
+            }
+          }
           
           // Initialize reward manager with appropriate condition
           console.log('=== INITIALIZING STORY REWARD MANAGER ===');
@@ -152,10 +147,12 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
             characterId || 0, // Use 0 for personality users
             [], // playerInventory
             0, // storyReplayCount
-            researchCondition
+            researchCondition,
+            userId, // userId for personality users
+            primaryTrait // personality trait for coping tool conversion
           );
           setRewardManager(manager);
-          console.log('✅ Reward manager initialized for', researchCondition, 'user');
+          console.log('✅ Reward manager initialized for', researchCondition, 'user with trait:', primaryTrait);
           
           // Create or get StoryProgress record to enable story progression
           try {
@@ -233,9 +230,42 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       console.log('Story_effects keys:', Object.keys(passageForRewards.story_effects || {}));
       console.log('Has quests:', passageForRewards.story_effects?.quests);
       
+      // Check quest validity for personality match
+      const passageEffects = (currentPassage as any).story_effects || {};
+    
+      // Check if there are quests in this passage (both formats)
+      const questIds = passageEffects.quest_progress || passageEffects.quests;
+
+      if (questIds && Array.isArray(questIds)) {
+        console.log('=== CHECKING QUEST PERSONALITY MATCH ===');
+        console.log('User primary trait:', primaryTrait);
+        console.log('Quest IDs in passage:', questIds);
+        
+        // Verify each quest belongs to the user's personality type
+        const validQuests = questIds.filter((questId: string) => {
+          const questInfo = getQuestInfo(questId);
+          const isValid = questInfo && questInfo.personalityType === primaryTrait;
+          
+          console.log(`Quest ${questId}: ${isValid ? 'VALID' : 'INVALID'} for ${primaryTrait} user`);
+          return isValid;
+        });
+        
+        console.log('Valid quests for this user:', validQuests);
+        
+        if (validQuests.length !== questIds.length) {
+          console.warn('⚠️ Some quests in this passage do not match user personality type');
+          console.warn('❌ QUEST MISMATCH DETECTED:', {
+            userTrait: primaryTrait,
+            questIds: questIds,
+            validQuests: validQuests,
+            invalidQuests: questIds.filter((id: string) => !validQuests.includes(id))
+          });
+        }
+      }
+      
       rewardManager.handlePassageVisit(passageForRewards);
     }
-  }, [currentPassage?.passage_id, rewardManager, isInitialized]);
+  }, [currentPassage?.passage_id, rewardManager, isInitialized, primaryTrait]);
 
   // Monitor notification queue state for debugging
   useEffect(() => {
@@ -252,6 +282,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   const showRewardNotification = (message: string, type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest') => {
     console.log(`🎁 REWARD QUEUED: ${message} (${type})`);
     console.log(`Current queue length: ${notificationQueueRef.current.length}, Showing: ${isShowingNotificationRef.current}`);
+    
+    // The conversion from equipment to coping tools is now handled in StoryRewardManager
+    // So we can directly use the message and type provided
     
     // Add to queue
     setNotificationQueue(prev => {

@@ -1,15 +1,13 @@
-// Export all assets from a single location for cleaner imports
-
 // Equipment assets and types
 export {
-    ComfortType, equipmentIcons,
-    equipmentTypeLabels, FocusType, GroundType, rarityColors, ShieldType //this is where the gear should be held 
+    equipmentIcons,
+    equipmentTypeLabels, rarityColors
 } from './equipment';
 
+// UI assets and icons
+export { getUIAsset, uiAssetLabels, uiIcons } from './ui';
+
 // Frame assets for character creator
-export {
-    characterCreatorAssets, sampleHeadBar
-} from './frameAssets';
 
 // Character options - only export what actually exists
 export {

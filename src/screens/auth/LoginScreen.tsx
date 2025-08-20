@@ -99,7 +99,7 @@ export default function ArchiveLoginScreen() {
   const { auth, theme, onboarding } = useMasterState();
   const { login } = auth;
   const loginStyles = loginStylesGlobal(theme.loginTheme);
-  const { setAssignedPath } = onboarding;
+
   
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState('');
@@ -134,78 +134,13 @@ export default function ArchiveLoginScreen() {
       const token = loginResponse.token;
       
       console.log('Login successful, token received:', !!token, 'Token length:', token?.length);
+      console.log('Full login response:', loginResponse);
 
-      // 2. Store token in context/storage
-      await login(token, String(loginResponse.user.id), loginResponse.user);
-      
-      console.log('Token stored in context, user ID:', loginResponse.user.id);
-
-
-      // 3. Check user profile and onboarding status
-      const userProfile = loginResponse.user;
-      
-      // Check if user has completed onboarding
-      const hasCompletedOnboarding = userProfile.profile?.has_completed_onboarding;
-      const completionType = userProfile.profile?.completion_type;
-      const needsOnboarding = loginResponse.needs_onboarding;
-      const onboardingType = loginResponse.onboarding_type;
-
-
-
-      
-      // Determine if user should go through onboarding
-      let shouldRedirectToOnboarding = false;
-      let assignedPath: 'character' | 'survey' | null = null;
-      
-      const isTestUser = userProfile.username === 'admin' || userProfile.profile?.completion_type === 'test';
-      
-      if (isTestUser) {
-        // Test users and admin users should always go through onboarding (for testing)
-        shouldRedirectToOnboarding = true;
-        assignedPath = null; // Let them choose
-      } else if (needsOnboarding) {
-        // User needs onboarding based on backend response
-        shouldRedirectToOnboarding = true;
-        // Use the onboarding_type from backend if available
-        if (onboardingType === 'character' || onboardingType === 'survey') {
-          assignedPath = onboardingType;
-        } else {
-          assignedPath = null; // Let them choose
-        }
-      } else if (!hasCompletedOnboarding) {
-        // User hasn't completed onboarding
-        shouldRedirectToOnboarding = true;
-        assignedPath = null; // Let them choose
-      } else if (hasCompletedOnboarding && completionType) {
-        // User has completed onboarding with a proper completion type
-        shouldRedirectToOnboarding = false;
-        assignedPath = completionType as 'character' | 'survey';
-      } else {
-        // Fallback - user has completed onboarding but no completion type
-        shouldRedirectToOnboarding = true;
-        assignedPath = null;
-      }
-      
-
-      
-      if (shouldRedirectToOnboarding) {
-        // User needs to complete onboarding
-        setAssignedPath(assignedPath);
-        router.replace('/(onboarding)/onboarding');
-      } else {
-        // User has completed onboarding with a proper completion type
-        setAssignedPath(assignedPath);
-        
-        // Navigate based on completion type
-        if (assignedPath === 'character') {
-          router.replace('/(character)/character');
-        } else if (assignedPath === 'survey') {
-          router.replace('/(personality)/personality');
-        } else {
-          // This shouldn't happen if we checked properly above
-          router.replace('/(onboarding)/onboarding');
-        }
-      }
+      // 2. Store token in context/storage and handle routing
+      // Use character_id from the login response (not user.id)
+      const charId = loginResponse.character_id != null ? String(loginResponse.character_id) : '';
+      await login(token, charId, loginResponse.user);
+      console.log('Routing handled by AuthContext');
     } catch (err: any) {
       if (err.response?.data?.error) {
         setError(err.response.data.error);
@@ -219,23 +154,7 @@ export default function ArchiveLoginScreen() {
     }
   };
 
-  const handleAdminLogin = async () => { //will need to remove at end of testing
-    setIsLoading(true);
-    try {
-      const response = await apiService.login('admin', 'admin');
-      const testUserId = String(response.user.id);
-      
-      // Mark as test user and ensure they go through onboarding
-      await login(response.token, testUserId, response.user);
-      
-      // Always redirect to onboarding for admin/test users
-      router.replace('/(onboarding)/onboarding');
-    } catch (err) {
-      setError('Curator access denied');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   return (
     <View style={loginStyles.container}>
@@ -377,16 +296,7 @@ export default function ArchiveLoginScreen() {
               <View style={loginStyles.buttonGlow} />
             </TouchableOpacity>
 
-            {/* Curator's Test Access --- Remove at end of testing*/}
-            <TouchableOpacity
-              style={loginStyles.curatorAccess}
-              onPress={handleAdminLogin}
-              disabled={isLoading}
-            >
-              <Text style={loginStyles.curatorAccessText}> 
-                🧙‍♂️ Curator's Testing Entrance
-              </Text>
-            </TouchableOpacity>
+
           </View>
         </View>
         {/* Footer Mystical Text */}

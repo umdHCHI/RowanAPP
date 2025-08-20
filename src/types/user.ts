@@ -1,4 +1,3 @@
-import { ImageSourcePropType } from 'react-native';
 import { PersonalityTrait } from '../imports';
 export interface LoginResponse {
     token: string;
@@ -39,6 +38,122 @@ export interface UserProfile {
     email: string;
     first_name: string;
     last_name: string;
+    
+    // Character data is now directly on UserProfile (not nested under profile.character)
+    // This includes level, experience, wellness_stats, equipped_gear, etc.
+    
+    // Backend structure includes nested user, profile, character objects
+    user?: {
+        id: number;
+        username: string;
+        email: string;
+        first_name: string;
+        last_name: string;
+        profile?: {
+            research_group?: any;
+            has_completed_onboarding?: boolean;
+            completion_type?: string | null;
+            completion_data_id?: number | null;
+            created_at?: string;
+            updated_at?: string;
+        };
+        personality_profile?: any;
+        character?: any;
+        survey?: any;
+    };
+    
+    // Top-level character object from backend
+    character?: {
+        id: number;
+        user: string | number;
+        name: string;
+        level: number;
+        experience: number;
+        experience_needed: number;
+        awareness: number;
+        resilience: number;
+        connection: number;
+        balance: number;
+        memories_explored: number;
+        coping_skills_learned: number;
+        insights_discovered: number;
+        selected_base_model: number;
+        selected_skin_color: number;
+        selected_hair_style: number;
+        selected_hair_color: number;
+        selected_eye_type: number;
+        selected_eye_color: number;
+        selected_eyebrow_style: number;
+        selected_eyebrow_color: number;
+        selected_mouth_type: number;
+        selected_shirt_type: number;
+        selected_shirt_color: number;
+        selected_background_type: number;
+        selected_background_color: number;
+        personality_traits: any[];
+        coping_tools: any[];
+        equipped_gear: any[];
+        wellness_stats: Array<{
+            icon: string;
+            label: string;
+            value: number;
+            color: string;
+        }>;
+        experience_needed_for_next_level: number;
+        experience_progress_percentage: number;
+        wellness_average: number;
+        memory_progress: string;
+        character_config: {
+            selected_base_model: number;
+            selected_skin_color: number;
+            selected_hair_style: number;
+            selected_hair_color: number;
+            selected_eye_type: number;
+            selected_eye_color: number;
+            selected_eyebrow_style: number;
+            selected_eyebrow_color: number;
+            selected_mouth_type: number;
+            selected_shirt_type: number;
+            selected_shirt_color: number;
+            selected_background_type: number;
+            selected_background_color: number;
+        };
+        created_at: string;
+        updated_at: string;
+    };
+    
+    // Legacy character-related fields (for backward compatibility)
+    experience_needed_for_next_level?: number;
+    experience_progress_percentage?: number;
+    wellness_average?: number;
+    memory_progress?: string;
+    character_config?: {
+        selectedName?: string;
+        selected_base_model: number;
+        selected_base_color?: number;
+        selected_skin_color: number;
+        selected_hair_style: number;
+        selected_hair_color: number;
+        selected_eye_type: number;
+        selected_eye_color: number;
+        selected_eyebrow_style: number;
+        selected_eyebrow_color: number;
+        selected_mouth_type: number;
+        selected_shirt_type: number;
+        selected_shirt_color: number;
+        selected_background_type: number;
+        selected_background_color: number;
+    };
+    
+    equipped_gear?: any[];
+    recent_reflections?: any[];
+    archive_metrics?: Array<{
+        icon: string;
+        label: string;
+        value: string;
+        progress: number;
+    }>;
+    
     profile: {
         research_group?: {
             id: number;
@@ -50,7 +165,7 @@ export interface UserProfile {
         has_completed_onboarding?: boolean;
         completion_type?: string | null;
         completion_data_id?: number | null;
-        character?: Character; //pulling in the character object
+        character?: Character; // Keep this for backward compatibility
         personality_scores?: {
             openness: number;
             conscientiousness: number;
@@ -62,6 +177,7 @@ export interface UserProfile {
         created_at?: string;
         updated_at?: string;
     } | null;
+    
     personality_profile?: {
         id: number;
         user: number;
@@ -83,10 +199,25 @@ export interface UserProfile {
         };
         last_updated: string;
     } | null;
+    
+    survey?: {
+        id: number;
+        user: number;
+        answers: Record<string, number>;
+        big_five_scores: {
+            openness: number;
+            conscientiousness: number;
+            extraversion: number;
+            agreeableness: number;
+            neuroticism: number;
+        };
+        completed: boolean;
+        created_at: string;
+        updated_at: string;
+    } | null;
+    
     is_test_user?: boolean;
     story_progress?: StoryProgress[];
-    equipped_gear?: any | null;
-    survey?: any | null;
 }
 
 export interface StoryProgress {
@@ -137,19 +268,22 @@ export interface GameData {
 // Character types matching backend Character model
 export interface Character {
     id: number;
-    user: number;
+    user: string | number; // Can be username or user ID
     name: string;
     level: number;
     experience: number;
-    awareness: number; //
+    experience_needed: number; // Added from API response
+    experience_needed_for_next_level?: number; // Computed field from API
+    experience_progress_percentage?: number; // Computed field from API
+    awareness: number;
     resilience: number;
     connection: number;
     balance: number;
-    coins: number;
-    crystals: number;
-    memories_explored: number; //this should align with stories explored
-    coping_skills_learned: number; //this should align with rewards from stories
-    insights_discovered: number; //this should align with insights from stories
+    coins?: number; // Made optional as not always in API response
+    crystals?: number; // Made optional as not always in API response
+    memories_explored: number; // This should align with stories explored
+    coping_skills_learned: number; // This should align with rewards from stories
+    insights_discovered: number; // This should align with insights from stories
     selected_base_model: number;
     selected_skin_color: number;
     selected_hair_style: number;
@@ -163,13 +297,11 @@ export interface Character {
     selected_shirt_color?: number; // color index for shirt
     selected_background_type: number;
     selected_background_color?: number; // color index for background
-    personality_traits?: any[]; //needs to change to personality model???
-    coping_tools?: any[]; //needs to pull in equiptmnet 
-    equipped_gear?: any[]; //what the character has on rn 
-    experience_needed_for_next_level?: number; //overall level progression 
-    experience_progress_percentage?: number; //under the character percentage 
-    wellness_average?: number; //of all skills? 
-    memory_progress?: string; //total of all stories explore
+    personality_traits?: any[]; // Array from API response
+    coping_tools?: any[]; // Array from API response
+    equipped_gear?: any[]; // Array from API response
+    wellness_average?: number; // Computed field from API
+    memory_progress?: string; // String format like "0/5" from API
     wellness_stats?: Array<{
         icon: string;
         label: string;
@@ -178,8 +310,8 @@ export interface Character {
     }>;
     character_config?: {
         selectedName?: string;
-        selected_base_model: number; //only one base model
-        selected_base_color?: number; // color index for base model
+        selected_base_model: number;
+        selected_base_color?: number;
         selected_skin_color: number;
         selected_hair_style: number;
         selected_hair_color: number;
@@ -197,31 +329,6 @@ export interface Character {
     updated_at: string;
     personality_profile?: PersonalityTrait[]; // might be able to handle this not sure
 }
-
-
-
-export type CharacterFrameProps = {
-  children: React.ReactNode;
-  frame?: ImageSourcePropType;
-  size?: number;
-};
-
-export type CharacterPreviewProps = {
-  selectedName: string;
-  baseAsset: ImageSourcePropType;
-  background: ImageSourcePropType;
-  hairSheet: ImageSourcePropType;
-  clothesSheet: ImageSourcePropType;
-  eyesSheet: ImageSourcePropType;
-  eyebrowsSheet: ImageSourcePropType;
-  mouthSheet: ImageSourcePropType;
-  hairIndex: number;
-  clothesIndex: number;
-  eyesIndex: number;
-  eyebrowsIndex: number;
-  mouthIndex: number;
-  size?: number; // Optional size prop for responsive sizing
-};
 
 
 // ===== CENTRALIZED CHARACTER CREATOR CATEGORIES =====

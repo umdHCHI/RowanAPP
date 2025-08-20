@@ -1,12 +1,6 @@
 import React from 'react';
 import { TextInput, View } from 'react-native';
-
-interface CharacterNameInputProps {
-  characterName: string;
-  onNameChange: (name: string) => void;
-  onLogout?: () => void; // Make optional
-  styles: any;
-}
+import { CharacterNameInputProps } from '../../types/characterCreator';
 
 export const CharacterNameInput: React.FC<CharacterNameInputProps> = ({
   characterName,

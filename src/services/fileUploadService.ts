@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
+import { AsyncStorage } from '../imports';
 import { apiBaseUrl } from './apiConfig';
 
 class FileUploadService {

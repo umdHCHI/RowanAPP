@@ -78,3 +78,7 @@ expo-env.d.ts
 run_deply.sh
 .expo/
 /.expo-shared/
+
+#Rules
+project-overview.mdc
+copilot-instructions.md

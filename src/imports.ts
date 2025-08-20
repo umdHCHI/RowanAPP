@@ -42,17 +42,22 @@ export {
   API_ENDPOINTS,
   apiBaseUrl,
   apiService,
+
+
+
   getApiUrl
 } from './services';
 
 // ===== Components =====
 
+export { default as AssetLabel } from './components/AssetLabel';
 export { default as CharacterFrame } from './components/CharacterCreator/CharacterFrame';
 export { default as CharacterPreview } from './components/CharacterCreator/CharacterPreview';
 export { default as CodexModal } from './components/CodexModal';
 export { default as DrawingCanvas } from './components/DrawingCanvas';
 export { default as EquipmentModal } from './components/EquipmentModal';
-export { default as PersonalizedArchiveHeader } from './components/PersonalizedArchiveHeader';
+export { default as FloatingIcon } from './components/FloatingIcon';
+export { default as PersonalizedArchiveHeader } from './components/personality/PersonalizedArchiveHeader';
 
 export { default as ThoughtDefenderModal } from './components/ThoughtDefenderModal';
 
@@ -62,6 +67,7 @@ export { CharacterNameInput } from './components/CharacterCreator/CharacterNameI
 export { CharacterPreviewSection } from './components/CharacterCreator/CharacterPreviewSection';
 export { ColorOptionControls } from './components/CharacterCreator/ColorOptionControls';
 export { StyleControls } from './components/CharacterCreator/StyleControls';
+export { default as FloatingElement } from './components/FloatingElement';
 export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Assets =====
@@ -72,13 +78,16 @@ export {
   bgOptions,
   // Frame assets
   characterCreatorAssets, equipmentIcons,
-  equipmentTypeLabels, mouthOptions,
+  equipmentTypeLabels, getUIAsset, mouthOptions,
   rarityColors,
-  sampleHeadBar
+  sampleHeadBar, uiAssetLabels,
+  // UI assets and icons
+  uiIcons
 } from './assets';
 
 // ===== Data =====
 export { sampleInventory } from './data/sampleEquipment';
+export { PersonalityQuests } from './types/personality';
 
 // ===== Constants =====
 export { CHARACTER_CREATOR_CONSTANTS } from './constants/characterCreator';
@@ -87,7 +96,8 @@ export { CHARACTER_CREATOR_CONSTANTS } from './constants/characterCreator';
 
 // ===== Styles =====
 export { createGlobalStyles } from './styles/globalStyles';
-export { darkTheme, lightTheme, ThemeColors } from './styles/theme';
+export { darkTheme, lightTheme } from './styles/theme';
+export type { ThemeColors } from './styles/theme';
 
 // ===== Types =====
 export type {
@@ -97,7 +107,7 @@ export type {
   // Equipment
   CharacterGear, Choice, CodexEntry,
   // Journal
-  CodexModalProps,
+  CodexModalProps, CopingTool, CopingToolsCollectionProps,
   //Personality Types
   DailyCuratorMessages, EquipmentItem,
   EquipmentSubtype,
@@ -109,11 +119,10 @@ export type {
   //User Game Data - Persistent Game Data
   GameData, GameSession, GameState,
   // Wellness system
-  GearItem,
-  GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
+  GearItem, GearUnlockSystem, JournalEntry, JournalPrompt, LocalStoryProgress, // User and authentication
   LoginResponse,
   // MiniGame Types 
-  MiniGameProgress, MiniGameResult, NPC, Passage, PersonalityQuests, PowerUp, Projectile,
+  MiniGameProgress, MiniGameResult, NPC, Passage, PowerUp, Projectile,
   //User Research Group
   ResearchGroup, SavedRewards, Skill, StatGains,
   //story imports 
@@ -136,35 +145,35 @@ export { PersonalityConfigs } from './constants/personality';
 export const PERSONALITY_TABS: Record<PersonalityKey, Array<{ key: string; label: string; icon: string }>> = {
   Openness: [
     { key: "entrance", label: "Dreamscape", icon: "🌌" },
-    { key: "storys", label: "Chronicles", icon: "📖" },
+    { key: "stories", label: "Chronicles", icon: "📖" },
     { key: "codex", label: "Wisdom", icon: "🔮" },
     { key: "defender", label: "Curiosity", icon: "🎭" },
     { key: "restoration", label: "Growth", icon: "🌱" },
   ],
   Conscientiousness: [
     { key: "entrance", label: "Sanctum", icon: "🏛️" },
-    { key: "storys", label: "Archives", icon: "📚" },
+    { key: "stories", label: "Archives", icon: "📚" },
     { key: "codex", label: "Order", icon: "⚖️" },
     { key: "defender", label: "Discipline", icon: "🛡️" },
     { key: "restoration", label: "Growth", icon: "📈" },
   ],
   Extraversion: [
     { key: "entrance", label: "Assembly", icon: "🎪" },
-    { key: "storys", label: "Tales", icon: "📖" },
+    { key: "stories", label: "Tales", icon: "📖" },
     { key: "codex", label: "Connection", icon: "🤝" },
     { key: "defender", label: "Empathy", icon: "💚" },
     { key: "restoration", label: "Growth", icon: "🌟" },
   ],
   Agreeableness: [
     { key: "entrance", label: "Gardens", icon: "🌸" },
-    { key: "storys", label: "Harmony", icon: "🕊️" },
+    { key: "stories", label: "Harmony", icon: "🕊️" },
     { key: "codex", label: "Peace", icon: "☮️" },
     { key: "defender", label: "Empathy", icon: "💚" },
     { key: "restoration", label: "Growth", icon: "🌱" },
   ],
   Neuroticism: [
     { key: "entrance", label: "Chambers", icon: "🌙" },
-    { key: "storys", label: "Depths", icon: "🔍" },
+    { key: "stories", label: "Depths", icon: "🔍" },
     { key: "codex", label: "Reflection", icon: "💎" },
     { key: "defender", label: "Awareness", icon: "🧘" },
     { key: "restoration", label: "Growth", icon: "🌊" },
@@ -229,42 +238,42 @@ export const PERSONALITY_BUILDS: Record<PersonalityKey, {
 export const PersonalityWellnessAttributes = {
   Openness: {
     attributes: [
-      { icon: "🎯", label: "Focus", value: 5, color: "#9d4edd", description: "Channeling creative energy into purposeful action" },
-      { icon: "🌱", label: "Grounding", value: 5, color: "#06ffa5", description: "Staying centered while exploring new possibilities" },
-      { icon: "🧩", label: "Integration", value: 5, color: "#4cc9f0", description: "Connecting diverse ideas into meaningful wholes" },
-      { icon: "⚡", label: "Clarity", value: 5, color: "#f72585", description: "Seeing through complexity to find simple truths" }
+      { icon: "🎯", label: "Focus", value: 5, color: "#9d4edd", description: "Channeling creative energy into purposeful action", wellnessProperty: "awareness" },
+      { icon: "🌱", label: "Grounding", value: 5, color: "#06ffa5", description: "Staying centered while exploring new possibilities", wellnessProperty: "resilience" },
+      { icon: "🧩", label: "Integration", value: 5, color: "#4cc9f0", description: "Connecting diverse ideas into meaningful wholes", wellnessProperty: "connection" },
+      { icon: "⚡", label: "Clarity", value: 5, color: "#f72585", description: "Seeing through complexity to find simple truths", wellnessProperty: "balance" }
     ]
   },
   Conscientiousness: {
     attributes: [
-      { icon: "🌊", label: "Flexibility", value: 5, color: "#2a9d8f", description: "Adapting plans while maintaining core values" },
-      { icon: "💝", label: "Self-Compassion", value: 5, color: "#f4a261", description: "Being kind to yourself when standards aren't met" },
-      { icon: "⚖️", label: "Balance", value: 5, color: "#e76f51", description: "Harmonizing work, rest, and personal needs" },
-      { icon: "🔥", label: "Sustainable Drive", value: 5, color: "#264653", description: "Maintaining motivation without burning out" }
+      { icon: "🌊", label: "Flexibility", value: 5, color: "#2a9d8f", description: "Adapting plans while maintaining core values", wellnessProperty: "awareness" },
+      { icon: "💝", label: "Self-Compassion", value: 5, color: "#f4a261", description: "Being kind to yourself when standards aren't met", wellnessProperty: "resilience" },
+      { icon: "⚖️", label: "Balance", value: 5, color: "#e76f51", description: "Harmonizing work, rest, and personal needs", wellnessProperty: "balance" },
+      { icon: "🔥", label: "Sustainable Drive", value: 5, color: "#264653", description: "Maintaining motivation without burning out", wellnessProperty: "connection" }
     ]
   },
   Extraversion: {
     attributes: [
-      { icon: "🛡️", label: "Boundaries", value: 5, color: "#f72585", description: "Protecting your energy while staying connected" },
-      { icon: "🎭", label: "Authenticity", value: 5, color: "#ffd60a", description: "Being true to yourself in social situations" },
-      { icon: "🔋", label: "Energy Management", value: 5, color: "#4cc9f0", description: "Balancing social engagement with personal recharge" },
-      { icon: "🌟", label: "Confident Expression", value: 5, color: "#f77f00", description: "Sharing your thoughts and feelings with confidence" }
+      { icon: "🛡️", label: "Boundaries", value: 5, color: "#f72585", description: "Protecting your energy while staying connected", wellnessProperty: "awareness" },
+      { icon: "🎭", label: "Authenticity", value: 5, color: "#ffd60a", description: "Being true to yourself in social situations", wellnessProperty: "resilience" },
+      { icon: "🔋", label: "Energy Management", value: 5, color: "#4cc9f0", description: "Balancing social engagement with personal recharge", wellnessProperty: "balance" },
+      { icon: "🌟", label: "Confident Expression", value: 5, color: "#f77f00", description: "Sharing your thoughts and feelings with confidence", wellnessProperty: "connection" }
     ]
   },
   Agreeableness: {
     attributes: [
-      { icon: "🦁", label: "Assertiveness", value: 5, color: "#06ffa5", description: "Standing up for yourself with kindness" },
-      { icon: "🚪", label: "Healthy Boundaries", value: 5, color: "#ffffb3", description: "Saying no while maintaining relationships" },
-      { icon: "💪", label: "Self-Advocacy", value: 5, color: "#4cc9f0", description: "Speaking up for your needs and values" },
-      { icon: "🌸", label: "Conflict Resolution", value: 5, color: "#f72585", description: "Navigating disagreements with grace and wisdom" }
+      { icon: "🦁", label: "Assertiveness", value: 5, color: "#06ffa5", description: "Standing up for yourself with kindness", wellnessProperty: "awareness" },
+      { icon: "🚪", label: "Healthy Boundaries", value: 5, color: "#ffffb3", description: "Saying no while maintaining relationships", wellnessProperty: "resilience" },
+      { icon: "💪", label: "Self-Advocacy", value: 5, color: "#4cc9f0", description: "Speaking up for your needs and values", wellnessProperty: "balance" },
+      { icon: "🌸", label: "Conflict Resolution", value: 5, color: "#f72585", description: "Navigating disagreements with grace and wisdom", wellnessProperty: "connection" }
     ]
   },
   Neuroticism: {
     attributes: [
-      { icon: "🧘", label: "Emotional Regulation", value: 5, color: "#7209b7", description: "Managing intense emotions with skillful awareness" },
-      { icon: "🌊", label: "Resilience", value: 5, color: "#a663cc", description: "Bouncing back from setbacks with renewed strength" },
-      { icon: "☮️", label: "Inner Calm", value: 5, color: "#4cc9f0", description: "Finding peace within the storm of thoughts" },
-      { icon: "🔍", label: "Perspective", value: 5, color: "#06ffa5", description: "Seeing situations from multiple angles" }
+      { icon: "🧘", label: "Emotional Regulation", value: 5, color: "#7209b7", description: "Managing intense emotions with skillful awareness", wellnessProperty: "awareness" },
+      { icon: "🌊", label: "Resilience", value: 5, color: "#a663cc", description: "Bouncing back from setbacks with renewed strength", wellnessProperty: "resilience" },
+      { icon: "☮️", label: "Inner Calm", value: 5, color: "#4cc9f0", description: "Finding peace within the storm of thoughts", wellnessProperty: "balance" },
+      { icon: "🔍", label: "Perspective", value: 5, color: "#06ffa5", description: "Seeing situations from multiple angles", wellnessProperty: "connection" }
     ]
   }
 };
@@ -276,4 +285,6 @@ export { useTheme } from './context/ThemeContext';
 
 // ===== Utility Functions =====
 export { createCharacterCreatorCategories } from './types/user';
+
+
 
