@@ -588,50 +588,33 @@ export function createNotificationFromEffects(
     }
   }
 
-  console.log('Final notifications created:', notifications);
   return notifications;
 }
 
 // Debug function to test reward detection
 export function debugRewardDetection(passage: Passage, choice?: Choice): void {
-  console.log('=== DEBUGGING REWARD DETECTION ===');
-  console.log('Passage ID:', passage.passage_id);
-  console.log('Passage story_effects:', passage.story_effects);
-  console.log('Passage effects:', passage.effects);
-  console.log('Has passage rewards:', hasPassageRewards(passage));
+  const passageHasRewards = hasPassageRewards(passage);
   
   if (choice) {
-    console.log('Choice ID:', choice.id);
-    console.log('Choice effects:', choice.effects);
-    console.log('Has choice rewards:', hasChoiceRewards(choice));
+    const choiceHasRewards = hasChoiceRewards(choice);
   }
   
   // Test notification creation
   if (passage.story_effects) {
-    console.log('Testing story_effects notifications:');
     const storyNotifications = createNotificationFromEffects(passage.story_effects);
-    console.log('Story notifications:', storyNotifications);
   }
   
   if (passage.effects) {
-    console.log('Testing effects notifications:');
     const effectsNotifications = createNotificationFromEffects(passage.effects);
-    console.log('Effects notifications:', effectsNotifications);
   }
   
   if (choice && choice.effects) {
-    console.log('Testing choice notifications:');
     const choiceNotifications = createNotificationFromEffects(choice.effects);
-    console.log('Choice notifications:', choiceNotifications);
   }
-  
-  console.log('=== END DEBUGGING ===');
 }
 
 // Test function for the new story_effects format
 export function testNewRewardFormat(): void {
-  console.log('=== TESTING NEW REWARD FORMAT ===');
-  
   // Test passage with new story_effects format
   const testPassage: Passage = {
     id: 1,
@@ -653,25 +636,18 @@ export function testNewRewardFormat(): void {
     choices: []
   };
   
-  console.log('Test passage:', testPassage);
-  
   // Test reward detection
-  console.log('Has passage rewards:', hasPassageRewards(testPassage));
+  const hasRewards = hasPassageRewards(testPassage);
   
   // Test notification creation
   const notifications = createNotificationFromEffects(testPassage.story_effects);
-  console.log('Notifications created:', notifications);
   
   // Test reward tracker
   const tracker = initializeRewardTracker("test-story");
   const updatedTracker = applyPassageRewards(tracker, testPassage);
-  console.log('Updated tracker:', updatedTracker);
   
   // Test total rewards calculation
   const totalRewards = calculateTotalRewards(updatedTracker);
-  console.log('Total rewards:', totalRewards);
-  
-  console.log('=== END TESTING NEW REWARD FORMAT ===');
 }
 
 // Comprehensive list of available equipment items for rewards - UPDATED TO MATCH BACKEND
@@ -751,8 +727,6 @@ export const getEquipmentRewardByTheme = (theme: string): string => {
 
 // Test function for the new story_effects format with items and skills
 export function testStoryEffectsWithItems(): void {
-  console.log('=== TESTING STORY_EFFECTS WITH ITEMS AND SKILLS ===');
-  
   // Test passage with comprehensive story_effects
   const testPassage: Passage = {
     id: 1,
@@ -776,31 +750,22 @@ export function testStoryEffectsWithItems(): void {
     choices: []
   };
   
-  console.log('Test passage with items:', testPassage);
-  
   // Test reward detection
-  console.log('Has passage rewards:', hasPassageRewards(testPassage));
+  const hasRewards = hasPassageRewards(testPassage);
   
   // Test notification creation
   const notifications = createNotificationFromEffects(testPassage.story_effects);
-  console.log('Notifications created:', notifications);
   
   // Test reward tracker
   const tracker = initializeRewardTracker("test-story-with-items");
   const updatedTracker = applyPassageRewards(tracker, testPassage);
-  console.log('Updated tracker:', updatedTracker);
   
   // Test total rewards calculation
   const totalRewards = calculateTotalRewards(updatedTracker);
-  console.log('Total rewards:', totalRewards);
-  
-  console.log('=== END TESTING STORY_EFFECTS WITH ITEMS ===');
 }
 
 // Test function for choice rewards (based on the actual log data)
 export function testChoiceRewards(): void {
-  console.log('=== TESTING CHOICE REWARDS ===');
-  
   // Test choice with the exact data from the logs
   const testChoice: Choice = {
     id: 586,
@@ -825,25 +790,18 @@ export function testChoiceRewards(): void {
     order: 0
   };
   
-  console.log('Test choice:', testChoice);
-  
   // Test reward detection
-  console.log('Has choice rewards:', hasChoiceRewards(testChoice));
+  const hasRewards = hasChoiceRewards(testChoice);
   
   // Test notification creation
   const notifications = createNotificationFromEffects(testChoice.effects);
-  console.log('Notifications created:', notifications);
   
   // Test reward tracker
   const tracker = initializeRewardTracker("test-choice-story");
   const updatedTracker = applyChoiceRewards(tracker, testChoice, "test-passage-id");
-  console.log('Updated tracker:', updatedTracker);
   
   // Test total rewards calculation
   const totalRewards = calculateTotalRewards(updatedTracker);
-  console.log('Total rewards:', totalRewards);
-  
-  console.log('=== END TESTING CHOICE REWARDS ===');
 }
 
 // Reward system for journal entries and activities
@@ -1319,8 +1277,6 @@ export const createThoughtDefenderNotifications = (
 
 // Test function for ThoughtDefender rewards
 export function testThoughtDefenderRewards(): void {
-  console.log('=== TESTING THOUGHT DEFENDER REWARDS ===');
-  
   // Test different scenarios
   const testScenarios = [
     {
@@ -1376,7 +1332,6 @@ export function testThoughtDefenderRewards(): void {
   ];
   
   testScenarios.forEach(scenario => {
-    console.log(`\n--- Testing ${scenario.name} ---`);
     const result = processThoughtDefenderCompletion(
       scenario.score,
       scenario.level,
@@ -1387,12 +1342,9 @@ export function testThoughtDefenderRewards(): void {
       scenario.survivalTime
     );
     
-    console.log('Result:', result);
-    console.log('Formatted message:', formatThoughtDefenderRewardMessage(result.rewards, result.levelsGained || 0));
-    console.log('Notifications:', createThoughtDefenderNotifications(result.rewards));
+    const formattedMessage = formatThoughtDefenderRewardMessage(result.rewards, result.levelsGained || 0);
+    const notifications = createThoughtDefenderNotifications(result.rewards);
   });
-  
-  console.log('=== END TESTING THOUGHT DEFENDER REWARDS ===');
 }
 
 // ===== EQUIPMENT UPGRADE SYSTEM =====
@@ -1859,7 +1811,6 @@ export const createUpgradeNotification = (upgrade: EquipmentUpgrade): {
 
 // Example usage of the upgrade system
 export const demonstrateUpgradeSystem = () => {
-  console.log('=== EQUIPMENT UPGRADE SYSTEM DEMONSTRATION ===');
   
   // Simulate player inventory
   const playerInventory = [
@@ -1868,7 +1819,6 @@ export const demonstrateUpgradeSystem = () => {
     'Cloak of True Form'
   ];
   
-  console.log('Player inventory:', playerInventory);
   
   // Test different scenarios
   const testScenarios = [
@@ -1879,12 +1829,10 @@ export const demonstrateUpgradeSystem = () => {
   ];
   
   testScenarios.forEach(({ item, replayCount }) => {
-    console.log(`\n--- Testing: ${item} (replay count: ${replayCount}) ---`);
     
     const result = checkItemOwnershipAndUpgrade(item, playerInventory, replayCount);
     
     if (result) {
-      console.log('✅ Upgrade result:', {
         originalItem: result.originalItem,
         upgradedItem: result.upgradedItem,
         isUpgrade: result.isUpgrade,
@@ -1899,35 +1847,26 @@ export const demonstrateUpgradeSystem = () => {
       
       // Show notification example
       const notification = createUpgradeNotification(result.upgrade);
-      console.log('📢 Notification:', notification);
       
       // Show rarity colors
       const colors = getRarityColors(result.upgrade.rarity);
-      console.log('🎨 Rarity colors:', colors);
     } else {
-      console.log('❌ No upgrade path found');
     }
   });
   
-  console.log('\n=== DEMONSTRATION COMPLETE ===');
 };
 
 // Test function for random equipment rewards with upgrades
 export const testRandomEquipmentRewards = (playerInventory: string[], replayCount: number = 0) => {
-  console.log('=== TESTING RANDOM EQUIPMENT REWARDS ===');
-  console.log('Player inventory:', playerInventory);
-  console.log('Replay count:', replayCount);
   
   // Test different categories
   const categories = ['focus', 'comfort', 'shield', 'ground'] as const;
   
   categories.forEach(category => {
-    console.log(`\n--- Testing ${category} category ---`);
     
     const result = getUpgradedRandomEquipmentReward(playerInventory, replayCount, category);
     
     if (result) {
-      console.log('✅ Random reward result:', {
         originalItem: result.originalItem,
         upgradedItem: result.upgradedItem,
         isUpgrade: result.isUpgrade,
@@ -1940,11 +1879,9 @@ export const testRandomEquipmentRewards = (playerInventory: string[], replayCoun
         }
       });
     } else {
-      console.log('❌ No reward generated');
     }
   });
   
-  console.log('\n=== RANDOM REWARDS TEST COMPLETE ===');
 };
 
 // ===== QUEST REWARD SYSTEM FOR PERSONALITY USERS =====
@@ -2077,11 +2014,8 @@ export const getAllQuestIds = (personalityType: string): string[] => {
 
 // Test quest reward system
 export function testQuestRewards() {
-  console.log('=== TESTING QUEST REWARD SYSTEM ===');
   
   // Test quest info retrieval
-  console.log('Quest info for neuroticism_1:', getQuestInfo('neuroticism_1'));
-  console.log('Quest info for openness_2:', getQuestInfo('openness_2'));
   
   // Test quest progress calculation
   const testProgress = {
@@ -2090,31 +2024,22 @@ export function testQuestRewards() {
     'openness_1': 2
   };
   
-  console.log('Quest progress for Neuroticism:', calculateQuestProgress(testProgress, 'Neuroticism'));
-  console.log('Quest progress for Openness:', calculateQuestProgress(testProgress, 'Openness'));
   
   // Test quest completion detection
   const previousProgress = { 'neuroticism_1': 13 };
   const newProgress = { 'neuroticism_1': 14, 'neuroticism_2': 7 };
   
-  console.log('Completed quests:', checkQuestCompletion(previousProgress, newProgress));
   
   // Test notifications
   const completedQuests = ['neuroticism_1', 'neuroticism_2'];
-  console.log('Quest notifications:', createQuestNotifications(completedQuests));
   
   // Test random quest rewards
-  console.log('Random quest for Neuroticism:', getRandomQuestReward('Neuroticism'));
-  console.log('Random quest for Openness:', getRandomQuestReward('Openness'));
   
   // Test theme-based quest rewards
-  console.log('Theme quest for emotion:', getQuestRewardByTheme('emotion', 'Neuroticism'));
-  console.log('Theme quest for creativity:', getQuestRewardByTheme('creativity', 'Openness'));
 }
 
 // Test the new quest progress detection for personality players
 export function testPersonalityQuestProgressDetection() {
-  console.log('=== TESTING PERSONALITY QUEST PROGRESS DETECTION ===');
   
   // Test effects with new quest_progress field
   const personalityEffects = {
@@ -2124,15 +2049,12 @@ export function testPersonalityQuestProgressDetection() {
     skills: ['Deep Breathing', 'Mindful Observation']
   };
   
-  console.log('Testing personality effects with quest_progress:', personalityEffects);
   
   // Test notification creation
   const notifications = createNotificationFromEffects(personalityEffects, 'personality');
-  console.log('Notifications created:', notifications);
   
   // Test reward tracker
   const tracker = initializeRewardTracker('test-story-1');
-  console.log('Initial tracker:', tracker);
   
   // Test reward calculation
   const mockPassage = {
@@ -2141,18 +2063,14 @@ export function testPersonalityQuestProgressDetection() {
   } as any;
   
   const updatedTracker = applyPassageRewards(tracker, mockPassage);
-  console.log('Updated tracker after passage:', updatedTracker);
   
   const totalRewards = calculateTotalRewards(updatedTracker, 'personality');
-  console.log('Total rewards calculated:', totalRewards);
   
   // Test reward summary
   const summary = getRewardSummary(updatedTracker);
-  console.log('Reward summary:', summary);
   
   // Test reward formatting
   const formatted = formatRewardsForDisplay(updatedTracker);
-  console.log('Formatted rewards:', formatted);
   
   // Test legacy effects (character users)
   const characterEffects = {
@@ -2160,50 +2078,33 @@ export function testPersonalityQuestProgressDetection() {
     quests: ['main_quest_1', 'side_quest_2']
   };
   
-  console.log('Testing character effects with legacy quests field:', characterEffects);
   const characterNotifications = createNotificationFromEffects(characterEffects, 'character');
-  console.log('Character notifications:', characterNotifications);
 }
 
 // Test function to verify gear acquisition and equipping process
 export async function testGearAcquisitionAndEquipping(apiService: any, characterId: number): Promise<void> {
-  console.log('=== TESTING GEAR ACQUISITION AND EQUIPPING ===');
-  console.log('Character ID:', characterId);
   
   try {
     // Test 1: Get available gear types
-    console.log('1. Getting available gear types...');
     const gearTypes = await apiService.get('gearTypes');
-    console.log('Available gear types:', gearTypes);
     
     // Test 2: Get current gear
-    console.log('2. Getting current gear...');
     const myGear = await apiService.getMyGear();
-    console.log('Current gear:', myGear);
     
     // Test 3: Get equipped gear
-    console.log('3. Getting equipped gear...');
     const equippedGear = await apiService.getEquippedGear();
-    console.log('Equipped gear:', equippedGear);
     
     // Test 4: Try to acquire a gear item
-    console.log('4. Testing gear acquisition...');
     if (gearTypes && gearTypes.length > 0) {
       const firstGearType = gearTypes[0];
-      console.log('Attempting to acquire gear type:', firstGearType);
       
       try {
         const acquiredGear = await apiService.acquireGear(firstGearType.id);
-        console.log('✅ Gear acquired successfully:', acquiredGear);
         
         // Test 5: Try to equip the acquired gear
-        console.log('5. Testing gear equipping...');
         try {
           const equipResult = await apiService.equipGear(acquiredGear.id);
-          console.log('✅ Gear equipped successfully:', equipResult);
         } catch (equipError: any) {
-          console.error('❌ Failed to equip gear:', equipError);
-          console.error('Equip error details:', {
             message: equipError.message,
             status: equipError.response?.status,
             data: equipError.response?.data,
@@ -2211,8 +2112,6 @@ export async function testGearAcquisitionAndEquipping(apiService: any, character
           });
         }
       } catch (acquireError: any) {
-        console.error('❌ Failed to acquire gear:', acquireError);
-        console.error('Acquire error details:', {
           message: acquireError.message,
           status: acquireError.response?.status,
           data: acquireError.response?.data,
@@ -2220,12 +2119,9 @@ export async function testGearAcquisitionAndEquipping(apiService: any, character
         });
       }
     } else {
-      console.log('No gear types available for testing');
     }
     
   } catch (error: any) {
-    console.error('❌ Test failed:', error);
-    console.error('Error details:', {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
@@ -2233,114 +2129,77 @@ export async function testGearAcquisitionAndEquipping(apiService: any, character
     });
   }
   
-  console.log('=== END GEAR TEST ===');
 }
 
 // Test function to demonstrate the complete quest progress system
 export function testCompleteQuestProgressSystem(): void {
-  console.log('=== TESTING COMPLETE QUEST PROGRESS SYSTEM ===');
-  
   // Test 1: Story effects with quest progress
-  console.log('\n--- Test 1: Story Effects with Quest Progress ---');
   const storyEffects = {
     "stats": { "awareness": 2 },
     "quests": ["neuroticism_1"],
     "experience": 10
   };
   
-  console.log('Story effects:', storyEffects);
-  
   // Test reward detection
   const hasRewards = hasPassageRewards({ story_effects: storyEffects } as any);
-  console.log('Has passage rewards:', hasRewards);
   
   // Test notification creation
   const notifications = createNotificationFromEffects(storyEffects, 'personality');
-  console.log('Notifications created:', notifications);
   
   // Test reward tracker
   const tracker = initializeRewardTracker("test-story-1");
   const mockPassage = { passage_id: 'test-passage-1', story_effects: storyEffects } as any;
   const updatedTracker = applyPassageRewards(tracker, mockPassage);
-  console.log('Updated tracker:', updatedTracker);
   
   // Test total rewards calculation
   const totalRewards = calculateTotalRewards(updatedTracker, 'personality');
-  console.log('Total rewards:', totalRewards);
-  console.log('Quest progress:', totalRewards.questProgress);
   
   // Test 2: Choice effects with quest progress
-  console.log('\n--- Test 2: Choice Effects with Quest Progress ---');
   const choiceEffects = {
     "experience": 5,
     "quest_progress": ["openness_2", "conscientiousness_1"]
   };
   
-  console.log('Choice effects:', choiceEffects);
-  
   // Test choice reward detection
   const hasChoiceRewardsResult = hasChoiceRewards({ effects: choiceEffects } as any);
-  console.log('Has choice rewards:', hasChoiceRewardsResult);
   
   // Test choice notifications
   const choiceNotifications = createNotificationFromEffects(choiceEffects, 'personality');
-  console.log('Choice notifications:', choiceNotifications);
   
   // Test choice reward tracker
   const choiceTracker = applyChoiceRewards(updatedTracker, { effects: choiceEffects } as any, 'test-passage-1');
-  console.log('Choice tracker updated:', choiceTracker);
   
   // Test final total rewards
   const finalRewards = calculateTotalRewards(choiceTracker, 'personality');
-  console.log('Final quest progress:', finalRewards.questProgress);
   
   // Test 3: Quest progress display
-  console.log('\n--- Test 3: Quest Progress Display ---');
   const questProgress = finalRewards.questProgress;
-  console.log('Quest progress object:', questProgress);
   
   // Test quest info retrieval
   const neuroticismQuest = getQuestInfo('neuroticism_1');
   const opennessQuest = getQuestInfo('openness_2');
-  console.log('Neuroticism quest info:', neuroticismQuest);
-  console.log('Openness quest info:', opennessQuest);
   
   // Test quest progress calculation
   const neuroticismProgress = calculateQuestProgress(questProgress, 'Neuroticism');
   const opennessProgress = calculateQuestProgress(questProgress, 'Openness');
-  console.log('Neuroticism quest progress:', neuroticismProgress);
-  console.log('Openness quest progress:', opennessProgress);
   
   // Test 4: Quest completion detection
-  console.log('\n--- Test 4: Quest Completion Detection ---');
   const previousProgress = {};
   const newProgress = questProgress;
   const completedQuests = checkQuestCompletion(previousProgress, newProgress);
-  console.log('Completed quests:', completedQuests);
   
   // Test quest completion notifications
   const completionNotifications = createQuestNotifications(completedQuests);
-  console.log('Completion notifications:', completionNotifications);
-  
-  console.log('\n=== QUEST PROGRESS SYSTEM TEST COMPLETE ===');
-  console.log('✅ All quest progress functionality is working correctly!');
-  console.log('✅ Quest progress bars will update in real-time');
-  console.log('✅ Quest progress is saved directly to backend');
-  console.log('✅ Quest progress is loaded from player progress records');
 }
 
 // Simple test function to verify quest progress saving and loading
 export function testQuestProgressSaving(): void {
-  console.log('=== TESTING QUEST PROGRESS SAVING ===');
-  
   // Simulate quest progress data
   const questProgress = {
     neuroticism_1: 2,
     openness_2: 1,
     conscientiousness_1: 1
   };
-  
-  console.log('Quest progress to save:', questProgress);
   
   // Simulate backend payload
   const backendPayload = {
@@ -2355,8 +2214,6 @@ export function testQuestProgressSaving(): void {
       quest_progress: questProgress
     }
   };
-  
-  console.log('Backend payload:', JSON.stringify(backendPayload, null, 2));
   
   // Simulate extraction
   const mockRecords = [backendPayload];
@@ -2376,16 +2233,12 @@ export function testQuestProgressSaving(): void {
     }
   });
   
-  console.log('Extracted quest progress:', extracted);
-  console.log('✅ Quest progress saving and loading test complete');
+  const extractedQuestProgress = extracted;
 }
 
 // Example showing how quest completion works with the new make_choice approach
 export function demonstrateQuestCompletionFlow(): void {
-  console.log('=== DEMONSTRATING QUEST COMPLETION FLOW ===');
-  
   // Example 1: Story passage with quest completion
-  console.log('\n--- Example 1: Story Passage with Quest Completion ---');
   const storyPassageWithQuest = {
     passage_id: "quest-completion-passage",
     content: "You have successfully found the ancient keystone!",
@@ -2396,14 +2249,8 @@ export function demonstrateQuestCompletionFlow(): void {
     }
   };
   
-  console.log('Story passage:', storyPassageWithQuest);
-  console.log('When this passage is visited, the system will:');
-  console.log('1. Detect quest completion in story_effects');
-  console.log('2. Send quest completion event through make_choice endpoint');
-  console.log('3. Create player progress record with quest completion data');
   
   // Example 2: Choice with quest completion
-  console.log('\n--- Example 2: Choice with Quest Completion ---');
   const choiceWithQuest = {
     id: 123,
     text: "Accept the challenge",
@@ -2413,14 +2260,8 @@ export function demonstrateQuestCompletionFlow(): void {
     }
   };
   
-  console.log('Choice:', choiceWithQuest);
-  console.log('When this choice is made, the system will:');
-  console.log('1. Detect quest progress in choice effects');
-  console.log('2. Send quest completion events for each quest ID');
-  console.log('3. Create player progress records for each quest');
   
   // Example 3: Expected make_choice payload
-  console.log('\n--- Example 3: Expected make_choice Payload ---');
   const expectedPayload = {
     story_id: 7,
     target_passage_id: "quest-completion-passage",
@@ -2440,11 +2281,8 @@ export function demonstrateQuestCompletionFlow(): void {
     }
   };
   
-  console.log('Expected make_choice payload:', JSON.stringify(expectedPayload, null, 2));
-  console.log('This creates a player progress record that can be queried for quest completion');
   
   // Example 4: Quest progress extraction
-  console.log('\n--- Example 4: Quest Progress Extraction ---');
   const playerProgressRecords = [
     {
       id: 1,
@@ -2479,21 +2317,10 @@ export function demonstrateQuestCompletionFlow(): void {
     }
   });
   
-  console.log('Player progress records:', playerProgressRecords);
-  console.log('Extracted quest progress:', extractedQuestProgress);
-  console.log('Result: neuroticism_1: 2, openness_2: 1');
-  
-  console.log('\n=== QUEST COMPLETION FLOW DEMONSTRATION COMPLETE ===');
-  console.log('✅ Quest completion events are sent through make_choice endpoint');
-  console.log('✅ Player progress records store quest completion data');
-  console.log('✅ Quest progress is extracted from player progress records');
-  console.log('✅ Quest progress bars display actual completion counts');
 }
 
 // Test function to demonstrate the new quest progress saving with unique passage IDs
 export function testNewQuestProgressSaving(): void {
-  console.log('=== TESTING NEW QUEST PROGRESS SAVING ===');
-  
   // Simulate the new API call format
   const testCalls = [
     {
@@ -2531,25 +2358,18 @@ export function testNewQuestProgressSaving(): void {
     }
   ];
   
-  console.log('Test API calls:');
   testCalls.forEach((call, index) => {
-    console.log(`Call ${index + 1}:`, {
+    const apiCall = {
       story_id: call.storyId,
       passage_id: `quest_${call.questSlug}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
       story_variables: call.storyVariables,
       player_state: call.playerState
-    });
+    };
   });
-  
-  console.log('✅ Each call will generate a unique passage_id to prevent duplicate key errors');
-  console.log('✅ Quest progress is saved individually per quest');
-  console.log('✅ Backend can handle duplicate key errors gracefully');
 }
 
 // Test function to verify quest filtering logic
 export function testQuestFilteringLogic(): void {
-  console.log('=== TESTING QUEST FILTERING LOGIC ===');
-  
   // Test cases
   const testCases = [
     {
@@ -2597,23 +2417,14 @@ export function testQuestFilteringLogic(): void {
       const matches = questTrait.toLowerCase() === testCase.primaryTrait.toLowerCase();
       const result = matches === testCase.shouldKeep ? '✅ PASS' : '❌ FAIL';
       
-      console.log(`${result} ${testCase.name}:`);
-      console.log(`  Quest ID: ${testCase.questId}`);
-      console.log(`  Quest trait: ${questTrait}`);
-      console.log(`  User trait: ${testCase.primaryTrait}`);
-      console.log(`  Matches: ${matches}`);
-      console.log(`  Expected: ${testCase.shouldKeep}`);
     } else {
-      console.log(`❌ FAIL ${testCase.name}: Quest ID does not match pattern`);
     }
   });
   
-  console.log('=== QUEST FILTERING LOGIC TEST COMPLETE ===');
 }
 
 // Test function to verify complete filtering logic
 export function testCompleteFilteringLogic(): void {
-  console.log('=== TESTING COMPLETE FILTERING LOGIC ===');
   
   // Mock effects that should be filtered
   const mockEffects: any = {
@@ -2626,33 +2437,27 @@ export function testCompleteFilteringLogic(): void {
     quest_progress: ['neuroticism_1', 'conscientiousness_1'] // Should be filtered based on trait
   };
   
-  console.log('Original effects:', mockEffects);
   
   // Test personality user with neuroticism trait
-  console.log('\n--- Testing personality user with neuroticism trait ---');
   const neuroticismUserEffects = { ...mockEffects };
   
   // Remove resonance (personality users get experience instead)
   if (neuroticismUserEffects.resonance) {
-    console.log('Filtering out resonance rewards for personality user');
     delete neuroticismUserEffects.resonance;
   }
   
   // Remove character items/artifacts (personality users don't get gear)
   if (neuroticismUserEffects.rewards) {
-    console.log('Filtering out character items/rewards for personality user');
     delete neuroticismUserEffects.rewards;
   }
   
   if (neuroticismUserEffects.artifacts) {
-    console.log('Filtering out character artifacts for personality user');
     delete neuroticismUserEffects.artifacts;
   }
   
   // Filter quests by personality trait
   const primaryTrait = 'neuroticism';
   if (neuroticismUserEffects.quests && primaryTrait) {
-    console.log('Filtering quests by personality trait:', neuroticismUserEffects.quests);
     const originalQuests = neuroticismUserEffects.quests;
     neuroticismUserEffects.quests = originalQuests.filter((questId: string) => {
       const questTraitMatch = questId.match(/^(\w+)_\d+$/);
@@ -2660,27 +2465,21 @@ export function testCompleteFilteringLogic(): void {
         const questTrait = questTraitMatch[1];
         const matches = questTrait.toLowerCase() === primaryTrait.toLowerCase();
         if (!matches) {
-          console.log(`Filtering out quest ${questId} for personality user with trait ${primaryTrait}`);
         } else {
-          console.log(`Keeping quest ${questId} for personality user with trait ${primaryTrait}`);
         }
         return matches;
       }
-      console.log(`Keeping quest ${questId} (no trait match pattern)`);
       return true;
     });
     
     if (neuroticismUserEffects.quests.length === 0) {
-      console.log('No quests remaining after filtering, deleting quests field');
       delete neuroticismUserEffects.quests;
     } else {
-      console.log('Quests remaining after filtering:', neuroticismUserEffects.quests);
     }
   }
   
   // Filter quest_progress by personality trait
   if (neuroticismUserEffects.quest_progress && primaryTrait) {
-    console.log('Filtering quest_progress by personality trait:', neuroticismUserEffects.quest_progress);
     const originalQuestProgress = neuroticismUserEffects.quest_progress;
     neuroticismUserEffects.quest_progress = originalQuestProgress.filter((questId: string) => {
       const questTraitMatch = questId.match(/^(\w+)_\d+$/);
@@ -2688,44 +2487,33 @@ export function testCompleteFilteringLogic(): void {
         const questTrait = questTraitMatch[1];
         const matches = questTrait.toLowerCase() === primaryTrait.toLowerCase();
         if (!matches) {
-          console.log(`Filtering out quest progress ${questId} for personality user with trait ${primaryTrait}`);
         } else {
-          console.log(`Keeping quest progress ${questId} for personality user with trait ${primaryTrait}`);
         }
         return matches;
       }
-      console.log(`Keeping quest progress ${questId} (no trait match pattern)`);
       return true;
     });
     
     if (neuroticismUserEffects.quest_progress.length === 0) {
-      console.log('No quest_progress remaining after filtering, deleting quest_progress field');
       delete neuroticismUserEffects.quest_progress;
     } else {
-      console.log('Quest_progress remaining after filtering:', neuroticismUserEffects.quest_progress);
     }
   }
   
-  console.log('Filtered effects for neuroticism user:', neuroticismUserEffects);
   
   // Test character user
-  console.log('\n--- Testing character user ---');
   const characterUserEffects: any = { ...mockEffects };
   
   // Remove experience (character users get resonance instead)
   if (characterUserEffects.experience) {
-    console.log('Filtering out experience rewards for character user');
     delete characterUserEffects.experience;
   }
   
-  console.log('Filtered effects for character user:', characterUserEffects);
   
-  console.log('=== COMPLETE FILTERING LOGIC TEST COMPLETE ===');
 }
 
 // Test function to verify complete filtering logic with tools
 export function testCompleteFilteringLogicWithTools(): void {
-  console.log('=== TESTING COMPLETE FILTERING LOGIC WITH TOOLS ===');
   
   // Mock effects that should be filtered
   const mockEffects: any = {
@@ -2739,33 +2527,27 @@ export function testCompleteFilteringLogicWithTools(): void {
     tools: ['tool_assertiveness_scripts', 'tool_emotion_surfing'] // Should be filtered based on trait
   };
   
-  console.log('Original effects:', mockEffects);
   
   // Test personality user with neuroticism trait
-  console.log('\n--- Testing personality user with neuroticism trait ---');
   const neuroticismUserEffects: any = { ...mockEffects };
   
   // Remove resonance (personality users get experience instead)
   if (neuroticismUserEffects.resonance) {
-    console.log('Filtering out resonance rewards for personality user');
     delete neuroticismUserEffects.resonance;
   }
   
   // Remove character items/artifacts (personality users don't get gear)
   if (neuroticismUserEffects.rewards) {
-    console.log('Filtering out character items/rewards for personality user');
     delete neuroticismUserEffects.rewards;
   }
   
   if (neuroticismUserEffects.artifacts) {
-    console.log('Filtering out character artifacts for personality user');
     delete neuroticismUserEffects.artifacts;
   }
   
   // Filter tools by personality trait
   const primaryTrait = 'neuroticism';
   if (neuroticismUserEffects.tools && primaryTrait) {
-    console.log('Filtering tools by personality trait:', neuroticismUserEffects.tools);
     const originalTools = neuroticismUserEffects.tools;
     neuroticismUserEffects.tools = originalTools.filter((toolId: string) => {
       // Check if this tool belongs to the user's personality type
@@ -2773,27 +2555,21 @@ export function testCompleteFilteringLogicWithTools(): void {
       if (personalityTools) {
         const toolExists = personalityTools.some((tool: any) => tool.id === toolId);
         if (!toolExists) {
-          console.log(`Filtering out tool ${toolId} for personality user with trait ${primaryTrait}`);
         } else {
-          console.log(`Keeping tool ${toolId} for personality user with trait ${primaryTrait}`);
         }
         return toolExists;
       }
-      console.log(`Keeping tool ${toolId} (no personality tools found for trait ${primaryTrait})`);
       return true;
     });
     
     if (neuroticismUserEffects.tools.length === 0) {
-      console.log('No tools remaining after filtering, deleting tools field');
       delete neuroticismUserEffects.tools;
     } else {
-      console.log('Tools remaining after filtering:', neuroticismUserEffects.tools);
     }
   }
   
   // Filter quests by personality trait
   if (neuroticismUserEffects.quests && primaryTrait) {
-    console.log('Filtering quests by personality trait:', neuroticismUserEffects.quests);
     const originalQuests = neuroticismUserEffects.quests;
     neuroticismUserEffects.quests = originalQuests.filter((questId: string) => {
       const questTraitMatch = questId.match(/^(\w+)_\d+$/);
@@ -2801,27 +2577,21 @@ export function testCompleteFilteringLogicWithTools(): void {
         const questTrait = questTraitMatch[1];
         const matches = questTrait.toLowerCase() === primaryTrait.toLowerCase();
         if (!matches) {
-          console.log(`Filtering out quest ${questId} for personality user with trait ${primaryTrait}`);
         } else {
-          console.log(`Keeping quest ${questId} for personality user with trait ${primaryTrait}`);
         }
         return matches;
       }
-      console.log(`Keeping quest ${questId} (no trait match pattern)`);
       return true;
     });
     
     if (neuroticismUserEffects.quests.length === 0) {
-      console.log('No quests remaining after filtering, deleting quests field');
       delete neuroticismUserEffects.quests;
     } else {
-      console.log('Quests remaining after filtering:', neuroticismUserEffects.quests);
     }
   }
   
   // Filter quest_progress by personality trait
   if (neuroticismUserEffects.quest_progress && primaryTrait) {
-    console.log('Filtering quest_progress by personality trait:', neuroticismUserEffects.quest_progress);
     const originalQuestProgress = neuroticismUserEffects.quest_progress;
     neuroticismUserEffects.quest_progress = originalQuestProgress.filter((questId: string) => {
       const questTraitMatch = questId.match(/^(\w+)_\d+$/);
@@ -2829,51 +2599,40 @@ export function testCompleteFilteringLogicWithTools(): void {
         const questTrait = questTraitMatch[1];
         const matches = questTrait.toLowerCase() === primaryTrait.toLowerCase();
         if (!matches) {
-          console.log(`Filtering out quest progress ${questId} for personality user with trait ${primaryTrait}`);
         } else {
-          console.log(`Keeping quest progress ${questId} for personality user with trait ${primaryTrait}`);
         }
         return matches;
       }
-      console.log(`Keeping quest progress ${questId} (no trait match pattern)`);
       return true;
     });
     
     if (neuroticismUserEffects.quest_progress.length === 0) {
-      console.log('No quest_progress remaining after filtering, deleting quest_progress field');
       delete neuroticismUserEffects.quest_progress;
     } else {
-      console.log('Quest_progress remaining after filtering:', neuroticismUserEffects.quest_progress);
     }
   }
   
-  console.log('Filtered effects for neuroticism user:', neuroticismUserEffects);
   
   // Test personality user with agreeableness trait
-  console.log('\n--- Testing personality user with agreeableness trait ---');
   const agreeablenessUserEffects: any = { ...mockEffects };
   
   // Remove resonance (personality users get experience instead)
   if (agreeablenessUserEffects.resonance) {
-    console.log('Filtering out resonance rewards for personality user');
     delete agreeablenessUserEffects.resonance;
   }
   
   // Remove character items/artifacts (personality users don't get gear)
   if (agreeablenessUserEffects.rewards) {
-    console.log('Filtering out character items/rewards for personality user');
     delete agreeablenessUserEffects.rewards;
   }
   
   if (agreeablenessUserEffects.artifacts) {
-    console.log('Filtering out character artifacts for personality user');
     delete agreeablenessUserEffects.artifacts;
   }
   
   // Filter tools by personality trait
   const agreeablenessTrait = 'agreeableness';
   if (agreeablenessUserEffects.tools && agreeablenessTrait) {
-    console.log('Filtering tools by personality trait:', agreeablenessUserEffects.tools);
     const originalTools = agreeablenessUserEffects.tools;
     agreeablenessUserEffects.tools = originalTools.filter((toolId: string) => {
       // Check if this tool belongs to the user's personality type
@@ -2881,27 +2640,21 @@ export function testCompleteFilteringLogicWithTools(): void {
       if (personalityTools) {
         const toolExists = personalityTools.some((tool: any) => tool.id === toolId);
         if (!toolExists) {
-          console.log(`Filtering out tool ${toolId} for personality user with trait ${agreeablenessTrait}`);
         } else {
-          console.log(`Keeping tool ${toolId} for personality user with trait ${agreeablenessTrait}`);
         }
         return toolExists;
       }
-      console.log(`Keeping tool ${toolId} (no personality tools found for trait ${agreeablenessTrait})`);
       return true;
     });
     
     if (agreeablenessUserEffects.tools.length === 0) {
-      console.log('No tools remaining after filtering, deleting tools field');
       delete agreeablenessUserEffects.tools;
     } else {
-      console.log('Tools remaining after filtering:', agreeablenessUserEffects.tools);
     }
   }
   
   // Filter quests by personality trait
   if (agreeablenessUserEffects.quests && agreeablenessTrait) {
-    console.log('Filtering quests by personality trait:', agreeablenessUserEffects.quests);
     const originalQuests = agreeablenessUserEffects.quests;
     agreeablenessUserEffects.quests = originalQuests.filter((questId: string) => {
       const questTraitMatch = questId.match(/^(\w+)_\d+$/);
@@ -2909,27 +2662,21 @@ export function testCompleteFilteringLogicWithTools(): void {
         const questTrait = questTraitMatch[1];
         const matches = questTrait.toLowerCase() === agreeablenessTrait.toLowerCase();
         if (!matches) {
-          console.log(`Filtering out quest ${questId} for personality user with trait ${agreeablenessTrait}`);
         } else {
-          console.log(`Keeping quest ${questId} for personality user with trait ${agreeablenessTrait}`);
         }
         return matches;
       }
-      console.log(`Keeping quest ${questId} (no trait match pattern)`);
       return true;
     });
     
     if (agreeablenessUserEffects.quests.length === 0) {
-      console.log('No quests remaining after filtering, deleting quests field');
       delete agreeablenessUserEffects.quests;
     } else {
-      console.log('Quests remaining after filtering:', agreeablenessUserEffects.quests);
     }
   }
   
   // Filter quest_progress by personality trait
   if (agreeablenessUserEffects.quest_progress && agreeablenessTrait) {
-    console.log('Filtering quest_progress by personality trait:', agreeablenessUserEffects.quest_progress);
     const originalQuestProgress = agreeablenessUserEffects.quest_progress;
     agreeablenessUserEffects.quest_progress = originalQuestProgress.filter((questId: string) => {
       const questTraitMatch = questId.match(/^(\w+)_\d+$/);
@@ -2937,32 +2684,24 @@ export function testCompleteFilteringLogicWithTools(): void {
         const questTrait = questTraitMatch[1];
         const matches = questTrait.toLowerCase() === agreeablenessTrait.toLowerCase();
         if (!matches) {
-          console.log(`Filtering out quest progress ${questId} for personality user with trait ${agreeablenessTrait}`);
         } else {
-          console.log(`Keeping quest progress ${questId} for personality user with trait ${agreeablenessTrait}`);
         }
         return matches;
       }
-      console.log(`Keeping quest progress ${questId} (no trait match pattern)`);
       return true;
     });
     
     if (agreeablenessUserEffects.quest_progress.length === 0) {
-      console.log('No quest_progress remaining after filtering, deleting quest_progress field');
       delete agreeablenessUserEffects.quest_progress;
     } else {
-      console.log('Quest_progress remaining after filtering:', agreeablenessUserEffects.quest_progress);
     }
   }
   
-  console.log('Filtered effects for agreeableness user:', agreeablenessUserEffects);
   
-  console.log('=== COMPLETE FILTERING LOGIC WITH TOOLS TEST COMPLETE ===');
 }
 
 // Test function to verify filtering with actual data from logs
 export function testFilteringWithActualData(): void {
-  console.log('=== TESTING FILTERING WITH ACTUAL DATA ===');
   
   // Mock the actual story effects that are causing issues
   const actualStoryEffects = {
@@ -2974,7 +2713,6 @@ export function testFilteringWithActualData(): void {
     artifacts: ["Magic Wand"] // This should be filtered out for personality users
   };
   
-  console.log('Original story effects:', actualStoryEffects);
   
   // Test filtering for different personality types
   const testCases = [
@@ -2986,31 +2724,26 @@ export function testFilteringWithActualData(): void {
   ];
   
   testCases.forEach(testCase => {
-    console.log(`\n--- Testing ${testCase.personalityType} user ---`);
     
     // Simulate the filtering logic
     const filteredEffects: any = { ...actualStoryEffects };
     
     // Remove resonance (personality users get experience instead)
     if (filteredEffects.resonance) {
-      console.log('Filtering out resonance rewards for personality user');
       delete filteredEffects.resonance;
     }
     
     // Remove character items/artifacts (personality users don't get gear)
     if (filteredEffects.rewards) {
-      console.log('Filtering out character items/rewards for personality user');
       delete filteredEffects.rewards;
     }
     
     if (filteredEffects.artifacts) {
-      console.log('Filtering out character artifacts for personality user');
       delete filteredEffects.artifacts;
     }
     
     // Filter tools by personality trait
     if (filteredEffects.tools && testCase.personalityType) {
-      console.log('Filtering tools by personality trait:', filteredEffects.tools);
       const originalTools = filteredEffects.tools;
       filteredEffects.tools = originalTools.filter((toolId: string) => {
         // Check if this tool belongs to the user's personality type
@@ -3018,27 +2751,21 @@ export function testFilteringWithActualData(): void {
         if (personalityTools) {
           const toolExists = personalityTools.some((tool: any) => tool.id === toolId);
           if (!toolExists) {
-            console.log(`Filtering out tool ${toolId} for personality user with trait ${testCase.personalityType}`);
           } else {
-            console.log(`Keeping tool ${toolId} for personality user with trait ${testCase.personalityType}`);
           }
           return toolExists;
         }
-        console.log(`Keeping tool ${toolId} (no personality tools found for trait ${testCase.personalityType})`);
         return true;
       });
       
       if (filteredEffects.tools.length === 0) {
-        console.log('No tools remaining after filtering, deleting tools field');
         delete filteredEffects.tools;
       } else {
-        console.log('Tools remaining after filtering:', filteredEffects.tools);
       }
     }
     
     // Filter quest_progress by personality trait
     if (filteredEffects.quest_progress && testCase.personalityType) {
-      console.log('Filtering quest_progress by personality trait:', filteredEffects.quest_progress);
       const originalQuestProgress = filteredEffects.quest_progress;
       filteredEffects.quest_progress = originalQuestProgress.filter((questId: string) => {
         const questTraitMatch = questId.match(/^(\w+)_\d+$/);
@@ -3046,29 +2773,19 @@ export function testFilteringWithActualData(): void {
           const questTrait = questTraitMatch[1];
           const matches = questTrait.toLowerCase() === testCase.personalityType.toLowerCase();
           if (!matches) {
-            console.log(`Filtering out quest progress ${questId} for personality user with trait ${testCase.personalityType}`);
           } else {
-            console.log(`Keeping quest progress ${questId} for personality user with trait ${testCase.personalityType}`);
           }
           return matches;
         }
-        console.log(`Keeping quest progress ${questId} (no trait match pattern)`);
         return true;
       });
       
       if (filteredEffects.quest_progress.length === 0) {
-        console.log('No quest_progress remaining after filtering, deleting quest_progress field');
         delete filteredEffects.quest_progress;
       } else {
-        console.log('Quest_progress remaining after filtering:', filteredEffects.quest_progress);
       }
     }
     
-    console.log('Filtered effects:', filteredEffects);
-    console.log('Expected quests:', testCase.expectedQuests);
-    console.log('Actual quests:', filteredEffects.quest_progress || []);
-    console.log('✅ Filtering correct:', JSON.stringify(filteredEffects.quest_progress || []) === JSON.stringify(testCase.expectedQuests));
   });
   
-  console.log('\n=== FILTERING TEST COMPLETE ===');
 }

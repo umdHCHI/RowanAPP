@@ -1601,34 +1601,19 @@ const ArchiveInterface: React.FC = () => {
 
 
                   {/* Character Info Bar - Updated styling */}
-                  <View style={homeStyles.characterInfoBar}>
-                    <View style={homeStyles.characterDetails}>
+                  <View style={[homeStyles.characterInfoBar, { alignItems: 'center', justifyContent: 'center' }]}>
+                    <View style={[homeStyles.characterDetails, { alignItems: 'center' }]}>
                       <Text style={homeStyles.characterName}>
-                        Memory Archivist
-                      </Text>
-                      <Text style={homeStyles.characterClass}>
-                        Keeper of Hidden Knowledge
-                      </Text>
-                    </View>
-                    
-                    {/* Character Name - Updated styling */}
-                    <View style={{
-                      alignItems: 'flex-end',
-                      justifyContent: 'center',
-                      flex: 1,
-                      marginLeft: 16
-                    }}>
-                      <Text style={homeStyles.foundationsTitle}>
-                        {(() => {
+                        Mouseion {(() => {
                           // Extract character name from the proper backend structure using the helper
                           const { profile: userProfile, backendCharacter } = selectProfileAndCharacter(wellness.homeData);
                           return backendCharacter?.name || userProfile?.username || userProfile?.email || character.getCharacterName() || "Unnamed Character";
                         })()}
                       </Text>
+                      <Text style={homeStyles.characterClass}>
+                        Keeper of Hidden Knowledge
+                      </Text>
                     </View>
-
-
-
                   </View>
 
                   {/* XP Progress */}
@@ -1873,7 +1858,7 @@ const ArchiveInterface: React.FC = () => {
                   <View style={homeStyles.foundationsHeader}>
                     <Icon name="anchor" size={20} color="#4ee6e6" />
                     <Text style={homeStyles.foundationsTitle}>
-                      Archive Foundations
+                      Moments of Reflection
                     </Text>
                     <Icon name="anchor" size={20} color="#4ee6e6" />
                   </View>
@@ -3984,8 +3969,8 @@ const ArchiveInterface: React.FC = () => {
                           style={{
                             backgroundColor: '#2a8a8a',
                             borderRadius: 20,
-                            paddingVertical: 12,
-                            paddingHorizontal: 24,
+                            paddingVertical: 8,
+                            paddingHorizontal: 18,
                             borderWidth: 2,
                             borderColor: '#2a8a8a',
                             shadowColor: '#2a8a8a',
@@ -4019,8 +4004,8 @@ const ArchiveInterface: React.FC = () => {
                           style={{
                             backgroundColor: '#2a8a8a',
                             borderRadius: 20,
-                            paddingVertical: 12,
-                            paddingHorizontal: 24,
+                            paddingVertical: 8,
+                            paddingHorizontal: 18,
                             borderWidth: 2,
                             borderColor: '#2a8a8a',
                             shadowColor: '#2a8a8a',
@@ -4054,8 +4039,8 @@ const ArchiveInterface: React.FC = () => {
                           style={{
                             backgroundColor: '#2a8a8a',
                             borderRadius: 20,
-                            paddingVertical: 12,
-                            paddingHorizontal: 24,
+                            paddingVertical: 8,
+                            paddingHorizontal: 18,
                             borderWidth: 2,
                             borderColor: '#2a8a8a',
                             shadowColor: '#2a8a8a',
@@ -4088,8 +4073,8 @@ const ArchiveInterface: React.FC = () => {
                           style={{
                             backgroundColor: '#2a8a8a',
                             borderRadius: 20,
-                            paddingVertical: 12,
-                            paddingHorizontal: 24,
+                            paddingVertical: 8,
+                            paddingHorizontal: 18,
                             borderWidth: 2,
                             borderColor: '#2a8a8a',
                             shadowColor: '#2a8a8a',
@@ -4152,7 +4137,7 @@ const ArchiveInterface: React.FC = () => {
                           textShadowOffset: { width: 0, height: 2 },
                           textShadowRadius: 4,
                         }}>
-                          Quest Chronicles
+                         -- Game Credits --
                         </Text>
                         <Icon name="users" size={20} color="#4ee6e6" />
                       </View>
@@ -4209,9 +4194,11 @@ const ArchiveInterface: React.FC = () => {
                               <Text style={homeStyles.foundationLevel}>
                                 Master of Tales
                               </Text>
+                              
                             </View>
                             <Text style={homeStyles.foundationLabel}>
-                              Story Writer
+                              Story Writer:{'\n'}
+                              Matthew Wilson
                             </Text>
                             <Text style={homeStyles.foundationDescription}>
                               Crafted immersive narratives for your journey
@@ -4272,7 +4259,10 @@ const ArchiveInterface: React.FC = () => {
                               </Text>
                             </View>
                             <Text style={homeStyles.foundationLabel}>
-                              Development Team
+                              Development Team:{'\n'}
+                              Regan Gross {'\n'}
+                              Trevor Schmidt{'\n'}
+                              Rowan Stratton
                             </Text>
                             <Text style={homeStyles.foundationDescription}>
                               Built the magical systems that power The Archive
@@ -4333,7 +4323,8 @@ const ArchiveInterface: React.FC = () => {
                               </Text>
                             </View>
                             <Text style={homeStyles.foundationLabel}>
-                              Faculty Advisor
+                              Faculty Advisor:{'\n'}
+                              Dr. Jomara Sandbulte
                             </Text>
                             <Text style={homeStyles.foundationDescription}>
                               Provided guidance and wisdom throughout the quest
@@ -4394,7 +4385,7 @@ const ArchiveInterface: React.FC = () => {
                               </Text>
                             </View>
                             <Text style={homeStyles.foundationLabel}>
-                              HCI Lab • Itch.io
+                              HCI Lab{'\n'}Itch.io
                             </Text>
                             <Text style={homeStyles.foundationDescription}>
                               Research foundation and artistic contributions
