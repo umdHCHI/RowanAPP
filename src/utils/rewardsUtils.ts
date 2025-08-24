@@ -50,22 +50,15 @@ export function applyPassageRewards(
   tracker: StoryRewardTracker,
   passage: Passage
 ): StoryRewardTracker {
-  console.log('=== APPLYING PASSAGE REWARDS ===');
-  console.log('Passage ID:', passage.passage_id);
-  console.log('Story effects:', passage.story_effects);
-  console.log('Effects:', passage.effects);
   
   // Check for story_effects first (primary source for passage rewards)
   if (passage.story_effects && Object.keys(passage.story_effects).length > 0) {
-    console.log('✅ Found story_effects in passage:', passage.story_effects);
     const newReward: StoryReward = {
       type: 'passage',
       source: passage.passage_id,
       effects: passage.story_effects,
       timestamp: Date.now()
     };
-
-    console.log('📝 Created passage reward:', newReward);
     return {
       ...tracker,
       rewards: [...tracker.rewards, newReward]
@@ -74,22 +67,18 @@ export function applyPassageRewards(
   
   // Check for effects field (fallback format)
   if (passage.effects && Object.keys(passage.effects).length > 0) {
-    console.log('✅ Found effects in passage (fallback):', passage.effects);
     const newReward: StoryReward = {
       type: 'passage',
       source: passage.passage_id,
       effects: passage.effects,
       timestamp: Date.now()
     };
-
-    console.log('📝 Created passage reward (fallback):', newReward);
     return {
       ...tracker,
       rewards: [...tracker.rewards, newReward]
     };
   }
   
-  console.log('❌ No rewards found in passage');
   return tracker; // No rewards in this passage
 }
 
@@ -328,15 +317,7 @@ export function hasPassageRewards(passage: Passage): boolean {
 
 // Helper function to check if a choice has rewards
 export function hasChoiceRewards(choice: Choice): boolean {
-  console.log('=== CHECKING CHOICE REWARDS ===');
-  console.log('Choice effects:', choice.effects);
-  console.log('Choice effects type:', typeof choice.effects);
-  console.log('Choice effects keys:', choice.effects ? Object.keys(choice.effects) : 'No effects');
-  console.log('Has effects:', !!choice.effects);
-  console.log('Effects length:', choice.effects ? Object.keys(choice.effects).length : 0);
-  
   const hasRewards = !!(choice.effects && Object.keys(choice.effects).length > 0);
-  console.log('Has choice rewards:', hasRewards);
   return hasRewards;
 }
 
@@ -392,12 +373,6 @@ export function createNotificationFromEffects(
   message: string;
   type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
 }> {
-  console.log('=== CREATING NOTIFICATIONS FROM EFFECTS ===');
-  console.log('Effects object:', effects);
-  console.log('Effects type:', typeof effects);
-  console.log('Effects keys:', effects ? Object.keys(effects) : 'No effects');
-  console.log('Research condition:', researchCondition);
-  
   const notifications: Array<{
     message: string;
     type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
@@ -486,25 +461,18 @@ export function createNotificationFromEffects(
 
   // Handle items/rewards - Convert to coping tools for personality users
   if (effects.rewards) {
-    console.log('=== REWARDS NOTIFICATION DEBUG ===');
-    console.log('Effects.rewards found:', effects.rewards);
-    console.log('Research condition:', researchCondition);
-    console.log('Creating notifications for rewards...');
-    
     if (Array.isArray(effects.rewards)) {
       effects.rewards.forEach((reward: string) => {
         if (researchCondition === "personality") {
           // For personality users, try to convert equipment to coping tools
           // This will be handled by the frontend notification system
           // Just create a generic notification that will be converted later
-          console.log(`Creating item notification for personality user: ${reward}`);
           notifications.push({
             message: `Acquired ${reward}`,
             type: 'item'
           });
         } else {
           // For character users, show traditional equipment
-          console.log(`Creating item notification for character user: ${reward}`);
           notifications.push({
             message: `Gained ${reward}`,
             type: 'item'
@@ -545,23 +513,16 @@ export function createNotificationFromEffects(
 
   // Handle artifacts - Convert to coping tools for personality users
   if (effects.artifacts) {
-    console.log('=== ARTIFACTS NOTIFICATION DEBUG ===');
-    console.log('Effects.artifacts found:', effects.artifacts);
-    console.log('Research condition:', researchCondition);
-    console.log('Creating notifications for artifacts...');
-    
     if (Array.isArray(effects.artifacts)) {
       effects.artifacts.forEach((artifact: string) => {
         if (researchCondition === "personality") {
           // For personality users, artifacts become coping tools
-          console.log(`Creating artifact notification for personality user: ${artifact}`);
           notifications.push({
             message: `Acquired ${artifact}`,
             type: 'item'
           });
         } else {
           // For character users, show traditional artifacts
-          console.log(`Creating artifact notification for character user: ${artifact}`);
           notifications.push({
             message: `Found ${artifact}`,
             type: 'artifact'
@@ -586,30 +547,18 @@ export function createNotificationFromEffects(
       // Handle quest progress (for both character and personality users)
   // Support both legacy 'quests' field and new 'quest_progress' field
   if (effects.quest_progress && Array.isArray(effects.quest_progress)) {
-    console.log('=== QUEST_PROGRESS NOTIFICATION DEBUG ===');
-    console.log('Effects.quest_progress found:', effects.quest_progress);
-    console.log('Research condition:', researchCondition);
-    console.log('Creating notifications for quest_progress...');
-    
     effects.quest_progress.forEach((questId: string) => {
       // We don't need the full quest title here, just a generic message.
       // The main quest log will show the updated numbers.
-      console.log(`Creating quest notification for quest: ${questId}`);
       notifications.push({
         message: 'Quest Progress Updated!',
         type: 'quest'
       });
     });
   } else if (effects.quests) {
-    console.log('=== QUESTS NOTIFICATION DEBUG ===');
-    console.log('Effects.quests found:', effects.quests);
-    console.log('Research condition:', researchCondition);
-    console.log('Creating notifications for quests...');
-    
     // Legacy support for character users
     if (Array.isArray(effects.quests)) {
       effects.quests.forEach((questId: string) => {
-        console.log(`Creating quest notification for quest: ${questId}`);
         const questInfo = getQuestInfo(questId);
         if (questInfo) {
           notifications.push({

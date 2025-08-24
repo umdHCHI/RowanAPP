@@ -248,9 +248,9 @@ export default function ArchiveCharacterCreatorScreen() {
               creatorStyles.completeButton,
               { opacity: (loading.isLoading || isCreating) ? 0.7 : 1 }
             ]}
-            onPress={handleCharacterCreation}
+            onPress={loading.isLoading || isCreating ? undefined : handleCharacterCreation}
             disabled={loading.isLoading || isCreating}
-            activeOpacity={0.8}
+            activeOpacity={loading.isLoading || isCreating ? 1 : 0.8}
           >
             <Text style={creatorStyles.completeButtonText}>
               {(loading.isLoading || isCreating)

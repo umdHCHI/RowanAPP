@@ -63,7 +63,6 @@ const apiClient: AxiosInstance = axios.create({
     withCredentials: false, // Important for CORS
 });
 
-console.log(`📱 API Client configured for ${Platform.OS} with ${getTimeout()}ms timeout`);
 
 // Enable request interceptor to add authentication headers
 apiClient.interceptors.request.use(
@@ -71,7 +70,6 @@ apiClient.interceptors.request.use(
         try {
             // Skip authorization for login requests
             if (config.url?.includes('auth/login') || config.url?.includes('login')) {
-                console.log('Skipping auth for login request:', config.url);
                 return config;
             }
             
@@ -87,33 +85,9 @@ apiClient.interceptors.request.use(
                 // Django REST Framework uses 'Token' prefix for token authentication
                 config.headers.Authorization = `Token ${token}`;
                 
-                // Log the full request details for debugging
-                console.log('Full request config:', {
-                    url: config.url,
-                    method: config.method?.toUpperCase(),
-                    headers: {
-                        ...config.headers,
-                        Authorization: config.headers.Authorization
-                    },
-                    baseURL: config.baseURL,
-                    fullURL: `${config.baseURL}${config.url}`,
-                    platform: Platform.OS,
-                    timeout: config.timeout
-                });
             } else {
-                console.log('No token found for request:', config.url);
-                // Try to get all AsyncStorage keys to debug
-                const allKeys = await AsyncStorage.getAllKeys();
-                console.log('All AsyncStorage keys:', allKeys);
-                
-                // Try to get all values to see what's actually stored
-                if (allKeys.length > 0) {
-                    const allValues = await AsyncStorage.multiGet(allKeys);
-                    console.log('All AsyncStorage values:', allValues);
-                }
-            }
+archiveHeaderIcon            }
         } catch (error) {
-            console.error('Error in request interceptor:', error);
         }
         return config;
     },
@@ -135,11 +109,8 @@ apiClient.interceptors.response.use(
         
         // Enhanced error logging for mobile debugging
         if (error.code === 'ECONNABORTED') {
-            console.error(`⏰ Request timeout on ${Platform.OS}:`, error.config?.url);
         } else if (error.code === 'NETWORK_ERROR') {
-            console.error(`🌐 Network error on ${Platform.OS}:`, error.message);
         } else if (error.response) {
-            console.error(`📡 HTTP ${error.response.status} on ${Platform.OS}:`, error.response.data);
         }
         
         return Promise.reject(error);
@@ -152,7 +123,6 @@ class ApiService {
 
     public async initialize(): Promise<void> {
         try {
-            console.log('=== API SERVICE INITIALIZATION ===');
             
             // Check if we have a stored token
                     const token = await AsyncStorage.getItem('authToken');
@@ -172,7 +142,6 @@ class ApiService {
             this.isInitialized = false;
         }
         } catch (error) {
-            console.error('API service initialization error:', error);
             this.isInitialized = false;
         }
     }
@@ -204,31 +173,15 @@ class ApiService {
     public async post<T>(endpoint: keyof typeof API_ENDPOINTS, data?: any, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
         const url = API_ENDPOINTS[endpoint] + (config?.urlSuffix || '');
         
-        console.log('=== API POST REQUEST ===');
-        console.log('Endpoint:', endpoint);
-        console.log('Base URL:', API_ENDPOINTS[endpoint]);
-        console.log('URL Suffix:', config?.urlSuffix);
-        console.log('Full URL:', url);
-        console.log('Data:', data);
-        console.log('Config:', config);
 
         try {
             const axiosConfig = { ...config };
             delete (axiosConfig as any).urlSuffix;
             const response = await apiClient.post<T>(url, data, axiosConfig);
 
-            console.log('✅ API POST successful:', response.data);
             return response.data;
         } catch (error: any) {
-            console.error('❌ API POST failed:', error);
             
-            if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data);
-            }
-            if (error.config) {
-                console.error('Request config:', error.config);
-            }
  
             this.handleError(error, 'POST', url);
             throw error;
@@ -266,19 +219,8 @@ class ApiService {
         
         if (axios.isAxiosError(error)) {
             const axiosError = error as AxiosError;
-            console.error(`Error in ${method} ${endpointStr}:`, {
-                status: axiosError.response?.status,
-                data: axiosError.response?.data,
-                message: axiosError.message,
-                headers: axiosError.config?.headers,
-                url: axiosError.config?.url,
-            });
             
-            if (axiosError.response?.data) {
-                console.error('Full error response:', axiosError.response.data);
-            }
         } else {
-            console.error(`Error in ${method} ${endpointStr}:`, error);
         }
     }
 
@@ -302,7 +244,6 @@ class ApiService {
                 throw new Error('Username and password cannot be empty');
             }
 
-            console.log('🔄 Starting login process for user:', username);
             
             // Make the login API call
             const response = await this.post<LoginResponse>('login', { username, password });
@@ -316,7 +257,6 @@ class ApiService {
                 throw new Error('Invalid login response: No user data received');
             }
 
-            console.log('✅ Login API call successful, storing authentication data...');
             
             // Store authentication data using Promise.all for better performance
             // This ensures all storage operations complete before proceeding
@@ -326,23 +266,9 @@ class ApiService {
                 AsyncStorage.setItem('userData', JSON.stringify(response.user))
             ]);
 
-            console.log('✅ Authentication data stored successfully');
-            console.log('📊 Login response summary:', {
-                hasToken: !!response.token,
-                tokenLength: response.token.length,
-                userId: response.user.id,
-                username: response.user.username,
-                needsOnboarding: response.needs_onboarding,
-                onboardingType: response.onboarding_type
-            });
             
             return response;
         } catch (error: any) {
-            console.error('❌ Login failed:', {
-                error: error.message,
-                status: error.response?.status,
-                data: error.response?.data
-            });
 
             // Provide more specific error messages based on the error type
             if (error.response?.status === 401) {
@@ -365,29 +291,23 @@ class ApiService {
 
     async logout(): Promise<void> {
         try {
-            console.log('🔄 Starting logout process...');
             
             // Attempt to call the logout API endpoint
             try {
                 await this.post('logout');
-                console.log('✅ Logout API call successful');
             } catch (apiError: any) {
                 // Don't fail the logout process if the API call fails
                 // The user should still be logged out locally
-                console.warn('⚠️ Logout API call failed, continuing with local logout:', apiError.message);
             }
             
             // Always clear local storage regardless of API call success
-            console.log('🔄 Clearing local authentication data...');
             await Promise.all([
                 AsyncStorage.removeItem('authToken'),
                 AsyncStorage.removeItem('characterId'),
                 AsyncStorage.removeItem('userData')
             ]);
             
-            console.log('✅ Local authentication data cleared successfully');
         } catch (error: any) {
-            console.error('❌ Error during logout:', error);
             // Even if there's an error, try to clear storage as a fallback
             try {
                 await Promise.all([
@@ -395,9 +315,7 @@ class ApiService {
                     AsyncStorage.removeItem('characterId'),
                     AsyncStorage.removeItem('userData')
                 ]);
-                console.log('✅ Fallback: Local authentication data cleared');
             } catch (fallbackError) {
-                console.error('❌ Critical: Failed to clear authentication data during logout:', fallbackError);
                 // This is a critical error - the user might remain logged in
                 throw new Error('Failed to complete logout. Please restart the app.');
             }
@@ -406,34 +324,25 @@ class ApiService {
 
     async validateToken(): Promise<boolean> {
         try {
-            console.log('🔄 Validating authentication token...');
             
             const token = await AsyncStorage.getItem('authToken');
             if (!token) {
-                console.log('❌ No token found in storage');
                 return false;
             }
 
-            console.log('✅ Token found in storage, testing validity...');
             
             // Test token by making a simple authenticated request
             // This will work for both regular tokens and test tokens
             try {
                 await this.get('userProfile');
-                console.log('✅ Token validation successful');
                 return true;
             } catch (error: any) {
-                console.log('❌ Token validation failed:', {
-                    status: error.response?.status,
-                    message: error.message
-                });
                 
                 // Don't remove token here - let response interceptor handle it
                 // The response interceptor will handle 401/403 responses appropriately
                 return false;
             }
         } catch (error: any) {
-            console.error('❌ Error during token validation:', error);
             // Don't remove token here - let response interceptor handle it
             return false;
         }
@@ -474,7 +383,7 @@ class ApiService {
     /** Returns a single, normalized profile for the given user (or current user). */
     async getProfile(userId?: number): Promise<any> {
         try {
-            console.log("🔄 getProfile: Fetching current user profile from backend");
+
 
             // Validate authentication first
             const token = await AsyncStorage.getItem('authToken');
@@ -491,7 +400,7 @@ class ApiService {
                 }
                 effectiveUserId = me.id;
             }
-            console.log(`🔄 getProfile: Fetching profile for user ID: ${effectiveUserId}`);
+
 
             // GET /users/{id}/full_profile/
             const full = await this.get<any>('userProfile', {
@@ -550,24 +459,11 @@ class ApiService {
                 personality_profile: user?.personality_profile ?? null,
             };
 
-            console.log("✅ getProfile: Successfully retrieved normalized user profile");
-            console.log("📊 Profile summary:", {
-                userId: normalized.id,
-                username: normalized.username,
-                hasCharacter: !!normalized.character,
-                hasWellness: !!normalized.wellness_stats,
-                xpPct: normalized.experience_progress_percentage,
-            });
+
 
             return normalized;
 
         } catch (error: any) {
-            console.error('❌ getProfile: Failed to fetch user profile:', {
-                error: error.message,
-                status: error.response?.status,
-                data: error.response?.data,
-                stack: error.stack
-            });
 
             // Provide specific error messages based on error type
             if (error.response?.status === 401) {
@@ -590,7 +486,7 @@ class ApiService {
 
     async updateProfile(profileData: any): Promise<UserProfile> {
         try {
-            console.log('🔄 updateProfile: Starting profile update...');
+
             
             // Validate authentication
             const token = await AsyncStorage.getItem('authToken');
@@ -603,8 +499,8 @@ class ApiService {
                 throw new Error('Invalid profile data provided');
             }
 
-            console.log('📤 updateProfile: Profile data being sent:', profileData);
-            console.log('📤 updateProfile: Profile data JSON:', JSON.stringify(profileData, null, 2));
+
+
             
             const result = await this.patch<UserProfile>('updateUserProfile', profileData);
             
@@ -612,18 +508,12 @@ class ApiService {
                 throw new Error('No response received from profile update');
             }
 
-            console.log('✅ updateProfile: Profile updated successfully');
-            console.log('📥 updateProfile: Response:', result);
+
+
             
             return result;
 
         } catch (error: any) {
-            console.error('❌ updateProfile: Failed to update profile:', {
-                error: error.message,
-                status: error.response?.status,
-                data: error.response?.data,
-                profileData: profileData
-            });
 
             // Provide specific error messages based on error type
             if (error.response?.status === 401) {
@@ -686,8 +576,8 @@ class ApiService {
         };
 
         try {
-            console.log('🔄 submitSurveyData: Starting survey submission and onboarding completion...');
-            console.log('Raw survey data:', surveyData);
+
+
             
             // Validate input data
             if (!surveyData || typeof surveyData !== 'object') {
@@ -696,23 +586,23 @@ class ApiService {
 
             // Get current user profile to check research group
             const profile = await this.getProfile();
-            console.log('Current user profile:', profile);
+
             
             // Check if user is admin or test user
             const isAdminOrTestUser = profile?.username === 'admin' || 
                                     profile?.profile?.completion_type === 'test' ||
                                     profile?.profile?.completion_type === 'character';
             
-            console.log('Is admin or test user:', isAdminOrTestUser);
-            console.log('Username:', profile?.username);
-            console.log('Completion type:', profile?.profile?.completion_type);
-            console.log('Research group:', profile?.profile?.research_group);
+
+
+
+
             
             // Format personality scores to match backend structure
-            console.log('=== PERSONALITY SCORES DEBUG ===');
-            console.log('Raw surveyData.personality_scores:', surveyData.personality_scores);
-            console.log('Type of personality_scores:', typeof surveyData.personality_scores);
-            console.log('Is personality_scores null/undefined:', surveyData.personality_scores == null);
+
+
+
+
             
             // Ensure we have valid personality scores, with fallback to calculated values
             let formattedScores;
@@ -729,7 +619,7 @@ class ApiService {
                              'openMindedness' in scores ? scores.openMindedness : 0
                 };
             } else {
-                console.warn('No valid personality_scores found, using fallback values');
+
                 // Calculate from responses if available
                 const responses = surveyData.responses || {};
                 const traitCounts = {
@@ -771,15 +661,15 @@ class ApiService {
                 };
             }
             
-            console.log('Formatted personality scores:', formattedScores);
-            console.log('=== END PERSONALITY SCORES DEBUG ===');
+
+
             
             // Use the research group that was already assigned during onboarding
             const researchGroup = profile?.profile?.research_group?.condition;
-            console.log(`=== SURVEY SUBMISSION - RESEARCH GROUP CHECK ===`);
-            console.log(`User research group: ${researchGroup}`);
-            console.log('Full research group object:', profile?.profile?.research_group);
-            console.log('Profile completion type:', profile?.profile?.completion_type);
+
+
+
+
             
             // Calculate the dominant trait
             const dominantTrait = Object.keys(formattedScores).reduce((a, b) => 
@@ -787,7 +677,7 @@ class ApiService {
             );
             
             // Use updateUserProfile endpoint for all users to ensure compatibility
-            console.log('Using updateUserProfile endpoint for survey submission');
+
             
             const profilePayload = {
                 personality_scores: formattedScores,
@@ -798,17 +688,17 @@ class ApiService {
                 onboarding_completed: true
             };
             
-            console.log('=== SURVEY PROFILE PAYLOAD ===');
-            console.log('Full payload:', JSON.stringify(profilePayload, null, 2));
-            console.log('Personality scores in payload:', profilePayload.personality_scores);
-            console.log('================================');
+
+
+
+
             
             const surveyResult = await this.updateProfile(profilePayload);
-            console.log('✅ Survey submitted via updateProfile:', surveyResult);
+
             
             // For Group B users, we also need to submit to the research endpoint for data collection
             if (researchGroup === 'B') {
-                console.log('Group B user - also submitting to research endpoint...');
+
                 try {
                     const researchPayload = {
                         survey_type: 'big_five_personality',
@@ -834,22 +724,22 @@ class ApiService {
                         }
                     };
                     
-                    console.log('=== GROUP B RESEARCH PAYLOAD ===');
-                    console.log('Full payload:', JSON.stringify(researchPayload, null, 2));
-                    console.log('================================');
+
+
+
                     
                     const researchResult = await this.post('personalitySurveySubmit', researchPayload);
-                    console.log('✅ Research data submitted successfully:', researchResult);
+
                 } catch (researchError) {
-                    console.warn('⚠️ Failed to submit to research endpoint, but survey data was saved:', researchError);
+
                     // Don't fail the entire survey submission if research endpoint fails
                 }
             }
             
             // Complete onboarding for survey path
-            console.log('🔄 Completing onboarding for survey path...');
+
             const onboardingResult = await this.completeOnboarding('survey');
-            console.log('✅ Onboarding completed successfully:', onboardingResult);
+
             
             return {
                 surveyResult,
@@ -857,13 +747,8 @@ class ApiService {
                 personality_scores: formattedScores
             };
         } catch (error: any) {
-            console.error('❌ Error submitting survey data and completing onboarding:', error);
+
             if (error.response) {
-                console.error('API Response details:', {
-                    status: error.response.status,
-                    data: error.response.data,
-                    headers: error.response.headers
-                });
             }
             throw new Error(`Failed to submit survey data and complete onboarding: ${error.message || 'Unknown error'}`);
         }
@@ -871,8 +756,8 @@ class ApiService {
 
     async completeOnboarding(path: 'character' | 'survey'): Promise<UserProfile> {
         try {
-            console.log('🔄 completeOnboarding: Starting onboarding completion...');
-            console.log('Onboarding path:', path);
+
+
             
             // Validate input
             if (!path || !['character', 'survey'].includes(path)) {
@@ -882,13 +767,13 @@ class ApiService {
             // Check if user is already onboarded
             const currentProfile = await this.getProfile();
             if (currentProfile?.profile?.has_completed_onboarding) {
-                console.log('⚠️ User already completed onboarding, returning current profile');
+
                 return currentProfile;
             }
             
             // Determine research condition based on path
             const researchCondition = path === 'character' ? 'A' : 'B';
-            console.log(`Assigning user to research group ${researchCondition} for ${path} path`);
+
             
             // Update the user profile with onboarding completion data
             const onboardingData = {
@@ -898,13 +783,13 @@ class ApiService {
                 onboarding_completed_at: new Date().toISOString()
             };
 
-            console.log('Updating profile with onboarding data:', onboardingData);
+
             const updatedProfile = await this.updateProfile(onboardingData);
-            console.log('✅ Onboarding completed successfully:', updatedProfile);
+
             return updatedProfile;
             
         } catch (error: any) {
-            console.error('❌ Error completing onboarding:', error);
+
             
             // Check if this is a network/CORS error (common on web platform)
             const isNetworkError = error.code === 'ERR_NETWORK' || 
@@ -913,7 +798,7 @@ class ApiService {
                                  error.message?.includes('ERR_FAILED');
             
             if (isNetworkError) {
-                console.warn('⚠️ Network error detected - creating local fallback for web platform');
+
                 
                 // Create a mock user profile for web platform
                 const researchCondition = path === 'character' ? 'A' : 'B';
@@ -946,17 +831,12 @@ class ApiService {
                     }
                 };
                 
-                console.log('✅ Mock onboarding profile created for web platform:', mockProfile);
+
                 return mockProfile;
             }
             
             // Log detailed error information
             if (error.response) {
-                console.error('API Response details:', {
-                    status: error.response.status,
-                    data: error.response.data,
-                    headers: error.response.headers
-                });
             }
             
             throw new Error(`Failed to complete onboarding: ${error.message || 'Unknown error'}`);
@@ -976,7 +856,7 @@ class ApiService {
             }
             return null; // No surveys found
         } catch (error: any) {
-            console.log('No existing survey found or error checking:', error);
+
             return null;
         }
     }
@@ -984,7 +864,7 @@ class ApiService {
     // Get the most recent survey data for debugging
     async getMostRecentSurvey(): Promise<any> {
         try {
-            console.log('=== GETTING MOST RECENT SURVEY ===');
+
             
             // Try multiple endpoints to find survey data
             const endpoints: Array<keyof typeof API_ENDPOINTS> = [
@@ -994,22 +874,22 @@ class ApiService {
             
             for (const endpoint of endpoints) {
                 try {
-                    console.log(`Trying endpoint: ${endpoint}`);
+
                     const response = await this.get(endpoint);
                     
                     if (response) {
-                        console.log(`Found survey data from ${endpoint}:`, response);
+
                         return response;
                     }
                 } catch (endpointError: any) {
-                    console.log(`Endpoint ${endpoint} failed:`, endpointError.response?.status || endpointError.message);
+
                 }
             }
             
-            console.log('No survey data found from any endpoint');
+
             return null;
         } catch (error: any) {
-            console.error('Error getting most recent survey:', error);
+
             return null;
         }
     }
@@ -1080,14 +960,14 @@ class ApiService {
             
             // Then complete the onboarding
             const onboardingResult = await this.completeOnboarding('character');
-            console.log('Onboarding completed successfully:', onboardingResult);
+
             
             return {
                 characterResult,
                 onboardingResult
             };
         } catch (error: any) {
-            console.error('Failed to complete character onboarding:', error);
+
             throw error;
         }
     }
@@ -1108,9 +988,9 @@ class ApiService {
     }> {
         try {
 
-//            console.log('=== CHECKING ONBOARDING STATUS ===');
+
             const profile = await this.getProfile();
- //           console.log('Profile response:', profile);
+
             
             // Extract user info from profile
             const user = profile;
@@ -1123,8 +1003,8 @@ class ApiService {
             // Admin and test users ALWAYS go through onboarding (never marked as completed)
             if (isAdminUser || isTestUser) {
                 
-        //        console.log('Admin or test user detected - forcing onboarding to always be available');
-        //        console.log('User type:', { isAdmin: isAdminUser, isTest: isTestUser });
+
+
                 
                 const result = {
                     isOnboarded: false, // Always false for admin/test users
@@ -1134,7 +1014,7 @@ class ApiService {
                     isTestUser: isTestUser
                 };
                 
-        //        console.log('Admin/Test user onboarding status result:', result);
+
                 return result;
             }
             
@@ -1147,18 +1027,18 @@ class ApiService {
                 isTestUser: isTestUser
             };
             
-        //    console.log('Regular user onboarding status check result:', result);
+
             return result;
         } catch (error: any) {
-      //      console.error('Error checking onboarding status:', error);
+
             
             // Handle different types of errors gracefully
             if (error.response?.status === 404) {
-        //        console.log('User profile endpoint not found (404) - returning default status');
+
             } else if (error.response?.status === 401) {
-        //        console.log('User not authenticated (401) - returning default status');
+
             } else {
-       //         console.log('Other error checking onboarding status:', error.message);
+
             }
             
             // Return default status instead of throwing error
@@ -1182,7 +1062,7 @@ class ApiService {
             const profile = await this.getProfile();
             return profile?.profile?.completion_type === 'survey';
         } catch (error) {
-            console.error('Error checking survey completion status:', error);
+
             return false;
         }
     }
@@ -1195,7 +1075,7 @@ class ApiService {
     //        const profile = await this.getProfile();
     //        return profile?.profile?.completion_type as 'survey' | 'character' | null;
     //    } catch (error) {
-    //        console.error('Error getting user completion type:', error);
+
     //        return null;
     //    }
    // }
@@ -1209,25 +1089,25 @@ class ApiService {
 
     async getMyCharacter(): Promise<Character> {
         try {
-            console.log('=== GETTING MY CHARACTER ===');
+
             const result = await this.get<Character>('characters', { urlSuffix: 'my_character/' });
-            console.log('✅ My character loaded successfully:', result);
+
             return result;
         } catch (error) {
-            console.error('❌ Error getting my character:', error);
+
             throw error;
         }
     }
 
     async getCharacterById(characterId: number): Promise<Character> {
         try {
-            console.log('=== GETTING CHARACTER BY ID ===');
-            console.log('Character ID:', characterId);
+
+
             const result = await this.get<Character>('characters', { urlSuffix: `${characterId}/` });
-            console.log('✅ Character loaded successfully:', result);
+
             return result;
         } catch (error) {
-            console.error('❌ Error getting character by ID:', error);
+
             throw error;
         }
     }
@@ -1235,7 +1115,7 @@ class ApiService {
     // Note: getCharacterHomeData is redundant - use getProfile() instead
     // This method is kept for backward compatibility but should not be used
     async getCharacterHomeData(): Promise<UserProfile> {
-        console.warn('⚠️ getCharacterHomeData is deprecated - use getProfile() instead');
+
         return this.getProfile();
     }
 
@@ -1247,7 +1127,7 @@ class ApiService {
      */
     async getUserData(): Promise<UserProfile> {
         try {
-            console.log('🔄 getUserData: Determining user completion type...');
+
             
             // Get the profile data - character data is now directly on UserProfile
             const profile = await this.getProfile();
@@ -1261,16 +1141,16 @@ class ApiService {
                                    profile.equipped_gear;
             
             if (hasCharacterData) {
-                console.log('✅ getUserData: User has character data, returning profile with character data');
+
                 return profile;
             }
             
             // If no character data, return the basic profile (for survey users)
-            console.log('✅ getUserData: User has no character data, returning basic profile');
+
             return profile;
             
         } catch (error: any) {
-            console.error('❌ getUserData: Failed to get user data:', error);
+
             throw error;
         }
     }
@@ -1303,13 +1183,13 @@ class ApiService {
         levels_gained?: number;
         message?: string;
     }> {
-        console.log('=== GAIN EXPERIENCE API CALL ===');
-        console.log('Character ID:', characterId);
-        console.log('Experience:', experience);
-        console.log('Source:', source);
-        console.log('Endpoint:', API_ENDPOINTS.gainExperience);
-        console.log('URL Suffix:', `${characterId}/gain_experience/`);
-        console.log('Full URL will be:', `${apiBaseUrl}${API_ENDPOINTS.gainExperience}${characterId}/gain_experience/`);
+
+
+
+
+
+
+
         
         const payload = { experience, source };
         
@@ -1321,13 +1201,13 @@ class ApiService {
                 levels_gained?: number;
                 message?: string;
             }>('gainExperience', payload, { urlSuffix: `${characterId}/gain_experience/` });
-            console.log('✅ Gain experience API call successful:', result);
+
             return result;
         } catch (error: any) {
-            console.error('❌ Gain experience API call failed:', error);
+
             if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data);
+
+
             }
             throw error;
         }
@@ -1339,12 +1219,12 @@ class ApiService {
         resonance_up?: boolean;
         message?: string;
     }> {
-        console.log('=== GAIN RESONANCE API CALL ===');
-        console.log('Character ID:', characterId);
-        console.log('Resonance:', resonance);
-        console.log('Source:', source);
-        console.log('URL Suffix:', `${characterId}/gain_resonance/`);
-        console.log('Full URL will be:', `${apiBaseUrl}characters/characters/${characterId}/gain_resonance/`);
+
+
+
+
+
+
         
         try {
             const result = await this.post<Character & {
@@ -1353,13 +1233,13 @@ class ApiService {
                 resonance_up?: boolean;
                 message?: string;
             }>('gainExperience', { resonance, source }, { urlSuffix: `${characterId}/gain_resonance/` });
-            console.log('✅ Gain resonance API call successful:', result);
+
             return result;
         } catch (error: any) {
-            console.error('❌ Gain resonance API call failed:', error);
+
             if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data);
+
+
             }
             throw error;
         }
@@ -1392,12 +1272,12 @@ class ApiService {
      */
     async getAvailableCopingTools(): Promise<CopingTool[]> {
         try {
-            console.log('=== GETTING AVAILABLE COPING TOOLS ===');
+
             const result = await this.get<CopingTool[]>('availableCopingTools');
-            console.log('Available coping tools:', result);
+
             return result;
         } catch (error: any) {
-            console.error('Failed to get available coping tools:', error);
+
             throw error;
         }
     }
@@ -1416,12 +1296,12 @@ class ApiService {
     // These methods are kept for compatibility but should not be used in character side
     async getMyTools(): Promise<CopingTool[]> {
         try {
-            console.log('=== GETTING MY TOOLS ===');
+
             const result = await this.get<CopingTool[]>('myTools');
-            console.log('My tools:', result);
+
             return result;
         } catch (error: any) {
-            console.error('Failed to get my tools:', error);
+
             throw error;
         }
     }
@@ -1432,12 +1312,12 @@ class ApiService {
      */
     async getEquippedTools(): Promise<CopingTool[]> {
         try {
-            console.log('=== GETTING EQUIPPED TOOLS ===');
+
             const result = await this.get<CopingTool[]>('equippedTools');
-            console.log('Equipped tools:', result);
+
             return result;
         } catch (error: any) {
-            console.error('Failed to get equipped tools:', error);
+
             throw error;
         }
     }
@@ -1449,19 +1329,19 @@ class ApiService {
      */
     async acquireCopingTool(toolId: number): Promise<CopingTool> {
         try {
-            console.log('=== ACQUIRING COPING TOOL ===');
-            console.log('Tool ID:', toolId);
+
+
             const payload = { tool_id: toolId };
-            console.log('Payload:', payload);
+
             
             const result = await this.post<CopingTool>('characterTools', payload);
-            console.log('✅ Coping tool acquired successfully:', result);
+
             return result;
         } catch (error: any) {
-            console.error('❌ Failed to acquire coping tool:', error);
+
             if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data);
+
+
             }
             throw error;
         }
@@ -1474,17 +1354,17 @@ class ApiService {
      */
     async equipTool(characterToolId: number): Promise<{ message: string; tool: CopingTool }> {
         try {
-            console.log('=== EQUIPPING TOOL ===');
-            console.log('Character Tool ID:', characterToolId);
+
+
             
             const result = await this.post<{ message: string; tool: CopingTool }>('equipTool', {}, { urlSuffix: `${characterToolId}/equip/` });
-            console.log('✅ Tool equipped successfully:', result);
+
             return result;
         } catch (error: any) {
-            console.error('❌ Failed to equip tool:', error);
+
             if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data);
+
+
             }
             throw error;
         }
@@ -1497,14 +1377,14 @@ class ApiService {
      */
     async unequipTool(characterToolId: number): Promise<{ message: string; tool: CharacterGear }> {
         try {
-            console.log('=== UNEQUIPPING TOOL ===');
-            console.log('Character Tool ID:', characterToolId);
+
+
             
             const result = await this.post<{ message: string; tool: CharacterGear }>('unequipTool', {}, { urlSuffix: `${characterToolId}/unequip/` });
-            console.log('✅ Tool unequipped successfully:', result);
+
             return result;
         } catch (error: any) {
-            console.error('❌ Failed to unequip tool:', error);
+
             throw error;
         }
     }
@@ -1521,10 +1401,10 @@ class ApiService {
         tool: CharacterGear;
     }> {
         try {
-            console.log('=== USING TOOL ===');
-            console.log('Character Tool ID:', characterToolId);
-            console.log('Effectiveness Rating:', effectivenessRating);
-            console.log('Notes:', notes);
+
+
+
+
             
             const payload: any = {};
             if (effectivenessRating !== undefined) {
@@ -1540,10 +1420,10 @@ class ApiService {
                 effectiveness_rating?: number;
                 tool: CharacterGear;
             }>('useTool', payload, { urlSuffix: `${characterToolId}/use/` });
-            console.log('✅ Tool used successfully:', result);
+
             return result;
         } catch (error: any) {
-            console.error('❌ Failed to use tool:', error);
+
             throw error;
         }
     }
@@ -1557,7 +1437,7 @@ class ApiService {
             const tool = availableTools.find(t => t.name === toolName);
             return tool || null;
         } catch (error) {
-            console.error('Failed to find coping tool by name:', error);
+
             return null;
         }
     }
@@ -1568,17 +1448,17 @@ class ApiService {
      */
     async acquireCopingToolByName(toolName: string): Promise<CopingTool | null> {
         try {
-            console.log('=== ACQUIRING COPING TOOL BY NAME ===');
-            console.log('Tool name:', toolName);
+
+
             
             // First find the tool
             const tool = await this.findCopingToolByName(toolName);
             if (!tool) {
-                console.error('❌ Coping tool not found:', toolName);
+
                 return null;
             }
             
-            console.log('Found tool:', tool);
+
             
             // Check if user already has this tool
             try {
@@ -1589,7 +1469,7 @@ class ApiService {
                 );
                 
                 if (alreadyHasTool) {
-                    console.log('⚠️ User already has this coping tool:', tool.name);
+
                     const existingTool = myTools.find(characterTool => 
                         characterTool.id === tool.id || 
                         characterTool.name === tool.name
@@ -1597,16 +1477,16 @@ class ApiService {
                     return existingTool || null;
                 }
             } catch (error) {
-                console.warn('Could not check existing tools, proceeding with acquisition:', error);
+
             }
             
             // Then acquire it
             const acquiredTool = await this.acquireCopingTool(tool.id);
-            console.log('✅ Tool acquired by name successfully:', acquiredTool);
+
             
             return acquiredTool;
         } catch (error: any) {
-            console.error('❌ Failed to acquire coping tool by name:', error);
+
             return null;
         }
     }
@@ -1620,28 +1500,28 @@ class ApiService {
         equipped: { message: string; tool: CopingTool } | null;
     }> {
         try {
-            console.log('=== UNLOCKING AND EQUIPPING COPING TOOL ===');
-            console.log('Tool name:', toolName);
+
+
             
             // First acquire the tool
             const acquiredTool = await this.acquireCopingToolByName(toolName);
             if (!acquiredTool) {
-                console.error('❌ Could not acquire tool for equipping:', toolName);
+
                 return { acquired: null, equipped: null };
             }
             
             // Then equip it
             try {
                 const equippedResult = await this.equipTool(acquiredTool.id);
-                console.log('✅ Tool unlocked and equipped successfully:', toolName);
+
                 return { acquired: acquiredTool, equipped: equippedResult };
             } catch (equipError) {
-                console.warn('⚠️ Tool acquired but could not be equipped:', equipError);
+
                 // Return the acquired tool even if equipping failed
                 return { acquired: acquiredTool, equipped: null };
             }
         } catch (error: any) {
-            console.error('❌ Failed to unlock and equip coping tool:', error);
+
             return { acquired: null, equipped: null };
         }
     }
@@ -1650,20 +1530,20 @@ class ApiService {
     // ===== JOURNAL PROMPTS =====
     async getJournalPrompts(): Promise<JournalPrompt[]> {
         try {
-            console.log('=== GETTING JOURNAL PROMPTS ===');
+
             
             // Try the journal prompts endpoint first
             const data = await this.get<JournalPrompt[]>('journalPrompts');
             const prompts = Array.isArray(data) ? data : [];
             
-            console.log(`✅ Found ${prompts.length} journal prompts`);
+
             return prompts;
         } catch (error: any) {
-            console.error('❌ Failed to get journal prompts:', error);
+
             
             // If journal prompts endpoint doesn't exist, provide fallback prompts
             if (error?.response?.status === 404) {
-                console.log('ℹ️ Journal prompts endpoint not found - using fallback prompts');
+
                 return this.getFallbackPrompts();
             }
             
@@ -1715,16 +1595,16 @@ class ApiService {
 
     async getAllJournalPrompts(): Promise<JournalPrompt[]> {
         try {
-            console.log('=== GETTING ALL JOURNAL PROMPTS (ADMIN ONLY) ===');
+
             
             // Use the main endpoint to get all prompts (admin only)
             const data = await this.get<JournalPrompt[]>('journalPrompts');
             const prompts = Array.isArray(data) ? data : [];
             
-            console.log(`✅ Found ${prompts.length} total journal prompts (admin view)`);
+
             return prompts;
         } catch (error) {
-            console.error('❌ Failed to get all journal prompts:', error);
+
             return [];
         }
     }
@@ -1754,7 +1634,7 @@ class ApiService {
         unlockedAreas: string[] = [],
         completedStories: string[] | number[] = []
     ): Promise<{ journal: JournalPrompt|null; draw: JournalPrompt|null; voice: JournalPrompt|null; }> {
-        console.log('=== GETTING PROMPTS BY CATEGORY ===');
+
         
         // Get daily prompts - backend should return one prompt per category per day
         const dailyPrompts = await this.getJournalPrompts();
@@ -1768,11 +1648,6 @@ class ApiService {
             voice:   pick('voice'),
         };
 
-        console.log('✅ Prompts by category:', {
-            journal: result.journal?.text || 'None',
-            draw: result.draw?.text || 'None', 
-            voice: result.voice?.text || 'None'
-        });
 
         return result;
     }
@@ -1790,9 +1665,9 @@ class ApiService {
         duration_seconds?: number;     // for voice entries
     }, characterId?: string | number) {
         try {
-            console.log('=== CREATING CODEX ENTRY ===');
-            console.log('Payload:', payload);
-            console.log('Character ID provided:', characterId);
+
+
+
             
             // Validate payload using enhanced validation
             const validation = this.validateEntryData(payload);
@@ -1801,7 +1676,7 @@ class ApiService {
             }
             
             // ALL users now use the journal/codex-entries/ endpoint for compliance
-            console.log('� Using journal/codex-entries/ endpoint for all users');
+
             
             // Prepare the request payload to match backend expectations
             const requestPayload: any = {
@@ -1818,16 +1693,16 @@ class ApiService {
             // Add character ID if provided for proper association
             if (characterId) {
                 requestPayload.character_id = characterId;
-                console.log('✅ Added character ID for proper association:', characterId);
+
             } else {
-                console.warn('⚠️ No character ID provided - entry may not be associated correctly');
+
             }
             
             const data = await this.post<CodexEntry>('codexEntries', requestPayload);
-            console.log('✅ Codex entry created successfully:', data);
+
             return data;
         } catch (error) {
-            console.error('❌ Failed to create codex entry:', error);
+
             const friendlyMessage = this.handleJournalApiError(error);
             throw new Error(friendlyMessage);
         }
@@ -1836,7 +1711,7 @@ class ApiService {
     // Debug method to test journal endpoints for different user types
     async debugJournalEndpoints() {
         try {
-            console.log('🧪 === DEBUGGING JOURNAL ENDPOINTS ===');
+
             
             // Check user type
             let isAdminUser = false;
@@ -1848,62 +1723,57 @@ class ApiService {
                     isAdminUser = userData?.username === 'admin';
                 }
             } catch (userCheckError) {
-                console.warn('Could not check user type');
+
             }
             
-            console.log('👤 Current user info:', {
-                isAdmin: isAdminUser,
-                username: userData?.username || 'unknown'
-            });
-            
             // Test journal prompts
-            console.log('\n📋 Testing journal prompts...');
+
             try {
                 const prompts = await this.getJournalPrompts();
-                console.log(`✅ Journal prompts: ${prompts.length} found`);
+
             } catch (error) {
-                console.error('❌ Journal prompts failed:', error);
+
             }
             
             // Test getting existing entries
-            console.log('\n📖 Testing get entries...');
+
             try {
                 const entries = await this.getUserCodexEntries();
-                console.log(`✅ User entries: ${entries.length} found`);
+
             } catch (error) {
-                console.error('❌ Get entries failed:', error);
+
             }
             
             // Test specific endpoints based on user type
             if (isAdminUser) {
-                console.log('\n🔧 Testing admin-specific endpoints...');
+
                 try {
                     const adminEntries = await this.get<any[]>('codexEntries');
-                    console.log(`✅ Admin journal entries: ${adminEntries.length} found`);
+
                 } catch (error) {
-                    console.error('❌ Admin journal entries failed:', error);
+
                 }
             } else {
-                console.log('\n👤 Testing regular user endpoints...');
+
                 try {
                     const reflectionEntries = await this.get<any[]>('myReflections');
-                    console.log(`✅ My reflections: ${reflectionEntries.length} found`);
+
                 } catch (error) {
-                    console.error('❌ My reflections failed:', error);
+
                 }
                 
                 try {
                     const recentEntries = await this.get<any[]>('recentReflections');
-                    console.log(`✅ Recent reflections: ${recentEntries.length} found`);
+
                 } catch (error) {
-                    console.error('❌ Recent reflections failed:', error);
+
                 }
             }
             
-            console.log('\n🎉 Journal endpoints debug completed!');
+
             
         } catch (error) {
-            console.error('❌ Debug failed:', error);
+
         }
     }
 
@@ -1915,17 +1785,17 @@ class ApiService {
      */
     async getAvailableJournalPrompts(characterId?: number): Promise<JournalPrompt[]> {
         try {
-            console.log('=== GETTING AVAILABLE JOURNAL PROMPTS ===');
-            console.log('Character ID:', characterId);
+
+
             
             const result = await this.get<JournalPrompt[]>('journalPromptsAvailable');
             const prompts = Array.isArray(result) ? result : [];
-            console.log(`✅ Found ${prompts.length} available journal prompts`);
+
             return prompts;
         } catch (error) {
-            console.error('❌ Failed to get available journal prompts:', error);
+
             // Fallback to regular prompts if available endpoint fails
-            console.log('🔄 Falling back to regular journal prompts...');
+
             return this.getJournalPrompts();
         }
     }
@@ -1941,10 +1811,10 @@ class ApiService {
         message?: string;
     }> {
         try {
-            console.log('=== GETTING DAILY JOURNAL PROMPT ===');
+
             
             const result = await this.get<any>('journalPromptsDaily');
-            console.log('✅ Daily prompt response:', result);
+
             
             // Handle different response formats
             if (result && typeof result === 'object') {
@@ -1961,7 +1831,7 @@ class ApiService {
                 message: 'No daily prompt available'
             };
         } catch (error) {
-            console.error('❌ Failed to get daily prompt:', error);
+
             return {
                 prompt: null,
                 status: 'unavailable',
@@ -1976,14 +1846,14 @@ class ApiService {
      */
     async getCompletedPrompts(): Promise<JournalPrompt[]> {
         try {
-            console.log('=== GETTING COMPLETED JOURNAL PROMPTS ===');
+
             
             const result = await this.get<JournalPrompt[]>('journalPromptsCompleted');
             const prompts = Array.isArray(result) ? result : [];
-            console.log(`✅ Found ${prompts.length} completed journal prompts`);
+
             return prompts;
         } catch (error) {
-            console.error('❌ Failed to get completed prompts:', error);
+
             return [];
         }
     }
@@ -2000,10 +1870,10 @@ class ApiService {
         last_entry_date: string | null;
     }> {
         try {
-            console.log('=== GETTING CODEX STATISTICS ===');
+
             
             const result = await this.get<any>('codexEntriesStats');
-            console.log('✅ Codex stats:', result);
+
             
             return {
                 total_entries: result.total_entries || 0,
@@ -2013,7 +1883,7 @@ class ApiService {
                 last_entry_date: result.last_entry_date || null
             };
         } catch (error) {
-            console.error('❌ Failed to get codex stats:', error);
+
             return {
                 total_entries: 0,
                 entries_by_type: { journal: 0, draw: 0, voice: 0 },
@@ -2030,17 +1900,17 @@ class ApiService {
      */
     async getRecentEntries(limit: number = 10): Promise<CodexEntry[]> {
         try {
-            console.log('=== GETTING RECENT ENTRIES ===');
-            console.log('Limit:', limit);
+
+
             
             const result = await this.get<CodexEntry[]>('codexEntriesRecent', { 
                 urlSuffix: `?limit=${limit}` 
             });
             const entries = Array.isArray(result) ? result : [];
-            console.log(`✅ Found ${entries.length} recent entries`);
+
             return entries;
         } catch (error) {
-            console.error('❌ Failed to get recent entries:', error);
+
             return [];
         }
     }
@@ -2051,17 +1921,17 @@ class ApiService {
      */
     async getPromptByStoryTag(tag: string): Promise<JournalPrompt[]> {
         try {
-            console.log('=== GETTING PROMPTS BY STORY TAG ===');
-            console.log('Tag:', tag);
+
+
             
             const result = await this.get<JournalPrompt[]>('journalPromptsByStoryTag', {
                 urlSuffix: `?tag=${encodeURIComponent(tag)}`
             });
             const prompts = Array.isArray(result) ? result : [];
-            console.log(`✅ Found ${prompts.length} prompts for tag "${tag}"`);
+
             return prompts;
         } catch (error) {
-            console.error('❌ Failed to get prompts by story tag:', error);
+
             return [];
         }
     }
@@ -2138,24 +2008,24 @@ class ApiService {
         content?: string;
     }) {
         try {
-            console.log('=== UPDATING CODEX ENTRY ===');
-            console.log('Entry ID:', id);
-            console.log('Update data:', data);
+
+
+
             
             // This endpoint only allows updating entries owned by the current authenticated user
             const result = await this.patch<CodexEntry>('codexEntries', data, { urlSuffix: `${id}/` });
-            console.log('✅ Codex entry updated successfully:', result);
+
             return result;
         } catch (error) {
-            console.error('❌ Failed to update codex entry:', error);
+
             throw error;
         }
     }
 
     async getCodexEntriesByPrompt(promptId: number) {
         try {
-            console.log('=== GETTING CODEX ENTRIES BY PROMPT ===');
-            console.log('Prompt ID:', promptId);
+
+
             
             // Use the main codex entries endpoint - DRF ViewSet automatically filters by user
             const result = await this.get<CodexEntry[]>('codexEntries');
@@ -2163,22 +2033,22 @@ class ApiService {
             
             // Filter client-side for the specific prompt
             const filteredEntries = allEntries.filter(entry => (entry as any).prompt === promptId);
-            console.log(`✅ Found ${filteredEntries.length} entries for prompt ${promptId}`);
+
             
             return filteredEntries;
         } catch (error) {
-            console.error('❌ Failed to get codex entries by prompt:', error);
+
             return [];
         }
     }
 
     async getRecentCodexEntries(limit = 20) {
         try {
-            console.log('=== GETTING RECENT CODEX ENTRIES ===');
-            console.log('Limit:', limit);
+
+
             
             // ALL users now use the journal/codex-entries/ endpoint for compliance
-            console.log('� Using journal/codex-entries/ endpoint for all users');
+
             
             const data = await this.get<CodexEntry[]>('codexEntries');
             const list = Array.isArray(data) ? data : [];
@@ -2192,40 +2062,40 @@ class ApiService {
             });
             
             const recentEntries = sortedList.slice(0, limit);
-            console.log(`✅ Found ${recentEntries.length} recent entries`);
+
             return recentEntries;
             
         } catch (error) {
-            console.error('❌ Failed to get recent codex entries:', error);
+
             return [];
         }
     }
 
     async getMyCodexEntries(): Promise<CodexEntry[]> {
         try {
-            console.log('=== GETTING MY CODEX ENTRIES ===');
+
             
             // Use the my_reflections endpoint which exists in the backend
             return await this.getUserCodexEntries();
         } catch (error) {
-            console.error('❌ Failed to get my codex entries:', error);
+
             return [];
         }
     }
 
     async getAllCodexEntries(): Promise<CodexEntry[]> {
         try {
-            console.log('=== GETTING ALL CODEX ENTRIES (ADMIN ONLY) ===');
+
             
             // This should only be used for admin purposes
             // For regular users, use getUserCodexEntries() instead
             const result = await this.get<CodexEntry[]>('codexEntries');
             const allEntries = Array.isArray(result) ? result : [];
             
-            console.log(`✅ Found ${allEntries.length} total codex entries (admin view)`);
+
             return allEntries;
         } catch (error) {
-            console.error('❌ Failed to get all codex entries:', error);
+
             return [];
         }
     }
@@ -2238,32 +2108,32 @@ class ApiService {
      */
     async markPromptAsInactive(promptId: number): Promise<void> {
         try {
-            console.log('=== MARKING PROMPT AS INACTIVE ===');
-            console.log('Prompt ID:', promptId);
+
+
             
             // Update the prompt to mark it as inactive (completed for the day)
             await this.patch('journalPrompts', { is_active: false }, { urlSuffix: `${promptId}/` });
-            console.log('✅ Prompt marked as inactive successfully');
+
         } catch (error) {
-            console.error('❌ Failed to mark prompt as inactive:', error);
+
             // Don't throw - this is not critical functionality
         }
     }
 
     async getUserCodexEntries(): Promise<CodexEntry[]> {
         try {
-            console.log('=== GETTING USER CODEX ENTRIES ===');
+
             
             // ALL users now use the journal/codex-entries/ endpoint for compliance
-            console.log('� Using journal/codex-entries/ endpoint for all users');
+
             
             const result = await this.get<CodexEntry[]>('codexEntries');
             const allEntries = Array.isArray(result) ? result : [];
-            console.log(`✅ Found ${allEntries.length} codex entries`);
+
             return allEntries;
             
         } catch (error) {
-            console.error('❌ Failed to get user codex entries:', error);
+
             return [];
         }
     }
@@ -2276,13 +2146,13 @@ class ApiService {
      */
     async getAvailableGearTypes(): Promise<any[]> {
         try {
-            console.log('=== GETTING AVAILABLE GEAR TYPES ===');
+
             // Use direct endpoint for gear-types/available/
             const response = await apiClient.get<any[]>('gear-types/available/');
-            console.log('Available gear types response:', response.data);
+
             return response.data || [];
         } catch (error: any) {
-            console.error('Failed to get available gear types:', error);
+
             return [];
         }
     }
@@ -2294,15 +2164,15 @@ class ApiService {
      */
     async getCharacterWithGear(characterId?: number): Promise<Character> {
         try {
-            console.log('=== GETTING CHARACTER WITH GEAR ===');
-            console.log('Character ID:', characterId);
+
+
             
             if (characterId != null) {
                 return this.get<Character>('characters', { urlSuffix: `${characterId}/` });
             }
             return this.get<Character>('characters', { urlSuffix: 'my_character/' });
         } catch (error: any) {
-            console.error('❌ Failed to get character with gear:', error);
+
             throw error;
         }
     }
@@ -2317,28 +2187,28 @@ class ApiService {
 
     async acquireGear(gearTypeId: number): Promise<CharacterGear> {
         try {
-            console.log('=== ACQUIRE GEAR PAYLOAD ===');
-            console.log('Gear type ID:', gearTypeId);
+
+
             const payload = { gear_type_id: gearTypeId };
-            console.log('Payload:', payload);
+
             
             // First check if the character already has this gear
             const myGear = await this.getMyGear();
             const alreadyHasGear = myGear.some(gear => gear.gear_type.id === gearTypeId);
             
             if (alreadyHasGear) {
-                console.log('Character already has this gear type, skipping acquisition');
+
                 return myGear.find(gear => gear.gear_type.id === gearTypeId)!;
             }
             
             const result = await this.post<CharacterGear>('acquireGear', payload);
-            console.log('✅ Gear acquired successfully:', result);
+
             return result;
         } catch (error: any) {
-            console.error('Failed to acquire gear:', error);
+
             // If it's a duplicate key error, the gear already exists
             if (error.response?.status === 500 && error.response?.data?.includes('duplicate key')) {
-                console.log('Gear already exists, returning existing gear');
+
                 const myGear = await this.getMyGear();
                 return myGear.find(gear => gear.gear_type.id === gearTypeId)!;
             }
@@ -2374,11 +2244,11 @@ class ApiService {
             error?: any;
         }> = [];
 
-        console.log('=== TESTING GEAR REWARD SYSTEM ===');
+
 
         try {
             // Step 1: Test getting available gear types
-            console.log('Step 1: Testing available gear types...');
+
             try {
                 const availableGear = await this.getAvailableGearTypes();
                 testSteps.push({
@@ -2389,18 +2259,18 @@ class ApiService {
                         firstItem: availableGear[0] || null
                     }
                 });
-                console.log('✅ Available gear types loaded:', availableGear.length);
+
             } catch (error) {
                 testSteps.push({
                     step: 'Get Available Gear Types',
                     success: false,
                     error: error
                 });
-                console.error('❌ Failed to get available gear types:', error);
+
             }
 
             // Step 2: Test getting character with equipped gear
-            console.log('Step 2: Testing character with equipped gear...');
+
             try {
                 const character = await this.getCharacterWithGear(characterId);
                 testSteps.push({
@@ -2412,18 +2282,18 @@ class ApiService {
                         equipped_gear: character.equipped_gear
                     }
                 });
-                console.log('✅ Character with equipped gear loaded:', character.equipped_gear?.length || 0, 'items');
+
             } catch (error) {
                 testSteps.push({
                     step: 'Get Character With Equipped Gear',
                     success: false,
                     error: error
                 });
-                console.error('❌ Failed to get character with equipped gear:', error);
+
             }
 
             // Step 3: Test getting character's full gear inventory
-            console.log('Step 3: Testing character\'s full gear inventory...');
+
             try {
                 const myGear = await this.getMyGear();
                 testSteps.push({
@@ -2438,18 +2308,18 @@ class ApiService {
                         }))
                     }
                 });
-                console.log('✅ Character gear inventory loaded:', myGear.length, 'items');
+
             } catch (error) {
                 testSteps.push({
                     step: 'Get My Gear Inventory',
                     success: false,
                     error: error
                 });
-                console.error('❌ Failed to get character gear inventory:', error);
+
             }
 
             // Step 4: Test gear acquisition (dry run - find first available gear that character doesn't have)
-            console.log('Step 4: Testing gear acquisition (dry run)...');
+
             try {
                 const availableGear = await this.getAvailableGearTypes();
                 const myGear = await this.getMyGear();
@@ -2460,7 +2330,7 @@ class ApiService {
                 );
 
                 if (unownedGear) {
-                    console.log('Found gear that character doesn\'t have:', unownedGear.name);
+
                     testSteps.push({
                         step: 'Gear Acquisition Test (Dry Run)',
                         success: true,
@@ -2486,17 +2356,17 @@ class ApiService {
                     success: false,
                     error: error
                 });
-                console.error('❌ Failed gear acquisition test:', error);
+
             }
 
             const allSuccessful = testSteps.every(step => step.success);
             
-            console.log('=== GEAR REWARD SYSTEM TEST RESULTS ===');
+
             testSteps.forEach(step => {
                 const status = step.success ? '✅' : '❌';
-                console.log(`${status} ${step.step}`);
-                if (step.data) console.log('   Data:', step.data);
-                if (step.error) console.log('   Error:', step.error);
+
+
+
             });
 
             return {
@@ -2505,7 +2375,7 @@ class ApiService {
             };
 
         } catch (error) {
-            console.error('❌ Gear reward system test failed:', error);
+
             return {
                 success: false,
                 steps: testSteps
@@ -2519,7 +2389,7 @@ class ApiService {
         try {
             return await this.get<GameData>('gameData');
         } catch (error: any) {
-            console.warn('Failed to get game data from backend:', error);
+
             // Return a default game data structure to prevent cascading failures
             return {
                 id: 0,
@@ -2564,12 +2434,12 @@ class ApiService {
         };
     }> {
         try {
-            console.log('=== GETTING COMPREHENSIVE GAME DATA ===');
-            console.log('Endpoint:', API_ENDPOINTS.gameData);
-            console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.gameData}`);
+
+
+
             
             const response = await this.get<any>('gameData');
-            console.log('Comprehensive game data loaded:', response);
+
             
             // Extract and format the data for the restoration screen
             const formattedData = {
@@ -2596,16 +2466,9 @@ class ApiService {
                 }
             };
             
-            console.log('Formatted game data:', formattedData);
+
             return formattedData;
         } catch (error: any) {
-            console.error('Failed to get comprehensive game data:', error);
-            console.error('Error details:', {
-                message: error.message,
-                status: error.response?.status,
-                data: error.response?.data,
-                url: error.config?.url
-            });
             
             // Return default data structure to prevent cascading failures
             return {
@@ -2737,7 +2600,7 @@ class ApiService {
             // Remove duplicates and return
             return [...new Set(completedStories)];
         } catch (error) {
-            console.warn('Failed to get completed stories from game data, returning empty array:', error);
+
             // Return empty array instead of throwing error to prevent cascading failures
             return [];
         }
@@ -2760,7 +2623,7 @@ class ApiService {
             try {
                 completedStories = await this.getCompletedStories();
             } catch (error) {
-                console.warn('Failed to get completed stories for skill categories, using default progression:', error);
+
                 // Return default progression instead of failing
                 return skillProgression;
             }
@@ -2838,27 +2701,20 @@ class ApiService {
      */
     async getAvailableStories(): Promise<any[]> {
         try {
-            console.log('=== GETTING AVAILABLE STORIES ===');
-            console.log('Endpoint:', API_ENDPOINTS.stories);
-            console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.stories}`);
+
+
+
             
             const stories = await this.get<any[]>('stories');
-            console.log('Available stories loaded:', stories?.length || 0);
+
             if (stories && stories.length > 0) {
-                console.log('First story structure:', stories[0]);
-                console.log('First story keys:', Object.keys(stories[0]));
+
+
             } else {
-                console.log('No stories returned from catalog endpoint');
+
             }
             return stories;
         } catch (error: any) {
-            console.error('Failed to load available stories:', error);
-            console.error('Error details:', {
-                message: error.message,
-                status: error.response?.status,
-                data: error.response?.data,
-                url: error.config?.url
-            });
             throw error;
         }
     }
@@ -2868,25 +2724,25 @@ class ApiService {
      */
     async getChapterPassages(storyId: number | string, chapterId: number | string): Promise<any[]> {
         try {
-            console.log(`=== GETTING CHAPTER PASSAGES (IMPROVED) ===`);
-            console.log(`Story ID: ${storyId}, Chapter ID: ${chapterId}`);
+
+
             
             // Make a direct API call to the correct URL: api/story/chapters/{chapterId}/passages/
             // Since there's no predefined endpoint for this, we'll construct the URL manually
             const response = await apiClient.get(`story/chapters/${chapterId}/passages/`);
             const passages = response.data;
             
-            console.log(`✅ Loaded ${passages?.length || 0} passages for chapter ${chapterId}`);
+
             
             if (passages && passages.length > 0) {
-                console.log(`First passage structure:`, passages[0]);
-                console.log(`First passage keys:`, Object.keys(passages[0]));
+
+
             }
             
             return passages || [];
     
         } catch (error) {
-            console.error(`❌ Failed to get passages for chapter ${chapterId}:`, error);
+
             this.handleError(error, 'GET', `chapters/${chapterId}/passages`);
             throw error;
         }
@@ -2897,18 +2753,18 @@ class ApiService {
      */
     async getStorypassages(storyId: number): Promise<any> {
         try {
-            console.log('=== GETTING ALL STORY PASSAGES ===');
-            console.log('Story ID:', storyId);
+
+
             
             // Get chapters first
             const chapters = await this.getChapters(storyId);
             
             if (!chapters || chapters.length === 0) {
-                console.log('No chapters found for story');
+
                 return { passages: [] };
             }
             
-            console.log(`Found ${chapters.length} chapters, loading passages for each`);
+
             
             // Load passages for each chapter
             const allPassages = [];
@@ -2917,11 +2773,11 @@ class ApiService {
                     const chapterPassages = await this.getChapterPassages(storyId, chapter.id);
                     allPassages.push(...chapterPassages);
                 } catch (error) {
-                    console.warn(`Failed to load passages for chapter ${chapter.id}:`, error);
+
                 }
             }
             
-            console.log(`Total passages loaded: ${allPassages.length}`);
+
             
             
             return {
@@ -2930,7 +2786,7 @@ class ApiService {
                 passages: allPassages
             };
         } catch (error) {
-            console.warn('Failed to get story passages:', error);
+
             return { passages: [] };
         }
     }
@@ -2940,16 +2796,16 @@ class ApiService {
      */
     async getStorypassagesFromChapter(storyId: number, chapterId: number): Promise<any> {
         try {
-            console.log('=== GETTING STORY PASSAGES FROM CHAPTER ===');
-            console.log('Story ID:', storyId);
-            console.log('Chapter ID:', chapterId);
+
+
+
             
             // Get the specific chapter first
             const chapters = await this.getChapters(storyId);
             const targetChapter = chapters?.find((chapter: any) => chapter.id === chapterId);
             
             if (!targetChapter) {
-                console.warn(`Chapter ${chapterId} not found in story ${storyId}`);
+
                 return {
                     id: storyId.toString(),
                     title: `Chapter ${chapterId}`,
@@ -2960,7 +2816,7 @@ class ApiService {
             // Load passages for this specific chapter
             const chapterPassages = await this.getStorypassagesFromChapter(storyId, chapterId);
             
-            console.log(`Loaded ${chapterPassages.length} passages for chapter ${chapterId}`);
+
             
             return {
                 id: storyId.toString(),
@@ -2968,7 +2824,7 @@ class ApiService {
                 passages: chapterPassages
             };
         } catch (error) {
-            console.warn('Failed to get chapter passages:', error);
+
             return {
                 id: storyId.toString(),
                 title: `Chapter ${chapterId}`,
@@ -2989,15 +2845,15 @@ class ApiService {
      */
     async getStoryProgress(storyId: number | string): Promise<any> {
         try {
-            console.log('=== GETTING STORY PROGRESS ===');
-            console.log('Story ID:', storyId);
+
+
             
             // Get all user progress records and filter by story ID
             const allProgress = await this.get<any[]>('getUserProgress');
-            console.log('All progress records:', allProgress);
+
             
             if (!allProgress || allProgress.length === 0) {
-                console.log('No progress records found');
+
                 return null;
             }
             
@@ -3007,20 +2863,20 @@ class ApiService {
             );
             
             if (storyProgress) {
-                console.log('✅ Story progress found:', storyProgress);
-                console.log('Progress ID (PK):', storyProgress.id);
-                console.log('Story ID:', storyProgress.story);
-                console.log('Current passage ID:', storyProgress.current_passage_id);
-                console.log('Passages visited count:', storyProgress.passages_visited_count);
-                console.log('Choices made count:', storyProgress.choices_made_count);
-                console.log('Progress percentage:', storyProgress.progress_percentage);
+
+
+
+
+
+
+
             } else {
-                console.log('❌ No progress found for story ID:', storyId);
+
             }
             
             return storyProgress || null;
         } catch (error) {
-            console.error('Failed to get story progress:', error);
+
             return null;
         }
     }
@@ -3033,9 +2889,9 @@ class ApiService {
         story_variables?: Record<string, any>;
     }): Promise<any> {
         try {
-            console.log('=== CREATING STORY PROGRESS ===');
-            console.log('Story ID:', storyId);
-            console.log('Initial data:', initialData);
+
+
+
             
             // Get current user ID from profile
             const profile = await this.getProfile();
@@ -3055,12 +2911,12 @@ class ApiService {
                 is_completed: false
             };
             
-            console.log('Create progress payload:', payload);
+
             const result = await this.post<any>('createProgress', payload);
-            console.log('Story progress created:', result);
+
             return result;
         } catch (error) {
-            console.error('Failed to create story progress:', error);
+
             throw error;
         }
     }
@@ -3084,19 +2940,19 @@ class ApiService {
         progress_percentage?: number;
     }): Promise<any> {
         try {
-            console.log('=== UPDATING STORY PROGRESS ===');
-            console.log('Progress ID:', progressId);
-            console.log('Update data:', updateData);
+
+
+
             
             // The endpoint is: /api/story/story-progress/{id}/ where id is the story-progress PK
             const result = await this.patch<any>('updateProgress', updateData, {
                 urlSuffix: `${progressId}/`
             });
             
-            console.log('✅ Story progress updated successfully:', result);
+
             return result;
         } catch (error) {
-            console.error('Failed to update story progress:', error);
+
             // Don't throw error - just log it and continue
             // The story should still work even if progress tracking fails
             return null;
@@ -3112,24 +2968,24 @@ class ApiService {
         story_variables?: Record<string, any>;
     }): Promise<any> {
         try {
-            console.log('=== GET OR CREATE STORY PROGRESS ===');
-            console.log('Story ID:', storyId);
+
+
             
             // First try to get existing progress
             const existingProgress = await this.getStoryProgress(storyId);
             
             if (existingProgress) {
-                console.log('Existing progress found:', existingProgress);
+
                 return existingProgress;
             }
             
             // If no existing progress, create new
-            console.log('No existing progress found, creating new progress record');
+
             const newProgress = await this.createStoryProgress(storyId, initialData);
-            console.log('New progress created:', newProgress);
+
             return newProgress;
         } catch (error) {
-            console.error('Failed to get or create story progress:', error);
+
             throw error;
         }
     }
@@ -3141,14 +2997,14 @@ class ApiService {
      */
     async calculateAndUpdateProgress(storyId: number | string, progressId: number): Promise<any> {
         try {
-            console.log('=== CALCULATING PROGRESS PERCENTAGE ===');
-            console.log('Story ID:', storyId);
-            console.log('Progress ID (PK):', progressId);
+
+
+
             
             // Get current progress
             const currentProgress = await this.getStoryProgress(storyId);
             if (!currentProgress) {
-                console.log('No progress found for story');
+
                 return null;
             }
             
@@ -3157,8 +3013,8 @@ class ApiService {
             const totalPassages = storyPassages?.passages?.length || 0;
             const visitedPassages = currentProgress.passages_visited?.length || 0;
             
-            console.log('Total passages in story:', totalPassages);
-            console.log('Passages visited:', visitedPassages);
+
+
             
             // Calculate progress percentage
             let progressPercentage = 0;
@@ -3171,19 +3027,19 @@ class ApiService {
                 progressPercentage = 100;
             }
             
-            console.log('Calculated progress percentage:', progressPercentage);
+
             
             // Now that the backend fields are writable, let's actually update the progress_percentage
             const updateData = {
                 progress_percentage: progressPercentage
             };
             
-            console.log('Updating progress percentage with data:', updateData);
+
             const result = await this.updateStoryProgress(progressId, updateData);
-            console.log('Progress percentage update result:', result);
+
             return result;
         } catch (error) {
-            console.error('Failed to calculate and update progress:', error);
+
             return null;
         }
     }
@@ -3194,18 +3050,18 @@ class ApiService {
      */
     async completeStoryProgress(storyId: number | string, completionType: string = 'rewards_completion'): Promise<any> {
         try {
-            console.log('=== COMPLETING STORY PROGRESS ===');
-            console.log('Story ID:', storyId);
-            console.log('Completion type:', completionType);
+
+
+
             
             // Get current progress
             const currentProgress = await this.getStoryProgress(storyId);
             if (!currentProgress) {
-                console.log('No progress found for story');
+
                 return null;
             }
             
-            console.log('Found progress record with ID:', currentProgress.id);
+
             
             // Update progress to mark as completed
             const updateData = {
@@ -3215,12 +3071,12 @@ class ApiService {
                 progress_percentage: 100
             };
             
-            console.log('Updating progress with completion data:', updateData);
+
             const result = await this.updateStoryProgress(currentProgress.id, updateData);
-            console.log('Story progress completion result:', result);
+
             return result;
         } catch (error) {
-            console.error('Failed to complete story progress:', error);
+
             throw error;
         }
     }
@@ -3251,24 +3107,24 @@ class ApiService {
      */
     async getChapters(storyId: number | string): Promise<any[]> {
         try {
-            console.log('=== GETTING CHAPTERS FOR STORY ===');
-            console.log('Story ID:', storyId);
+
+
             
             const chapters = await this.get<any[]>('storyChapters', { urlSuffix: `${storyId}/chapters/` });
             
-            console.log('Chapters loaded:', chapters?.length || 0);
+
             if (chapters && chapters.length > 0) {
-                console.log('First chapter structure:', chapters[0]);
-                console.log('First chapter keys:', Object.keys(chapters[0]));
+
+
                 if (chapters[0].passages) {
-                    console.log('First chapter has passages:', chapters[0].passages.length);
-                    console.log('First passage structure:', chapters[0].passages[0]);
+
+
                 }
             }
             
             return chapters;
         } catch (error) {
-            console.error('Failed to get chapters:', error);
+
             throw error;
         }
     }
@@ -3285,18 +3141,18 @@ class ApiService {
      */
     async getPassage(storyId: number, passageId: string): Promise<any> {
         try {
-            console.log(`=== GETTING PASSAGE ===`);
-            console.log(`Story ID: ${storyId}`);
-            console.log(`Passage ID: ${passageId}`);
-            console.log(`Endpoint: storyPassage`);
-            console.log(`URL Suffix: ${storyId}/passage/${passageId}/`);
-            console.log(`Full URL: ${apiBaseUrl}story/stories/${storyId}/passage/${passageId}/`);
+
+
+
+
+
+
             
             const response = await this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${passageId}/` });
-            console.log(`✅ Passage response received:`, response);
+
             return response;
         } catch (error) {
-            console.error(`❌ Failed to get passage ${passageId} for story ${storyId}:`, error);
+
             throw error;
         }
     }
@@ -3348,17 +3204,17 @@ class ApiService {
             // Method 2: Also try as query parameter
             urlSuffix = `${storyId}/restart/?chapter_id=${chapterId}`;
             
-            console.log(`🔄 Restarting story ${storyId} for chapter ${chapterId}`);
-            console.log(`📤 Sending restart data:`, data);
-            console.log(`📤 URL suffix with query param:`, urlSuffix);
+
+
+
         } else {
-            console.log(`🔄 Restarting story ${storyId} (no specific chapter)`);
+
         }
         
         return this.post<any>('storyReset', data, { urlSuffix });
     }
     async makeChoice(storyId: number | string, targetPassageId: string, additionalPayload?: any) {
-        console.log(`🚀 POSTing choice to backend: storyId=${storyId}, target_passage_id=${targetPassageId}`);
+
         
         const payload = {
           story_id: storyId,
@@ -3366,7 +3222,7 @@ class ApiService {
           ...additionalPayload
         };
         
-        console.log('Full payload:', payload);
+
         const response = await apiClient.post('story/make_choice/', payload);
         return response.data;
     }
@@ -3396,27 +3252,27 @@ class ApiService {
     /*
     async makeChoice(storyId: number | string, targetPassageId: string): Promise<any> {
         try {
-            console.log('=== MAKING CHOICE ===');
-            console.log('Story ID:', storyId);
-            console.log('Target Passage ID:', targetPassageId);
+
+
+
             
             const payload = {
                 story_id: storyId,
                 target_passage_id: targetPassageId
             };
             
-            console.log('Choice payload:', payload);
+
             
             // Use the new make_choice endpoint
             const response = await this.post<any>('makeChoice', payload);
             
-            console.log('Choice response:', response);
+
             return response;
         } catch (error: any) {
-            console.error('Failed to make choice:', error);
+
             if (error.response) {
-                console.error('Response status:', error.response.status);
-                console.error('Response data:', error.response.data);
+
+
             }
             throw error;
         }
@@ -3432,17 +3288,17 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
   // NEW: Get personality-specific stories (for Research Condition B users)
   async getPersonalityStories(testPersonality?: string): Promise<any> {
     try {
-      console.log('=== GETTING PERSONALITY STORIES ===');
-      console.log('Test personality:', testPersonality);
+
+
       
       const response = await this.get<any>('personalityStories', {
         urlSuffix: testPersonality ? `?personality=${testPersonality}` : ''
       });
       
-      console.log('Personality stories response:', response);
+
       return response;
     } catch (error) {
-      console.error('Failed to get personality stories:', error);
+
       throw error;
     }
   }
@@ -3453,24 +3309,17 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
    */
   async getAdminTestStories(): Promise<any> {
     try {
-      console.log('=== GETTING ADMIN TEST STORIES ===');
-      console.log('Endpoint:', API_ENDPOINTS.adminTestStories);
-      console.log('Full URL:', `${apiBaseUrl}${API_ENDPOINTS.adminTestStories}`);
+
+
+
       
       const response = await this.get<any>('adminTestStories');
       
-      console.log('Admin test stories response:', response);
-      console.log('Response type:', typeof response);
-      console.log('Response keys:', response ? Object.keys(response) : 'No keys');
+
+
+
       return response;
     } catch (error: any) {
-      console.error('Failed to get admin test stories:', error);
-      console.error('Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url
-      });
       throw error;
     }
   }
@@ -3483,93 +3332,87 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
    */
   async getStoriesByPersonality(userPersonalityType?: string, includeGeneral: boolean = true): Promise<any[]> {
     try {
-      console.log('=== GETTING STORIES BY PERSONALITY ===');
-      console.log('User personality type:', userPersonalityType);
-      console.log('User personality type type:', typeof userPersonalityType);
-      console.log('Include general stories:', includeGeneral);
+
+
+
+
       
       // Check if user is admin or test user
       const profile = await this.getProfile();
       const isAdminOrTestUser = profile?.username === 'admin' || profile?.is_test_user === true;
       
-      console.log('=== ADMIN DETECTION DEBUG ===');
-      console.log('Profile username:', profile?.username);
-      console.log('Profile is_test_user:', profile?.is_test_user);
-      console.log('Is admin or test user:', isAdminOrTestUser);
-      console.log('Full profile:', profile);
-      console.log('=== END ADMIN DETECTION DEBUG ===');
+
+
+
+
+
+
       
       // For admin users, still apply personality filtering but with more detailed logging
       if (isAdminOrTestUser) {
-        console.log('Admin/test user detected - applying personality filtering with admin privileges');
+
         try {
           const allStories = await this.getAvailableStories();
-          console.log('Admin stories loaded:', allStories?.length || 0);
+
           
           // Apply personality filtering even for admin users
           if (userPersonalityType) {
-            console.log('Admin user has personality type - applying filtering');
+
             return await this.filterStoriesByPersonality(allStories, userPersonalityType, includeGeneral);
           } else {
-            console.log('Admin user has no personality type - returning all stories');
+
             return allStories || [];
           }
         } catch (catalogError) {
-          console.error('Failed to get catalog stories:', catalogError);
+
           return [];
         }
       }
       
       // For regular users, try personality stories first, then fallback to catalog
       if (userPersonalityType) {
-        console.log('User has personality type - trying personality stories endpoint');
+
         try {
           const personalityStories = await this.getPersonalityStories(userPersonalityType);
-          console.log('Personality stories response:', personalityStories);
+
           
           // Return stories from the personality endpoint if available
           if (personalityStories && personalityStories.stories && personalityStories.stories.length > 0) {
-            console.log('Returning personality stories:', personalityStories.stories.length);
+
             return personalityStories.stories;
           }
         } catch (personalityError) {
-          console.warn('Failed to get personality stories, falling back to catalog:', personalityError);
+
         }
       }
       
       // Fallback: Get all available stories from catalog
-      console.log('Using fallback - getting all stories from catalog');
+
       const allStories = await this.getAvailableStories();
-      console.log('Total stories available:', allStories?.length || 0);
+
       
       if (!allStories || allStories.length === 0) {
-        console.log('No stories found in catalog either');
+
         return [];
       }
       
       // For users with personality type, filter stories properly
       if (userPersonalityType) {
-        console.log('Filtering stories by personality focus');
-        console.log('About to call filterStoriesByPersonality with:', {
-          userPersonalityType,
-          storyCount: allStories.length,
-          includeGeneral
-        });
         return await this.filterStoriesByPersonality(allStories, userPersonalityType, includeGeneral);
       }
       
       // If no personality type, return all stories
-      console.log('No personality type - returning all stories');
+
       return allStories;
     } catch (error) {
-      console.error('Failed to get stories by personality:', error);
+
       // Fallback to all stories if filtering fails
       try {
         const fallbackStories = await this.getAvailableStories();
-        console.log('Fallback stories loaded:', fallbackStories?.length || 0);
+
         return fallbackStories || [];
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+
         return [];
       }
     }
@@ -3581,14 +3424,14 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
    */
   async getCharacterStories(): Promise<any[]> {
     try {
-      console.log('=== GETTING CHARACTER STORIES ===');
+
       
       // Get all available stories from catalog
       const allStories = await this.getAvailableStories();
-      console.log('Total stories available:', allStories?.length || 0);
+
       
       if (!allStories || allStories.length === 0) {
-        console.log('No stories found in catalog');
+
         return [];
       }
       
@@ -3600,27 +3443,27 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
                                 storyPersonalityFocus.length === 0;
         
         if (isCharacterStory) {
-          console.log(`✅ Including character story: "${story.title}" (personality_focus: ${JSON.stringify(storyPersonalityFocus)})`);
+
         } else {
-          console.log(`❌ Excluding personality story: "${story.title}" (personality_focus: ${JSON.stringify(storyPersonalityFocus)})`);
+
         }
         
         return isCharacterStory;
       });
       
-      console.log(`Character stories found: ${characterStories.length} out of ${allStories.length} total stories`);
+
       
-      console.log('Character stories found:', characterStories.length);
+
       return characterStories;
     } catch (error) {
-      console.error('Failed to get character stories:', error);
+
       // Fallback to all stories if filtering fails
       try {
         const fallbackStories = await this.getAvailableStories();
-        console.log('Fallback stories loaded:', fallbackStories?.length || 0);
+
         return fallbackStories || [];
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+
         return [];
       }
     }
@@ -3633,18 +3476,18 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
    * @returns boolean indicating if there's a match
    */
   async doesPersonalityMatch(userPersonalityType: string, storyPersonalityFocus: any): Promise<boolean> {
-    console.log('=== PERSONALITY MATCHING ===');
-    console.log('User personality type:', userPersonalityType);
-    console.log('Story personality focus:', storyPersonalityFocus);
-    console.log('Story personality focus type:', typeof storyPersonalityFocus);
+
+
+
+
     
     if (!userPersonalityType) {
-      console.log('No user personality type - no match');
+
       return false;
     }
     
     const normalizedUserType = this.normalizePersonalityType(userPersonalityType);
-    console.log('Normalized user type:', normalizedUserType);
+
     
     // Handle different personality focus formats
     
@@ -3652,22 +3495,22 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
     if (typeof storyPersonalityFocus === 'string') {
       const normalizedStoryType = this.normalizePersonalityType(storyPersonalityFocus);
       const isMatch = normalizedUserType === normalizedStoryType;
-      console.log('String match:', isMatch);
+
       return isMatch;
     }
     
     // Format 2: Array of personality types (new format)
     if (Array.isArray(storyPersonalityFocus)) {
-      console.log('Checking array of personality types:', storyPersonalityFocus);
+
       const isMatch = storyPersonalityFocus.some(type => {
-        console.log(`Processing array element: "${type}" (type: ${typeof type})`);
+
         const normalizedStoryType = this.normalizePersonalityType(type);
         const matches = normalizedUserType === normalizedStoryType;
-        console.log(`Checking type: "${type}" (normalized: "${normalizedStoryType}") - matches: ${matches}`);
-        console.log(`Comparing: "${normalizedUserType}" === "${normalizedStoryType}"`);
+
+
         return matches;
       });
-      console.log('Array match result:', isMatch);
+
       return isMatch;
     }
     
@@ -3676,29 +3519,29 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
       if (storyPersonalityFocus.personality_type) {
         const normalizedStoryType = this.normalizePersonalityType(storyPersonalityFocus.personality_type);
         const isMatch = normalizedUserType === normalizedStoryType;
-        console.log('Object with personality_type field match:', isMatch);
+
         return isMatch;
       }
       
       // Format 4: Object with trait names as keys (legacy support)
       const storyKeys = Object.keys(storyPersonalityFocus);
-      console.log('Story keys:', storyKeys);
+
       
       // Check if any of the story's personality traits match the user's type
       const isMatch = storyKeys.some(key => {
         const normalizedKey = this.normalizePersonalityType(key);
         const storyValue = storyPersonalityFocus[key];
-        console.log(`Checking key: ${key} (normalized: ${normalizedKey}), value: ${storyValue}`);
+
         
         // If the value is truthy and the normalized key matches the user type
         return storyValue && normalizedKey === normalizedUserType;
       });
       
-      console.log('Object with trait keys match:', isMatch);
+
       return isMatch;
     }
     
-    console.log('No match found - unknown format');
+
     return false;
   }
 
@@ -3710,7 +3553,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
    * @returns Filtered array of stories
    */
   private async filterStoriesByPersonality(allStories: any[], userPersonalityType: string, includeGeneral: boolean): Promise<any[]> {
-    console.log('=== FILTERING STORIES BY PERSONALITY (IMPROVED LOGIC) ===');
+
     const filteredStories = [];
     
     for (const story of allStories) {
@@ -3721,7 +3564,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
 
       // 1. If it's a general story AND we're supposed to include them, add it.
       if (isGeneralStory && includeGeneral) {
-        console.log(`✅ Including general story: "${story.title}"`);
+
         filteredStories.push(story);
         continue;
       }
@@ -3730,20 +3573,20 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
       if (userPersonalityType && !isGeneralStory) {
         const isMatch = await this.doesPersonalityMatch(userPersonalityType, storyPersonalityFocus);
         if (isMatch) {
-          console.log(`✅ Including personality-matched story: "${story.title}" (focus: ${JSON.stringify(storyPersonalityFocus)})`);
+
           filteredStories.push(story);
         } else {
-          console.log(`❌ Excluding non-matching story: "${story.title}" (focus: ${JSON.stringify(storyPersonalityFocus)})`);
+
         }
       }
     }
     
     // Ensure "Introduction" stories are always included and remove duplicates.
     const introductionStories = allStories.filter(s => s.title?.toLowerCase().includes('introduction'));
-    console.log(`Found ${introductionStories.length} introduction stories`);
+
     
     const finalStories = [...new Map([...introductionStories, ...filteredStories].map(item => [item['id'], item])).values()];
-    console.log(`Final filtered stories count: ${finalStories.length}`);
+
     
     return finalStories;
 }
@@ -3756,9 +3599,9 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
   private normalizePersonalityType(personalityType: string): string {
     if (!personalityType) return '';
     
-    console.log(`Normalizing personality type: "${personalityType}"`);
+
     const normalized = personalityType.toLowerCase().trim();
-    console.log(`After toLowerCase and trim: "${normalized}"`);
+
     
     // Map different naming conventions to standard names
     const typeMappings: Record<string, string> = {
@@ -3787,7 +3630,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
     };
     
     const result = typeMappings[normalized] || normalized;
-    console.log(`Final normalized result: "${result}"`);
+
     return result;
   }
 
@@ -3797,40 +3640,34 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
    */
   async getUserPrimaryPersonalityTrait(): Promise<string | null> {
     try {
-      console.log('=== GETTING USER PRIMARY PERSONALITY TRAIT ===');
+
       const profile = await this.getProfile();
-      console.log('Profile structure:', {
-        hasProfile: !!profile?.profile,
-        hasPersonalityProfile: !!profile?.personality_profile,
-        hasProfilePersonalityScores: !!profile?.profile?.personality_scores,
-        hasPersonalityProfileScores: !!profile?.personality_profile?.profile_summary?.dominant_trait
-      });
       
       let primaryTrait: string | null = null;
       
       // Check for dominant trait in personality profile summary (most reliable)
       if (profile?.personality_profile?.profile_summary?.dominant_trait) {
         primaryTrait = profile.personality_profile.profile_summary.dominant_trait;
-        console.log('Found dominant trait in profile summary:', primaryTrait);
-        console.log('Dominant trait type:', typeof primaryTrait);
-        console.log('Dominant trait length:', primaryTrait?.length);
+
+
+
       }
       
       // Check for personality scores in profile
       else if (profile?.profile?.personality_scores) {
         const scores = profile.profile.personality_scores;
-        console.log('Found personality scores in profile:', scores);
+
         primaryTrait = Object.keys(scores).reduce((a, b) => 
           scores[a as keyof typeof scores] > scores[b as keyof typeof scores] ? a : b
         );
-        console.log('Calculated primary trait from profile scores:', primaryTrait);
-        console.log('Primary trait type:', typeof primaryTrait);
+
+
       }
       
       // Check for personality profile with individual scores
       else if (profile?.personality_profile) {
         const scores = profile.personality_profile;
-        console.log('Found personality profile scores:', scores);
+
         
         // Handle different score formats
         let traitScores: Record<string, number>;
@@ -3855,28 +3692,28 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
             neuroticism: bigFiveScores.negativeEmotionality || 0
           };
         } else {
-          console.log('Unknown personality profile format:', scores);
+
           return null;
         }
         
         primaryTrait = Object.keys(traitScores).reduce((a, b) => 
           traitScores[a as keyof typeof traitScores] > traitScores[b as keyof typeof traitScores] ? a : b
         );
-        console.log('Calculated primary trait from personality profile:', primaryTrait);
-        console.log('Primary trait type:', typeof primaryTrait);
+
+
       }
       
       if (primaryTrait) {
         // Normalize the trait to ensure consistent case handling
         const normalizedTrait = this.normalizePersonalityType(primaryTrait);
-        console.log('Normalized primary trait:', normalizedTrait);
+
         return normalizedTrait;
       }
       
-      console.log('No personality data found in profile');
+
       return null;
     } catch (error) {
-      console.error('Failed to get user primary personality trait:', error);
+
       return null;
     }
   }
@@ -3905,7 +3742,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
       // Check if story personality focus matches user personality type
       return this.doesPersonalityMatch(userPrimaryTrait, storyPersonalityFocus);
     } catch (error) {
-      console.error('Failed to check story personality match:', error);
+
       return true; // Default to showing the story if there's an error
     }
   }
@@ -3942,100 +3779,100 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
     const results: any = {};
 
     try {
-      console.log('=== COMPREHENSIVE STORY LOADING DEBUG ===');
+
 
       // Test 1: Get user profile
-      console.log('\n--- Test 1: User Profile ---');
+
       try {
         const profile = await this.getProfile();
         results.profile = profile;
-        console.log('✅ Profile loaded successfully');
-        console.log('Username:', profile?.username);
-        console.log('Is test user:', profile?.is_test_user);
-        console.log('Completion type:', profile?.profile?.completion_type);
-        console.log('Research group:', profile?.profile?.research_group?.condition);
+
+
+
+
+
       } catch (error: any) {
         const errorMsg = `Profile loading failed: ${error.message}`;
         errors.push(errorMsg);
-        console.error('❌', errorMsg);
+
       }
 
       // Test 2: Get user's primary personality trait
-      console.log('\n--- Test 2: User Primary Trait ---');
+
       try {
         const userTrait = await this.getUserPrimaryPersonalityTrait();
         results.userTrait = userTrait;
-        console.log('✅ User primary trait:', userTrait);
+
       } catch (error: any) {
         const errorMsg = `Primary trait detection failed: ${error.message}`;
         errors.push(errorMsg);
-        console.error('❌', errorMsg);
+
       }
 
       // Test 3: Try admin stories endpoint
-      console.log('\n--- Test 3: Admin Stories Endpoint ---');
+
       try {
         const adminStories = await this.getAdminTestStories();
         results.adminStories = adminStories;
-        console.log('✅ Admin stories loaded:', adminStories?.stories?.length || 0);
+
         if (adminStories?.stories?.length > 0) {
-          console.log('First admin story:', adminStories.stories[0]);
+
         }
       } catch (error: any) {
         const errorMsg = `Admin stories failed: ${error.message}`;
         errors.push(errorMsg);
-        console.error('❌', errorMsg);
+
       }
 
       // Test 4: Try catalog endpoint
-      console.log('\n--- Test 4: Catalog Endpoint ---');
+
       try {
         const catalogStories = await this.getAvailableStories();
         results.catalogStories = catalogStories;
-        console.log('✅ Catalog stories loaded:', catalogStories?.length || 0);
+
         if (catalogStories?.length > 0) {
-          console.log('First catalog story:', catalogStories[0]);
-          console.log('Story personality_type:', catalogStories[0].personality_type);
+
+
         }
       } catch (error: any) {
         const errorMsg = `Catalog stories failed: ${error.message}`;
         errors.push(errorMsg);
-        console.error('❌', errorMsg);
+
       }
 
       // Test 5: Try personality stories endpoint
-      console.log('\n--- Test 5: Personality Stories Endpoint ---');
+
       try {
         const personalityStories = await this.getPersonalityStories(results.userTrait || 'conscientiousness');
         results.personalityStories = personalityStories;
-        console.log('✅ Personality stories loaded:', personalityStories?.stories?.length || 0);
+
         if (personalityStories?.stories?.length > 0) {
-          console.log('First personality story:', personalityStories.stories[0]);
+
         }
       } catch (error: any) {
         const errorMsg = `Personality stories failed: ${error.message}`;
         errors.push(errorMsg);
-        console.error('❌', errorMsg);
+
       }
 
       // Test 6: Try the main filtering method
-      console.log('\n--- Test 6: Main Filtering Method ---');
+
       try {
         const filteredStories = await this.getStoriesByPersonality(results.userTrait, true);
         results.filteredStories = filteredStories;
-        console.log('✅ Filtered stories loaded:', filteredStories?.length || 0);
+
         if (filteredStories?.length > 0) {
-          console.log('First filtered story:', filteredStories[0]);
+
         }
       } catch (error: any) {
         const errorMsg = `Filtered stories failed: ${error.message}`;
         errors.push(errorMsg);
-        console.error('❌', errorMsg);
+
       }
 
-      console.log('\n=== END COMPREHENSIVE DEBUG ===');
-      console.log('Total errors:', errors.length);
-      console.log('Errors:', errors);
+
+
+
 
       return {
         success: errors.length === 0,
@@ -4046,7 +3883,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
     } catch (error: any) {
       const errorMsg = `Debug function failed: ${error.message}`;
       errors.push(errorMsg);
-      console.error('❌', errorMsg);
+
       
       return {
         success: false,
@@ -4065,12 +3902,12 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
     data?: any;
   }> {
     try {
-      console.log('=== BASIC STORY LOADING TEST ===');
+
       
       // Test 1: Check if we can reach the catalog endpoint
-      console.log('Testing catalog endpoint...');
+
       const catalogStories = await this.getAvailableStories();
-      console.log('Catalog stories count:', catalogStories?.length || 0);
+
       
       if (!catalogStories || catalogStories.length === 0) {
         return {
@@ -4081,35 +3918,29 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
       
       // Test 2: Check the structure of the first story
       const firstStory = catalogStories[0];
-      console.log('First story structure:', {
-        id: firstStory.id,
-        title: firstStory.title,
-        personality_type: firstStory.personality_type,
-        chapter_count: firstStory.chapter_count
-      });
       
       // Test 3: Check if we can get user profile
-      console.log('Testing user profile...');
+
       const profile = await this.getProfile();
-      console.log('Profile username:', profile?.username);
-      console.log('Profile completion type:', profile?.profile?.completion_type);
+
+
       
       // Test 4: Test personality filtering
-      console.log('Testing personality filtering...');
+
       const userTrait = await this.getUserPrimaryPersonalityTrait();
-      console.log('User primary trait:', userTrait);
+
       
       let filteredStories;
       try {
         filteredStories = await this.getStoriesByPersonality(userTrait || undefined, true);
-        console.log('Filtered stories count:', filteredStories?.length || 0);
+
       } catch (filterError: any) {
-        console.log('Personality filtering failed:', filterError.message);
+
         filteredStories = catalogStories; // Use catalog as fallback
       }
       
       // Test 5: Check specific stories for personality focus
-      console.log('\n--- Testing Specific Stories ---');
+
       const conscientiousnessStories = catalogStories.filter((story: any) => 
         story.personality_focus && 
         Array.isArray(story.personality_focus) && 
@@ -4117,33 +3948,33 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
           focus.toLowerCase().includes('conscientiousness')
         )
       );
-      console.log('Stories with conscientiousness focus:', conscientiousnessStories.length);
+
       conscientiousnessStories.forEach((story: any) => {
-        console.log(`- Story ${story.id}: "${story.title}" (focus: ${JSON.stringify(story.personality_focus)})`);
+
       });
       
       // Test 6: Test normalization function directly
-      console.log('\n--- Testing Normalization ---');
+
       const testCases = ['Conscientiousness', 'conscientiousness', 'CONSCIENTIOUSNESS', 'Openness', 'openness'];
       testCases.forEach(testCase => {
         const normalized = this.normalizePersonalityType(testCase);
-        console.log(`"${testCase}" -> "${normalized}"`);
+
       });
       
       // Test 7: Test personality matching directly
-      console.log('\n--- Testing Direct Personality Matching ---');
+
       if (userTrait) {
         conscientiousnessStories.forEach((story: any) => {
-          console.log(`Testing story ${story.id} with user trait "${userTrait}":`);
-          console.log(`  Story focus: ${JSON.stringify(story.personality_focus)}`);
+
+
           this.doesPersonalityMatch(userTrait, story.personality_focus).then(match => {
-            console.log(`  Match result: ${match}`);
+
           });
         });
       }
       
       // Test 8: Test the fix - verify that normalized traits match
-      console.log('\n--- Testing Normalized Matching ---');
+
       if (userTrait) {
         const testStories = [
           { id: 'test1', personality_focus: ['conscientiousness'] },
@@ -4155,7 +3986,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
         
         for (const testStory of testStories) {
           const isMatch = await this.doesPersonalityMatch(userTrait, testStory.personality_focus);
-          console.log(`Test story ${testStory.id} (${JSON.stringify(testStory.personality_focus)}) with "${userTrait}": ${isMatch}`);
+
         }
       }
       
@@ -4170,7 +4001,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
         }
       };
     } catch (error: any) {
-      console.error('Test failed:', error);
+
       return {
         success: false,
         message: `Test failed: ${error.message}`
@@ -4197,23 +4028,23 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
     }>;
   }> {
     try {
-      console.log('=== DEBUGGING STORY FILTERING ===');
+
       
       // Get all stories
       const allStories = await this.getAvailableStories();
-      console.log('Total stories available:', allStories?.length || 0);
+
       
       // Get user's personality trait
       const userTrait = await this.getUserPrimaryPersonalityTrait();
-      console.log('User primary trait:', userTrait);
+
       
       // Get character stories
       const characterStories = await this.getCharacterStories();
-      console.log('Character stories count:', characterStories?.length || 0);
+
       
       // Get personality stories
       const personalityStories = await this.getStoriesByPersonality(userTrait || undefined, true);
-      console.log('Personality stories count:', personalityStories?.length || 0);
+
       
       // Analyze all stories
       const allStoryDetails = allStories.map((story: any) => {
@@ -4240,7 +4071,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
         allStoryDetails: allStoryDetails
       };
     } catch (error) {
-      console.error('Failed to debug story filtering:', error);
+
       throw error;
     }
   }
@@ -4277,47 +4108,47 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
         };
 
         try {
-            console.log('🔍 DEBUG: Starting character home data debug...');
+
 
             // Test 1: Get basic profile (this should have all the data we need)
             let profile: UserProfile | undefined;
             try {
                 profile = await this.getProfile();
                 dataSummary.hasProfile = true;
-                console.log('✅ DEBUG: Profile loaded successfully');
+
             } catch (error: any) {
                 errors.push(`Profile error: ${error.message}`);
-                console.error('❌ DEBUG: Profile failed:', error);
+
             }
 
             // Test 2: Get character home data (redundant, but keeping for compatibility)
             let characterHomeData: UserProfile | undefined;
             try {
                 characterHomeData = await this.getCharacterHomeData();
-                console.log('✅ DEBUG: Character home data loaded successfully');
+
             } catch (error: any) {
                 errors.push(`Character home data error: ${error.message}`);
-                console.error('❌ DEBUG: Character home data failed:', error);
+
             }
 
             // Test 3: Get character stats
             let characterStats: any = undefined;
             try {
                 characterStats = await this.getCharacterStats();
-                console.log('✅ DEBUG: Character stats loaded successfully');
+
             } catch (error: any) {
                 errors.push(`Character stats error: ${error.message}`);
-                console.error('❌ DEBUG: Character stats failed:', error);
+
             }
 
             // Test 4: Get equipped gear
             let equippedGear: any = undefined;
             try {
                 equippedGear = await this.getEquippedGear();
-                console.log('✅ DEBUG: Equipped gear loaded successfully');
+
             } catch (error: any) {
                 errors.push(`Equipped gear error: ${error.message}`);
-                console.error('❌ DEBUG: Equipped gear failed:', error);
+
             }
 
             // Analyze the data - check for character data directly on UserProfile (new structure)
@@ -4328,17 +4159,6 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
                 const hasExperienceProgress = bestData.experience_progress_percentage !== undefined;
                 const hasWellnessAverage = bestData.wellness_average !== undefined;
                 const hasEquippedGear = !!bestData.equipped_gear && Array.isArray(bestData.equipped_gear);
-                
-                console.log('🔍 DEBUG: Data structure analysis:', {
-                    hasCharacterConfig,
-                    hasExperienceProgress,
-                    hasWellnessAverage,
-                    hasEquippedGear,
-                    experienceProgress: bestData.experience_progress_percentage,
-                    wellnessAverage: bestData.wellness_average,
-                    equippedGearCount: bestData.equipped_gear?.length || 0,
-                    userProfileKeys: Object.keys(bestData)
-                });
                 
                 // Update data summary based on new structure
                 dataSummary.hasCharacter = hasCharacterConfig;
@@ -4364,7 +4184,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
                 // Also check legacy structure for backward compatibility
                 const legacyCharacter = bestData.profile?.character;
                 if (legacyCharacter) {
-                    console.log('🔍 DEBUG: Found legacy character structure');
+
                     dataSummary.hasCharacter = true;
                     dataSummary.characterLevel = legacyCharacter.level || 1;
                     dataSummary.characterExperience = legacyCharacter.experience || 0;
@@ -4383,8 +4203,8 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
                 }
             }
 
-            console.log('📊 DEBUG: Data summary:', dataSummary);
-            console.log('❌ DEBUG: Errors found:', errors);
+
+
 
             return {
                 success: errors.length === 0,
@@ -4398,7 +4218,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
 
         } catch (error: any) {
             errors.push(`General error: ${error.message}`);
-            console.error('❌ DEBUG: General error:', error);
+
             return {
                 success: false,
                 errors,
@@ -4413,14 +4233,14 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
      */
     async getQuestProgress(): Promise<Record<string, number>> {
         try {
-            console.log('=== GETTING QUEST PROGRESS (SIMPLIFIED) ===');
+
             
             // Get user progress records
             const allProgress = await this.get<any[]>('getUserProgress');
-            console.log('📊 Loaded progress records:', allProgress?.length || 0);
+
             
             if (!allProgress || allProgress.length === 0) {
-                console.log('No progress records found');
+
                 return {};
             }
             
@@ -4434,14 +4254,14 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
             allProgress.forEach((record: any, index: number) => {
                 // Method 1: Look for quest_progress_update events
                 if (record.story_variables?.event === 'quest_progress_update') {
-                    console.log(`� Found quest_progress_update in record ${index + 1}`);
+
                     const questData = record.story_variables.quest_progress;
                     if (questData && typeof questData === 'object') {
                         Object.entries(questData).forEach(([questId, progressValue]) => {
                             const numValue = typeof progressValue === 'number' ? progressValue : parseInt(progressValue as string, 10);
                             if (!isNaN(numValue)) {
                                 questProgress[questId] = Math.max(questProgress[questId] || 0, numValue);
-                                console.log(`  ✅ Quest ${questId}: ${numValue}`);
+
                             }
                         });
                     }
@@ -4449,14 +4269,14 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
                 
                 // Method 2: Look for player_state.quest_progress
                 if (record.player_state?.quest_progress) {
-                    console.log(`📈 Found player_state quest_progress in record ${index + 1}`);
+
                     const questData = record.player_state.quest_progress;
                     if (questData && typeof questData === 'object') {
                         Object.entries(questData).forEach(([questId, progressValue]) => {
                             const numValue = typeof progressValue === 'number' ? progressValue : parseInt(progressValue as string, 10);
                             if (!isNaN(numValue)) {
                                 questProgress[questId] = Math.max(questProgress[questId] || 0, numValue);
-                                console.log(`  ✅ Quest ${questId}: ${numValue}`);
+
                             }
                         });
                     }
@@ -4464,26 +4284,26 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
                 
                 // Method 3: Look for story_variables.quest_progress (direct)
                 if (record.story_variables?.quest_progress) {
-                    console.log(`📈 Found story_variables quest_progress in record ${index + 1}`);
+
                     const questData = record.story_variables.quest_progress;
                     if (questData && typeof questData === 'object') {
                         Object.entries(questData).forEach(([questId, progressValue]) => {
                             const numValue = typeof progressValue === 'number' ? progressValue : parseInt(progressValue as string, 10);
                             if (!isNaN(numValue)) {
                                 questProgress[questId] = Math.max(questProgress[questId] || 0, numValue);
-                                console.log(`  ✅ Quest ${questId}: ${numValue}`);
+
                             }
                         });
                     }
                 }
             });
             
-            console.log('✅ Final quest progress calculated:', questProgress);
-            console.log(`📈 Total quests with progress: ${Object.keys(questProgress).length}`);
+
+
             
             return questProgress;
         } catch (error) {
-            console.error('❌ Failed to load quest progress:', error);
+
             return {};
         }
     }
@@ -4493,90 +4313,85 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
      */
     async getQuestProgressFromRecords(): Promise<Record<string, number>> {
         try {
-            console.log('=== GETTING QUEST PROGRESS FROM BACKEND ===');
+
             
             // Use the getUserProgress endpoint to read progress records 
             // (gameProgressRecord is for writing/POST only)
             const allProgress = await this.get<any[]>('getUserProgress');
-            console.log('📊 Raw progress records loaded:', allProgress?.length || 0);
+
             
             if (!allProgress || allProgress.length === 0) {
-                console.log('No progress records found');
+
                 return {};
             }
             
             // Log a few sample records for debugging
-            console.log('Sample progress records (first 3):');
+
             allProgress.slice(0, 3).forEach((record, index) => {
-                console.log(`  Record ${index + 1}:`, {
-                    story_variables: record.story_variables,
-                    passage_id: record.passage_id,
-                    created_at: record.created_at
-                });
                 
                 // ENHANCED DEBUG: Log full story_variables content
                 if (record.story_variables) {
-                    console.log(`    story_variables content:`, JSON.stringify(record.story_variables, null, 2));
-                    console.log(`    story_variables.event:`, record.story_variables.event);
+
+
                     if (record.story_variables.event === 'quest_progress_update') {
-                        console.log(`    quest_progress data:`, record.story_variables.quest_progress);
+
                     }
                     if (record.story_variables.event === 'quest_completed') {
-                        console.log(`    quest_id:`, record.story_variables.quest_id);
+
                     }
                 } else {
-                    console.log(`    NO story_variables found in record`);
+
                 }
             });
             
             // Extract quest progress from story_variables
             const questProgress: Record<string, number> = {};
             
-            console.log('🔍 Processing progress records for quest data...');
+
             allProgress.forEach((progress: any, index: number) => {
-                console.log(`  Processing record ${index + 1}:`, progress.story_variables?.event || 'no event');
+
                 
                 // Handle new quest progress format
                 if (progress.story_variables && progress.story_variables.event === 'quest_progress_update') {
-                    console.log('    Found quest_progress_update event');
+
                     const questData = progress.story_variables.quest_progress;
                     if (questData && typeof questData === 'object') {
                         Object.entries(questData).forEach(([questId, progressValue]) => {
                             const numValue = typeof progressValue === 'number' ? progressValue : parseInt(progressValue as string, 10);
                             if (!isNaN(numValue)) {
                                 questProgress[questId] = (questProgress[questId] || 0) + numValue;
-                                console.log(`✅ Quest progress update: ${questId} += ${numValue} (total: ${questProgress[questId]})`);
+
                             }
                         });
                     }
                 }
                 // Handle legacy quest completion format - THIS IS THE KEY ONE!
                 else if (progress.story_variables && progress.story_variables.event === 'quest_completed') {
-                    console.log('    Found quest_completed event');
+
                     const questId = progress.story_variables.quest_id;
                     if (questId) {
                         questProgress[questId] = (questProgress[questId] || 0) + 1;
-                        console.log(`✅ Quest completion found: ${questId} += 1 (total: ${questProgress[questId]})`);
+
                     }
                 } else {
-                    console.log(`    Skipping record - no recognized quest event (event: ${progress.story_variables?.event || 'none'})`);
+
                 }
             });
             
-            console.log('✅ Final quest progress extracted:', questProgress);
-            console.log(`📈 Total quests with progress: ${Object.keys(questProgress).length}`);
+
+
             
             if (Object.keys(questProgress).length > 0) {
-                console.log('Quest progress details:');
+
                 Object.entries(questProgress).forEach(([questId, progress]) => {
-                    console.log(`  ${questId}: ${progress}`);
+
                 });
             }
             
             return questProgress;
         } catch (error) {
-            console.error('❌ Failed to load quest progress from records:', error);
-            console.warn('⚠️ Failed to load quest progress, using empty object:', error);
+
+
             return {};
         }
     }
@@ -4599,15 +4414,15 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
         playerState?: any;
     }): Promise<any> {
         try {
-            console.log('=== SAVING QUEST PROGRESS ===');
-            console.log('Story ID:', storyId);
-            console.log('Quest slug:', questSlug);
-            console.log('Story variables:', storyVariables);
-            console.log('Player state:', playerState);
+
+
+
+
+
             
             // Generate unique passage_id if none provided
             const uniquePid = passageId ?? `quest_${questSlug}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-            console.log('Generated unique passage_id:', uniquePid);
+
             
             // Use the generic progress recording endpoint
             const response = await this.post('gameProgressRecord', {
@@ -4621,15 +4436,15 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
                 player_state: playerState,
             });
             
-            console.log('✅ Quest progress saved successfully:', response);
+
             return response;
         } catch (error: any) {
-            console.error('❌ Failed to save quest progress:', error);
+
             
             // Optional: treat duplicate key errors as success
             const msg = error?.response?.data?.error ?? '';
             if (typeof msg === 'string' && msg.includes('duplicate key value')) {
-                console.warn('Quest progress already recorded; continuing.');
+
                 return { success: true, message: 'Quest progress already recorded' };
             }
             
@@ -4658,10 +4473,10 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
         bonusesApplied: Record<string, number>;
     }> {
         try {
-            console.log('=== PROCESSING PERSONALITY STORY REWARDS ===');
-            console.log('Story ID:', storyId);
-            console.log('Base rewards:', baseRewards);
-            console.log('Personality type:', personalityType);
+
+
+
+
 
             // Import personality reward utilities dynamically
             const { 
@@ -4680,15 +4495,15 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
             const baseQuestData = baseRewards.questProgress || baseRewards.questsUpdated || {};
             const filteredQuestData = filtered.questProgress || filtered.questsUpdated || {};
             
-            console.log('Quests in:', Object.keys(baseQuestData).length);
-            console.log('Quests kept:', Object.keys(filteredQuestData).length);
-            console.log('Skills kept:', (filtered.skillsLearned ?? []).length);
-            console.log('Items kept:', (filtered.items ?? []).length);
-            console.log('Gear kept:', (filtered.gear ?? []).length);
+
+
+
+
+
 
             // Get personality-specific multiplier
             const multiplier = getPersonalityRewardMultiplier(personalityType, storyId);
-            console.log('Personality multiplier:', multiplier);
+
 
             // Process experience with personality bonus
             const originalExperience = filtered.experienceGained || 0;
@@ -4728,13 +4543,13 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
                 }, 0)
             };
 
-            console.log('✅ Processed rewards:', processedRewards);
-            console.log('✅ Bonuses applied:', bonusesApplied);
+
+
 
             return { processedRewards, bonusesApplied };
 
         } catch (error) {
-            console.error('❌ Failed to process personality story rewards:', error);
+
             // Return original rewards if processing fails
             return { 
                 processedRewards: baseRewards, 
@@ -4787,7 +4602,7 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
             };
 
         } catch (error) {
-            console.error('❌ Failed to save story completion with personality rewards:', error);
+
             throw error;
         }
     }

@@ -2,17 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    Dimensions,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { equipmentIcons } from "../assets/equipment";
-import { CharacterGear, EquipmentItem, EquippedItems } from "../types/equipment";
+import { CharacterGear, EquipmentItem, EquipmentSubtype, EquippedItems } from "../types/equipment";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isMobile = screenWidth < 768;
@@ -200,24 +200,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
     </View>
   );
 
-  const renderBackendGearItem = (gear: CharacterGear, isEquipped: boolean) => {
-    const wellnessStats = mapBackendStatsToWellnessStats(gear.gear_type.stat_bonuses);
-    const item: EquipmentItem = {
-      id: gear.id.toString(),
-      name: gear.gear_type.name,
-      type: mapBackendSlotToFrontendType(gear.gear_type.slot),
-      subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot),
-      description: gear.gear_type.description,
-      unlockCondition: 'Unlocked through story completion',
-      wellnessStats: wellnessStats,
-      effect: `Provides ${Object.entries(wellnessStats).map(([stat, value]) => value > 0 ? `${stat} +${value}` : '').filter(Boolean).join(', ')}`,
-      rarity: 'common',
-      level: 1
-    };
-
-    return renderItem(item, isEquipped, gear.id, gear);
-  };
-
   const mapBackendSlotToFrontendType = (slot: 'weapon' | 'armor' | 'helmet' | 'boots'): keyof EquippedItems => {
     switch (slot) {
       case 'weapon': return 'focus';
@@ -288,6 +270,24 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       default:
         return 'meditation';
     }
+  };
+
+  const renderBackendGearItem = (gear: CharacterGear, isEquipped: boolean) => {
+    const wellnessStats = mapBackendStatsToWellnessStats(gear.gear_type.stat_bonuses);
+    const item: EquipmentItem = {
+      id: gear.id.toString(),
+      name: gear.gear_type.name,
+      type: mapBackendSlotToFrontendType(gear.gear_type.slot),
+      subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot),
+      description: gear.gear_type.description,
+      unlockCondition: 'Unlocked through story completion',
+      wellnessStats: wellnessStats,
+      effect: `Provides ${Object.entries(wellnessStats).map(([stat, value]) => value > 0 ? `${stat} +${value}` : '').filter(Boolean).join(', ')}`,
+      rarity: 'common',
+      level: 1
+    };
+
+    return renderItem(item, isEquipped, gear.id, gear);
   };
 
   const renderItem = (item: EquipmentItem, isEquipped: boolean, gearId?: number, gear?: CharacterGear) => (

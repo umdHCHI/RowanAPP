@@ -36,9 +36,6 @@ export const useCharacterCreation = ({
     // Set loading state immediately and synchronously
     setIsCreating(true);
     isCreatingRef.current = true;
-    
-    // Small delay to ensure UI updates before continuing
-    await new Promise(resolve => setTimeout(resolve, 50));
 
     console.log('=== CHARACTER CREATION STARTED ===');
     console.log('Character name:', characterName);
