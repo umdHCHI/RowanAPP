@@ -14,36 +14,59 @@ export const QuestAchievements: React.FC<QuestAchievementsProps> = ({
   primaryTrait,
   globalStyles
 }) => {
-  // Get quests for the user's primary personality type
-  const primaryQuests = (PersonalityQuests as any)[primaryTrait] || [];
-  
   // Debug logging
   console.log('=== QuestAchievements Debug ===');
   console.log('Primary trait:', primaryTrait);
   console.log('Quest progress received:', questProgress);
-  console.log('Primary quests for this trait:', primaryQuests.map((q: any) => ({ id: q.id, title: q.title })));
   
-  // Check for quest progress matches
-  primaryQuests.forEach((quest: any) => {
-    const progress = questProgress[quest.id] || 0;
-    console.log(`Quest ${quest.id} (${quest.title}): ${progress}/${quest.total} (${progress >= quest.total ? 'COMPLETED' : 'in progress'})`);
+  // Find all quests that the user actually has progress for
+  const questsWithProgress: any[] = [];
+  const questsWithoutProgress: any[] = [];
+  
+  // Check all personality types for quests that match the user's quest progress
+  Object.entries(PersonalityQuests as any).forEach(([personalityType, quests]: [string, any]) => {
+    quests.forEach((quest: any) => {
+      const progress = questProgress[quest.id] || 0;
+      if (progress > 0) {
+        questsWithProgress.push({ ...quest, personalityType });
+        console.log(`✅ Found quest with progress: ${quest.id} (${quest.title}): ${progress}/${quest.total}`);
+      } else if (personalityType === primaryTrait) {
+        // Only include quests without progress from the primary trait
+        questsWithoutProgress.push({ ...quest, personalityType });
+      }
+    });
   });
+  
+  // Combine: first show quests with progress, then primary trait quests without progress
+  const displayQuests = [...questsWithProgress, ...questsWithoutProgress];
+  
+  console.log('Quests with progress:', questsWithProgress.length);
+  console.log('Primary trait quests without progress:', questsWithoutProgress.length);
+  console.log('Total quests to display:', displayQuests.length);
   
   return (
     <View style={globalStyles.personalityQuestsContainer}>
       <Text style={globalStyles.personalityQuestsTitle}>Active Quests</Text>
       <Text style={globalStyles.personalityQuestsSubtitle}>
-        {primaryTrait} Scholar Challenges
+        Your Quest Progress
       </Text>
       
-      {primaryQuests.map((quest: any) => {
+      {displayQuests.map((quest: any) => {
         const progress = questProgress[quest.id] || 0;
         const isCompleted = progress >= quest.total;
         const progressPercentage = (progress / quest.total) * 100;
+        const isFromDifferentTrait = quest.personalityType !== primaryTrait;
 
         return (
           <View key={quest.id} style={[globalStyles.personalityQuestCard, isCompleted && globalStyles.personalityQuestCompleted]}>
-            <Text style={globalStyles.personalityQuestTitle}>{quest.title}</Text>
+            <Text style={globalStyles.personalityQuestTitle}>
+              {quest.title}
+              {isFromDifferentTrait && (
+                <Text style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>
+                  {' '}({quest.personalityType})
+                </Text>
+              )}
+            </Text>
             <Text style={globalStyles.personalityQuestDescription}>{quest.description}</Text>
             <View style={globalStyles.personalityQuestProgress}>
               <View style={globalStyles.personalityQuestProgressBar}>
@@ -62,57 +85,12 @@ export const QuestAchievements: React.FC<QuestAchievementsProps> = ({
         );
       })}
       
-      {/* Show cross-personality quest progress if any exist */}
-      {Object.entries(PersonalityQuests as any).some(([personalityType, quests]: [string, any]) => 
-        personalityType !== primaryTrait && 
-        quests.some((quest: any) => (questProgress[quest.id] || 0) > 0)
-      ) && (
-        <View style={globalStyles.personalityCrossQuestsSection}>
-          <Text style={globalStyles.personalityCrossQuestsTitle}>
-            📚 Universal Progress
+      {displayQuests.length === 0 && (
+        <View style={globalStyles.personalityQuestCard}>
+          <Text style={globalStyles.personalityQuestTitle}>No Active Quests</Text>
+          <Text style={globalStyles.personalityQuestDescription}>
+            Complete stories to unlock and progress on quests!
           </Text>
-          <Text style={globalStyles.personalityCrossQuestsSubtitle}>
-            Growth across all personality chambers
-          </Text>
-          
-          {Object.entries(PersonalityQuests as any).map(([personalityType, quests]: [string, any]) => {
-            if (personalityType === primaryTrait) return null;
-            
-            const questsWithProgress = quests.filter((quest: any) => (questProgress[quest.id] || 0) > 0);
-            if (questsWithProgress.length === 0) return null;
-            
-            return (
-              <View key={personalityType} style={globalStyles.personalityCrossQuestGroup}>
-                <Text style={globalStyles.personalityCrossQuestGroupTitle}>
-                  {personalityType} Chamber
-                </Text>
-                {questsWithProgress.map((quest: any) => {
-                  const progress = questProgress[quest.id] || 0;
-                  const isCompleted = progress >= quest.total;
-                  const progressPercentage = (progress / quest.total) * 100;
-
-                  return (
-                    <View key={quest.id} style={[globalStyles.personalityCrossQuestCard, isCompleted && globalStyles.personalityCrossQuestCompleted]}>
-                      <Text style={globalStyles.personalityCrossQuestTitle}>{quest.title}</Text>
-                      <View style={globalStyles.personalityCrossQuestProgress}>
-                        <View style={globalStyles.personalityCrossQuestProgressBar}>
-                          <View
-                            style={[
-                              globalStyles.personalityCrossQuestProgressFill,
-                              { width: `${progressPercentage}%` },
-                            ]}
-                          />
-                        </View>
-                        <Text style={globalStyles.personalityCrossQuestProgressText}>
-                          {progress}/{quest.total} {isCompleted ? "✅" : ""}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            );
-          })}
         </View>
       )}
     </View>

@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
+import { archiveHeaderIcon } from '../assets/equipment';
 import { AsyncStorage } from '../imports';
 import { Character, CharacterCreateData, CharacterGear, CodexEntry, CopingTool, GameData, JournalPrompt, LoginResponse, UserProfile } from '../types';
 import { PersonalityKey } from '../types/personality';
@@ -457,6 +458,9 @@ class ApiService {
 
                 // pass through anything else you need (personality, etc.)
                 personality_profile: user?.personality_profile ?? null,
+                
+                // Include quest progress for personality users
+                quest_progress: full?.quest_progress ?? [],
             };
 
 
@@ -502,6 +506,7 @@ class ApiService {
 
 
             
+            // Use the updateUserProfile endpoint directly - backend expects data in request body
             const result = await this.patch<UserProfile>('updateUserProfile', profileData);
             
             if (!result) {
@@ -697,7 +702,7 @@ class ApiService {
 
             
             // For Group B users, we also need to submit to the research endpoint for data collection
-            if (researchGroup === 'B') {
+            if (!isAdminOrTestUser && researchGroup === 'B') {
 
                 try {
                     const researchPayload = {

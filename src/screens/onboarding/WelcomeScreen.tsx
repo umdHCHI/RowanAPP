@@ -285,16 +285,26 @@ const ArchiveOnboardingScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
+      // ALL users now go through onboarding process to ensure proper survey submission
+      console.log(`🔄 ${isAdminOrTestUser ? 'Admin/Test' : 'Regular'} user choosing ${pathType} path - processing via API`);
+      console.log('User details:', { isTestUser, username: user?.username, authToken: !!authToken });
+      
       if (isAdminOrTestUser) {
-        // Admin/Test users don't call the API - just set local state
-        console.log(`👑 Admin/Test user choosing ${pathType} path - setting locally only`);
-        console.log('Admin/Test user details:', { isTestUser, username: user?.username });
+        console.log('👑 Admin/Test user will be able to take survey and submit via API');
+        // Admin users need to be assigned to Group B for survey access
+        if (pathType === 'survey') {
+          console.log('👑 Admin user choosing survey - ensuring Group B assignment for backend compatibility');
+          try {
+            // Call the API to assign admin user to Group B so backend allows survey access
+            const updatedProfile = await apiService.completeOnboarding('survey');
+            console.log('✅ Admin user assigned to Group B via API:', updatedProfile);
+          } catch (error) {
+            console.log('⚠️ Admin Group B assignment failed, continuing anyway:', error);
+          }
+        }
         await setAssignedPath(pathType);
       } else {
-        // Regular users complete onboarding via API service
-        console.log(`👤 Regular user choosing ${pathType} path - completing onboarding via API service`);
-        console.log('Regular user details:', { username: user?.username, isTestUser, authToken: !!authToken });
-        
+        // Regular users complete full onboarding via API service
         console.log('🔄 About to call apiService.completeOnboarding...');
         const updatedProfile = await apiService.completeOnboarding(pathType);
         console.log('✅ Onboarding completed via API service:', updatedProfile);

@@ -47,10 +47,23 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
       
       // Extract dominant trait from personality profile
       const dominantTrait = fullProfile?.personality_profile?.profile_summary?.dominant_trait;
-      const mappedTrait = toPersonalityKey(dominantTrait) || 'Openness'; // Default
+      const mappedTrait = toPersonalityKey(dominantTrait);
       
+      console.log('🎯 Full profile personality_profile:', fullProfile?.personality_profile);
+      console.log('🎯 Profile summary:', fullProfile?.personality_profile?.profile_summary);
       console.log('🎯 Original trait:', dominantTrait);
       console.log('🎯 Mapped trait:', mappedTrait);
+      
+      if (!mappedTrait) {
+        console.error('❌ Could not determine personality trait from profile!');
+        console.error('❌ This means either:');
+        console.error('  1. User has not completed personality survey');
+        console.error('  2. Personality data is not in the expected format');
+        console.error('  3. Survey submission did not properly save personality data');
+        setError('Personality profile not found. Please complete the personality survey first.');
+        return;
+      }
+      
       setPrimaryTrait(mappedTrait);
 
       // **FIX: Get coping tools but don't block on them**
@@ -66,17 +79,28 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
         console.log('🚨🚨🚨 REACHED AFTER COPING TOOLS - ABOUT TO LOAD QUEST PROGRESS 🚨🚨🚨');
         console.log('🚨🚨🚨 THIS IS A NEW TEST LOG TO CONFIRM CODE IS RUNNING 🚨🚨🚨');
 
-        // **FIX: Get quest progress from backend**
+        // **FIX: Transform quest progress from backend format to frontend format**
         let questProgress: Record<string, number> = {};
-        console.log('🔄 ABOUT TO LOAD QUEST PROGRESS...');
-        try {
-          console.log('🔄 Loading quest progress from backend...');
-          console.log('🔄 About to call apiService.getQuestProgress()...');
-          questProgress = await apiService.getQuestProgress();
-          console.log('✅ Quest progress API call completed');
-          console.log('✅ Quest progress loaded:', questProgress);
+        console.log('🔄 TRANSFORMING QUEST PROGRESS FROM BACKEND DATA...');
+        
+        // The backend returns quest_progress as an array of objects in fullProfile
+        const backendQuestProgress = fullProfile.quest_progress || [];
+        console.log('Backend quest progress data:', backendQuestProgress);
+        
+        if (Array.isArray(backendQuestProgress)) {
+          // Transform from backend format to frontend format
+          backendQuestProgress.forEach((questData: any) => {
+            if (questData.quest && questData.quest.quest_id) {
+              questProgress[questData.quest.quest_id] = questData.progress || 0;
+            }
+          });
+          
+          console.log('✅ Quest progress transformed:', questProgress);
           console.log('✅ Quest progress object keys:', Object.keys(questProgress));
-        console.log('✅ Number of quests with progress:', Object.keys(questProgress).length);
+          console.log('✅ Number of quests with progress:', Object.keys(questProgress).length);
+        } else {
+          console.warn('⚠️ Backend quest_progress is not an array:', backendQuestProgress);
+        }
         
         // Log quest progress details for debugging
         if (Object.keys(questProgress).length > 0) {
@@ -98,55 +122,72 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
           }
         });
         
+        // **FIX: Build proper character data structure for personality users**
+        // Character data is now directly on UserProfile, but personality users may not have character data
+        const characterData = {
+          // Basic info from profile
+          id: fullProfile.id,
+          username: fullProfile.username,
+          name: fullProfile.username, // Use username as display name
+          
+          // Character stats (set defaults for personality users)
+          level: 1,
+          experience: 0,
+          experience_needed: 1000,
+          
+          // **FIX: Create wellness stats for personality users**
+          wellness_stats: [
+            { icon: "🧘", label: "Exploration", value: 4, color: "#4A90E2" },
+            { icon: "💚", label: "Courage", value: 0, color: "#2ECC71" },
+            { icon: "🤝", label: "Connection", value: 0, color: "#E74C3C" },
+            { icon: "⚖️", label: "Balance", value: 0, color: "#F39C12" }
+          ],
+          
+          // Personality-specific data
+          primaryTrait: mappedTrait,
+          personalityProfile: fullProfile.personality_profile,
+          
+          // Tools and progress
+          unlocked_tools: availableCopingTools.map(tool => tool.tool_id) || [],
+          coping_tools: availableCopingTools || [],
+          quest_progress: questProgress,
+          
+          // Raw profile data for reference
+          rawProfile: fullProfile
+        };
+        
+        console.log('✅ Character data built:', characterData);
+        
+        // **FIX: Actually set the userProfile state**
+        setUserProfile(characterData);
+        
       } catch (questError) {
         console.error('❌ QUEST PROGRESS LOADING ERROR:', questError);
         console.warn('⚠️ Failed to load quest progress, using empty object:', questError);
-      }
-      console.log('🏁 QUEST PROGRESS LOADING COMPLETE, RESULT:', questProgress);
-
-      // **FIX: Build proper character data structure for personality users**
-      // Character data is now directly on UserProfile, but personality users may not have character data
-      const characterData = {
-        // Basic info from profile
-        id: fullProfile.id,
-        username: fullProfile.username,
-        name: fullProfile.username, // Use username as display name
+        console.log('🏁 QUEST PROGRESS LOADING COMPLETE, RESULT:', {});
         
-        // Character stats (set defaults for personality users)
-        level: 1,
-        experience: 0,
-        experience_needed: 1000,
-        
-        // **FIX: Create wellness stats for personality users**
-        wellness_stats: [
-          { icon: "🧘", label: "Exploration", value: 4, color: "#4A90E2" },
-          { icon: "💚", label: "Courage", value: 0, color: "#2ECC71" },
-          { icon: "🤝", label: "Connection", value: 0, color: "#E74C3C" },
-          { icon: "⚖️", label: "Balance", value: 0, color: "#F39C12" }
-        ],
-        
-        // Personality-specific data
-        primaryTrait: mappedTrait,
-        personalityProfile: fullProfile.personality_profile,
-        
-        // Tools and progress
-        unlocked_tools: availableCopingTools.map(tool => tool.tool_id) || [],
-        coping_tools: availableCopingTools || [],
-        quest_progress: questProgress,
-        
-        // Raw profile data for reference
-        rawProfile: fullProfile
-      };
-      
-      console.log('✅ Character data built:', characterData);
-      
-      // **FIX: Actually set the userProfile state**
-      setUserProfile(characterData);
-      
-      } catch (questSectionError) {
-        console.error('🚨🚨🚨 ERROR IN QUEST PROGRESS SECTION:', questSectionError);
-        console.log('🚨🚨🚨 QUEST PROGRESS SECTION FAILED - CONTINUING WITHOUT QUEST DATA');
-        // Continue without quest data
+        // Continue without quest data - set userProfile with empty quest progress in case of error
+        const characterData = {
+          id: fullProfile.id,
+          username: fullProfile.username,
+          name: fullProfile.username,
+          level: 1,
+          experience: 0,
+          experience_needed: 1000,
+          wellness_stats: [
+            { icon: "🧘", label: "Exploration", value: 4, color: "#4A90E2" },
+            { icon: "💚", label: "Courage", value: 0, color: "#2ECC71" },
+            { icon: "🤝", label: "Connection", value: 0, color: "#E74C3C" },
+            { icon: "⚖️", label: "Balance", value: 0, color: "#F39C12" }
+          ],
+          primaryTrait: mappedTrait,
+          personalityProfile: fullProfile.personality_profile,
+          unlocked_tools: availableCopingTools.map(tool => tool.tool_id) || [],
+          coping_tools: availableCopingTools || [],
+          quest_progress: {}, // Empty quest progress in case of error
+          rawProfile: fullProfile
+        };
+        setUserProfile(characterData);
       }
       
     } catch (error) {
@@ -173,6 +214,15 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
       // Get all available stories from catalog
       const allStories = await apiService.getAvailableStories();
       console.log('📚 All stories loaded:', allStories?.length || 0);
+      
+      // Check if user is admin for additional debugging
+      const userProfile = await apiService.getProfile();
+      const isAdmin = userProfile?.username === 'admin';
+      if (isAdmin) {
+        console.log('👑 ADMIN USER - Additional debugging info:');
+        console.log('👑 User profile:', userProfile);
+        console.log('👑 Looking for personality type:', primaryTrait);
+      }
       
       if (!allStories || allStories.length === 0) {
         console.log('📚 No stories available from catalog');
@@ -230,6 +280,7 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
       
       console.log(`📚 Found ${personalityStories.length} stories for ${primaryTrait} (excluding general stories except introduction)`);
       console.log('📚 Story titles:', personalityStories.map(s => s.title));
+      console.log('📚 Story IDs and focus:', personalityStories.map(s => ({ id: s.id, title: s.title, focus: s.personality_focus })));
       
       // Sort stories: Introduction first (ID 12), then all others
       const sortedStories = personalityStories.sort((a, b) => {

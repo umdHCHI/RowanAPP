@@ -33,16 +33,25 @@ export const usePersonalitySurvey = () => {
   const [currentPrimaryTrait, setCurrentPrimaryTrait] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // Authentication check
+  // Authentication check - Updated to allow survey users without character data
   useEffect(() => {
     const checkAuth = async () => {
-      if (auth.authToken && auth.characterId && auth.user) {
+      // For survey users, we only need authToken and user - characterId is not required
+      if (auth.authToken && auth.user) {
+        console.log('🔐 Survey auth check passed - user has token and user data');
         setIsAuthLoading(false);
       } else {
+        console.log('🔐 Survey auth check - missing requirements:', {
+          hasToken: !!auth.authToken,
+          hasUser: !!auth.user,
+          hasCharacterId: !!auth.characterId
+        });
         setTimeout(() => {
           if (!auth.authToken) {
+            console.log('🔐 No auth token - redirecting to login');
             router.replace('/(auth)/login');
           } else {
+            console.log('🔐 Auth token exists but missing user data - allowing access');
             setIsAuthLoading(false);
           }
         }, 1000);
@@ -50,7 +59,7 @@ export const usePersonalitySurvey = () => {
     };
     
     checkAuth();
-  }, [auth, auth.characterId, auth.user, router]);
+  }, [auth.authToken, auth.user, router]); // Removed characterId dependency
 
   // Calculate trait averages
   const calculateTraitAverages = (answers: SurveyAnswer[]): TraitAverages => {
@@ -141,55 +150,80 @@ export const usePersonalitySurvey = () => {
     try {
       const calculatedAverages = calculateTraitAverages(answers);
       const completionTime = Date.now() - startTime.getTime();
+      
+      // Check if user is admin or test user (same logic as WelcomeScreen)
+      const isAdminOrTestUser = auth.isTestUser || auth.user?.username === 'admin';
 
-      const comprehensiveSurveyData = {
-        survey_version: 'BFI-2-XS',
-        answers: answers,
-        responses: answers.reduce((acc, answer, index) => {
-          acc[index + 1] = answer.answer_value;
-          return acc;
-        }, {} as Record<number, number>),
-        personality_scores: calculatedAverages,
-        trait_averages: calculatedAverages,
-        primary_trait: findDominantTrait(calculatedAverages),
-        completion_time_ms: completionTime,
-        start_timestamp: startTime.getTime(),
-        end_timestamp: Date.now(),
+      let result;
+      
+      if (isAdminOrTestUser) {
+        // Admin/Test users ALWAYS submit via API to get fresh personality data for story filtering
+        console.log('👑 Admin/Test user completing survey - submitting via API to update personality profile');
+        console.log('Admin/Test user details:', { 
+          isTestUser: auth.isTestUser, 
+          username: auth.user?.username 
+        });
+      }
+      
+      // ALL users (including admin/test) submit via API to get fresh personality data
+      console.log('📊 Submitting survey via API for personality profile update...');
+      console.log('📊 Survey data preview:', {
+        answers_count: answers.length,
         total_questions: questions.length,
-        questions_answered: answers.length,
-        completion_percentage: (answers.length / questions.length) * 100,
-        average_completion_time_per_question: completionTime / answers.length,
+        personality_scores: calculatedAverages,
+        completion_time_ms: completionTime,
+        user_type: isAdminOrTestUser ? 'admin/test' : 'regular'
+      });
         
-        trait_counts: Object.keys(calculatedAverages).reduce((acc, trait) => {
-          acc[trait] = answers.filter(a => a !== undefined && a.selected_trait === trait).length;
-          return acc;
-        }, {} as Record<string, number>),
-        
-        response_distribution: {
-          strongly_disagree: answers.filter(a => a !== undefined && a.answer_value === 1).length,
-          somewhat_disagree: answers.filter(a => a !== undefined && a.answer_value === 2).length,
-          neutral: answers.filter(a => a !== undefined && a.answer_value === 3).length,
-          somewhat_agree: answers.filter(a => a !== undefined && a.answer_value === 4).length,
-          strongly_agree: answers.filter(a => a !== undefined && a.answer_value === 5).length
-        },
-        
-        response_variance: Object.values(calculatedAverages).reduce((sum, avg) => {
-          const variance = answers
-            .filter(a => a !== undefined && a.selected_trait === Object.keys(calculatedAverages).find(k => calculatedAverages[k as keyof TraitAverages] === avg))
-            .reduce((vsum, answer) => vsum + Math.pow(answer.answer_value - avg, 2), 0) / 
-            answers.filter(a => a !== undefined && a.selected_trait === Object.keys(calculatedAverages).find(k => calculatedAverages[k as keyof TraitAverages] === avg)).length;
-          return sum + variance;
-        }, 0) / Object.keys(calculatedAverages).length,
-        
-        user_agent: 'mobile-app',
-        platform: 'react-native',
-        timestamp: Date.now(),
-        onboarding_path: 'survey',
-        app_version: '1.0.0'
-      };
+        const comprehensiveSurveyData = {
+          survey_version: 'BFI-2-XS',
+          answers: answers,
+          responses: answers.reduce((acc, answer, index) => {
+            acc[index + 1] = answer.answer_value;
+            return acc;
+          }, {} as Record<number, number>),
+          personality_scores: calculatedAverages,
+          trait_averages: calculatedAverages,
+          primary_trait: findDominantTrait(calculatedAverages),
+          completion_time_ms: completionTime,
+          start_timestamp: startTime.getTime(),
+          end_timestamp: Date.now(),
+          total_questions: questions.length,
+          questions_answered: answers.length,
+          completion_percentage: (answers.length / questions.length) * 100,
+          average_completion_time_per_question: completionTime / answers.length,
+          
+          trait_counts: Object.keys(calculatedAverages).reduce((acc, trait) => {
+            acc[trait] = answers.filter(a => a !== undefined && a.selected_trait === trait).length;
+            return acc;
+          }, {} as Record<string, number>),
+          
+          response_distribution: {
+            strongly_disagree: answers.filter(a => a !== undefined && a.answer_value === 1).length,
+            somewhat_disagree: answers.filter(a => a !== undefined && a.answer_value === 2).length,
+            neutral: answers.filter(a => a !== undefined && a.answer_value === 3).length,
+            somewhat_agree: answers.filter(a => a !== undefined && a.answer_value === 4).length,
+            strongly_agree: answers.filter(a => a !== undefined && a.answer_value === 5).length
+          },
+          
+          response_variance: Object.values(calculatedAverages).reduce((sum, avg) => {
+            const variance = answers
+              .filter(a => a !== undefined && a.selected_trait === Object.keys(calculatedAverages).find(k => calculatedAverages[k as keyof TraitAverages] === avg))
+              .reduce((vsum, answer) => vsum + Math.pow(answer.answer_value - avg, 2), 0) / 
+              answers.filter(a => a !== undefined && a.selected_trait === Object.keys(calculatedAverages).find(k => calculatedAverages[k as keyof TraitAverages] === avg)).length;
+            return sum + variance;
+          }, 0) / Object.keys(calculatedAverages).length,
+          
+          user_agent: 'mobile-app',
+          platform: 'react-native',
+          timestamp: Date.now(),
+          onboarding_path: 'survey',
+          app_version: '1.0.0'
+        };
 
-      const result = await apiService.submitSurveyData(comprehensiveSurveyData);
-      console.log('Survey submission and onboarding completed successfully:', result);
+      console.log('📤 About to call apiService.submitSurveyData...');
+      result = await apiService.submitSurveyData(comprehensiveSurveyData);
+      console.log('✅ Survey submission and onboarding completed successfully:', result);
 
       // Navigate to personality home screen with survey data
       const surveyData = {
@@ -203,8 +237,27 @@ export const usePersonalitySurvey = () => {
         params: { surveyData: JSON.stringify(surveyData) }
       });
     } catch (err: any) {
-      console.error('Survey submission error:', err);
-      setError(err.message || 'Failed to submit survey. Please try again.');
+      console.error('❌ Survey submission error:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        stack: err.stack
+      });
+      
+      // Provide user-friendly error messages based on error type
+      let userMessage = 'Failed to submit survey. Please try again.';
+      if (err.response?.status === 404) {
+        userMessage = 'Survey endpoint not found. Please contact support.';
+      } else if (err.response?.status === 401) {
+        userMessage = 'Authentication failed. Please log in again.';
+      } else if (err.response?.status === 400) {
+        userMessage = `Invalid survey data: ${err.response?.data?.message || 'Please check your responses'}`;
+      } else if (err.message?.includes('Network Error')) {
+        userMessage = 'Network connection failed. Please check your internet connection.';
+      }
+      
+      setError(userMessage);
     } finally {
       setIsSubmitting(false);
     }

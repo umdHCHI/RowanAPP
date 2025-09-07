@@ -1,14 +1,14 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Animated,
+    Dimensions,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useMasterState } from '../../context/MasterStateContext';
 import { apiService } from '../../imports';
@@ -66,13 +66,14 @@ const FloatingElement = ({ children, duration = 3000, delay = 0, translateY = 20
 // Research condition visual themes
 const ResearchConditions = {
   A: {
-    avatars: ['⚔️', '🛡️', '🏹', '🔮', '⚡'],
+    avatars: ['⚔️', '🛡️', '🏹', '🔮', '⚡', '💥'],
     titles: [
-      'Warrior Scholar',
-      'Guardian Sage',
-      'Archer Mystic',
-      'Mage Chronicler',
-      'Storm Keeper'
+      'Seeker of Truths',
+      'Bearer of Burdens',
+      'Keeper of Bonds',
+      'Weaver of Change',
+      'Watcher Between Worlds', 
+      'Marked by Fate'
     ],
     theme: 'Character Creation Realm',
     description: 'Forge your avatar and customize your path through The Archive'
@@ -161,9 +162,9 @@ export default function ArchiveLoginScreen() {
       <StatusBar barStyle="light-content" backgroundColor={loginStyles.container.backgroundColor} />
       
       {/* Mystical Background */}
-      <View style={loginStyles.backgroundContainer}>
+      <View style={[loginStyles.backgroundContainer, { pointerEvents: 'none' }]}>
         {/* Floating mystical elements */}
-        <View style={loginStyles.floatingElements}>
+        <View style={[loginStyles.floatingElements, { pointerEvents: 'none' }]}>
           <FloatingElement delay={0} duration={4000} translateY={15}>
             <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>📚</Text>
           </FloatingElement>
@@ -182,12 +183,19 @@ export default function ArchiveLoginScreen() {
         </View>
 
         {/* Gradient Overlay */}
-        <View style={loginStyles.gradientOverlay} />
+        <View style={[loginStyles.gradientOverlay, { pointerEvents: 'none' }]} />
       </View>
 
       <ScrollView 
+        style={{ flex: 1, zIndex: 10 }}
         contentContainerStyle={loginStyles.scrollContainer}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={true}
+        bounces={true}
+        alwaysBounceVertical={false}
+        removeClippedSubviews={false}
+        scrollEventThrottle={16}
       >
         {/* Header with cycling research condition avatars */}
         <View style={loginStyles.header}>

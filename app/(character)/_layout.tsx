@@ -18,12 +18,6 @@ export default function CharacterLayout() {
           title: 'Character',
         }}
       />
-      <Stack.Screen
-        name="creator"
-        options={{
-          title: 'Create Character',
-        }}
-      />
     </Stack>
   );
 } 

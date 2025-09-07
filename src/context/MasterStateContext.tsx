@@ -1496,7 +1496,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       if (data.experienceGained && data.experienceGained > 0) {
         try {
           await gainExperience(data.experienceGained, `thought_defender_${data.difficulty || 'normal'}`);
-          console.log('✅ Thought Defender experience awarded:', data.experienceGained);
         } catch (error) {
         }
       }
@@ -1815,6 +1814,14 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         
         setBackendCharacter(updatedCharacter);
         
+        // Complete onboarding after character update (for admin/existing users)
+        try {
+          await completeCharacter();
+        } catch (onboardingError) {
+          // Don't fail character update if onboarding completion fails
+          console.warn('Onboarding completion failed but character was updated:', onboardingError);
+        }
+        
         // Don't reload character data since we already have the updated data
         // The backend might return old character_config values, so we keep our local state
       } else {
@@ -1857,8 +1864,8 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         
         setBackendCharacter(createdCharacter);
         
-        // Note: Onboarding completion is handled by completeCharacterOnboarding function
-        // which should be called after character creation is complete
+        // Complete onboarding after character creation
+        await completeCharacter();
       }
 
       // Load additional data after character creation
@@ -2212,7 +2219,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     content: string;
   }) => {
     try {
-      console.log('🔄 Creating codex entry:', entryData);
       
       const uid = homeData?.userProfile?.user?.id ?? homeData?.userProfile?.id;
       if (!uid) {
@@ -2222,15 +2228,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       
       // Get the character ID for proper association
       const currentCharacterId = characterId || homeData?.userProfile?.id;
-      console.log('🔍 Using character ID for entry:', currentCharacterId);
       
       // Create the entry with character ID
       await apiService.createCodexEntry(entryData, currentCharacterId);
-      console.log('✅ Codex entry created successfully');
       
       // Mark the prompt as inactive (completed for the day)
       await apiService.markPromptAsInactive(entryData.prompt);
-      console.log('✅ Prompt marked as inactive');
       
       // Refresh entries and prompts
       await memoizedLoadRecentCodexEntries(); // Refresh entries
@@ -2403,7 +2406,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       return null;
     }
 
-    console.log('🔄 Loading character data from homeData...');
     setIsLoading(true);
     
     try {
@@ -2414,21 +2416,16 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         // Use the unified HomeData structure
         characterData = homeData.character || null;
         if (characterData) {
-          console.log('✅ Character data extracted from unified homeData:', characterData);
         } else {
-          console.log('⚠️ No character data in homeData - user may be admin or character not created');
         }
       }
       
       // If no character data in homeData, fall back to API call (for backward compatibility)
       if (!characterData && forceLoad) {
-        console.log('🔄 No character data in homeData, falling back to API call...');
         try {
           characterData = await apiService.getMyCharacter();
-          console.log('✅ Character data loaded from API fallback:', characterData);
         } catch (apiError: any) {
           if (apiError.response?.status === 404) {
-            console.log('⚠️ Character API endpoint returned 404 - user likely has no character record');
           } else {
             console.error('❌ Error loading character from API:', apiError);
           }
@@ -2522,25 +2519,10 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const memoizedLoadHomeData = useCallback(async () => {
     try {
-      console.log('🔄 MasterStateContext: Loading home data...');
       
       // Use the normalized getProfile() method - no id -> resolves via users/me/
       const profile = await apiService.getProfile();
-      console.log('✅ MasterStateContext: Home data loaded:', profile);
       
-      // Log the normalized data structure
-      console.log('📊 MasterStateContext: Normalized data structure:', {
-        hasUserProfile: !!profile,
-        userProfileKeys: profile ? Object.keys(profile) : [],
-        completionType: profile?.completion_type,
-        completionDataId: profile?.completion_data_id,
-        experienceProgress: profile?.experience_progress_percentage,
-        hasCharacter: !!profile?.character,
-        characterLevel: profile?.character?.level,
-        hasWellnessStats: !!profile?.wellness_stats,
-        isCharacterUser: profile?.completion_type === 'character',
-        isSurveyUser: profile?.completion_type === 'personality'
-      });
       
       // Update equipment context with equipped gear from UserProfile
       if (profile?.equipped_gear && Array.isArray(profile.equipped_gear)) {
@@ -2676,7 +2658,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   useEffect(() => {
     // Only reset when user is explicitly starting character creation (not when they're on home screen)
     if (authToken && !isComplete && assignedPath === 'character' && !characterId) {
-      console.log('🎨 Resetting character creator to defaults for new character creation');
       resetCharacterCreatorToDefaults();
     }
   }, [authToken, isComplete, assignedPath, characterId]);

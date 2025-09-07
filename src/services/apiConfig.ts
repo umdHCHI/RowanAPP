@@ -28,7 +28,7 @@ export const API_ENDPOINTS = {
     currentUser: 'users/me/',
     userProfile: 'users/', //{id}/full_profile/
     //PATCH to update user profile
-    updateUserProfile: 'users/update-profile/',
+    updateUserProfile: 'users/update_profile/',
 
     researchGroupPost: 'users/research-groups/', // POST to join a research group
     

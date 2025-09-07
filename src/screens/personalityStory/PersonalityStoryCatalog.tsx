@@ -146,7 +146,9 @@ const PersonalityStoryCatalog = ({
 
   const theme = PersonalityThemes[primaryTrait];
 
-
+  // Debug: Log stories to understand what's being rendered
+  console.log('PersonalityStoryCatalog - Stories count:', stories.length);
+  console.log('PersonalityStoryCatalog - Stories:', stories.map(s => ({ id: s.id, title: s.title })));
 
   // Stories are now loaded by the parent component, so we don't need internal loading logic
   const getRarityColors = (rarity: string): readonly [string, string] => {
@@ -217,6 +219,7 @@ const PersonalityStoryCatalog = ({
           { 
             opacity: story.isLocked ? 0.6 : 1,
             shadowColor: leftBorderColor,
+            maxHeight: 400, // Constrain story card height to enable better scrolling
           },
           cardOverrides
         ]}
@@ -435,6 +438,9 @@ const PersonalityStoryCatalog = ({
         <Text style={{ color: "white", fontSize: 18, margin: 20 }}>
           Loading Stories from {theme.modalTitle}...
         </Text>
+        <Text style={{ color: theme.secondary, fontSize: 14, margin: 10, textAlign: 'center' }}>
+          Personality Type: {primaryTrait}
+        </Text>
       </View>
     );
   }
@@ -508,14 +514,35 @@ const PersonalityStoryCatalog = ({
 
       {/* Story Grid */}
       <ScrollView
-        style={globalStyles.personalityStoryScrollView}
-        contentContainerStyle={globalStyles.personalityStoryGrid}
-        showsVerticalScrollIndicator={false}
+        style={[globalStyles.personalityStoryScrollView, { 
+          backgroundColor: 'rgba(255, 0, 0, 0.1)', // Debug: red tint to see ScrollView bounds
+        }]}
+        contentContainerStyle={[globalStyles.personalityStoryGrid, {
+          backgroundColor: 'rgba(0, 255, 0, 0.1)', // Debug: green tint to see content bounds
+        }]}
+        showsVerticalScrollIndicator={true} // Enable to see if scrollbar appears
+        nestedScrollEnabled={true} // Enable nested scrolling  
+        bounces={true}
+        scrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
       >
         {stories.length > 0 ? (
-          stories.map((story) => (
-            <StoryCard key={story.id} story={story} />
-          ))
+          <>
+            {stories.map((story) => (
+              <StoryCard key={story.id} story={story} />
+            ))}
+            {/* Debug: Add extra content to force scrolling */}
+            <View style={{ height: 100, backgroundColor: 'rgba(0, 0, 255, 0.2)', margin: 20, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: 'white', fontSize: 16 }}>Debug: Extra content for testing scroll</Text>
+            </View>
+            <View style={{ height: 100, backgroundColor: 'rgba(255, 255, 0, 0.2)', margin: 20, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: 'black', fontSize: 16 }}>Debug: More content to ensure scroll</Text>
+            </View>
+            <View style={{ height: 200, backgroundColor: 'rgba(255, 0, 255, 0.2)', margin: 20, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: 'white', fontSize: 16 }}>Debug: Final content block</Text>
+              <Text style={{ color: 'white', fontSize: 12, marginTop: 10 }}>Total stories: {stories.length}</Text>
+            </View>
+          </>
         ) : (
           <View
             style={{
@@ -538,7 +565,7 @@ const PersonalityStoryCatalog = ({
                 textAlign: "center",
               }}
             >
-              No Stories Available
+              No Stories Available for {primaryTrait}
             </Text>
             <Text
               style={{
@@ -548,8 +575,7 @@ const PersonalityStoryCatalog = ({
                 marginTop: 8,
               }}
             >
-              The {theme.modalTitle} is currently empty. Check back later for new
-              wisdom to discover.
+              The {theme.modalTitle} is currently empty. Complete the personality survey to unlock stories tailored to your {primaryTrait.toLowerCase()} traits.
             </Text>
           </View>
         )}

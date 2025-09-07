@@ -1833,6 +1833,7 @@ export const demonstrateUpgradeSystem = () => {
     const result = checkItemOwnershipAndUpgrade(item, playerInventory, replayCount);
     
     if (result) {
+      console.log({
         originalItem: result.originalItem,
         upgradedItem: result.upgradedItem,
         isUpgrade: result.isUpgrade,
@@ -1851,6 +1852,7 @@ export const demonstrateUpgradeSystem = () => {
       // Show rarity colors
       const colors = getRarityColors(result.upgrade.rarity);
     } else {
+      console.log(`No upgrade available for ${item} with ${replayCount} replays`);
     }
   });
   
@@ -1867,6 +1869,7 @@ export const testRandomEquipmentRewards = (playerInventory: string[], replayCoun
     const result = getUpgradedRandomEquipmentReward(playerInventory, replayCount, category);
     
     if (result) {
+      console.log({
         originalItem: result.originalItem,
         upgradedItem: result.upgradedItem,
         isUpgrade: result.isUpgrade,
@@ -1879,6 +1882,7 @@ export const testRandomEquipmentRewards = (playerInventory: string[], replayCoun
         }
       });
     } else {
+      console.log(`No random equipment available for category ${category} with ${replayCount} replays`);
     }
   });
   
@@ -2105,6 +2109,7 @@ export async function testGearAcquisitionAndEquipping(apiService: any, character
         try {
           const equipResult = await apiService.equipGear(acquiredGear.id);
         } catch (equipError: any) {
+          console.log({
             message: equipError.message,
             status: equipError.response?.status,
             data: equipError.response?.data,
@@ -2112,6 +2117,7 @@ export async function testGearAcquisitionAndEquipping(apiService: any, character
           });
         }
       } catch (acquireError: any) {
+        console.log({
           message: acquireError.message,
           status: acquireError.response?.status,
           data: acquireError.response?.data,
@@ -2119,9 +2125,11 @@ export async function testGearAcquisitionAndEquipping(apiService: any, character
         });
       }
     } else {
+      console.log('No reward to acquire');
     }
     
   } catch (error: any) {
+    console.log({
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,

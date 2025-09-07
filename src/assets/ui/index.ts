@@ -88,6 +88,14 @@ export const sectionIcons: Record<string, any> = {
   balance: require('../../../assets/UI/assets/fc1308.png'),
   fear: require('../../../assets/UI/assets/fc863.png'),
 
+  //assets for tabs
+  atrium: require('../../../assets/UI/assets/fc35.png'),
+  passages: require('../../../assets/UI/assets/fc100.png'),
+  inscriptions: require('../../../assets/UI/assets/fc107.png'),
+  defender: require('../../../assets/UI/assets/fc1372.png'),
+  restoration: require('../../../assets/UI/assets/fc1309.png')
+
+
 };
 
 // Floating decorative elements - you can use your equipment icons for variety

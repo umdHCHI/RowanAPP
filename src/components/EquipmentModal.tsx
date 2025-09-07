@@ -341,7 +341,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
             <View style={styles.statsContainer}>
               <Text style={styles.statsTitle}>Bonuses:</Text>
               {Object.entries(item.wellnessStats).map(([stat, value]) =>
-                value ? renderStat(stat, value) : null
+                value ? <View key={stat}>{renderStat(stat, value)}</View> : null
               )}
             </View>
           )}

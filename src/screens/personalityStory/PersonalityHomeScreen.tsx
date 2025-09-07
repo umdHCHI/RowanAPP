@@ -325,9 +325,7 @@ export default function PersonalityHomeScreen() {
     userProfile,
     stories,
     isLoadingStories,
-    storyError,
-    fetchHomeScreenData,
-    loadPersonalityStories
+    fetchHomeScreenData
   } = usePersonalityHomeData({ authToken, user });
 
   // Debug logging
@@ -575,7 +573,7 @@ export default function PersonalityHomeScreen() {
     setSelectedStory(null);
   };
 
-  const handleChapterSelect = (chapterId: number) => {
+  const handleChapterSelect = () => {
     setIsChapterScreenVisible(false);
     setIsStoryVisible(true);
   };
@@ -904,7 +902,10 @@ export default function PersonalityHomeScreen() {
 
       {activeTab === 'stories' && (
         <View style={{ flex: 1 }}>
-          <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'stories'}>
+          <TutorialHighlight 
+            isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'stories'}
+            style={{ flex: 1 }}
+          >
             <PersonalityStoryCatalog 
               primaryTrait={primaryTrait}
               onStorySelect={handleOpenStory}
@@ -913,7 +914,7 @@ export default function PersonalityHomeScreen() {
               isLoading={isLoadingStories} 
               setStories={() => {}}
               setIsLoading={() => {}}
-              personalityStyles={PersonalityConfigs[primaryTrait]?.theme}
+              personalityStyles={primaryTrait ? PersonalityConfigs[primaryTrait]?.theme : undefined}
               userPersonalityTrait={primaryTrait}
               debugPersonalityMatching={() => {}}
             />

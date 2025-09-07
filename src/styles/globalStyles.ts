@@ -62,9 +62,11 @@ export const loginStyles = (theme: ThemeColors) : {[key: string]: any} => {
   },
   
   scrollContainer: {
+    flexGrow: 1,
     paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 100, // Increased bottom padding to ensure scrollable content
+    minHeight: height + 200, // Ensure content exceeds screen height
   },
   
   header: {
@@ -1819,6 +1821,7 @@ export const characterHomeScreenStyles = (characterHomeScreenTheme: ThemeColors)
       fontWeight: '600',
       textAlign: 'center',
       fontStyle: 'italic',
+      marginBottom: 8,
     },
     
     // Character Info Styles
@@ -5759,6 +5762,7 @@ characterCreatorNameInput: {
       flex: 1,
     },
     personalityStoryGrid: {
+      flexGrow: 1,
       paddingBottom: 20,
     },
 

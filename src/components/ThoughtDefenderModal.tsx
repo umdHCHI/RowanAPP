@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
+  Image,
   Modal,
   Platform,
   ScrollView,
@@ -19,6 +20,7 @@ import {
   formatThoughtDefenderRewardMessage,
   processThoughtDefenderCompletion
 } from "../utils/rewardsUtils";
+import { uiIcons } from "../assets/ui/index";
 
 
 const { width, height } = Dimensions.get("window");
@@ -374,7 +376,14 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   useEffect(() => {
     thoughtsRef.current = thoughts;
   }, [thoughts]);
+  
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
+  const projectilesRef = useRef<Projectile[]>([]);
+  
+  // Update projectiles ref whenever projectiles state changes
+  useEffect(() => {
+    projectilesRef.current = projectiles;
+  }, [projectiles]);
   const [playerX, setPlayerX] = useState<number>(
     GAME_WIDTH / 2 - PADDLE_WIDTH / 2
   );
@@ -414,8 +423,19 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const hasBackendCharacter = backendCharacter;
 
   const getThoughtsForCharacter = useCallback(() => {
+    
     if (hasHomeData && hasBackendCharacter) {
-      const characterArchetype = getCharacterArchetype(character);
+      // Extract character appearance data for archetype calculation
+      const characterData = {
+        selectedBaseModel: character.selectedBaseModel || 0,
+        selectedHairStyle: character.selectedHairStyle || 0,
+        selectedEyeType: character.selectedEyeType || 0,
+        selectedMouthType: character.selectedMouthType || 0,
+        selectedShirtType: character.selectedShirtType || 0
+      };
+      
+      const characterArchetype = getCharacterArchetype(characterData);
+      
       return {
         positiveThoughts: characterArchetype.positiveThoughts,
         negativeThoughts: characterArchetype.negativeThoughts
@@ -428,11 +448,13 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         negativeThoughts: personalityArchetype.negativeThoughts
       };
     }
+    
+    
     return {
       positiveThoughts: CharacterArchetypes.scholar.positiveThoughts,
       negativeThoughts: CharacterArchetypes.scholar.negativeThoughts
     };
-  }, [hasHomeData, hasBackendCharacter, character]);
+  }, [hasHomeData, hasBackendCharacter, character, primaryTrait]);
 
   const { positiveThoughts: POSITIVE_THOUGHTS, negativeThoughts: NEGATIVE_THOUGHTS} = getThoughtsForCharacter();
 
@@ -455,6 +477,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const thoughtIdCounter = useRef<number>(0);
   const projectileIdCounter = useRef<number>(0);
   const thoughtsRef = useRef<Thought[]>([]);
+  const gameEndedRef = useRef<boolean>(false);
 
   const getDifficultyConfig = useCallback((): DifficultyConfig => {
     const baseDifficulty = DIFFICULTY_LEVELS[selectedDifficulty] || DIFFICULTY_LEVELS.normal;
@@ -532,6 +555,13 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   };
 
   const shoot = useCallback((): void => {
+    if (!canShoot) {
+      return;
+    }
+    
+    if (!gameStarted) {
+      return;
+    }
 
     const shootSpeed = gameState.fastShootActive ? 100 : 200; // Faster shooting with power-up
     const projectileSpeed = 8;
@@ -641,6 +671,10 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
   const spawnThought = useCallback((): void => {
     if (!gameStarted || lives <= 0) return;
+    
+    if (POSITIVE_THOUGHTS.length === 0 || NEGATIVE_THOUGHTS.length === 0) {
+      return;
+    }
 
     const difficulty = getDifficultyConfig();
 
@@ -648,6 +682,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const levelMultiplier = 1 + (level - 1) * difficulty.modifiers.levelScaling;
     const negativeChance = Math.min(difficulty.modifiers.negativeThoughtChance + (level - 1) * 0.1, 0.9); // Increase negative thoughts
     const isPositive = Math.random() > negativeChance;
+    
     
     let text: string;
     let powerUpType: string | undefined;
@@ -694,20 +729,16 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     
     // Track total thoughts spawned for reward calculation
     setTotalThoughtsSpawned(prev => prev + 1);
-  }, [gameStarted, lives, level, gameState.timeSlowActive, getDifficultyConfig]);
+  }, [gameStarted, lives, level, gameState.timeSlowActive, getDifficultyConfig, POSITIVE_THOUGHTS, NEGATIVE_THOUGHTS]);
 
   const updateGame = useCallback((): void => {
     if (!gameStarted || lives <= 0) return;
+    
 
-    // Update projectiles
-    setProjectiles((prev) => {
-      const updated = prev
-        .map((p) => ({ ...p, y: p.y - p.speed }))
-        .filter((p) => p.y > -20);
-      return updated;
-    });
+    // Track collisions for coordinated updates
+    let collisionData = { thoughtsToRemove: new Set<number>(), projectilesToRemove: new Set<number>() };
 
-    // Update thoughts and handle collisions in a single operation
+    // Update thoughts and handle collisions
     setThoughts((prev) => {
       // First, update positions and handle thoughts reaching bottom
       let updated = prev
@@ -739,9 +770,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           return true;
         });
 
-      // Then handle collisions with projectiles using the current projectiles state
-      const currentProjectiles = projectiles; // This will be stale, but we'll handle it differently
-      const thoughtsToRemove = new Set<number>();
+      // Then handle collisions with projectiles using the projectiles ref
+      const currentProjectiles = projectilesRef.current;
+      
 
       // Check each projectile against each negative thought
       for (let i = currentProjectiles.length - 1; i >= 0; i--) {
@@ -750,14 +781,15 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         for (let j = updated.length - 1; j >= 0; j--) {
           const thought = updated[j];
 
-          if (!thought.isPositive && !thoughtsToRemove.has(thought.id)) {
+          if (!thought.isPositive && !collisionData.thoughtsToRemove.has(thought.id)) {
             const dx = projectile.x - (thought.x + 40);
             const dy = projectile.y - (thought.y + 20);
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance < 42) {
-              // Collision detected - mark thought for removal
-              thoughtsToRemove.add(thought.id);
+            if (distance < 42) { // Normal collision radius
+              // Collision detected - mark thought and projectile for removal
+              collisionData.thoughtsToRemove.add(thought.id);
+              collisionData.projectilesToRemove.add(projectile.id);
 
               // Score with multiplier
               const difficulty = getDifficultyConfig();
@@ -774,11 +806,14 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                 thoughtsCleared: prev.thoughtsCleared + 1,
               }));
               
-                             // Track negative thoughts cleared by projectiles
-               setNegativeThoughtsCleared(prev => prev + 1);
+              // Track negative thoughts cleared by projectiles
+              setNegativeThoughtsCleared(prev => prev + 1);
                
-               // Log enemy destroyed event (non-blocking)
-               logger.enemyDestroyed(level, 'thought', points);
+              // Track hits for logging
+              setHits(prev => prev + 1);
+               
+              // Log enemy destroyed event (non-blocking)
+              logger.enemyDestroyed(level, 'thought', points);
 
               break;
             }
@@ -787,42 +822,18 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       }
 
       // Remove thoughts that were hit by projectiles
-      updated = updated.filter(thought => !thoughtsToRemove.has(thought.id));
+      return updated.filter(thought => !collisionData.thoughtsToRemove.has(thought.id));
+    });
 
+    // Update projectiles separately after thoughts are updated
+    setProjectiles((prev) => {
+      const updated = prev
+        .map((p) => ({ ...p, y: p.y - p.speed }))
+        .filter((p) => p.y > -20)
+        .filter(projectile => !collisionData.projectilesToRemove.has(projectile.id));
       return updated;
     });
-
-    // Update projectiles to remove those that hit thoughts
-    setProjectiles((prevProjectiles) => {
-      const updatedProjectiles = [...prevProjectiles];
-      const currentThoughts = thoughtsRef.current; // Use ref to get current thoughts
-      const projectilesToRemove = new Set<number>();
-
-      // Check each projectile against each negative thought
-      for (let i = updatedProjectiles.length - 1; i >= 0; i--) {
-        const projectile = updatedProjectiles[i];
-
-        for (let j = currentThoughts.length - 1; j >= 0; j--) {
-          const thought = currentThoughts[j];
-
-          if (!thought.isPositive) {
-            const dx = projectile.x - (thought.x + 40);
-            const dy = projectile.y - (thought.y + 20);
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < 42) {
-              // Collision detected - mark projectile for removal
-              projectilesToRemove.add(projectile.id);
-              break;
-            }
-          }
-        }
-      }
-
-      // Remove projectiles that hit thoughts
-      return updatedProjectiles.filter(projectile => !projectilesToRemove.has(projectile.id));
-    });
-  }, [gameStarted, lives, gameState.shieldActive, gameState.scoreMultiplier, getDifficultyConfig, logger, level, positiveThoughtsCleared, negativeThoughtsCleared, gameStartTime, score, selectedDifficulty, character, ui, onScoreUpdate, projectiles]);
+  }, [gameStarted, lives, gameState.shieldActive, gameState.scoreMultiplier, getDifficultyConfig, logger, level, positiveThoughtsCleared, negativeThoughtsCleared, gameStartTime, score, selectedDifficulty, character, ui, onScoreUpdate]);
 
   const handleThoughtPress = (thought: Thought): void => {
 
@@ -863,11 +874,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   };
 
   const startGame = useCallback((): void => {
+    // Reset game ended flag
+    gameEndedRef.current = false;
     
     // Apply adaptive difficulty if DDA is available
     const adaptiveDifficulty = getAdaptiveDifficulty(selectedDifficulty);
     if (adaptiveDifficulty !== selectedDifficulty) {
-      console.log(`DDA: Adjusting difficulty from ${selectedDifficulty} to ${adaptiveDifficulty}`);
       setSelectedDifficulty(adaptiveDifficulty);
     }
     
@@ -918,13 +930,10 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const difficulty = getDifficultyConfig();
     const currentWaveTarget = getCurrentWaveTarget();
 
-    // Debug logging
-    console.log(`🎯 Win Check: Level ${level}/${difficulty.modifiers.maxLevels}, Cleared ${gameState.thoughtsCleared}/${currentWaveTarget}`);
 
     // Win conditions
     // Check if wave is complete
     if (gameState.thoughtsCleared >= currentWaveTarget) {
-      console.log(`✅ Wave ${level} Complete! Moving to next level...`);
       setGameState((prev) => ({ ...prev, waveComplete: true }));
         setTimeout(
           () => setGameState((prev) => ({ ...prev, waveComplete: false })),
@@ -934,7 +943,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
       // Check for overall victory
       if (level >= difficulty.modifiers.maxLevels) {
-        console.log(`🏆 VICTORY! Completed all ${difficulty.modifiers.maxLevels} levels!`);
+        // Prevent multiple victory calls
+        if (gameEndedRef.current) {
+          return;
+        }
+        gameEndedRef.current = true;
+        
         // VICTORY!
         setGameStarted(false);
 
@@ -963,14 +977,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         const ddaResult = calculateDifficulty(performance);
         updateBaseline(performance);
         
-        console.log('DDA Result (WIN):', {
-          difficulty: ddaResult.difficulty.toFixed(3),
-          ease: ddaResult.ease.toFixed(3),
-          rpd: ddaResult.rpd.toFixed(3),
-          performanceRatio: ddaResult.performanceRatio.toFixed(3),
-          recommendation: ddaResult.recommendedAdjustment,
-          reason: ddaResult.adjustmentReason
-        });
         
         // Log the Thought Defender run
         handleGameOver({
@@ -1101,6 +1107,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   }, [gameState.thoughtsCleared, level, score, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, getCurrentWaveTarget, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, totalThoughtsSpawned, character, logger, ui]);
 
   const endGame = useCallback((): void => {
+    // Prevent multiple endGame calls
+    if (gameEndedRef.current) {
+      return;
+    }
+    gameEndedRef.current = true;
+    
     setGameStarted(false);
 
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
@@ -1130,14 +1142,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const ddaResult = calculateDifficulty(performance);
     updateBaseline(performance);
     
-    console.log('DDA Result:', {
-      difficulty: ddaResult.difficulty.toFixed(3),
-      ease: ddaResult.ease.toFixed(3),
-      rpd: ddaResult.rpd.toFixed(3),
-      performanceRatio: ddaResult.performanceRatio.toFixed(3),
-      recommendation: ddaResult.recommendedAdjustment,
-      reason: ddaResult.adjustmentReason
-    });
     
     // Log the Thought Defender run
     handleGameOver({
@@ -1270,13 +1274,14 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const baseSpawnRate = 2000;
     const difficultySpawnRate = baseSpawnRate * difficulty.modifiers.spawnRate;
     const levelSpawnRate = Math.max(800, difficultySpawnRate - ((level - 1) * 150));
+    
     spawnLoopRef.current = setInterval(spawnThought, levelSpawnRate) as unknown as number;
     
     return () => {
       if (gameLoopRef.current) clearInterval(gameLoopRef.current);
       if (spawnLoopRef.current) clearInterval(spawnLoopRef.current);
     };
-  }, [gameStarted, updateGame, spawnThought, level, getDifficultyConfig]);
+  }, [gameStarted, level]);
 
   // Check for game over
   useEffect(() => {
@@ -1290,6 +1295,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     if (!visible) {
       setGameStarted(false);
       setShowDifficultySelect(false);
+      gameEndedRef.current = false; // Reset game ended flag
       if (gameLoopRef.current) clearInterval(gameLoopRef.current);
       if (spawnLoopRef.current) clearInterval(spawnLoopRef.current);
     }
@@ -1633,8 +1639,16 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                     hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                   >
                     <View style={styles.thoughtpassages} pointerEvents="none">
-                      <Text style={styles.thoughtIcon}>
-                        {thought.isPositive ? "💚" : "💀"}
+                      <View style={styles.thoughtIconContainer}>
+                        {thought.isPositive ? (
+                          <Text style={styles.thoughtIcon}>💚</Text>
+                        ) : (
+                          <Image 
+                            source={uiIcons.sectionIcons.bluegreenghost} 
+                            style={styles.thoughtImage}
+                            resizeMode="contain"
+                          />
+                        )}
                         {thought.powerUpType && (
                           <Text style={styles.powerUpBadge}>
                             {
@@ -1644,7 +1658,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                             }
                           </Text>
                         )}
-                      </Text>
+                      </View>
                       <Text style={styles.thoughtText}>{thought.text}</Text>
                     </View>
                   </TouchableOpacity>
@@ -2114,10 +2128,18 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  thoughtIcon: {
-    fontSize: 12,
+  thoughtIconContainer: {
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 2,
     position: "relative",
+  },
+  thoughtIcon: {
+    fontSize: 24,
+  },
+  thoughtImage: {
+    width: 32,
+    height: 32,
   },
   powerUpBadge: {
     fontSize: 8,

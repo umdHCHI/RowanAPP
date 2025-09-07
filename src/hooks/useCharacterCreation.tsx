@@ -54,15 +54,19 @@ export const useCharacterCreation = ({
     
     try {
       console.log('Calling createCharacter...');
-      // Only call createCharacter - it already calls completeCharacter internally
+      
       if(characterId) {
+        console.log('Updating existing character...');
         await updateCharacterCustomization();
-      }else{
-      await createCharacter();
-      console.log('createCharacter completed successfully');
+      } else {
+        console.log('Creating new character...');
+        await createCharacter();
+      }
+      
+      console.log('Character creation/update and onboarding completed successfully');
       
       // Navigate immediately after successful character creation and onboarding completion
-      console.log('Character created and onboarding completed, navigating to character home...');
+      console.log('Navigating to character home...');
       router.push('/(character)/character');
       
       // Show success alert after navigation
@@ -73,7 +77,6 @@ export const useCharacterCreation = ({
           [{ text: 'OK', style: 'default' }]
         );
       }, 500);
-    }
     } catch (error) {
       console.error('Character creation failed:', error);
       Alert.alert(

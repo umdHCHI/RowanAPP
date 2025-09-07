@@ -46,14 +46,14 @@ const TUTORIAL_STEPS = [
   {
     id: 1,
     title: "🎮 Welcome to The Archive!",
-    message: "This is your personal stress management adventure game. You'll navigate through interactive stories, equip wellness gear, and build your mental resilience. Let's learn how to play!",
+    message: "This is your personal stress management adventure game. You'll navigate through interactive stories, equip character gear to enhance your abilities, and build your mental resilience. Let's learn how to play!",
     highlight: "header",
     tip: "The Archive is your safe space to explore and grow. Take your time with each feature!"
   },
   {
     id: 2,
     title: "📚 Your Character & Stats",
-    message: "This is your character! Your wellness stats (Awareness, Resilience, Connection, Balance) show your progress. Each stat represents different aspects of mental wellness. Click on them to see detailed information and track your growth.",
+    message: "This is your character! Your wellness stats (Exploration, Courage, Connection, Fear) show your progress. Each stat represents different aspects of mental wellness that can be explored in the passages. Click on them to see detailed information and track your growth.",
     highlight: "character",
     tip: "Higher stats unlock new stories and equipment. Focus on areas that feel most challenging to you."
   },
@@ -67,8 +67,8 @@ const TUTORIAL_STEPS = [
   {
     id: 4,
     title: "📖 Story Adventures",
-    message: "The 'Tomes' tab contains interactive stories where you make choices and learn coping strategies. Each choice affects your character's growth and can unlock new paths. Stories are designed to help you practice real-life stress management techniques.",
-    highlight: "tomes",
+    message: "The 'Passages' tab contains interactive stories where you make choices and learn coping strategies. Each choice affects your character's growth and can unlock new paths. Stories are designed to help you practice real-life stress management techniques.",
+    highlight: "passages",
     tip: "There are no wrong choices! Each path teaches valuable lessons. Replay stories to explore different outcomes."
   },
   {
@@ -87,19 +87,63 @@ const TUTORIAL_STEPS = [
   },
   {
     id: 7,
-    title: "🎯 Daily Quests",
-    message: "Complete daily wellness activities like journaling, drawing, or voice recording to earn experience and strengthen your character. These quests are designed to build healthy habits and provide structure to your wellness routine.",
-    highlight: "quests",
-    tip: "Daily quests refresh each day. Even small activities count - consistency is more important than perfection!"
-  },
-  {
-    id: 8,
     title: "🌟 You're Ready!",
     message: "Congratulations! You now know the basics of The Archive. Explore stories, equip gear, and build your wellness foundations. Remember: every choice helps you grow stronger, and there's no rush. Take your time and enjoy the journey!",
     highlight: "none",
     tip: "You can always restart this tutorial by clicking the '?' button in the top right corner. Happy adventuring!"
   }
 ];
+
+// Research condition titles for dynamic user assignment
+const ResearchConditions = {
+  A: {
+    avatars: ['⚔️', '🛡️', '🏹', '🔮', '⚡', '💥'],
+    titles: [
+      'Seeker of Truths',
+      'Bearer of Burdens', 
+      'Keeper of Bonds',
+      'Weaver of Change',
+      'Watcher Between Worlds',
+      'Marked by Fate'
+    ],
+    theme: 'Character Creation Realm',
+    description: 'Forge your avatar and customize your path through The Archive'
+  }
+};
+
+// Function to get unique title for each user based on their ID
+const getUserTitle = (userId?: string | number): string => {
+  console.log('🎯 getUserTitle called with:', userId);
+  
+  if (!userId) {
+    console.log('🎯 No userId provided, returning fallback');
+    return 'Curator of Hidden Knowledge'; // fallback
+  }
+  
+  // Create a consistent hash from the userId
+  let hash = 0;
+  const userIdStr = String(userId);
+  
+  for (let i = 0; i < userIdStr.length; i++) {
+    const char = userIdStr.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  // Use absolute value and modulo to get index between 0-5
+  const titleIndex = Math.abs(hash) % ResearchConditions.A.titles.length;
+  const selectedTitle = ResearchConditions.A.titles[titleIndex];
+  
+  console.log('🎯 getUserTitle result:', {
+    userIdStr,
+    hash,
+    titleIndex,
+    selectedTitle,
+    availableTitles: ResearchConditions.A.titles
+  });
+  
+  return selectedTitle;
+};
 
 // Helper function to correctly extract profile and character data from homeData
 const selectProfileAndCharacter = (homeData?: any) => {
@@ -708,6 +752,12 @@ const ArchiveInterface: React.FC = () => {
     loadGameData();
     // Load backend gear data on component mount
     equipment.loadBackendGear();
+    
+    // Set default tab to "atrium" if not already set to a valid character tab
+    const validTabs = ["atrium", "passages", "inscriptions", "defender", "restoration"];
+    if (!validTabs.includes(ui.activeTab)) {
+      ui.setActiveTab("atrium");
+    }
   }, []);
 
 
@@ -890,7 +940,7 @@ const ArchiveInterface: React.FC = () => {
   // Tab button component
   const TabButton: React.FC<{
     title: string;
-    icon: string;
+    icon: string | any;  // Allow both string (icon name) and image source
     isActive: boolean;
     onPress: () => void;
   }> = ({ title, icon, isActive, onPress }) => (
@@ -905,7 +955,20 @@ const ArchiveInterface: React.FC = () => {
           style={StyleSheet.absoluteFillObject}
         />
       )}
-      <Icon name={icon} size={18} color={isActive ? homeTheme.tabTextColor : homeTheme.tabTextSecondColor} />
+      {/* Check if icon is a string (icon name) or an image source */}
+      {typeof icon === 'string' ? (
+        <Icon name={icon} size={18} color={isActive ? homeTheme.tabTextColor : homeTheme.tabTextSecondColor} />
+      ) : (
+        <Image 
+          source={icon} 
+          style={{
+            width: 18,
+            height: 18,
+            opacity: isActive ? 1 : 0.7  // Use opacity instead of tintColor to preserve original colors
+          }}
+          resizeMode="contain"
+        />
+      )}
       <Text
         style={[
           homeStyles.tabText,
@@ -1438,75 +1501,32 @@ const ArchiveInterface: React.FC = () => {
                     fontStyle: 'italic',
                     marginBottom: 4,
                   }}>
-                    Keeper of Memory • Curator of Hidden Knowledge
+                    {(() => {
+                      // Get user ID from auth context or character data
+                      const { profile: userProfile, backendCharacter } = selectProfileAndCharacter(wellness.homeData);
+                      const userId = (auth.user as any)?.id || 
+                                   (userProfile as any)?.id || 
+                                   (backendCharacter as any)?.id || 
+                                   auth.characterId ||
+                                   (auth.user as any)?.username?.length || 1;
+                      
+                      const title = getUserTitle(userId);
+                      const name = backendCharacter?.name || userProfile?.username || userProfile?.email || character.getCharacterName() || "Unnamed Character";
+                      
+                      // Debug logging
+                      console.log('🎭 Character Class Debug (Correct Location):', {
+                        userId,
+                        title,
+                        name,
+                        authUser: auth.user,
+                        userProfile: userProfile,
+                        backendCharacter: backendCharacter,
+                        characterId: auth.characterId
+                      });
+                      
+                      return `${title || 'NO TITLE RETURNED'} ${name}`;
+                    })()}
                   </Text>
-                  
-                  {/* Tutorial Button - More prominent */}
-                  {!hasSeenTutorial ? (
-                    <View style={{
-                      alignItems: 'center',
-                      marginTop: 8,
-                    }}>
-                      <Text style={{
-                        color: '#ffe066',
-                        fontSize: 12,
-                        fontStyle: 'italic',
-                        marginBottom: 8,
-                        textAlign: 'center',
-                        textShadowColor: 'rgba(255, 224, 102, 0.3)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 2,
-                      }}>
-                        New to The Archive? Start here!
-                      </Text>
-                      <TouchableOpacity
-                        onPress={startTutorial}
-                        style={{
-                          backgroundColor: 'rgba(78, 230, 230, 0.2)',
-                          borderWidth: 1,
-                          borderColor: '#4ee6e6',
-                          borderRadius: 20,
-                          paddingVertical: 8,
-                          paddingHorizontal: 16,
-                          alignSelf: 'center',
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={{
-                          color: '#4ee6e6',
-                          fontSize: 14,
-                          fontWeight: '600',
-                          textAlign: 'center',
-                        }}>
-                          🎮 Start Tutorial
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={startTutorial}
-                      style={{
-                        backgroundColor: 'rgba(212, 175, 55, 0.2)',
-                        borderWidth: 1,
-                        borderColor: '#d4af37',
-                        borderRadius: 20,
-                        paddingVertical: 6,
-                        paddingHorizontal: 12,
-                        marginTop: 8,
-                        alignSelf: 'center',
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={{
-                        color: '#d4af37',
-                        fontSize: 12,
-                        fontWeight: '500',
-                        textAlign: 'center',
-                      }}>
-                        📚 Tutorial
-                      </Text>
-                    </TouchableOpacity>
-                  )}
                   <View style={homeStyles.archiveStatusIndicator}>
                     <View style={[homeStyles.archiveStatusDot, { backgroundColor: '#4ee6e6' }]} />
                     <Text style={{
@@ -1535,33 +1555,33 @@ const ArchiveInterface: React.FC = () => {
                 contentContainerStyle={homeStyles.archiveTabScrollpassages}
               >
                 <TabButton
-                  title="Entrance Hall"
-                  icon="home"
-                  isActive={ui.activeTab === "entrance"}
-                  onPress={() => ui.setActiveTab("entrance")}
+                  title="The Atrium"
+                  icon={uiIcons.sectionIcons.atrium}
+                  isActive={ui.activeTab === "atrium"}
+                  onPress={() => ui.setActiveTab("atrium")}
                 />
                 <TabButton
-                  title="Ancient Tomes"
-                  icon="book-open"
-                  isActive={ui.activeTab === "tomes"}
-                  onPress={() => ui.setActiveTab("tomes")}
+                  title="Passages"
+                  icon={uiIcons.sectionIcons.passages}
+                  isActive={ui.activeTab === "passages"}
+                  onPress={() => ui.setActiveTab("passages")}
                 />
                 <TabButton
-                  title="Codex"
-                  icon="edit-3"
-                  isActive={ui.activeTab === "codex"}
-                  onPress={() => ui.setActiveTab("codex")}
+                  title="Inscriptions"
+                  icon={uiIcons.sectionIcons.inscriptions}
+                  isActive={ui.activeTab === "inscriptions"}
+                  onPress={() => ui.setActiveTab("inscriptions")}
                 />
                 <TabButton
                   title="Mind Defender"
-                  icon="zap"
+                  icon={uiIcons.sectionIcons.defender}
                   isActive={ui.activeTab === "defender"}
                   onPress={() => ui.setActiveTab("defender")}
                 />
 
                 <TabButton
                   title="Restoration"
-                  icon="heart"
+                  icon={uiIcons.sectionIcons.restoration}
                   isActive={ui.activeTab === "restoration"}
                   onPress={() => ui.setActiveTab("restoration")}
                 />
@@ -1576,8 +1596,8 @@ const ArchiveInterface: React.FC = () => {
           style={homeStyles.archiveTabpassagesContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Entrance Hall Tab */}
-          {ui.activeTab === "entrance" && (
+          {/* The Atrium Tab */}
+          {ui.activeTab === "atrium" && (
             <View style={homeStyles.tabpassagesArea}>
               {/* Avatar Showcase Section - Updated styling */}
               <View style={homeStyles.avatarShowcaseHeader}>
@@ -1601,20 +1621,7 @@ const ArchiveInterface: React.FC = () => {
 
 
                   {/* Character Info Bar - Updated styling */}
-                  <View style={[homeStyles.characterInfoBar, { alignItems: 'center', justifyContent: 'center' }]}>
-                    <View style={[homeStyles.characterDetails, { alignItems: 'center' }]}>
-                      <Text style={homeStyles.characterName}>
-                        Mouseion {(() => {
-                          // Extract character name from the proper backend structure using the helper
-                          const { profile: userProfile, backendCharacter } = selectProfileAndCharacter(wellness.homeData);
-                          return backendCharacter?.name || userProfile?.username || userProfile?.email || character.getCharacterName() || "Unnamed Character";
-                        })()}
-                      </Text>
-                      <Text style={homeStyles.characterClass}>
-                        Keeper of Hidden Knowledge
-                      </Text>
-                    </View>
-                  </View>
+
 
                   {/* XP Progress */}
                   <View style={{ alignItems: 'center' }}>
@@ -2082,7 +2089,7 @@ const ArchiveInterface: React.FC = () => {
           )}
 
           {/* Ancient Stories Tab - Show Story list directly */}
-          {ui.activeTab === "tomes" && (
+          {ui.activeTab === "passages" && (
             <View style={homeStyles.tabpassagesArea}>
        
 
@@ -2245,8 +2252,8 @@ const ArchiveInterface: React.FC = () => {
             </View>
           )}
 
-          {/* Codex Tab */}
-          {ui.activeTab === "codex" && (
+          {/* Inscriptions Tab */}
+          {ui.activeTab === "inscriptions" && (
             <View style={homeStyles.tabpassagesArea}>
               {/* Journal Prompts Test Section */}
               <View style={[homeStyles.centeredMessageContainer, {
