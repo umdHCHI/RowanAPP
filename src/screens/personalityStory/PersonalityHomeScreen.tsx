@@ -34,7 +34,6 @@ import {
 
 // Import test functions for debugging
 import { runAllQuestTests } from '../../utils/questProgressTest';
-import { testCompleteFilteringLogicWithTools, testFilteringWithActualData } from '../../utils/rewardsUtils';
 
 /**
  * Refactored PersonalityHomeScreen with improved component architecture
@@ -661,168 +660,7 @@ export default function PersonalityHomeScreen() {
         }}
       />
       
-      {/* Debug buttons for testing (remove in production) */}
-      {__DEV__ && (
-        <>
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 100,
-              right: 20,
-              backgroundColor: '#4ee6e6',
-              padding: 8,
-              borderRadius: 4,
-              zIndex: 1000
-            }}
-            onPress={testQuestProgress}
-          >
-            <Text style={{ color: '#000', fontSize: 12, fontWeight: 'bold' }}>
-              Test Quest
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 150,
-              right: 20,
-              backgroundColor: '#ff6b6b',
-              padding: 8,
-              borderRadius: 4,
-              zIndex: 1000
-            }}
-            onPress={testPersonalityRewards}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-              Test Rewards
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 200,
-              right: 20,
-              backgroundColor: '#4ecdc4',
-              padding: 8,
-              borderRadius: 4,
-              zIndex: 1000
-            }}
-            onPress={() => testCompleteFilteringLogicWithTools()}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-              Test Filtering
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 350,
-              right: 20,
-              backgroundColor: '#9b59b6',
-              padding: 8,
-              borderRadius: 4,
-              zIndex: 1000
-            }}
-            onPress={testQuestProgressSystem}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-              Test Quest Progress
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 190,
-              right: 20,
-              backgroundColor: '#FF6B9D',
-              padding: 8,
-              borderRadius: 4,
-              zIndex: 1000
-            }}
-            onPress={testNewQuestMethod}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-              🧪 New Quest Method
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 250,
-              right: 20,
-              backgroundColor: '#ff6b9d',
-              padding: 8,
-              borderRadius: 4,
-              zIndex: 1000
-            }}
-            onPress={() => testFilteringWithActualData()}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-              Test Actual Data
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 300,
-              right: 20,
-              backgroundColor: '#4ecdc4',
-              padding: 8,
-              borderRadius: 4,
-              zIndex: 1000
-            }}
-            onPress={() => {
-              console.log('Manual tab change test - setting to entrance');
-              setActiveTab('entrance');
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-              Test Tab Nav
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 400,
-              right: 20,
-              backgroundColor: '#e67e22',
-              padding: 8,
-              borderRadius: 4,
-              zIndex: 1000
-            }}
-            onPress={async () => {
-              console.log('🔄 Manual refresh triggered...');
-              console.log('📊 Current userProfile before refresh:', userProfile);
-              console.log('📊 Current quest_progress before refresh:', userProfile?.quest_progress);
-              
-              try {
-                await fetchHomeScreenData();
-                console.log('✅ Manual refresh complete');
-                
-                // Show immediate result
-                setTimeout(() => {
-                  console.log('📊 userProfile after refresh:', userProfile);
-                  console.log('📊 quest_progress after refresh:', userProfile?.quest_progress);
-                  Alert.alert('Refresh Complete', `Before: ${JSON.stringify(userProfile?.quest_progress)}\n\nAfter: Check console for updated data`);
-                }, 1000);
-              } catch (error) {
-                console.error('❌ Manual refresh failed:', error);
-                Alert.alert('Refresh Failed', String(error));
-              }
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-              Manual Refresh
-            </Text>
-          </TouchableOpacity>
-        </>
-      )}
+ 
 
       {/* Tutorial Buttons */}
       <View style={styles.tutorialButtonContainer}>
@@ -841,18 +679,7 @@ export default function PersonalityHomeScreen() {
             <Text style={styles.tutorialButtonText}>📚 Tutorial</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          style={styles.debugTutorialButton}
-          onPress={testQuestProgress}
-        >
-          <Text style={styles.debugButtonText}>Q</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.debugTutorialButton, { backgroundColor: '#27ae60', marginLeft: 5 }]}
-          onPress={fetchHomeScreenData}
-        >
-          <Text style={styles.debugButtonText}>R</Text>
-        </TouchableOpacity>
+       
       </View>
 
       {/* Personality-Specific Tab Navigation */}
