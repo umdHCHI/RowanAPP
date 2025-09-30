@@ -136,3 +136,11 @@ export const uiAssetLabels = {
   sectionIcons: 'Section Icons',
   floatingIcons: 'Floating Decorative Icons',
 } as const;
+
+
+// Our avatar assets
+export const TrevorAvatar = require('../../../assets/ourAvatars/trevor.png');
+export const RowanAvatar = require('../../../assets/ourAvatars/blobguy.gif');
+export const ReganAvatar = require('../../../assets/ourAvatars/regan.png');
+export const MattAvatar = require('../../../assets/ourAvatars/matt.png');
+

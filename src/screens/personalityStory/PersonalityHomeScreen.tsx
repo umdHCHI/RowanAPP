@@ -750,46 +750,36 @@ export default function PersonalityHomeScreen() {
       )}
 
       {activeTab === 'codex' && (
-        <View style={{ flex: 1, backgroundColor: '#0a0b0f' }}>
+        <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
           <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'tools'}>
             <CodexContent
               ref={codexContentRef}
               onClose={() => {
-                console.log('CodexContent onClose called - navigating to entrance tab');
                 setActiveTab('entrance');
               }}
-              onSave={(entry: any) => {
-                console.log('Codex entry saved:', entry);
-              }}
-              onCreateEntry={() => {
-                console.log('CodexContent onCreateEntry called - opening CodexModal');
-                setShowCodexModal(true);
-              }}
+              onSave={(entry: any) => {}}
+              onCreateEntry={() => setShowCodexModal(true)}
               unlockedAreas={['journal', 'draw', 'voice']}
               primaryTrait={primaryTrait}
             />
           </TutorialHighlight>
-        </View>
+        </ScrollView>
       )}
 
       {activeTab === 'defender' && (
-        <View style={{ flex: 1, backgroundColor: '#0a0b0f' }}>
+        <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
           <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'tools'}>
             <ThoughtDefenderContent
               onClose={() => setActiveTab('entrance')}
-              onScoreUpdate={(data: any) => {
-                console.log('Thought defender score update:', data);
-              }}
-              onStartGame={() => {
-                console.log('Starting thought defender game');
-              }}
+              onScoreUpdate={(data: any) => {}}
+              onStartGame={() => {}}
             />
           </TutorialHighlight>
-        </View>
+        </ScrollView>
       )}
 
       {activeTab === 'restoration' && (
-        <View style={{ flex: 1, backgroundColor: '#0a0b0f' }}>
+        <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
           <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'restoration'}>
             <PersonalityRestoration
               primaryTrait={primaryTrait}
@@ -801,7 +791,7 @@ export default function PersonalityHomeScreen() {
               currentTheme={theme.themeMode}
             />
           </TutorialHighlight>
-        </View>
+        </ScrollView>
       )}
 
       {/* Story Modals */}

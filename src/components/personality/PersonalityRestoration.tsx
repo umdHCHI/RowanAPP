@@ -1,8 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Alert, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { PersonalityConfigs, PersonalityKey, PersonalityQuests } from '../../imports';
+import { CopingTool, PersonalityConfigs, PersonalityKey, PersonalityQuests, useMasterState } from '../../imports';
 import { CopingTools } from '../../types/personality';
+import { CopingToolsCollection } from './CopingToolsCollection';
 
 /**
  * PersonalityRestoration Component
@@ -40,10 +41,11 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
   onLogout,
   currentTheme = 'dark'
 }) => {
+  const { character } = useMasterState();
   const personalityConfig = PersonalityConfigs[primaryTrait];
   const personalityQuests = (PersonalityQuests as any)[primaryTrait] || [];
   const personalityCopingTools = (CopingTools as any)[primaryTrait] || [];
-  
+  const userUnlockedTools = character.backendCharacter?.coping_tools || [];
   // Calculate overall progress statistics
   const getOverallStats = () => {
     const completedStories = stories.filter(story => story.isCompleted).length;
@@ -69,7 +71,7 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
       completedQuests,
       totalQuests: personalityQuests.length,
       availableTools,
-      totalTools: personalityCopingTools.length,
+      totalTools: userUnlockedTools.length,
       averageWellness,
       maxWellness: wellnessStats.length * 10 // Assuming max value is 10 per stat
     };
@@ -259,6 +261,19 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
     </View>
   );
 
+  // Add this helper function inside PersonalityRestoration
+  const isToolUnlocked = (tool: CopingTool): boolean => {
+    // Check if this tool is in the user's unlocked tools list
+    const isInUnlockedList = userUnlockedTools.some((unlockedTool: any) => 
+      unlockedTool.id === tool.id || 
+      unlockedTool.tool_id === tool.tool_id ||
+      unlockedTool.name === tool.name
+    );
+    
+    console.log(`Tool "${tool.name}" (ID: ${tool.id}) is unlocked:`, isInUnlockedList);
+    return isInUnlockedList;
+  };
+
   return (
     <ScrollView 
       contentContainerStyle={{ padding: 20 }}
@@ -389,23 +404,12 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
         }}>
           🛠️ Wisdom Arsenal
         </Text>
-        
-        {personalityCopingTools.map((tool: any) => {
-          const isUnlocked = userProfile?.unlocked_tools?.includes(tool.id) || tool.unlocked;
-          
-          return (
-            <AchievementCard
-              key={tool.id}
-              title={tool.name}
-              description={tool.description}
-              icon={tool.icon}
-              progress={isUnlocked ? 1 : 0}
-              total={1}
-              isCompleted={isUnlocked}
-              reward={isUnlocked ? "Tool Mastered" : undefined}
-            />
-          );
-        })}
+        <CopingToolsCollection
+          unlockedTools={userUnlockedTools}
+          primaryTrait={primaryTrait}
+          authToken={userProfile?.authToken}
+          globalStyles={globalStyles}
+        />
       </View>
 
       {/* Wellness Foundation Section */}

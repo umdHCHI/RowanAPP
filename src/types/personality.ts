@@ -64,113 +64,112 @@ export const DailyCuratorMessages = {
 };
 
 // 2. PERSONALITY-SPECIFIC QUESTS
-export const  PersonalityQuests = {
+export const PersonalityQuests = {
   Openness: [
-    { id: 'openness_1', title: "Curiosity Catalyst", description: "Complete 3 exploration stories", reward: "🔮 Imagination Boost", total: 3, wellnessProperty: "connection" },
-    { id: 'openness_2', title: "Creative Alchemist", description: "Try 5 new coping techniques", reward: "✨ Innovation Badge", total: 5 , wellnessProperty: "balance"},
-    { id: 'openness_3', title: "Possibility Pioneer", description: "Explore different story paths", reward: "🌟 Pathfinder Title", total: 10, wellnessProperty: "awareness"  }
+    { id: 'openness_1', title: "The Unread Chapter", description: "Delve into 3 unexplored story chapters within the archives.", reward: "🔮 Visionary's Orb", total: 3, wellnessProperty: "connection" },
+    { id: 'openness_2', title: "Mind Weaver", description: "Transform 5 different types of negative thoughts in the 'Thought Invaders' mini-game.", reward: "✨ Sigil of Innovation", total: 5 , wellnessProperty: "balance"},
+    { id: 'openness_3', title: "The Branching Path", description: "Uncover 10 different outcomes by exploring divergent story paths.", reward: "🌟 Star-Charter's Compass", total: 10, wellnessProperty: "awareness"  }
   ],
   Conscientiousness: [
-    { id: 'conscientiousness_1', title: "Steady Scholar", description: "Complete daily practice for 7 days", reward: "🏆 Discipline Medal", total: 7 , wellnessProperty: "balance"},
-    { id: 'conscientiousness_2', title: "Organization Oracle", description: "Master 5 structure techniques", reward: "📋 Planner's Pride", total: 5, wellnessProperty: "awareness" },
-    { id: 'conscientiousness_3', title: "Persistence Paragon", description: "Finish 10 challenging stories", reward: "⚖️ Steadfast Seal", total: 10, wellnessProperty: "resilience" }
+    { id: 'conscientiousness_1', title: "The Scribe's Ritual", description: "Maintain a daily journal entry for seven consecutive days.", reward: "🏆 Aegis of Resolve", total: 7 , wellnessProperty: "balance"},
+    { id: 'conscientiousness_2', title: "Architect of the Self", description: "Complete 5 guided journal prompts to build a foundation of self-awareness.", reward: "📋 Scroll of Mastery", total: 5, wellnessProperty: "awareness" },
+    { id: 'conscientiousness_3', title: "The Unwavering Path", description: "Complete 10 story chapters without straying from your chosen objective.", reward: "⚖️ Warden's Seal", total: 10, wellnessProperty: "resilience" }
   ],
   Extraversion: [
-    { id: 'extraversion_1', title: "Social Spark", description: "Connect with archive community", reward: "🌟 People's Champion", total: 1, wellnessProperty: "connection" },
-    { id: 'extraversion_2', title: "Energy Enthusiast", description: "Boost connection skills 10 times", reward: "⚡ Vitality Badge", total: 10, wellnessProperty: "balance" },
-    { id: 'extraversion_3', title: "Communication Catalyst", description: "Share insights with others", reward: "🎭 Expression Expert", total: 5, wellnessProperty: "awareness" }
+    { id: 'extraversion_1', title: "Kindred Spirits", description: "Forge a meaningful connection with a key character in the story.", reward: "🌟 Emblem of Fellowship", total: 1, wellnessProperty: "connection" },
+    { id: 'extraversion_2', title: "Voice of the Heart", description: "Choose 10 dialogue options that build positive relationships with others.", reward: "⚡ Heartwood Charm", total: 10, wellnessProperty: "balance" },
+    { id: 'extraversion_3', title: "Shared Horizons", description: "Record 5 journal entries reflecting on your interactions with the story's characters.", reward: "🎭 Silver Tongue's Badge", total: 5, wellnessProperty: "awareness" }
   ],
   Agreeableness: [
-    { id: 'agreeableness_1', title: "Harmony Healer", description: "Resolve 5 conflict scenarios", reward: "🕊️ Peace Keeper", total: 5, wellnessProperty: "connection" },
-    { id: 'agreeableness_2', title: "Empathy Expert", description: "Show compassion in 10 situations", reward: "💚 Heart of Gold", total: 10, wellnessProperty: "balance" },
-    { id: 'agreeableness_3', title: "Boundary Builder", description: "Practice assertiveness 8 times", reward: "🛡️ Gentle Guardian", total: 8, wellnessProperty: "awareness" }
+    { id: 'agreeableness_1', title: "The Peacemaker's Gambit", description: "Successfully de-escalate 5 conflicts through dialogue choices in the story.", reward: "🕊️ Branch of Accord", total: 5, wellnessProperty: "connection" },
+    { id: 'agreeableness_2', title: "The Empath's Way", description: "Make 10 choices rooted in compassion and understanding.", reward: "💚 Sunstone of Empathy", total: 10, wellnessProperty: "balance" },
+    { id: 'agreeableness_3', title: "The Quiet Strength", description: "Choose 8 dialogue options that assert your boundaries with kindness.", reward: "🛡️ Bulwark of the Gentle", total: 8, wellnessProperty: "awareness" }
   ],
   Neuroticism: [
-    { id: 'neuroticism_1', title: "Emotion Explorer", description: "Track feelings for 14 days", reward: "🧘 Mindfulness Master", total: 14, wellnessProperty: "awareness" },
-    { id: 'neuroticism_2', title: "Resilience Researcher", description: "Overcome 7 anxiety challenges", reward: "🌊 Calm Cultivator", total: 7, wellnessProperty: "balance" },
-    { id: 'neuroticism_3', title: "Depth Diver", description: "Complete introspective journeys", reward: "🌙 Inner Wisdom", total: 12, wellnessProperty: "connection" }
+    { id: 'neuroticism_1', title: "Cartographer of the Heart", description: "Chart your emotional landscape by journaling for 14 consecutive days.", reward: "🧘 Amulet of Clarity", total: 14, wellnessProperty: "awareness" },
+    { id: 'neuroticism_2', title: "Defying the Shadows", description: "Successfully clear 7 challenging waves in the 'Thought Invaders' mini-game.", reward: "🌊 Runic Stone of Serenity", total: 7, wellnessProperty: "balance" },
+    { id: 'neuroticism_3', title: "Voyage Within", description: "Complete 12 introspective journal prompts to uncover deeper truths.", reward: "🌙 Oracle's Insight", total: 12, wellnessProperty: "connection" }
   ]
 } as const;
-
 // 3. PERSONALITY-SPECIFIC COPING TOOLS
 // These replace traditional equipment for personality-based users
 // Some tools are unlocked through story completion and map to character equipment
 export const CopingTools = {
   Openness: [
     // Starting tools
-    { id: 'tool_creative_visualization', name: "Creative Visualization", icon: "🎨", description: "Paint your feelings with imagination", unlocked: true },
-    { id: 'tool_curiosity_meditation', name: "Curiosity Meditation", icon: "🔍", description: "Explore thoughts without judgment", unlocked: true },
+    { id: 'tool_creative_visualization', name: "Mind's Eye Tapestry", icon: "🎨", description: "Weave visions of calm and possibility.", unlocked: true },
+    { id: 'tool_curiosity_meditation', name: "Whispering Lore", icon: "🔍", description: "Listen to thoughts as passing whispers, not commands.", unlocked: true },
     
     // Story-unlocked tools (map to character equipment)
-    { id: 'tool_possibility_mapping', name: "Possibility Mapping", icon: "🗺️", description: "Chart new paths forward", unlocked: false },
-    { id: 'tool_ancient_wisdom', name: "Ancient Wisdom Practice", icon: "📜", description: "Channel insights from the Archive's scrolls", unlocked: false }, // Maps to Ancient Scroll
-    { id: 'tool_perspective_lens', name: "Perspective Lens", icon: "🔮", description: "See situations from multiple angles", unlocked: false }, // Maps to Lens of Gentle Seeing
-    { id: 'tool_wanderer_journal', name: "Wanderer's Journal", icon: "📖", description: "Document your journey of discovery", unlocked: false }, // Maps to Notebook of the Wanderer
-    { id: 'tool_dream_weaving', name: "Dream Weaving", icon: "✨", description: "Transform imagination into reality", unlocked: false },
-    { id: 'tool_innovation_spark', name: "Innovation Spark", icon: "💡", description: "Ignite creative solutions to challenges", unlocked: false }
+    { id: 'tool_possibility_mapping', name: "Cartographer's Charm", icon: "🗺️", description: "Trace the hidden pathways of your potential.", unlocked: false },
+    { id: 'tool_ancient_wisdom', name: "Scroll of Elders", icon: "📜", description: "Draw upon the timeless knowledge etched in ancient scrolls.", unlocked: false }, // Maps to Ancient Scroll
+    { id: 'tool_perspective_lens', name: "Lens of Many Truths", icon: "🔮", description: "View challenges through a multifaceted crystal.", unlocked: false }, // Maps to Lens of Gentle Seeing
+    { id: 'tool_wanderer_journal', name: "Chronicler's Quill", icon: "📖", description: "Record the sagas of your inner and outer journeys.", unlocked: false }, // Maps to Notebook of the Wanderer
+    { id: 'tool_dream_weaving', name: "Somnus Weaving", icon: "✨", description: "Shape the fabric of your dreams into potent realities.", unlocked: false },
+    { id: 'tool_innovation_spark', name: "Spark of Ingenuity", icon: "💡", description: "Ignite brilliant solutions from the embers of curiosity.", unlocked: false }
   ],
   
   Conscientiousness: [
     // Starting tools
-    { id: 'tool_structured_breathing', name: "Structured Breathing", icon: "🧘", description: "4-7-8 breathing technique", unlocked: true },
-    { id: 'tool_goal_laddering', name: "Goal Laddering", icon: "📋", description: "Break big goals into steps", unlocked: true },
+    { id: 'tool_structured_breathing', name: "Rhythmic Breath", icon: "🧘", description: "Find your center with the 4-7-8 breathing cadence.", unlocked: true },
+    { id: 'tool_goal_laddering', name: "The Ascendant's Path", icon: "📋", description: "Carve great ambitions into smaller footholds.", unlocked: true },
     
     // Story-unlocked tools
-    { id: 'tool_routine_anchor', name: "Routine Anchor", icon: "⚓", description: "Create stability in chaos", unlocked: false },
-    { id: 'tool_focus_crystal', name: "Focus Crystal Method", icon: "💎", description: "Maintain concentration through distractions", unlocked: false }, // Maps to Focus Crystal
-    { id: 'tool_discipline_shield', name: "Discipline Shield", icon: "🛡️", description: "Protect your goals from temptation", unlocked: false }, // Maps to Shield of Resolve
-    { id: 'tool_progress_tracker', name: "Progress Tracker", icon: "📊", description: "Measure and celebrate small wins", unlocked: false },
-    { id: 'tool_habit_architect', name: "Habit Architect", icon: "🏗️", description: "Build lasting positive routines", unlocked: false },
-    { id: 'tool_time_guardian', name: "Time Guardian", icon: "⏰", description: "Master your relationship with time", unlocked: false }
+    { id: 'tool_routine_anchor', name: "Anchorstone Ritual", icon: "⚓", description: "Forge stability in the shifting tides of chaos.", unlocked: false },
+    { id: 'tool_focus_crystal', name: "Focusing Crystal", icon: "💎", description: "Channel your will, maintaining clarity amidst distractions.", unlocked: false }, // Maps to Focus Crystal
+    { id: 'tool_discipline_shield', name: "Aegis of Discipline", icon: "🛡️", description: "Ward your ambitions from the whispers of doubt.", unlocked: false }, // Maps to Shield of Resolve
+    { id: 'tool_progress_tracker', name: "The Warden's Ledger", icon: "📊", description: "Mark your victories to fuel your resolve.", unlocked: false },
+    { id: 'tool_habit_architect', name: "Rune of Habit", icon: "🏗️", description: "Inscribe lasting rituals into your being.", unlocked: false },
+    { id: 'tool_time_guardian', name: "Chronos Warden", icon: "⏰", description: "Become the master of your own time.", unlocked: false }
   ],
   
   Extraversion: [
     // Starting tools
-    { id: 'tool_social_recharging', name: "Social Recharging", icon: "🔋", description: "Connect with others mindfully", unlocked: true },
-    { id: 'tool_energy_mapping', name: "Energy Mapping", icon: "⚡", description: "Track your energy patterns", unlocked: true },
+    { id: 'tool_social_recharging', name: "Font of Fellowship", icon: "🔋", description: "Draw strength and renewal from kindred spirits.", unlocked: true },
+    { id: 'tool_energy_mapping', name: "Aura Weaving", icon: "⚡", description: "Trace the vibrant threads of your own energy.", unlocked: true },
     
     // Story-unlocked tools
-    { id: 'tool_boundary_setting', name: "Boundary Setting", icon: "🛡️", description: "Protect your social energy", unlocked: false },
-    { id: 'tool_connection_bridge', name: "Connection Bridge", icon: "🌉", description: "Build meaningful relationships", unlocked: false }, // Maps to Connection Bridge
-    { id: 'tool_energy_amplifier', name: "Energy Amplifier", icon: "📡", description: "Boost and share positive energy", unlocked: false }, // Maps to Energy Amplifier
-    { id: 'tool_conversation_catalyst', name: "Conversation Catalyst", icon: "💬", description: "Start meaningful dialogues", unlocked: false },
-    { id: 'tool_charisma_cloak', name: "Charisma Cloak", icon: "✨", description: "Radiate confidence and warmth", unlocked: false },
-    { id: 'tool_network_weaver', name: "Network Weaver", icon: "🕸️", description: "Connect people and ideas", unlocked: false }
+    { id: 'tool_boundary_setting', name: "Warding Circle", icon: "🛡️", description: "Preserve your spirit's energy with gentle boundaries.", unlocked: false },
+    { id: 'tool_connection_bridge', name: "Bridge of Bonds", icon: "🌉", description: "Span the distance between hearts to forge alliances.", unlocked: false }, // Maps to Connection Bridge
+    { id: 'tool_energy_amplifier', name: "Resonance Stone", icon: "📡", description: "Amplify your inner light and share its warmth.", unlocked: false }, // Maps to Energy Amplifier
+    { id: 'tool_conversation_catalyst', name: "Catalyst Charm", icon: "💬", description: "Kindle dialogues that illuminate and inspire.", unlocked: false },
+    { id: 'tool_charisma_cloak', name: "Mantle of Presence", icon: "✨", description: "Drape yourself in an aura of confidence.", unlocked: false },
+    { id: 'tool_network_weaver', name: "Web of Kinship", icon: "🕸️", description: "Weave a tapestry of connections.", unlocked: false }
   ],
   
   Agreeableness: [
     // Starting tools
-    { id: 'tool_assertiveness_scripts', name: "Assertiveness Scripts", icon: "💬", description: "Practice saying no kindly", unlocked: true },
-    { id: 'tool_empathy_boundaries', name: "Empathy Boundaries", icon: "🌊", description: "Feel without drowning", unlocked: true },
+    { id: 'tool_assertiveness_scripts', name: "The Gentle Word", icon: "💬", description: "Speak your truth with kindness and strength.", unlocked: true },
+    { id: 'tool_empathy_boundaries', name: "The Empath's Shield", icon: "🌊", description: "Feel the currents of others without being swept away.", unlocked: true },
     
     // Story-unlocked tools
-    { id: 'tool_conflict_resolution', name: "Conflict Resolution", icon: "🤝", description: "Navigate disagreements peacefully", unlocked: false },
-    { id: 'tool_harmony_compass', name: "Harmony Compass", icon: "🧭", description: "Find balance in relationships", unlocked: false }, // Maps to Compass of Quiet Knowing
-    { id: 'tool_peace_weaver', name: "Peace Weaver", icon: "🕊️", description: "Create calm in turbulent situations", unlocked: false },
-    { id: 'tool_kindness_armor', name: "Kindness Armor", icon: "💚", description: "Protect yourself while staying compassionate", unlocked: false },
-    { id: 'tool_truth_speaking', name: "Truth Speaking", icon: "🗣️", description: "Express honesty with love", unlocked: false },
-    { id: 'tool_healing_presence', name: "Healing Presence", icon: "🌟", description: "Bring comfort to others naturally", unlocked: false }
+    { id: 'tool_conflict_resolution', name: "Mediator's Accord", icon: "🤝", description: "Weave harmony from the threads of discord.", unlocked: false },
+    { id: 'tool_harmony_compass', name: "Compass of Harmony", icon: "🧭", description: "Navigate relationships to find true balance.", unlocked: false }, // Maps to Compass of Quiet Knowing
+    { id: 'tool_peace_weaver', name: "The Peace Weaver's Loom", icon: "🕊️", description: "Spin tranquility in the heart of the storm.", unlocked: false },
+    { id: 'tool_kindness_armor', name: "Armor of Kindness", icon: "💚", description: "A shield of compassion for a gentle heart.", unlocked: false },
+    { id: 'tool_truth_speaking', name: "Voice of Verity", icon: "🗣️", description: "Let your honesty be tempered with compassion.", unlocked: false },
+    { id: 'tool_healing_presence', name: "Soothing Aura", icon: "🌟", description: "Become a wellspring of comfort for others.", unlocked: false }
   ],
   
   Neuroticism: [
     // Starting tools
-    { id: 'tool_emotion_surfing', name: "Emotion Surfing", icon: "🏄", description: "Ride the waves of feeling", unlocked: true },
-    { id: 'tool_worry_time', name: "Worry Time", icon: "⏰", description: "Schedule time for anxious thoughts", unlocked: true },
+    { id: 'tool_emotion_surfing', name: "Riding the Tides", icon: "🏄", description: "Ride the powerful waves of emotion with grace.", unlocked: true },
+    { id: 'tool_worry_time', name: "The Worry Stone", icon: "⏰", description: "Confine anxieties to a time, then set them aside.", unlocked: true },
     
     // Story-unlocked tools
-    { id: 'tool_grounding_techniques', name: "Grounding Techniques", icon: "🌱", description: "5-4-3-2-1 sensory grounding", unlocked: false },
-    { id: 'tool_storm_anchor', name: "Storm Anchor", icon: "⚓", description: "Stay steady during emotional storms", unlocked: false },
-    { id: 'tool_calm_sanctuary', name: "Calm Sanctuary", icon: "🏛️", description: "Create inner peace spaces", unlocked: false },
-    { id: 'tool_resilience_roots', name: "Resilience Roots", icon: "🌳", description: "Draw strength from deep within", unlocked: false },
-    { id: 'tool_emotion_compass', name: "Emotion Compass", icon: "🧭", description: "Navigate complex feelings skillfully", unlocked: false }, // Maps to Emotion Compass
-    { id: 'tool_mindful_observer', name: "Mindful Observer", icon: "👁️", description: "Watch thoughts without judgment", unlocked: false },
-    { id: 'tool_serenity_shield', name: "Serenity Shield", icon: "🛡️", description: "Protect against overwhelming emotions", unlocked: false }
+    { id: 'tool_grounding_techniques', name: "Earth Anchor", icon: "🌱", description: "Root yourself in the present with a 5-4-3-2-1 sensory rite.", unlocked: false },
+    { id: 'tool_storm_anchor', name: "Anchor of Serenity", icon: "⚓", description: "Hold fast amidst emotional tempests.", unlocked: false },
+    { id: 'tool_calm_sanctuary', name: "Inner Sanctum", icon: "🏛️", description: "Construct a sacred, peaceful space in your mind.", unlocked: false },
+    { id: 'tool_resilience_roots', name: "Roots of Resilience", icon: "🌳", description: "Draw unwavering strength from within.", unlocked: false },
+    { id: 'tool_emotion_compass', name: "Compass of the Heart", icon: "🧭", description: "Navigate the intricate labyrinth of your feelings.", unlocked: false }, // Maps to Emotion Compass
+    { id: 'tool_mindful_observer', name: "The Silent Watcher", icon: "👁️", description: "Observe your thoughts as clouds in the sky.", unlocked: false },
+    { id: 'tool_serenity_shield', name: "Shield of Serenity", icon: "🛡️", description: "Guard your spirit from overwhelming emotions.", unlocked: false }
   ]
 };
 
 // 4. EQUIPMENT TO COPING TOOL MAPPING
 // Maps character equipment items to personality-specific coping tools
-export const EquipmentToCopingToolMap: Record<string, Record<PersonalityKey, string>> = {
+export const EquipmentToCopingToolMap: Record<string, Record<string, string>> = {
   "Ancient Scroll": {
     Openness: "tool_ancient_wisdom",
     Conscientiousness: "tool_progress_tracker",
@@ -221,6 +220,7 @@ export const EquipmentToCopingToolMap: Record<string, Record<PersonalityKey, str
     Neuroticism: "tool_grounding_techniques"
   }
 };
+
 
 // Helper function to convert equipment reward to coping tool for personality users
 export const convertEquipmentToCopingTool = (equipmentName: string, personalityType: PersonalityKey): string | null => {

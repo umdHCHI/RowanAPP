@@ -31,8 +31,9 @@ import { CodexEntry } from "../../types/journal";
 import { getDisplayPrompt } from "../../utils/codexUtils";
 // Import StoryScreen directly to avoid circular dependency issues
 import React from "react";
+import { MattAvatar, ReganAvatar, TrevorAvatar } from "../../assets";
 import { archiveHeaderIcon, equipmentIcons } from "../../assets/equipment";
-import { uiIcons } from "../../assets/ui";
+import { RowanAvatar, uiIcons } from "../../assets/ui";
 
 import { apiService } from "../../services/apiService";
 
@@ -4205,7 +4206,37 @@ const ArchiveInterface: React.FC = () => {
                             </View>
                             <Text style={homeStyles.foundationLabel}>
                               Story Writer:{'\n'}
-                              Matthew Wilson
+                              
+                                  {/* Trevor Schmidt with Avatar */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        width: '100%',
+        justifyContent: 'center',
+      }}>
+        <Image 
+          source={MattAvatar}
+          style={{
+            width: 48,
+            height: 48,
+            marginRight: 8,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(78, 230, 230, 0.3)',
+          }}
+          resizeMode="cover"
+        />
+        <Text style={[homeStyles.foundationDescription, {
+          color: '#4ee6e6',
+          fontSize: 14,
+          fontWeight: '500',
+        }]}>
+          Matthew Wilson
+        </Text>
+      </View>
+
+                              
                             </Text>
                             <Text style={homeStyles.foundationDescription}>
                               Crafted immersive narratives for your journey
@@ -4267,9 +4298,91 @@ const ArchiveInterface: React.FC = () => {
                             </View>
                             <Text style={homeStyles.foundationLabel}>
                               Development Team:{'\n'}
-                              Regan Gross {'\n'}
-                              Trevor Schmidt{'\n'}
-                              Rowan Stratton
+                                                               {/* Regan Gross with Avatar */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        width: '100%',
+        justifyContent: 'center',
+      }}>
+        <Image 
+          source={ReganAvatar}
+          style={{
+            width: 64,
+            height: 64,
+            marginRight: 8,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(78, 230, 230, 0.3)',
+          }}
+          resizeMode="cover"
+        />
+        <Text style={[homeStyles.foundationDescription, {
+          color: '#4ee6e6',
+          fontSize: 14,
+          fontWeight: '500',
+        }]}>
+          Regan Gross
+        </Text>
+      </View>
+                                  {/* Trevor Schmidt with Avatar */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        width: '100%',
+        justifyContent: 'center',
+      }}>
+        <Image 
+          source={TrevorAvatar}
+          style={{
+            width: 64,
+            height: 64,
+            marginRight: 8,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(78, 230, 230, 0.3)',
+          }}
+          resizeMode="cover"
+        />
+        <Text style={[homeStyles.foundationDescription, {
+          color: '#4ee6e6',
+          fontSize: 14,
+          fontWeight: '500',
+        }]}>
+          Trevor Schmidt
+        </Text>
+      </View>
+
+        {/* Rowan Stratton with Avatar */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        width: '100%',
+        justifyContent: 'center',
+      }}>
+        <Image 
+          source={RowanAvatar}
+          style={{
+            width: 64,
+            height: 64,
+            marginRight: 8,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(78, 230, 230, 0.3)',
+          }}
+          resizeMode="cover"
+        />
+        <Text style={[homeStyles.foundationDescription, {
+          color: '#4ee6e6',
+          fontSize: 14,
+          fontWeight: '500',
+        }]}>
+          Rowan Stratton
+        </Text>
+      </View>
                             </Text>
                             <Text style={homeStyles.foundationDescription}>
                               Built the magical systems that power The Archive

@@ -85,3 +85,7 @@ export {
     hairOptionsWhite, mouthOptions
 } from './characterOptions';
 
+
+// Our avatar assets
+export { MattAvatar, ReganAvatar, RowanAvatar, TrevorAvatar } from './ui/index';
+
