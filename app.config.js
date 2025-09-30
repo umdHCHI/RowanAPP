@@ -42,12 +42,13 @@ export default ({ config }) => {
   // Apply the custom plugin
   config = withCustomAndroidModifications(config);
 
-  // Return the final modified config
+  // Return the final modified config with explicit iOS configuration
   return {
     ...config,
     name: "TheArchive",
     slug: "thearchivethesisproject",
     version: "1.0.0",
+    sdkVersion: "54.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "thearchive",
@@ -55,6 +56,7 @@ export default ({ config }) => {
     newArchEnabled: true,
     plugins: [
       "expo-router",
+      "expo-font", // Added for The Archive's mystical typography system
       [
         "expo-splash-screen",
         {
@@ -67,7 +69,11 @@ export default ({ config }) => {
       "expo-av",
     ],
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      bundleIdentifier: "com.roesorcerer.thearchivethesisproject",
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false
+      }
     },
     android: {
       package: "com.roesorcerer.thearchivethesisproject",

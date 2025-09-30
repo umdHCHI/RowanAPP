@@ -93,7 +93,7 @@ import {
   hairOptionsWhite,
   mouthOptions,
 } from "../assets/characterOptions";
-import { apiService } from "../services";
+import { apiService } from "../services/apiService";
 import { Character, CharacterGear, CodexEntry, CopingTool, EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems, HomeData, JournalPrompt, MiniGameProgress, PersonalityKey, Story } from "../types";
 import { ThoughtDefenderRunDTO, ThoughtDefenderRunResponse } from "../types/thoughtDefender";
 import { CategoryConfig, createCharacterCreatorCategories, UserProfile } from "../types/user";

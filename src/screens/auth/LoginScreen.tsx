@@ -1,17 +1,17 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Animated,
+  Dimensions,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useMasterState } from '../../context/MasterStateContext';
-import { apiService } from '../../imports';
+import { apiService } from '../../services/apiService';
 import { loginStyles as loginStylesGlobal } from '../../styles/globalStyles';
 
 const { width, height } = Dimensions.get('window');

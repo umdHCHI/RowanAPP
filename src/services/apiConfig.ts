@@ -1,46 +1,76 @@
 import Constants from 'expo-constants';
 
-// Get API URLs from environment configuration
-const envApiBaseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
-
-// Determine which API URL to use
+// Get API URLs from environment configuration with multiple fallback strategies
 const getApiBaseUrl = (): string => {
-    const baseUrl = envApiBaseUrl;  // Prod environment variable  
-    if (baseUrl.includes(':8000')) { // If the URL already has port 8000, return it as is(local development)
+    // Try multiple ways to access the API base URL
+    const envApiBaseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
+
+    console.log('[apiConfig] API_BASE_URL sources:');
+    console.log('  - Constants.expoConfig?.extra?.API_BASE_URL:', Constants.expoConfig?.extra?.API_BASE_URL);
+    console.log('  - Constants.manifest?.extra?.API_BASE_URL:', Constants.manifest?.extra?.API_BASE_URL);
+    console.log('  - process.env.API_BASE_URL:', process.env.API_BASE_URL);
+    console.log('  - Final baseUrl:', envApiBaseUrl);
+
+    // Ensure the URL ends with a slash for consistent endpoint construction
+    let baseUrl = envApiBaseUrl;
+    if (!baseUrl.endsWith('/')) {
+        baseUrl += '/';
+    }
+
+    // Handle development vs production URL patterns
+    if (baseUrl.includes(':8000')) {
+        // Already has development port, return as is
         return baseUrl;
-    }    
-    const url = new URL(baseUrl);
-    url.port = '8000';
-    return url.href;    
+    }
+    
+    // For production URLs, check if we need to add port
+    try {
+        const url = new URL(baseUrl);
+        // Only add port 8000 if we're in development mode
+        if (__DEV__ && !url.port) {
+            url.port = '8000';
+            return url.href;
+        }
+        return baseUrl;
+    } catch (error) {
+        console.warn('[apiConfig] Invalid URL format, using fallback:', error);
+        return "http://131.212.41.8/api/";
+    }
 };
 
 export const apiBaseUrl = getApiBaseUrl();
 
-// Updated API endpoints to match the new simplified backend structure
+// Validate that we have a valid API URL
+if (!apiBaseUrl) {
+    console.error('[apiConfig] API_BASE_URL is undefined! Check your app.config.js configuration.');
+    throw new Error('API_BASE_URL is not configured properly. Check your app.config.js file.');
+}
+
+console.log('[apiConfig] Using API Base URL:', apiBaseUrl);
+
+// Define API endpoints
 export const API_ENDPOINTS = {
     // Authentication
-    login: 'auth/login/', //okay
-    logout: 'auth/logout/', //has bugs 
+    login: 'auth/login/',
+    logout: 'auth/logout/',
 
-    
     // User endpoints
     users: 'users/',
     currentUser: 'users/me/',
-    userProfile: 'users/', //{id}/full_profile/
-    //PATCH to update user profile
+    userProfile: 'users/',
     updateUserProfile: 'users/update_profile/',
 
-    researchGroupPost: 'users/research-groups/', // POST to join a research group
+    researchGroupPost: 'users/research-groups/',
     
-    // ----------------- Character endpoints -----------------
-    characters: 'characters/', // Base character endpoint for POST/GET
-    characterHomeData: 'characters/', // Character home data endpoint - updated to use direct endpoint
-    characterStats: 'characters/', // Character stats endpoint
-    gainExperience: 'characters/', // {id}/gain_experience/ USE ME
-    gainWellness: 'characters/', // {id}/gain_wellness/ USE ME
-    updateCustomization: 'characters/', // {id}/update_customization/ USE ME
+    // Character endpoints
+    characters: 'characters/',
+    characterHomeData: 'characters/',
+    characterStats: 'characters/',
+    gainExperience: 'characters/',
+    gainWellness: 'characters/',
+    updateCustomization: 'characters/',
 
-    // Wellness & Coping Tools --- for personality type 
+    // Wellness & Coping Tools
     copingTools: 'coping-tools/',
     availableCopingTools: 'coping-tools/available/',
     awardCopingTool: 'coping-tools/award-tool/',
@@ -51,28 +81,26 @@ export const API_ENDPOINTS = {
     unequipTool: 'coping-tools/',
     useTool: 'coping-tools/',
 
-
-    // Journal & Codex - All users use journal endpoints for compliance
-    journalPrompts: 'journal/journal-prompts/', 
+    // Journal & Codex
+    journalPrompts: 'journal/journal-prompts/',
     journalPromptsAvailable: 'journal/journal-prompts/available/',
     journalPromptsDaily: 'journal/journal-prompts/daily/',
     journalPromptsCompleted: 'journal/journal-prompts/completed/',
     journalPromptsByStoryTag: 'journal/journal-prompts/by_story_tag/',
-    codexEntries: 'journal/codex-entries/', 
+    codexEntries: 'journal/codex-entries/',
     codexEntriesStats: 'journal/codex-entries/stats/',
     codexEntriesRecent: 'journal/codex-entries/recent/',
-    createCodexEntry: 'journal/codex-entries/', 
+    createCodexEntry: 'journal/codex-entries/',
     uploadAudio: 'journal/upload-audio/',
     uploadDrawing: 'journal/upload-drawing/',
     
-    // Legacy reflections endpoints (deprecated - maintained for backward compatibility only)
-    myReflections: 'reflections/my_reflections/', 
+    // Legacy reflections endpoints
+    myReflections: 'reflections/my_reflections/',
     recentReflections: 'reflections/recent/',
     createReflection: 'reflections/',
     
-    // User-scoped journal endpoints (Note: These may not be implemented yet)
-    userJournalPrompts: 'users/', // {userId}/journal/prompts/by-category/
-    // userCodexEntries: 'users/', // {userId}/codex/entries/ - NOT IMPLEMENTED IN BACKEND
+    // User-scoped journal endpoints
+    userJournalPrompts: 'users/',
     
     // Gear
     gearTypes: 'gear-types/',
@@ -80,8 +108,8 @@ export const API_ENDPOINTS = {
     myGear: 'character-gear/my_gear/',
     availableGear: 'gear-types/',
     equippedGear: 'character-gear/equipped/',
-    equipGear: 'character-gear/', // {id}/equip/
-    unequipGear: 'character-gear/', // {id}/unequip/
+    equipGear: 'character-gear/',
+    unequipGear: 'character-gear/',
     acquireGear: 'character-gear/',
 
     // Personality & Survey endpoints
@@ -99,32 +127,31 @@ export const API_ENDPOINTS = {
     researchGroups: 'research/research-groups/',
     availableResearchGroups: 'research/research-groups/',
     
-    // Story endpoints - updated to match actual backend structure
+    // Story endpoints
     storyRoot: 'story/',
-    stories: 'story/catalog/', // Get all stories (matches Django story_catalog view)
+    stories: 'story/catalog/',
     
-    // Game flow endpoints based on actual backend
-    storyReset: 'story/stories/', // + {storyId}/reset/
-    storyStart: 'story/stories/', // + {storyId}/start/
-    getCurrentPassage: 'story/stories/',// + {storyId}/current/
-    makeChoice: 'story/make_choice/',  //User for choice progression
-    createProgress: 'story/story-progress/', //new progress record
-    updateProgress: 'story/story-progress/', //{id}/update/ update progress record
+    // Game flow endpoints
+    storyReset: 'story/stories/',
+    storyStart: 'story/stories/',
+    getCurrentPassage: 'story/stories/',
+    makeChoice: 'story/make_choice/',
+    createProgress: 'story/story-progress/',
+    updateProgress: 'story/story-progress/',
     getUserProgress: 'story/progress/user/',
-    restartStory: 'story/stories/', // + {storyId}/restart/
+    restartStory: 'story/stories/',
     
-    // Legacy endpoints (keeping for compatibility)
-    storypassages: 'story/', // {storyId}/passages/ - Get all passages for a story
-    storyChapters: 'story/stories/', // {storyId}/chapters/
-    storyProgress: 'story/stories/', // {storyId}/progress/
+    // Legacy endpoints
+    storypassages: 'story/',
+    storyChapters: 'story/stories/',
+    storyProgress: 'story/stories/',
     storyComplete: 'story/storyComplete/',
     storyGameData: 'story/game-data/',
     storyCatalog: 'story/catalog/',
-    storyPassage: 'story/stories/', // {storyId}/passage/{passageId}/
-    passageChoices: 'story/passages/', // {passageId}/choices/
-    choiceSelect: 'story/choices/', // {choiceId}/select/
-  
-    chapterPassages: 'story/stories/', // {storyId}/chapters/{chapterId}/passages/
+    storyPassage: 'story/stories/',
+    passageChoices: 'story/passages/',
+    choiceSelect: 'story/choices/',
+    chapterPassages: 'story/stories/',
     
     // CRUD Operations endpoints
     storiesCRUD: 'stories/',
@@ -134,31 +161,28 @@ export const API_ENDPOINTS = {
     npcsCRUD: 'npcs/',
     storyProgressCRUD: 'story-progress/',
     
-      // Other endpoints
+    // Other endpoints
     surveys: 'surveys/',
     surveySubmit: 'surveys/submit/',
     personality: 'personality/',
     gameData: 'game/my-data/',
     
     // Game endpoints
-    // PRIMARY: matches nova.urls
     gameDataLogThoughtDefenderRun: 'game/game-data/thought-defender/run/',
-    
-    // GENERIC progress (DRF ViewSet)
     gameProgressRecord: 'game/progress/record_progress/',
     
-    // Quest progress is handled through the existing make_choice endpoint
-    // No separate quest progress endpoints needed
-    
-    // LEGACY fallbacks (keep for compatibility)
+    // Legacy fallbacks
     recordActivity: 'game/record-activity/',
     recordProgressLegacy: 'game/record-progress/',
 } as const;
 
-// Helper to get full URL
+// Helper to get full URL with validation
 export const getApiUrl = (endpoint: keyof typeof API_ENDPOINTS): string => {
     if (!apiBaseUrl) {
-        throw new Error('API_BASE_URL is not configured');
+        throw new Error('API_BASE_URL is not configured - check your app.config.js file');
     }
-    return `${apiBaseUrl}${API_ENDPOINTS[endpoint]}`;
+    
+    const fullUrl = `${apiBaseUrl}${API_ENDPOINTS[endpoint]}`;
+    console.log(`[apiConfig] Generated URL for ${endpoint}:`, fullUrl);
+    return fullUrl;
 };

@@ -37,19 +37,15 @@ export { default as AsyncStorage } from '@react-native-async-storage/async-stora
 export { default as axios } from 'axios';
 export { default as Icon } from 'react-native-vector-icons/Feather';
 
-// ===== Services =====
+// ===== API Configuration Only (NOT the full services) =====
 export {
   API_ENDPOINTS,
   apiBaseUrl,
-  apiService,
-
-
-
   getApiUrl
-} from './services';
+} from './services/apiConfig';
+
 
 // ===== Components =====
-
 export { default as AssetLabel } from './components/AssetLabel';
 export { default as CharacterFrame } from './components/CharacterCreator/CharacterFrame';
 export { default as CharacterPreview } from './components/CharacterCreator/CharacterPreview';
@@ -58,7 +54,6 @@ export { default as DrawingCanvas } from './components/DrawingCanvas';
 export { default as EquipmentModal } from './components/EquipmentModal';
 export { default as FloatingIcon } from './components/FloatingIcon';
 export { default as PersonalizedArchiveHeader } from './components/personality/PersonalizedArchiveHeader';
-
 export { default as ThoughtDefenderModal } from './components/ThoughtDefenderModal';
 
 // ===== Character Creator Components =====
@@ -91,8 +86,6 @@ export { PersonalityQuests } from './types/personality';
 
 // ===== Constants =====
 export { CHARACTER_CREATOR_CONSTANTS } from './constants/characterCreator';
-
-// ===== Hooks =====
 
 // ===== Styles =====
 export { createGlobalStyles } from './styles/globalStyles';
@@ -130,8 +123,6 @@ export type {
   // User Profile
   UserProfile, WellnessStats
 } from './types';
-
-
 
 // ===== Context Types =====
 export type { PersonalityTrait } from './context/PersonalityContext';

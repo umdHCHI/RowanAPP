@@ -10,7 +10,6 @@ import {
   applyPassageRewards,
   calculateTotalRewards,
   // New upgrade system imports
-  checkItemOwnershipAndUpgrade,
   createNotificationFromEffects,
   createUpgradeNotification,
   getQuestInfo,
@@ -1939,5 +1938,30 @@ export async function debugEquipmentEndpoints(apiService: any): Promise<void> {
 }
 
 // Export the debug function for use in story components
-export { debugRewardDetection } from './rewardsUtils';
+// export { debugRewardDetection } from './rewardsUtils'; // Removed: not exported by rewardsUtils
+
+function checkItemOwnershipAndUpgrade(itemName: string, playerInventory: string[], storyReplayCount: number): UpgradedEquipmentReward | undefined {
+  // Example implementation: check if item is in inventory and if replay count allows upgrade
+  const alreadyOwned = playerInventory.some(item => item.toLowerCase() === itemName.toLowerCase());
+  const isUpgrade = alreadyOwned && storyReplayCount > 0;
+  const upgrade = {
+    statBonus: isUpgrade ? storyReplayCount : 0,
+    message: isUpgrade ? `Upgraded ${itemName}` : '',
+    type: isUpgrade ? 'upgrade' : 'item',
+    itemName: itemName,
+    currentLevel: isUpgrade ? storyReplayCount : 1,
+    newLevel: isUpgrade ? storyReplayCount + 1 : 1,
+    rarity: "Common" as "Common" | "Rare" | "Epic" | "Legendary",
+    upgradeMessage: isUpgrade ? `Upgraded ${itemName} to level ${storyReplayCount + 1}` : ''
+  };
+  if (isUpgrade) {
+    return {
+      originalItem: itemName,
+      upgradedItem: itemName,
+      isUpgrade,
+      upgrade
+    };
+  }
+  return undefined;
+}
 

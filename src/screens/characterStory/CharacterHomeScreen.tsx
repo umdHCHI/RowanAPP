@@ -1122,7 +1122,7 @@ const ArchiveInterface: React.FC = () => {
                 eyesIndex={(characterAppearanceData as any)?.selected_eye_type || character.getEyesIndex() || 0}
                 eyebrowsIndex={(characterAppearanceData as any)?.selected_eyebrow_style || character.getEyebrowsIndex() || 0}
                 mouthIndex={(characterAppearanceData as any)?.selected_mouth_type || character.selectedMouthType || 0}
-                size={homeStyles.characterFrame?.height || 180}
+                size={homeStyles.characterFrame?.height}
                 fitToFrame
               />
 
@@ -4297,93 +4297,104 @@ const ArchiveInterface: React.FC = () => {
                               </Text>
                             </View>
                             <Text style={homeStyles.foundationLabel}>
-                              Development Team:{'\n'}
-                                                               {/* Regan Gross with Avatar */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-        width: '100%',
-        justifyContent: 'center',
-      }}>
-        <Image 
-          source={ReganAvatar}
-          style={{
-            width: 64,
-            height: 64,
-            marginRight: 8,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: 'rgba(78, 230, 230, 0.3)',
-          }}
-          resizeMode="cover"
-        />
-        <Text style={[homeStyles.foundationDescription, {
-          color: '#4ee6e6',
-          fontSize: 14,
-          fontWeight: '500',
-        }]}>
-          Regan Gross
-        </Text>
-      </View>
-                                  {/* Trevor Schmidt with Avatar */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-        width: '100%',
-        justifyContent: 'center',
-      }}>
-        <Image 
-          source={TrevorAvatar}
-          style={{
-            width: 64,
-            height: 64,
-            marginRight: 8,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: 'rgba(78, 230, 230, 0.3)',
-          }}
-          resizeMode="cover"
-        />
-        <Text style={[homeStyles.foundationDescription, {
-          color: '#4ee6e6',
-          fontSize: 14,
-          fontWeight: '500',
-        }]}>
-          Trevor Schmidt
-        </Text>
-      </View>
-
-        {/* Rowan Stratton with Avatar */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-        width: '100%',
-        justifyContent: 'center',
-      }}>
-        <Image 
-          source={RowanAvatar}
-          style={{
-            width: 64,
-            height: 64,
-            marginRight: 8,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: 'rgba(78, 230, 230, 0.3)',
-          }}
-          resizeMode="cover"
-        />
-        <Text style={[homeStyles.foundationDescription, {
-          color: '#4ee6e6',
-          fontSize: 14,
-          fontWeight: '500',
-        }]}>
-          Rowan Stratton
-        </Text>
-      </View>
+                              Development Team:
                             </Text>
+                            
+                            {/* Move avatars outside of Text component */}
+                            <View style={{
+                              width: '100%',
+                              alignItems: 'center',
+                              marginTop: 8,
+                              marginBottom: 8,
+                            }}>
+                              {/* Regan Gross with Avatar */}
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                marginBottom: 6,
+                                width: '100%',
+                                justifyContent: 'center',
+                              }}>
+                                <Image 
+                                  source={ReganAvatar}
+                                  style={{
+                                    width: 32,
+                                    height: 32,
+                                    marginRight: 8,
+                                    borderRadius: 8,
+                                    borderWidth: 1,
+                                    borderColor: 'rgba(78, 230, 230, 0.3)',
+                                  }}
+                                  resizeMode="cover"
+                                />
+                                <Text style={[homeStyles.foundationDescription, {
+                                  color: '#4ee6e6',
+                                  fontSize: 12,
+                                  fontWeight: '500',
+                                }]}>
+                                  Regan Gross
+                                </Text>
+                              </View>
+                              
+                              {/* Trevor Schmidt with Avatar */}
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                marginBottom: 6,
+                                width: '100%',
+                                justifyContent: 'center',
+                              }}>
+                                <Image 
+                                  source={TrevorAvatar}
+                                  style={{
+                                    width: 32,
+                                    height: 32,
+                                    marginRight: 8,
+                                    borderRadius: 8,
+                                    borderWidth: 1,
+                                    borderColor: 'rgba(78, 230, 230, 0.3)',
+                                  }}
+                                  resizeMode="cover"
+                                />
+                                <Text style={[homeStyles.foundationDescription, {
+                                  color: '#4ee6e6',
+                                  fontSize: 12,
+                                  fontWeight: '500',
+                                }]}>
+                                  Trevor Schmidt
+                                </Text>
+                              </View>
+
+                              {/* Rowan Stratton with Avatar */}
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                marginBottom: 6,
+                                width: '100%',
+                                justifyContent: 'center',
+                              }}>
+                                <Image 
+                                  source={RowanAvatar}
+                                  style={{
+                                    width: 32,
+                                    height: 32,
+                                    marginRight: 8,
+                                    borderRadius: 8,
+                                    borderWidth: 1,
+                                    borderColor: 'rgba(78, 230, 230, 0.3)',
+                                  }}
+                                  resizeMode="cover"
+                                />
+                                <Text style={[homeStyles.foundationDescription, {
+                                  color: '#4ee6e6',
+                                  fontSize: 12,
+                                  fontWeight: '500',
+                                }]}>
+                                  Rowan Stratton
+                                </Text>
+                              </View>
+                            </View>
+                            
                             <Text style={homeStyles.foundationDescription}>
                               Built the magical systems that power The Archive
                             </Text>
@@ -4404,6 +4415,8 @@ const ArchiveInterface: React.FC = () => {
                           </LinearGradient>
                         </TouchableOpacity>
 
+
+                        
                         {/* Faculty Advisor Credit */}
                         <TouchableOpacity
                           style={homeStyles.foundationCard}
