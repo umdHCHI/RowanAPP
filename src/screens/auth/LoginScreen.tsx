@@ -16,7 +16,6 @@ import { loginStyles as loginStylesGlobal } from '../../styles/globalStyles';
 
 const { width, height } = Dimensions.get('window');
 
-// Floating mystical elements for atmosphere
 type FloatingElementProps = {
   children: React.ReactNode;
   duration?: number;
@@ -63,7 +62,6 @@ const FloatingElement = ({ children, duration = 3000, delay = 0, translateY = 20
   );
 };
 
-// Research condition visual themes
 const ResearchConditions = {
   A: {
     avatars: ['⚔️', '🛡️', '🏹', '🔮', '⚡', '💥'],
@@ -92,16 +90,15 @@ const ResearchConditions = {
   }
 };
 
-// For demo purposes, cycle between both conditions
 const AllAvatars = [...ResearchConditions.A.avatars, ...ResearchConditions.B.avatars];
 const AllTitles = [...ResearchConditions.A.titles, ...ResearchConditions.B.titles];
+
 export default function ArchiveLoginScreen() {
   const router = useRouter();
   const { auth, theme, onboarding } = useMasterState();
   const { login } = auth;
   const loginStyles = loginStylesGlobal(theme.loginTheme);
 
-  
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -109,13 +106,11 @@ export default function ArchiveLoginScreen() {
   const [currentPersonality, setCurrentPersonality] = useState(0);
   const [showCurator, setShowCurator] = useState(false);
 
-  // Cycle through all research condition types for visual interest
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentPersonality((prev) => (prev + 1) % AllAvatars.length);
     }, 4000);
     
-    // Show curator after initial load
     const curatorTimer = setTimeout(() => setShowCurator(true), 1000);
     
     return () => {
@@ -128,20 +123,10 @@ export default function ArchiveLoginScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      console.log('Starting login process for user:', username);
-      
-      // 1. Login and get token
       const loginResponse = await apiService.login(username, password);
       const token = loginResponse.token;
-      
-      console.log('Login successful, token received:', !!token, 'Token length:', token?.length);
-      console.log('Full login response:', loginResponse);
-
-      // 2. Store token in context/storage and handle routing
-      // Use character_id from the login response (not user.id)
       const charId = loginResponse.character_id != null ? String(loginResponse.character_id) : '';
       await login(token, charId, loginResponse.user);
-      console.log('Routing handled by AuthContext');
     } catch (err: any) {
       if (err.response?.data?.error) {
         setError(err.response.data.error);
@@ -155,15 +140,11 @@ export default function ArchiveLoginScreen() {
     }
   };
 
-
-
   return (
     <View style={loginStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor={loginStyles.container.backgroundColor} />
-      
-      {/* Mystical Background */}
+
       <View style={[loginStyles.backgroundContainer, { pointerEvents: 'none' }]}>
-        {/* Floating mystical elements */}
         <View style={[loginStyles.floatingElements, { pointerEvents: 'none' }]}>
           <FloatingElement delay={0} duration={4000} translateY={15}>
             <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>📚</Text>
@@ -182,7 +163,6 @@ export default function ArchiveLoginScreen() {
           </FloatingElement>
         </View>
 
-        {/* Gradient Overlay */}
         <View style={[loginStyles.gradientOverlay, { pointerEvents: 'none' }]} />
       </View>
 
@@ -197,7 +177,6 @@ export default function ArchiveLoginScreen() {
         removeClippedSubviews={false}
         scrollEventThrottle={16}
       >
-        {/* Header with cycling research condition avatars */}
         <View style={loginStyles.header}>
           <View style={loginStyles.personalityAvatar}>
             <Text style={loginStyles.avatarIcon}>
@@ -218,7 +197,6 @@ export default function ArchiveLoginScreen() {
           </View>
         </View>
 
-        {/* The Curator's Welcome */}
         {showCurator && (
           <View style={loginStyles.curatorSection}>
             <View style={loginStyles.curatorCard}>
@@ -239,7 +217,7 @@ export default function ArchiveLoginScreen() {
                   ancient arts of resilience."
                 </Text>
               </View>
-              
+
               <View style={loginStyles.curatorFooter}>
                 <Text style={loginStyles.curatorHint}>
                   Present your credentials to enter...
@@ -249,7 +227,6 @@ export default function ArchiveLoginScreen() {
           </View>
         )}
 
-        {/* Login Form - Styled as Ancient Scroll */}
         <View style={loginStyles.loginScroll}>
           <View style={loginStyles.scrollHeader}>
             <Text style={loginStyles.scrollTitle}>Archive Access Credentials</Text>
@@ -303,11 +280,9 @@ export default function ArchiveLoginScreen() {
               </View>
               <View style={loginStyles.buttonGlow} />
             </TouchableOpacity>
-
-
           </View>
         </View>
-        {/* Footer Mystical Text */}
+
         <View style={loginStyles.footer}>
           <Text style={loginStyles.footerText}>
             "Every story is a doorway, every choice a teacher."
@@ -320,5 +295,3 @@ export default function ArchiveLoginScreen() {
     </View>
   );
 }
-
-

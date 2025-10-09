@@ -18,6 +18,19 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
   const [primaryTrait, setPrimaryTrait] = useState<PersonalityKey>();
   const [userProfile, setUserProfile] = useState<any>(null);
   
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.warn('⚠️ Loading timeout reached, setting loading to false');
+        setIsLoading(false);
+        setError('Loading timeout - please try refreshing');
+      }
+    }, 10000); // 10 second timeout
+    
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
+  
   // Story-related state
   const [stories, setStories] = useState<any[]>([]);
   const [filteredStories, setFilteredStories] = useState<any[]>([]);
@@ -41,30 +54,76 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
 
       console.log('🔄 Loading full profile for personality user...');
       
+      // Add a small delay to ensure backend has processed the profile update
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Get the basic profile data (this works)
       const fullProfile = await apiService.getProfile();
       console.log('✅ Full profile loaded:', fullProfile);
       
-      // Extract dominant trait from personality profile
-      const dominantTrait = fullProfile?.personality_profile?.profile_summary?.dominant_trait;
-      const mappedTrait = toPersonalityKey(dominantTrait);
+      // Try to get personality data from the dedicated personality profile endpoint
+      let personalityData = null;
+      let dominantTrait = null;
+      let mappedTrait = null;
       
-      console.log('🎯 Full profile personality_profile:', fullProfile?.personality_profile);
-      console.log('🎯 Profile summary:', fullProfile?.personality_profile?.profile_summary);
-      console.log('🎯 Original trait:', dominantTrait);
-      console.log('🎯 Mapped trait:', mappedTrait);
-      
-      if (!mappedTrait) {
-        console.error('❌ Could not determine personality trait from profile!');
-        console.error('❌ This means either:');
-        console.error('  1. User has not completed personality survey');
-        console.error('  2. Personality data is not in the expected format');
-        console.error('  3. Survey submission did not properly save personality data');
-        setError('Personality profile not found. Please complete the personality survey first.');
-        return;
+      try {
+        console.log('🔄 Fetching personality profile from dedicated endpoint...');
+        personalityData = await apiService.getPersonalityCompleteData();
+        console.log('✅ Personality complete data:', personalityData);
+        
+        if (personalityData && personalityData.profile) {
+          // Get dominant trait from personality profile
+          const profile = personalityData.profile;
+          dominantTrait = profile.profile_summary?.dominant_trait || 
+                         Object.keys(profile).find(key => 
+                           ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'].includes(key) &&
+                           profile[key] === Math.max(...Object.values(profile).filter(v => typeof v === 'number'))
+                         );
+          mappedTrait = toPersonalityKey(dominantTrait);
+          console.log('🎯 Dominant trait from personality profile:', dominantTrait);
+          console.log('🎯 Mapped trait:', mappedTrait);
+        }
+      } catch (profileError) {
+        console.warn('⚠️ Failed to get personality profile, trying survey data...', profileError);
       }
       
-      setPrimaryTrait(mappedTrait);
+      // If no personality profile, try to get data from survey
+      if (!mappedTrait) {
+        try {
+          console.log('🔄 Attempting to get personality data from survey endpoint as fallback...');
+          const surveyData = await apiService.checkExistingSurvey();
+          if (surveyData && surveyData.big_five_scores) {
+            console.log('✅ Found survey data:', surveyData);
+            // Calculate dominant trait from survey scores
+            const scores = surveyData.big_five_scores;
+            const dominantTraitFromSurvey = Object.keys(scores).reduce((a, b) => 
+              scores[a] > scores[b] ? a : b
+            );
+            const mappedTraitFromSurvey = toPersonalityKey(dominantTraitFromSurvey);
+            
+            if (mappedTraitFromSurvey) {
+              console.log('✅ Successfully extracted trait from survey data:', mappedTraitFromSurvey);
+              setPrimaryTrait(mappedTraitFromSurvey);
+              // Continue with the rest of the loading process...
+            } else {
+              setError('Personality profile not found. Please complete the personality survey first.');
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            setError('Personality profile not found. Please complete the personality survey first.');
+            setIsLoading(false);
+            return;
+          }
+        } catch (surveyError) {
+          console.error('❌ Failed to get survey data as fallback:', surveyError);
+          setError('Personality profile not found. Please complete the personality survey first.');
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        setPrimaryTrait(mappedTrait);
+      }
 
       // **FIX: Get coping tools but don't block on them**
       let availableCopingTools: any[] = [];
@@ -113,7 +172,7 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
         }
         
         // Check if this is a quest from the correct personality type
-        const expectedTrait = mappedTrait.toLowerCase();
+        const expectedTrait = (mappedTrait || 'unknown').toLowerCase();
         Object.entries(questProgress).forEach(([questId, progress]) => {
           const questTraitMatch = questId.match(/^(\w+)_\d+$/);
           if (questTraitMatch) {
@@ -124,27 +183,37 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
         
         // **FIX: Build proper character data structure for personality users**
         // Character data is now directly on UserProfile, but personality users may not have character data
+        
+        // Debug experience data extraction
+        console.log('🔍 DEBUG: Experience data extraction:');
+        console.log('  fullProfile.character?.level:', fullProfile.character?.level);
+        console.log('  fullProfile.character?.experience:', fullProfile.character?.experience);
+        console.log('  fullProfile.character?.experience_needed:', fullProfile.character?.experience_needed);
+        console.log('  fullProfile.level:', fullProfile.level);
+        console.log('  fullProfile.experience:', fullProfile.experience);
+        console.log('  fullProfile.experience_needed:', fullProfile.experience_needed);
+        
         const characterData = {
           // Basic info from profile
           id: fullProfile.id,
           username: fullProfile.username,
           name: fullProfile.username, // Use username as display name
           
-          // Character stats (set defaults for personality users)
-          level: 1,
-          experience: 0,
-          experience_needed: 1000,
+          // Character stats - pull from actual profile data
+          level: fullProfile.character?.level || fullProfile.level || 1,
+          experience: fullProfile.character?.experience || fullProfile.experience || 0,
+          experience_needed: fullProfile.character?.experience_needed || fullProfile.experience_needed || 1000,
           
-          // **FIX: Create wellness stats for personality users**
-          wellness_stats: [
-            { icon: "🧘", label: "Exploration", value: 4, color: "#4A90E2" },
+          // **FIX: Use real wellness stats from backend instead of hardcoded values**
+          wellness_stats: fullProfile.wellness_stats || [
+            { icon: "🧘", label: "Exploration", value: 0, color: "#4A90E2" },
             { icon: "💚", label: "Courage", value: 0, color: "#2ECC71" },
             { icon: "🤝", label: "Connection", value: 0, color: "#E74C3C" },
             { icon: "⚖️", label: "Balance", value: 0, color: "#F39C12" }
           ],
           
           // Personality-specific data
-          primaryTrait: mappedTrait,
+          primaryTrait: mappedTrait || 'unknown',
           personalityProfile: fullProfile.personality_profile,
           
           // Tools and progress
@@ -157,6 +226,10 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
         };
         
         console.log('✅ Character data built:', characterData);
+        console.log('🔍 DEBUG: Final character data experience values:');
+        console.log('  characterData.level:', characterData.level);
+        console.log('  characterData.experience:', characterData.experience);
+        console.log('  characterData.experience_needed:', characterData.experience_needed);
         
         // **FIX: Actually set the userProfile state**
         setUserProfile(characterData);
@@ -171,16 +244,16 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
           id: fullProfile.id,
           username: fullProfile.username,
           name: fullProfile.username,
-          level: 1,
-          experience: 0,
-          experience_needed: 1000,
-          wellness_stats: [
-            { icon: "🧘", label: "Exploration", value: 4, color: "#4A90E2" },
+          level: fullProfile.character?.level || fullProfile.level || 1,
+          experience: fullProfile.character?.experience || fullProfile.experience || 0,
+          experience_needed: fullProfile.character?.experience_needed || fullProfile.experience_needed || 1000,
+          wellness_stats: fullProfile.wellness_stats || [
+            { icon: "🧘", label: "Exploration", value: 0, color: "#4A90E2" },
             { icon: "💚", label: "Courage", value: 0, color: "#2ECC71" },
             { icon: "🤝", label: "Connection", value: 0, color: "#E74C3C" },
             { icon: "⚖️", label: "Balance", value: 0, color: "#F39C12" }
           ],
-          primaryTrait: mappedTrait,
+          primaryTrait: mappedTrait || 'unknown',
           personalityProfile: fullProfile.personality_profile,
           unlocked_tools: availableCopingTools.map(tool => tool.tool_id) || [],
           coping_tools: availableCopingTools || [],
@@ -234,10 +307,11 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
       // Log all stories with their personality_focus for debugging
       console.log('📚 All stories with personality focus:');
       allStories.forEach(story => {
-        console.log(`  Story ${story.id}: "${story.title}"`);
+        console.log(`  Story ${story.id} (type: ${typeof story.id}): "${story.title}"`);
         console.log(`    personality_focus: ${JSON.stringify(story.personality_focus)}`);
         console.log(`    personality_focus type: ${typeof story.personality_focus}`);
         console.log(`    personality_focus is array: ${Array.isArray(story.personality_focus)}`);
+        console.log(`    is introduction: ${story.id === 12 || story.id === '12' || story.title?.toLowerCase().includes('introduction')}`);
       });
       
       // Normalize the user's trait for comparison
@@ -246,9 +320,9 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
       
       // Filter stories for this personality trait + introduction story
       const personalityStories = allStories.filter((story: any) => {
-        // Always include Introduction story (ID 12)
-        if (story.id === 12) {
-          console.log(`✅ Including Introduction story: ${story.title}`);
+        // Always include Introduction story (ID 12) - check both string and number
+        if (story.id === 12 || story.id === '12' || story.title?.toLowerCase().includes('introduction')) {
+          console.log(`✅ Including Introduction story: ${story.title} (ID: ${story.id}, type: ${typeof story.id})`);
           return true;
         }
         
@@ -282,21 +356,50 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
       console.log('📚 Story titles:', personalityStories.map(s => s.title));
       console.log('📚 Story IDs and focus:', personalityStories.map(s => ({ id: s.id, title: s.title, focus: s.personality_focus })));
       
+      // FALLBACK: If no stories found, try to include any story that might be an introduction
+      if (personalityStories.length === 0) {
+        console.log('⚠️ No stories found with current filtering, trying fallback...');
+        const fallbackStories = allStories.filter((story: any) => {
+          // Include any story that might be an introduction or general story
+          const isIntroduction = story.id === 12 || story.id === '12' || 
+                                story.title?.toLowerCase().includes('introduction') ||
+                                story.title?.toLowerCase().includes('intro');
+          
+          if (isIntroduction) {
+            console.log(`🔄 FALLBACK: Including potential introduction story: ${story.title}`);
+            return true;
+          }
+          
+          // Also include stories with no personality focus (general stories)
+          if (!story.personality_focus || !Array.isArray(story.personality_focus) || story.personality_focus.length === 0) {
+            console.log(`🔄 FALLBACK: Including general story: ${story.title}`);
+            return true;
+          }
+          
+          return false;
+        });
+        
+        if (fallbackStories.length > 0) {
+          console.log(`🔄 FALLBACK: Found ${fallbackStories.length} fallback stories`);
+          personalityStories.push(...fallbackStories);
+        }
+      }
+      
       // Sort stories: Introduction first (ID 12), then all others
       const sortedStories = personalityStories.sort((a, b) => {
-        // Introduction story (ID 12) always comes first
-        if (a.id === 12) return -1;
-        if (b.id === 12) return 1;
+        // Introduction story (ID 12) always comes first - check both string and number
+        if (a.id === 12 || a.id === '12' || a.title?.toLowerCase().includes('introduction')) return -1;
+        if (b.id === 12 || b.id === '12' || b.title?.toLowerCase().includes('introduction')) return 1;
         
         // For all other stories, maintain their original order or sort by ID
-        return a.id - b.id;
+        return Number(a.id) - Number(b.id);
       });
       
       console.log('📚 Stories after sorting (Introduction first):', sortedStories.map(s => `${s.id}: ${s.title}`));
       
       // Check if we found any stories with matching personality focus
       const personalityMatchedStories = personalityStories.filter(story => 
-        story.id !== 12 && // Exclude intro story from this count
+        story.id !== 12 && story.id !== '12' && !story.title?.toLowerCase().includes('introduction') && // Exclude intro story from this count
         story.personality_focus && 
         Array.isArray(story.personality_focus) && 
         story.personality_focus.length > 0
@@ -334,22 +437,36 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
 
   // Load stories when primary trait is set
   useEffect(() => {
-    if (primaryTrait && !isLoading) {
-      console.log("🔄 Primary trait set, loading stories...");
+    if (primaryTrait && !isLoading && userProfile) {
+      console.log("🔄 Primary trait and profile loaded, loading stories...");
       loadPersonalityStories();
     }
-  }, [primaryTrait, isLoading, loadPersonalityStories]);
+  }, [primaryTrait, isLoading, userProfile, loadPersonalityStories]);
 
-  // Fetch data on screen focus
+  // Fetch data on screen focus - FIXED: Removed circular dependencies
   useFocusEffect(
     useCallback(() => {
       console.log("=== Screen focused - fetching data ===");
       console.log("🔄 Force refreshing all data including quest progress");
       
+      // Only fetch data if user is authenticated
+      if (!authToken) {
+        console.log("🔒 No auth token found, skipping data fetch on focus");
+        setIsLoading(false);
+        setError('No authentication token');
+        return;
+      }
+      
       // Always fetch fresh data when screen focuses
       // This ensures quest progress is always up-to-date
       fetchHomeScreenData();
-    }, [fetchHomeScreenData])
+      
+      // Also force reload stories when screen focuses
+      if (primaryTrait && userProfile) {
+        console.log("🔄 Force reloading stories on screen focus...");
+        loadPersonalityStories();
+      }
+    }, [authToken]) // Only depend on authToken to prevent infinite loops
   );
 
   return {

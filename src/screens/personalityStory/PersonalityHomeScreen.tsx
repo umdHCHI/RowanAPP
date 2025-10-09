@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import CodexModal from '../../components/CodexModal';
+import ThoughtDefenderModal from '../../components/ThoughtDefenderModal';
 import type { CodexContentRef } from '../../components/personality';
 import {
   CodexContent,
@@ -14,16 +16,11 @@ import {
   WellnessAttributesDisplay
 } from '../../components/personality';
 import PersonalizedArchiveHeader from '../../components/personality/PersonalizedArchiveHeader';
+import { useMasterState } from '../../context/MasterStateContext';
 import { usePersonalityHomeData } from '../../hooks/usePersonalityHomeData';
-import { createGlobalStyles, PersonalityConfigs, useMasterState } from '../../imports';
+import { createGlobalStyles, PersonalityConfigs } from '../../imports';
 import { apiService } from '../../services/apiService';
 
-// Import story components
-import ChapterScreen from '../characterStory/ChapterScreen';
-import StoryScreen from '../characterStory/StoryScreen';
-import PersonalityStoryCatalog from './PersonalityStoryCatalog';
-
-// Import personality reward utilities
 import {
   applyPersonalityQuestBonuses,
   applyPersonalityStatBonuses,
@@ -31,32 +28,20 @@ import {
   getPersonalityRewardMultiplier,
   isToolPreferredForPersonality
 } from '../../utils/personalityRewards';
+import ChapterScreen from '../characterStory/ChapterScreen';
+import StoryScreen from '../characterStory/StoryScreen';
+import PersonalityStoryCatalog from './PersonalityStoryCatalog';
 
-// Import test functions for debugging
-import { runAllQuestTests } from '../../utils/questProgressTest';
-
-/**
- * Refactored PersonalityHomeScreen with improved component architecture
- * 
- * Key improvements:
- * 1. Extracted large inline components into reusable components
- * 2. Centralized data management in custom hook
- * 3. Simplified state management
- * 4. Improved code organization and maintainability
- * 5. Removed code duplication
- * 6. Added comprehensive tutorial system for personality path
- */
 export default function PersonalityHomeScreen() {
-  const { theme, auth } = useMasterState();
+  const router = useRouter();
+  const { theme, auth, wellness } = useMasterState();
   const { authToken, user } = auth;
   const globalStyles = createGlobalStyles(theme.theme);
 
-  // Tutorial state
   const [showTutorial, setShowTutorial] = useState(false);
   const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
   const [hasSeenTutorial, setHasSeenTutorial] = useState(false);
 
-  // Tutorial steps specific to personality path
   const TUTORIAL_STEPS = [
     {
       id: 1,
@@ -116,7 +101,6 @@ export default function PersonalityHomeScreen() {
     }
   ];
 
-  // Tutorial functions
   const startTutorial = () => {
     setShowTutorial(true);
     setCurrentTutorialStep(0);
@@ -142,181 +126,28 @@ export default function PersonalityHomeScreen() {
     try {
       await AsyncStorage.setItem('personalityHasSeenTutorial', 'true');
     } catch (error) {
-      console.error('Failed to save tutorial status:', error);
+      // Silently handle tutorial status save error
     }
   };
 
   const skipTutorial = () => {
     setShowTutorial(false);
     setHasSeenTutorial(true);
-    AsyncStorage.setItem('personalityHasSeenTutorial', 'true').catch(console.error);
+    AsyncStorage.setItem('personalityHasSeenTutorial', 'true').catch(() => {});
   };
 
-  // Test the new quest progress calculation method
-  const testNewQuestMethod = async () => {
-    console.log('🧪 TESTING NEW QUEST PROGRESS METHOD');
-    try {
-      const questProgress = await apiService.getQuestProgress();
-      console.log('✅ New quest method result:', questProgress);
-      console.log('✅ Quest count:', Object.keys(questProgress).length);
-      
-      if (Object.keys(questProgress).length > 0) {
-        console.log('✅ Found quest progress! The new method works!');
-        Object.entries(questProgress).forEach(([questId, progress]) => {
-          console.log(`  ${questId}: ${progress}`);
-        });
-      } else {
-        console.log('⚠️ No quest progress found with new method');
-      }
-    } catch (error) {
-      console.error('❌ New quest method failed:', error);
-    }
-    console.log('🧪 NEW QUEST METHOD TEST COMPLETE');
-  };
-
-  // Test function to simulate quest progress (for debugging)
-  const testQuestProgress = async () => {
-    try {
-      console.log('=== TESTING QUEST PROGRESS ===');
-      
-      // Simulate quest progress data - including the "Possibility Pioneer" quest that showed in notifications
-      const testQuestProgress = {
-        openness_3: 1, // This is the "Possibility Pioneer" quest from the notification
-        neuroticism_1: 1,
-        openness_2: 1
-      };
-      
-      console.log('Saving test quest progress:', testQuestProgress);
-      
-      // Save quest progress - one call per quest
-      for (const [questId, progress] of Object.entries(testQuestProgress)) {
-        await apiService.saveQuestProgress({
-          storyId: 'test',
-          questSlug: questId,
-          storyVariables: {
-            progress: progress,
-            source: 'test_button'
-          },
-          playerState: {
-            quest_progress: { [questId]: progress }
-          }
-        });
-        console.log(`✅ Test quest progress saved for ${questId}: ${progress}`);
-      }
-      console.log('✅ All test quest progress saved');
-      
-      // Refresh data to see the changes
-      await fetchHomeScreenData();
-      console.log('✅ Data refreshed');
-      
-    } catch (error) {
-      console.error('❌ Test quest progress failed:', error);
-    }
-  };
-
-  // Test function for personality reward system
-  const testPersonalityRewards = async () => {
-    try {
-      console.log('=== TESTING PERSONALITY REWARD SYSTEM ===');
-      console.log('Primary trait:', primaryTrait);
-      
-      if (!primaryTrait) {
-        Alert.alert('Error', 'Primary trait not available');
-        return;
-      }
-      
-      // Test reward multiplier
-      const multiplier = getPersonalityRewardMultiplier(primaryTrait, '1');
-      console.log('Reward multiplier for', primaryTrait, ':', multiplier);
-      
-      // Test stat bonuses
-      const testStats = { awareness: 10, resilience: 8, connection: 6, balance: 4 };
-      const adjustedStats = applyPersonalityStatBonuses(testStats, primaryTrait, multiplier);
-      console.log('Original stats:', testStats);
-      console.log('Adjusted stats:', adjustedStats);
-      
-      // Test quest bonuses
-      const testQuests = { [`${primaryTrait}_1`]: 1, 'general_quest': 1 };
-      const adjustedQuests = applyPersonalityQuestBonuses(testQuests, primaryTrait);
-      console.log('Original quests:', testQuests);
-      console.log('Adjusted quests:', adjustedQuests);
-      
-      // Test tool preferences
-      const testTools = ['Meditation', 'Goal Tracker', 'Social Support', 'Anxiety Management'];
-      testTools.forEach(tool => {
-        const isPreferred = isToolPreferredForPersonality(tool, primaryTrait);
-        console.log(`Tool "${tool}" preferred for ${primaryTrait}:`, isPreferred);
-      });
-      
-      // Test completion message
-      const message = getPersonalityCompletionMessage(primaryTrait, false);
-      console.log('Completion message:', message);
-      
-      // Test API service method
-      const testRewards = {
-        experienceGained: 100,
-        totalStatGains: testStats,
-        skillsLearned: testTools,
-        questsUpdated: testQuests
-      };
-      
-      const processedResult = await apiService.processPersonalityStoryRewards('test', testRewards, primaryTrait);
-      console.log('API processed result:', processedResult);
-      
-      Alert.alert(
-        'Personality Reward Test Complete',
-        `Multiplier: ${multiplier}x\nCheck console for detailed results`,
-        [{ text: 'OK' }]
-      );
-      
-    } catch (error: any) {
-      console.error('❌ Personality reward test failed:', error);
-      Alert.alert('Test Failed', error.message || 'Unknown error');
-    }
-  };
-
-  // Test quest progress system
-  const testQuestProgressSystem = async () => {
-    try {
-      console.log('🧪 Testing quest progress system...');
-      
-      // First, test loading quest progress directly
-      console.log('🔍 Testing quest progress loading...');
-      const directQuestProgress = await apiService.getQuestProgress();
-      console.log('🔍 Direct quest progress result:', directQuestProgress);
-      
-      if (primaryTrait) {
-        const questId = primaryTrait.toLowerCase() + '_1'; // e.g., 'openness_1'
-        await runAllQuestTests(primaryTrait, questId);
-        
-        Alert.alert(
-          'Quest Progress Test Complete',
-          `Tested quest: ${questId}\nDirect quest progress: ${JSON.stringify(directQuestProgress)}\nCheck console for detailed results`,
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert('Error', 'No primary trait available for testing');
-      }
-    } catch (error: any) {
-      console.error('❌ Quest progress test failed:', error);
-      Alert.alert('Test Failed', error.message || 'Unknown error');
-    }
-  };
-
-  // Check tutorial status on mount
   useEffect(() => {
     const checkTutorialStatus = async () => {
       try {
         const tutorialSeen = await AsyncStorage.getItem('personalityHasSeenTutorial');
         setHasSeenTutorial(tutorialSeen === 'true');
       } catch (error) {
-        console.error('Failed to check tutorial status:', error);
+        // Silently handle tutorial status check error
       }
     };
     checkTutorialStatus();
   }, []);
 
-  // Centralized data management
   const {
     isLoading,
     error,
@@ -324,37 +155,32 @@ export default function PersonalityHomeScreen() {
     userProfile,
     stories,
     isLoadingStories,
-    fetchHomeScreenData
+    fetchHomeScreenData,
+    loadPersonalityStories
   } = usePersonalityHomeData({ authToken, user });
 
-  // Debug logging
-  console.log("=== PersonalityHomeScreen Debug ===");
-  console.log("isLoading:", isLoading);
-  console.log("error:", error);
-  console.log("primaryTrait:", primaryTrait);
-  console.log("userProfile:", userProfile);
-  console.log("Quest progress:", userProfile?.quest_progress);
-  console.log("=== End Debug ===");
+  useEffect(() => {
+    if (!isLoading && error && !primaryTrait) {
+      setTimeout(() => {
+        router.replace('/(onboarding)/personality-test');
+      }, 1000);
+    }
+  }, [isLoading, error, primaryTrait, router]);
 
-  // UI state
   const [activeTab, setActiveTab] = useState("entrance");
   const [showCodexModal, setShowCodexModal] = useState(false);
-  
-  // Ref for CodexContent to refresh entries
+  const [showThoughtDefenderModal, setShowThoughtDefenderModal] = useState(false);
   const codexContentRef = useRef<CodexContentRef>(null);
   
-  // Debug tab changes
   const handleTabChange = (tab: string) => {
-    console.log('Tab change requested:', tab, 'from:', activeTab);
     setActiveTab(tab);
   };
   
-  // Story modal state
   const [selectedStory, setSelectedStory] = useState<any>(null);
+  const [selectedChapter, setSelectedChapter] = useState<any>(null);
   const [isStoryVisible, setIsStoryVisible] = useState(false);
   const [isChapterScreenVisible, setIsChapterScreenVisible] = useState(false);
 
-  // Story completion handler
   const handleStoryComplete = async (completionData: {
     storyId: string;
     totalStatGains: Record<string, number>;
@@ -367,136 +193,53 @@ export default function PersonalityHomeScreen() {
     setIsStoryVisible(false);
     setSelectedStory(null);
     
-    if (!userProfile) return;
+    if (!userProfile || !primaryTrait) return;
 
     try {
-      console.log("=== PROCESSING PERSONALITY USER STORY REWARDS ===");
-      console.log("Story ID:", completionData.storyId);
-      console.log("Primary trait:", primaryTrait);
-      console.log("Completion data:", completionData);
-      console.log("Completion data keys:", Object.keys(completionData));
-      console.log("questProgress field:", completionData.questProgress);
-      console.log("questProgress field (cast):", (completionData as any).questProgress);
-      console.log("finalRewards field (cast):", (completionData as any).finalRewards);
-      
-      // Log all properties to see what's actually there
-      console.log("=== ALL COMPLETION DATA PROPERTIES ===");
-      for (const [key, value] of Object.entries(completionData)) {
-        console.log(`${key}:`, value);
-      }
-      
-      // SPECIAL DEBUG: Check quest progress specifically
-      console.log("=== QUEST PROGRESS DEBUG ===");
-      console.log("questProgress field exists:", 'questProgress' in completionData);
-      console.log("questProgress type:", typeof completionData.questProgress);
-      console.log("questProgress value:", completionData.questProgress);
-      console.log("questProgress keys:", completionData.questProgress ? Object.keys(completionData.questProgress) : 'N/A');
-      if (completionData.questProgress) {
-        console.log("questProgress entries:");
-        Object.entries(completionData.questProgress).forEach(([key, value]) => {
-          console.log(`  ${key}: ${value} (type: ${typeof value})`);
-        });
-      }
-      console.log("=== END QUEST PROGRESS DEBUG ===");
-
       const isIntroStory = completionData.storyId === '12';
-      
-      if (!primaryTrait) {
-        console.error("Primary trait not available for story completion");
-        return;
-      }
-      
-      // Apply personality-specific reward multipliers
       const personalityMultiplier = getPersonalityRewardMultiplier(primaryTrait, completionData.storyId);
-      console.log("Personality reward multiplier:", personalityMultiplier);
 
-      // Process experience gains with personality bonus
       if (completionData.experienceGained > 0) {
         const adjustedExperience = Math.floor(completionData.experienceGained * personalityMultiplier);
-        console.log(`Experience: ${completionData.experienceGained} → ${adjustedExperience} (${personalityMultiplier}x)`);
-        
-        // For personality users, experience should be saved to their profile/character
-        // This is handled through the story completion system
       }
 
-      // Process wellness stat gains with personality bonuses
       if (Object.keys(completionData.totalStatGains).length > 0) {
-        console.log("Processing wellness stat gains for personality user...");
-        
-        // Apply personality-specific stat bonuses
         const adjustedStatGains = applyPersonalityStatBonuses(
           completionData.totalStatGains, 
-          primaryTrait!, 
+          primaryTrait, 
           personalityMultiplier
         );
-        
-        console.log("Original stat gains:", completionData.totalStatGains);
-        console.log("Adjusted stat gains:", adjustedStatGains);
       }
 
-      // Process coping tools/skills with personality preferences
       if (completionData.skillsLearned && completionData.skillsLearned.length > 0) {
-        console.log("Processing coping tools for personality user...");
-        
         for (const toolId of completionData.skillsLearned) {
           try {
-            // Check if this tool is preferred for this personality type
-            const isPreferred = isToolPreferredForPersonality(toolId, primaryTrait!);
-            console.log(`Tool ${toolId} preferred for ${primaryTrait}:`, isPreferred);
-            
-            // Attempt to acquire the coping tool
+            const isPreferred = isToolPreferredForPersonality(toolId, primaryTrait);
             await apiService.acquireCopingToolByName(toolId);
-            console.log(`✅ Coping tool acquired: ${toolId}`);
             
-            // If it's a preferred tool, automatically equip it
             if (isPreferred) {
               try {
                 const tool = await apiService.findCopingToolByName(toolId);
                 if (tool) {
                   await apiService.equipTool(tool.id);
-                  console.log(`✅ Preferred tool auto-equipped: ${toolId}`);
                 }
               } catch (equipError) {
-                console.warn(`Could not auto-equip preferred tool ${toolId}:`, equipError);
+                // Silently handle tool equip error
               }
             }
           } catch (toolError) {
-            console.warn(`Failed to process tool ${toolId}:`, toolError);
+            // Silently handle tool acquisition error
           }
         }
       }
 
-      // Process quest progress with personality-specific bonuses
-      // Handle different possible field names for quest progress data
       const questData = completionData.questProgress || {};
-      console.log("=== QUEST PROCESSING SECTION ===");
-      console.log("Raw questData:", questData);
-      console.log("questData type:", typeof questData);
-      console.log("questData is empty object:", Object.keys(questData).length === 0);
-      console.log("questData keys:", Object.keys(questData));
       
       if (questData && Object.keys(questData).length > 0) {
-        console.log("✅ Quest data found! Processing quest progress for personality user...");
-        console.log("Quest progress data:", questData);
-        
-        // Apply personality-specific quest progress bonuses
-        const adjustedQuestProgress = applyPersonalityQuestBonuses(
-          questData,
-          primaryTrait!
-        );
-        
-        console.log("Original quest progress:", questData);
-        console.log("Adjusted quest progress:", adjustedQuestProgress);
+        const adjustedQuestProgress = applyPersonalityQuestBonuses(questData, primaryTrait);
         
         try {
-          // Save quest progress - one call per quest
           for (const [questId, progress] of Object.entries(adjustedQuestProgress)) {
-            console.log(`=== SAVING QUEST PROGRESS: ${questId} ===`);
-            console.log(`Quest ID: ${questId}`);
-            console.log(`Progress value: ${progress}`);
-            console.log(`Story ID: ${completionData.storyId}`);
-            console.log(`Primary trait: ${primaryTrait}`);
-            
             await apiService.saveQuestProgress({
               storyId: completionData.storyId,
               questSlug: questId,
@@ -509,30 +252,13 @@ export default function PersonalityHomeScreen() {
                 quest_progress: { [questId]: progress }
               }
             });
-            console.log(`✅ Quest progress saved with personality bonuses for ${questId}: ${progress}`);
           }
-          console.log("✅ All quest progress saved with personality bonuses");
         } catch (questError) {
-          console.error("❌ Failed to save quest progress:", questError);
+          // Silently handle quest progress save error
         }
-      } else {
-        console.log("❌ No quest progress to process");
-        console.log("completionData.questProgress:", completionData.questProgress);
-        console.log("Reason: questData is empty or undefined");
-        
-        // ENHANCED DEBUG: Check if quest data exists in other fields
-        console.log("=== SEARCHING FOR QUEST DATA IN OTHER FIELDS ===");
-        console.log("completionData.questProgress:", completionData.questProgress);
-        console.log("Checking all completion data fields for quest-related data...");
-        Object.entries(completionData).forEach(([key, value]) => {
-          if (key.toLowerCase().includes('quest')) {
-            console.log(`  Found quest-related field: ${key}:`, value);
-          }
-        });
       }
 
-      // Show personality-specific completion message
-      const completionMessage = getPersonalityCompletionMessage(primaryTrait!, isIntroStory);
+      const completionMessage = getPersonalityCompletionMessage(primaryTrait, isIntroStory);
       
       Alert.alert(
         "📚 Story Mastered! ✨",
@@ -541,24 +267,22 @@ export default function PersonalityHomeScreen() {
       );
 
     } catch (e) {
-      console.error("Failed to process personality story rewards:", e);
       Alert.alert("Error", "There was an issue saving your story progress.");
     } finally {
-      // Add a longer delay to ensure backend has processed all the quest progress
-      console.log("💤 Waiting 3 seconds before refreshing data to ensure backend processing is complete...");
       await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      console.log("🔄 Refreshing home screen data to show updated quest progress...");
       await fetchHomeScreenData();
-      console.log("✅ Home screen data refresh complete");
+      
+      try {
+        if (wellness.loadHomeData) {
+          await wellness.loadHomeData();
+        }
+      } catch (refreshError) {
+        // Silently handle refresh error
+      }
     }
   };
 
-  // Story navigation handlers
   const handleOpenStory = (story: any) => {
-    console.log("=== handleOpenStory called ===");
-    console.log("Story data:", story);
-    
     setSelectedStory(story);
     if (story.chapter_count && story.chapter_count > 0) {
       setIsChapterScreenVisible(true);
@@ -570,14 +294,15 @@ export default function PersonalityHomeScreen() {
   const handleCloseStory = () => {
     setIsStoryVisible(false);
     setSelectedStory(null);
+    setSelectedChapter(null);
   };
 
-  const handleChapterSelect = () => {
+  const handleChapterSelect = (chapterId: number) => {
+    setSelectedChapter({ id: chapterId, title: `Chapter ${chapterId}`, passages: [] });
     setIsChapterScreenVisible(false);
     setIsStoryVisible(true);
   };
 
-  // Loading state (simplified version)
   if (isLoading || !userProfile || !primaryTrait) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: "#181A20" }}>
@@ -586,7 +311,8 @@ export default function PersonalityHomeScreen() {
           <View style={{ padding: 20, alignItems: 'center' }}>
             <View style={{ width: 40, height: 40, backgroundColor: '#4ee6e6', borderRadius: 20, marginBottom: 10 }} />
             <Text style={{ color: '#fff', fontSize: 16 }}>
-              {isLoading ? 'Loading your personality profile...' : 'Setting up your profile...'}
+              {isLoading ? 'Loading your personality profile...' : 
+               error && !primaryTrait ? 'Redirecting to survey...' : 'Setting up your profile...'}
             </Text>
             {error && (
               <Text style={{ color: '#ff6b6b', fontSize: 14, textAlign: 'center', marginTop: 10 }}>
@@ -599,7 +325,6 @@ export default function PersonalityHomeScreen() {
     );
   }
 
-  // Tutorial Highlight Component
   const TutorialHighlight = ({ 
     children, 
     isHighlighted, 
@@ -642,27 +367,22 @@ export default function PersonalityHomeScreen() {
     );
   };
 
-  // Main render
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#181A20" }}>
       <StatusBar barStyle="light-content" backgroundColor="#181A20" />
-      
-      {/* Header with Personality-Specific Styling */}
+
       <PersonalizedArchiveHeader
         primaryTrait={primaryTrait}
         characterData={userProfile}
         traitScores={{
-          Openness: 5,
-          Conscientiousness: 5,
-          Extraversion: 5,
-          Agreeableness: 5,
-          Neuroticism: 5
+          Openness: userProfile?.personalityProfile?.openness || 0,
+          Conscientiousness: userProfile?.personalityProfile?.conscientiousness || 0,
+          Extraversion: userProfile?.personalityProfile?.extraversion || 0,
+          Agreeableness: userProfile?.personalityProfile?.agreeableness || 0,
+          Neuroticism: userProfile?.personalityProfile?.neuroticism || 0
         }}
       />
-      
- 
 
-      {/* Tutorial Buttons */}
       <View style={styles.tutorialButtonContainer}>
         {!hasSeenTutorial ? (
           <TouchableOpacity
@@ -679,10 +399,8 @@ export default function PersonalityHomeScreen() {
             <Text style={styles.tutorialButtonText}>📚 Tutorial</Text>
           </TouchableOpacity>
         )}
-       
       </View>
 
-      {/* Personality-Specific Tab Navigation */}
       <TabNavigation
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -690,8 +408,6 @@ export default function PersonalityHomeScreen() {
         globalStyles={globalStyles}
       />
 
-      {/* Tab Content */}
-      {console.log('Current activeTab:', activeTab)}
       {activeTab === 'entrance' && (
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'wellness'}>
@@ -743,7 +459,6 @@ export default function PersonalityHomeScreen() {
               setIsLoading={() => {}}
               personalityStyles={primaryTrait ? PersonalityConfigs[primaryTrait]?.theme : undefined}
               userPersonalityTrait={primaryTrait}
-              debugPersonalityMatching={() => {}}
             />
           </TutorialHighlight>
         </View>
@@ -772,7 +487,7 @@ export default function PersonalityHomeScreen() {
             <ThoughtDefenderContent
               onClose={() => setActiveTab('entrance')}
               onScoreUpdate={(data: any) => {}}
-              onStartGame={() => {}}
+              onStartGame={() => setShowThoughtDefenderModal(true)}
             />
           </TutorialHighlight>
         </ScrollView>
@@ -794,13 +509,12 @@ export default function PersonalityHomeScreen() {
         </ScrollView>
       )}
 
-      {/* Story Modals */}
       {selectedStory && isStoryVisible && (
         <StoryScreen
           visible={isStoryVisible}
           onClose={handleCloseStory}
           story={selectedStory}
-          chapter={{ id: 1, title: 'Chapter 1', passages: [] } as any}
+          chapter={selectedChapter || { id: 1, title: 'Chapter 1', passages: [] }}
           passage={{ id: 'start', text: 'The story begins...' } as any}
           choices={[]}
           onStoryComplete={handleStoryComplete as any}
@@ -820,7 +534,6 @@ export default function PersonalityHomeScreen() {
         />
       )}
 
-      {/* Tutorial Modal Component */}
       {showTutorial && (
         <Modal
           visible={showTutorial}
@@ -830,7 +543,6 @@ export default function PersonalityHomeScreen() {
         >
           <View style={styles.tutorialOverlay}>
             <View style={styles.tutorialContent}>
-              {/* Tutorial Header */}
               <View style={styles.tutorialHeader}>
                 <Text style={styles.tutorialTitle}>{TUTORIAL_STEPS[currentTutorialStep].title}</Text>
                 <Text style={styles.tutorialMessage}>{TUTORIAL_STEPS[currentTutorialStep].message}</Text>
@@ -841,7 +553,6 @@ export default function PersonalityHomeScreen() {
                 )}
               </View>
 
-              {/* Progress Indicators */}
               <View style={styles.progressContainer}>
                 {TUTORIAL_STEPS.map((_, index: number) => (
                   <View
@@ -855,7 +566,6 @@ export default function PersonalityHomeScreen() {
                 ))}
               </View>
 
-              {/* Navigation Buttons */}
               <View style={styles.buttonContainer}>
                 {currentTutorialStep > 0 && (
                   <TouchableOpacity
@@ -887,33 +597,34 @@ export default function PersonalityHomeScreen() {
         </Modal>
       )}
 
-      {/* CodexModal for journal creation */}
       <CodexModal
         visible={showCodexModal}
         onClose={() => {
-          console.log('CodexModal closed');
           setShowCodexModal(false);
         }}
         onSave={async (entry: any) => {
-          console.log('CodexModal entry saved:', entry);
           setShowCodexModal(false);
-          // Refresh the CodexContent entries after saving
           if (codexContentRef.current) {
             try {
               await codexContentRef.current.refreshEntries();
-              console.log('✅ Refreshed CodexContent entries after saving');
             } catch (error) {
-              console.warn('Failed to refresh CodexContent entries:', error);
+              // Silently handle refresh error
             }
           }
         }}
         selectedType="journal"
       />
+
+      <ThoughtDefenderModal
+        visible={showThoughtDefenderModal}
+        onClose={() => setShowThoughtDefenderModal(false)}
+        onScoreUpdate={(data: any) => {}}
+        primaryTrait={primaryTrait}
+      />
     </SafeAreaView>
   );
 }
 
-// Styles
 const styles = StyleSheet.create({
   tutorialButtonContainer: {
     flexDirection: 'row',
@@ -941,23 +652,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'center',
   },
-  debugTutorialButton: {
-    backgroundColor: '#444',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   tutorialButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  debugButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   tutorialOverlay: {
     flex: 1,

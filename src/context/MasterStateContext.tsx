@@ -422,23 +422,18 @@ interface MasterStateProviderProps {
 export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   children,
 }) => {
-  // ===== EXTERNAL CONTEXTS =====
   const { authToken, characterId, isTestUser, user, login, logout } = useAuth();
   const { theme, themeMode, toggleTheme, setThemeMode, styles, isDark, loginTheme, onboardingTheme, characterCreatorTheme, characterHomeScreenTheme, personalitySurveyTheme } =
     useTheme();
 
-  // ===== ONBOARDING STATE (LOCAL) =====
   const [isComplete, setIsComplete] = useState(false);
   const [assignedPath, setAssignedPathState] = useState<"survey" | "character" | null>(null);
-  const [researchGroup, setResearchGroup] = useState<string | null>(null); // Don't set default until path is assigned
+  const [researchGroup, setResearchGroup] = useState<string | null>(null);
   const [characterAppearance, setCharacterAppearance] = useState<Character | undefined>(undefined);
   const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
-
-  // Custom setAssignedPath function that also sets research group
   const setAssignedPath = useCallback((path: "survey" | "character" | null) => {
     setAssignedPathState(path);
     
-    // Set research group based on assigned path
     if (path === 'character') {
       setResearchGroup("A");
       setResearchCondition("character");
@@ -446,10 +441,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       setResearchGroup("B");
       setResearchCondition("survey");
     } else {
-      // Path is null - clear research group and don't set a default research condition
       setResearchGroup(null);
-      // Don't set a default research condition when path is null
-      // This allows the UI to gate character-specific features appropriately
     }
   }, []);
 
@@ -457,22 +449,14 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const completeCharacter = async () => {
     try {
-      
-      // Call the backend to mark onboarding as complete with character path
       const updatedProfile = await apiService.completeOnboarding('character');
-      
-      // Update local state to match the API response
       setIsComplete(true);
-      setAssignedPath("character"); // This will also set research group and condition
-      
+      setAssignedPath("character");
     } catch (error: any) {
-      
-      // For admin/test users or network errors, still update local state
       if (isTestUser || error.code === 'ERR_NETWORK') {
         setIsComplete(true);
-        setAssignedPath("character"); // This will also set research group and condition
+        setAssignedPath("character");
       } else {
-        // Re-throw the error for regular users
         throw error;
       }
     }
@@ -480,12 +464,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
 
   const resetOnboarding = () => {
     setIsComplete(false);
-    setAssignedPath(null); // This will also clear research group
+    setAssignedPath(null);
     setCharacterAppearance(undefined);
   };
 
   const resetCharacterCreatorToDefaults = () => {
-    // Reset to default character creator values
     setCharacterName("");
     setSelectedBaseModel(0);
     setSelectedBaseColor(0);
@@ -500,14 +483,13 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     setSelectedClothesColor(0);
     setSelectedBackgroundType(0);
     setSelectedBackgroundColor(0);
-    setBackendCharacter(null); // Clear any existing character data
+    setBackendCharacter(null);
   };
 
   const setOnboardingLoading = (loading: boolean) => {
     setIsOnboardingLoading(loading);
   };
 
-  // ===== LOAD USER ONBOARDING STATUS =====
   const loadUserOnboardingStatus = useCallback(async () => {
     if (!authToken) {
       return;
@@ -516,47 +498,33 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     try {
       const status = await apiService.checkOnboardingStatus();
       if (status.isOnboarded) {
-        // Regular user has completed onboarding 
         setIsComplete(true);
         
         if (status.completionType) {
-          // User has a proper completion type
-          setAssignedPath(status.completionType as "survey" | "character"); // This will also set research group and condition
+          setAssignedPath(status.completionType as "survey" | "character");
         } else {
-          // User completed onboarding but no completion type - treat as incomplete
           setIsComplete(false);
-          setAssignedPath(null); // This will also clear research group
+          setAssignedPath(null);
         }
       } else {
-        // User hasn't completed onboarding OR is a test/admin user
-        // Test/admin users should ALWAYS go through onboarding (for testing purposes)
         setIsComplete(false);
-        setAssignedPath(null); // This will also clear research group
+        setAssignedPath(null);
       }
     } catch (error: any) {
-      // If it's a 404 error, the endpoint might not exist - that's okay
       if (error.response?.status === 404) {
-        // On 404 error, default to incomplete onboarding
         setIsComplete(false);
-        setAssignedPath(null); // This will also clear research group
+        setAssignedPath(null);
       } else {
-        // On other errors, default to incomplete onboarding
         setIsComplete(false);
-        setAssignedPath(null); // This will also clear research group
+        setAssignedPath(null);
       }
     }
   }, [authToken, isTestUser]);
 
-  // ===== CHARACTER STATE (UPDATED FOR NEW BACKEND) =====
-  const [backendCharacter, setBackendCharacter] =
-    useState<Character | null>(null);
-
-  // Local UI state for character creator (keeps your existing component working)
+  const [backendCharacter, setBackendCharacter] = useState<Character | null>(null);
   const [characterName, setCharacterName] = useState("");
   const [selectedBaseModel, setSelectedBaseModel] = useState(0);
-  const [selectedBaseColor, setSelectedBaseColor] = useState(0); // color index for base model
-
-  // REMOVED: debugSetSelectedBaseColor - no longer needed
+  const [selectedBaseColor, setSelectedBaseColor] = useState(0);
   const [selectedHairStyle, setSelectedHairStyle] = useState(0);
   const [selectedHairColor, setSelectedHairColor] = useState(0);
   const [selectedEyeType, setSelectedEyeType] = useState(0);
@@ -569,15 +537,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [selectedBackgroundType, setSelectedBackgroundType] = useState(0);
   const [selectedBackgroundColor, setSelectedBackgroundColor] = useState(0);
 
-  // ===== WELLNESS STATE (NEW) =====
   const [availableTools, setAvailableTools] = useState<CopingTool[]>([]);
-  const [myTools, setMyTools] = useState<CopingTool[]>([]);  const [equippedTools, setEquippedTools] = useState<CopingTool[]>([]);
-  const [recentCodexEntries, setRecentCodexEntries] = useState<CodexEntry[]>(
-    []
-  );
+  const [myTools, setMyTools] = useState<CopingTool[]>([]);
+  const [equippedTools, setEquippedTools] = useState<CopingTool[]>([]);
+  const [recentCodexEntries, setRecentCodexEntries] = useState<CodexEntry[]>([]);
   const [homeData, setHomeData] = useState<HomeData | null>(null);
-  
-  // Journal prompt state
   const [availablePrompts, setAvailablePrompts] = useState<JournalPrompt[]>([]);
   const [categoryPrompts, setCategoryPrompts] = useState<{
     journal: JournalPrompt | null;
@@ -589,17 +553,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     voice: null,
   });
 
-  // ===== EQUIPMENT STATE =====
-  // Equipment state management follows a single source of truth pattern:
-  // 1. equippedGear (CharacterGear[]) - Source of truth from backend
-  // 2. equippedItems (EquippedItems) - Derived state for UI, always calculated from equippedGear
-  // 3. backendGear (CharacterGear[]) - All user's gear from backend
-  // 4. inventory (EquipmentItem[]) - Frontend-formatted gear for UI display
   const [inventory, setInventory] = useState<EquipmentItem[]>([]);
   const [backendGear, setBackendGear] = useState<CharacterGear[]>([]);
   const [equippedGear, setEquippedGear] = useState<CharacterGear[]>([]);
-
-  // Helper functions for gear mapping (moved here to avoid temporal dead zone issues)
   const mapBackendStatsToWellnessStats = (statBonuses: Record<string, number>): Record<string, number> => {
     const wellnessStats: Record<string, number> = {
       awareness: 0,
@@ -608,7 +564,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       balance: 0
     };
     
-    // Map backend attributes to frontend wellness stats
     if (statBonuses.mindfulness) {
       wellnessStats.awareness += statBonuses.mindfulness;
     }
@@ -646,65 +601,51 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     
     switch (slot) {
       case 'weapon':
-        // Story reward items
         if (name.includes('ancient scroll')) return 'meditation';
         if (name.includes('clarity lens')) return 'meditation';
         if (name.includes('explorer') && name.includes('notebook')) return 'journaling';
         if (name.includes('intuition compass')) return 'meditation';
         if (name.includes('empathy conduit')) return 'meditation';
         if (name.includes('toolkit story')) return 'meditation';
-        
-        // Generic weapon types
         if (name.includes('meditation') || name.includes('breathing')) return 'meditation';
         if (name.includes('journal')) return 'journaling';
-        return 'meditation'; // default for focus items
+        return 'meditation';
         
       case 'armor':
-        // Story reward items
         if (name.includes('personal style cloak')) return 'social';
         if (name.includes('cultural wisdom wrap')) return 'social';
         if (name.includes('adaptation shield')) return 'social';
         if (name.includes('sanctuary shroud')) return 'social';
-        
-        // Generic armor types
         if (name.includes('social') || name.includes('friend')) return 'social';
         if (name.includes('hobby') || name.includes('activity')) return 'hobby';
         if (name.includes('nature') || name.includes('outdoor')) return 'nature';
-        return 'social'; // default for comfort items
+        return 'social';
         
       case 'helmet':
-        // Story reward items
         if (name.includes('reality filter')) return 'boundary';
         if (name.includes('growth mindset crown')) return 'affirmation';
         if (name.includes('authenticity guard')) return 'boundary';
         if (name.includes('guardian ward')) return 'boundary';
-        
-        // Generic helmet types
         if (name.includes('boundary') || name.includes('limit')) return 'boundary';
         if (name.includes('affirmation') || name.includes('positive')) return 'affirmation';
         if (name.includes('routine') || name.includes('habit')) return 'routine';
-        return 'boundary'; // default for shield items
+        return 'boundary';
         
       case 'boots':
-        // Story reward items
         if (name.includes('personal values foundation')) return 'exercise';
         if (name.includes('support network roots')) return 'exercise';
         if (name.includes('self-compassion stone')) return 'exercise';
         if (name.includes('foundation stone')) return 'exercise';
-        
-        // Generic boot types
         if (name.includes('exercise') || name.includes('movement')) return 'exercise';
         if (name.includes('sleep') || name.includes('rest')) return 'sleep';
         if (name.includes('nutrition') || name.includes('food')) return 'nutrition';
-        return 'exercise'; // default for ground items
+        return 'exercise';
         
       default:
         return 'meditation';
     }
   };
 
-  // Derived state: equippedItems is always calculated from equippedGear
-  // This ensures UI consistency and prevents state drift
   const equippedItems = useMemo(() => {
     const convertedEquippedItems: EquippedItems = {};
     equippedGear.forEach(gear => {
@@ -726,7 +667,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return convertedEquippedItems;
   }, [equippedGear]);
 
-  // Utility function to convert backend gear to frontend equipment format
   const convertBackendGearToEquipmentItem = useCallback((gear: CharacterGear): EquipmentItem => {
     const wellnessStats = mapBackendStatsToWellnessStats(gear.gear_type.stat_bonuses);
     return {
@@ -743,10 +683,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     };
   }, []);
 
-  // ===== ARCHIVE PROGRESS STATE =====
-  const [completedStories, setCompletedStories] = useState<Set<string>>(
-    new Set()
-  );
+  const [completedStories, setCompletedStories] = useState<Set<string>>(new Set());
   const [codexEntries, setCodexEntries] = useState<CodexEntry[]>([]);
   const [miniGameProgress, setMiniGameProgress] = useState<MiniGameProgress>({
     thoughtDefenderLevel: 0,
@@ -763,7 +700,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   >([]);
   const [learnedSkills, setLearnedSkills] = useState<string[]>([]);
 
-  // ===== UI STATE =====
   const [activeTab, setActiveTab] = useState("entrance");
   const [researchCondition, setResearchCondition] = useState<
     "character" | "survey" | "unknown"
@@ -778,7 +714,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [memoryStories, setMemoryStories] = useState<Story[]>([]);
 
-  // ===== STORY STATE =====
   const [currentPassageId, setCurrentPassageId] = useState("start");
   const [totalStatGains, setTotalStatGains] = useState<{
     [key: string]: number;
@@ -790,21 +725,17 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [showArtifactUnlock, setShowArtifactUnlock] = useState(false);
   const [newArtifact, setNewArtifact] = useState<MentalArtifact | null>(null);
 
-  // ===== LOADING STATE =====
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ===== HOME SCREEN INITIALIZATION GUARD =====
   const didHomeScreenInit = useRef(false);
 
-  // ===== CHARACTER HELPER FUNCTIONS =====
   const getBaseIndex = () => {
     const baseModel = backendCharacter?.selected_base_model ?? selectedBaseModel;
-    const baseColor = backendCharacter?.selected_skin_color ?? selectedBaseColor; // only one base model
+    const baseColor = backendCharacter?.selected_skin_color ?? selectedBaseColor;
     return baseModel + baseColor * 12;
   };
 
-  // ===== CHARACTER CREATOR CATEGORIES (MEMOIZED) =====
   const { styleCategories, colorCategories } = useMemo(() => 
     createCharacterCreatorCategories(
       {
@@ -877,14 +808,10 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return eyebrowStyle + eyebrowColor * 12;
   };
 
-  // Asset getter functions (updated to use backend character data when available)
   const getHairAsset = (useLocalState: boolean = false) => {
     try {
-      // Use local state for character creation, backend data for display
       const hairStyle = useLocalState ? selectedHairStyle : (backendCharacter?.selected_hair_style ?? selectedHairStyle);
       const hairColor = useLocalState ? selectedHairColor : (backendCharacter?.selected_hair_color ?? selectedHairColor);
-      
-
       
       const hairArrays = [
         hairOptionsBlack,
@@ -905,7 +832,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         hairOptionsWhite,
       ];
       
-      // Ensure indices are within bounds
       const safeHairColor = Math.max(0, Math.min(hairColor, hairArrays.length - 1));
       const colorArray = hairArrays[safeHairColor] || hairOptionsBlack;
       const safeHairStyle = Math.max(0, Math.min(hairStyle, colorArray.length - 1));
@@ -917,11 +843,8 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   const getClothesAsset = (useLocalState: boolean = false) => {
-    // Use local state for character creation, backend data for display
     const shirtType = useLocalState ? selectedShirtType : (backendCharacter?.selected_shirt_type ?? selectedShirtType);
     const clothesColor = useLocalState ? selectedClothesColor : (backendCharacter?.selected_shirt_color ?? selectedClothesColor);
-    
-
     
     const clothesArrays = [
       clothesOptionsBrown,
@@ -947,11 +870,8 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   const getEyesAsset = (useLocalState: boolean = false) => {
-    // Use local state for character creation, backend data for display
     const eyeType = useLocalState ? selectedEyeType : (backendCharacter?.selected_eye_type ?? selectedEyeType);
     const eyeColor = useLocalState ? selectedEyeColor : (backendCharacter?.selected_eye_color ?? selectedEyeColor);
-    
-
     
     const eyesArrays = [
       eyesOptionsBrown,
@@ -976,7 +896,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   const getEyebrowsAsset = (useLocalState: boolean = false) => {
-    // Use local state for character creation, backend data for display
     const eyebrowStyle = useLocalState ? selectedEyebrowStyle : (backendCharacter?.selected_eyebrow_style ?? selectedEyebrowStyle);
     const eyebrowColor = useLocalState ? selectedEyebrowColor : (backendCharacter?.selected_eyebrow_color ?? selectedEyebrowColor);
     
@@ -1004,7 +923,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   const getCurrentBackgroundAsset = (useLocalState: boolean = false) => {
-    // Use local state for character creation, backend data for display
     const backgroundType = useLocalState ? selectedBackgroundType : (backendCharacter?.selected_background_type ?? selectedBackgroundType);
     const backgroundColor = useLocalState ? selectedBackgroundColor : (backendCharacter?.selected_background_color ?? selectedBackgroundColor);
     
@@ -1032,34 +950,24 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   const getCharacterName = () => {
-    // Prioritize the main name field from backend, then local state
     const backendName = backendCharacter?.name;
     const localName = characterName;
-    
     return backendName || localName || '';
   };
 
   const getBaseAsset = (useLocalState: boolean = false) => {
     try {
-      // Use local state for character creation, backend data for display
       const baseColor = useLocalState ? selectedBaseColor : (backendCharacter?.selected_skin_color ?? selectedBaseColor);
-
-      
-      // Ensure baseColor is within bounds
       const safeIndex = Math.max(0, Math.min(baseColor, baseOptions.length - 1));
-      
-      // The base asset should be the skin color - use baseColor to get the correct base file
       const asset = baseOptions[safeIndex] || baseOptions[0];
       return asset;
-    } catch (error) {
-      // Return a safe fallback
+    } catch {
       return baseOptions[0];
     }
   };
 
   const getMouthAsset = (useLocalState: boolean = false) => {
     try {
-      // Use local state for character creation, backend data for display
       const mouthType = useLocalState ? selectedMouthType : (backendCharacter?.selected_mouth_type ?? selectedMouthType);
       const safeMouthType = Math.max(0, Math.min(mouthType, mouthOptions.length - 1));
       return mouthOptions[safeMouthType] || mouthOptions[0];
@@ -1068,13 +976,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  // ===== EQUIPMENT HELPER FUNCTIONS =====
   const getItemIcon = (item: EquipmentItem) => {
     return require("../../assets/equipment/armor/fb1857.png");
   };
 
   const getRarityColors = (rarity: string): string[] => {
-    // Normalize rarity to handle both uppercase and lowercase inputs
     const normalizedRarity = rarity.charAt(0).toUpperCase() + rarity.slice(1).toLowerCase();
     
     switch (normalizedRarity) {
@@ -1089,16 +995,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  // DEPRECATED: These functions are kept for backward compatibility but should not be used
-  // Use equipBackendGear/unequipBackendGear instead for proper backend integration
   const equipItem = (type: keyof EquippedItems, item: EquipmentItem) => {
   };
 
   const unequipItem = (type: keyof EquippedItems) => {
   };
 
-  // ===== BACKEND GEAR INTEGRATION =====
-  
   const loadBackendGear = async () => {
     try {
       const [myGear, equippedGearData] = await Promise.all([
@@ -1109,21 +1011,14 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       setBackendGear(myGear);
       setEquippedGear(equippedGearData);
       
-      // Convert backend gear to frontend equipment format for inventory
       const convertedInventory: EquipmentItem[] = myGear.map(gear => convertBackendGearToEquipmentItem(gear));
       setInventory(convertedInventory);
-      
-      // equippedItems is now derived from equippedGear via useMemo
-    } catch (error) {
-      // Keep empty state if backend fails
+    } catch {
     }
   };
 
-  // ===== EQUIPMENT MAPPING UTILITIES =====
   const mapEquipmentNameToTypeAndSubtype = (itemName: string): { type: EquipmentType; subtype: EquipmentSubtype } => {
     const name = itemName.toLowerCase();
-    
-    // Map based on item name patterns - similar to mapBackendGearToSubtype but for any equipment name
     if (name.includes('ancient scroll') || name.includes('clarity lens') || name.includes('intuition compass') || 
         name.includes('empathy conduit') || name.includes('toolkit story') || name.includes('meditation') || 
         name.includes('breathing')) {
@@ -1175,7 +1070,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       return { type: 'ground', subtype: 'nutrition' };
     }
     
-    // Default fallbacks based on common patterns
     if (name.includes('scroll') || name.includes('lens') || name.includes('compass') || name.includes('conduit')) {
       return { type: 'focus', subtype: 'meditation' };
     }
@@ -1192,15 +1086,14 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       return { type: 'ground', subtype: 'exercise' };
     }
     
-    // Ultimate fallback
     return { type: 'focus', subtype: 'meditation' };
   };
 
   const equipBackendGear = async (gearId: number) => {
     try {
       const result = await apiService.equipGear(gearId);
-      await loadBackendGear(); // Reload gear data
-    } catch (error) {
+      await loadBackendGear();
+    } catch {
       Alert.alert('Error', 'Failed to equip gear. Please try again.');
     }
   };
@@ -1208,13 +1101,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const unequipBackendGear = async (gearId: number) => {
     try {
       const result = await apiService.unequipGear(gearId);
-      await loadBackendGear(); // Reload gear data
-    } catch (error) {
+      await loadBackendGear();
+    } catch {
       Alert.alert('Error', 'Failed to unequip gear. Please try again.');
     }
   };
 
-  // ===== ARCHIVE PROGRESS CALCULATIONS ===== needs to be iplemeted with story progress
   const calculateFoundationValues = useMemo(() => {
     const baseValues = {
       "Sight Beyond Sight": 2,
@@ -1223,7 +1115,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       "Elemental Harmony": 2,
     };
 
-    // Add points from completed stories
     completedStories.forEach((storyId) => {
       const story = memoryStories.find((g: Story) => g.id === Number(storyId));
       if (story && story.skillFocus) {
@@ -1258,7 +1149,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
           }
         });
       }
-    });    // Add points from codex entries
+    });
     codexEntries.forEach((entry) => {
       switch (entry.skillCategory) {
         case "Emotional Awareness":
@@ -1284,7 +1175,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       }
     });
 
-    // Add points from mini-game achievements
     if (miniGameProgress.thoughtDefenderWins > 0) {
       baseValues["Unbreakable Will"] +=
         miniGameProgress.thoughtDefenderWins * 2;
@@ -1300,7 +1190,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       baseValues["Heart's Compass"] += miniGameProgress.drawingEntries;
     }
 
-    // Cap all values at maxValue (20)
     Object.keys(baseValues).forEach((key) => {
       baseValues[key as keyof typeof baseValues] = Math.min(
         20,
@@ -1311,7 +1200,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return baseValues;
   }, [completedStories, codexEntries, miniGameProgress, memoryStories]);
 
-  const getNextUnlock = (foundationLabel: string, currentValue: number) => { // needs to be implemented with story progress
+  const getNextUnlock = (foundationLabel: string, currentValue: number) => {
     const nextLevel = Math.floor(currentValue / 5) + 1;
     const unlocks = {
       "Sight Beyond Sight": [
@@ -1344,7 +1233,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return foundationUnlocks?.[nextLevel - 1] || "Mastery achieved";
   };
 
-  const archiveFoundations = useMemo(() => { // needs to be implemented with story progress
+  const archiveFoundations = useMemo(() => {
     const newValues = calculateFoundationValues;
 
     return [
@@ -1442,14 +1331,13 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     ]
   );
 
-  // ===== ARCHIVE PROGRESS HANDLERS =====
-  const handleStoryComplete = (StoryId: string) => { //handle for story completetion here - story end set yo end
+  const handleStoryComplete = (StoryId: string) => {
     setCompletedStories((prev) => new Set([...prev, StoryId]));
   };
 
   const handleCodexEntry = (entry: Omit<CodexEntry, "id" | "created_at" | "updated_at">) => { 
     const newEntry: CodexEntry = {
-      id: Date.now(), // Use number ID as per CodexEntry interface
+      id: Date.now(),
       prompt: entry.prompt,
       prompt_id: entry.prompt_id,
       prompt_text: entry.prompt_text,
@@ -1463,21 +1351,19 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       username: entry.username,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      // Legacy properties for backward compatibility
       type: entry.entry_type,
       passages: entry.content,
       skillCategory: entry.skill_category,
-      mapArea: entry.skill_category, // Use skill_category as mapArea fallback
+      mapArea: entry.skill_category,
     };
     setCodexEntries((prev) => [...prev, newEntry]);
   };
 
-  const handleMiniGameComplete = async ( //mini game rewards
+  const handleMiniGameComplete = async (
     gameType: "thoughtDefender" | "drawing",
     data: any
   ) => {
     if (gameType === "thoughtDefender") {
-      // Update local progress
       setMiniGameProgress((prev) => ({
         ...prev,
         thoughtDefenderLevel: Math.max(
@@ -1492,7 +1378,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         totalGameTime: prev.totalGameTime + (data.gameTime || 0),
       }));
 
-      // Award experience for Thought Defender completion
       if (data.experienceGained && data.experienceGained > 0) {
         try {
           await gainExperience(data.experienceGained, `thought_defender_${data.difficulty || 'normal'}`);
@@ -1507,17 +1392,15 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  // ===== THOUGHT DEFENDER LOGGING =====
   const logThoughtDefenderRun = async (run: ThoughtDefenderRunDTO) => {
     try {
-      // Transform ThoughtDefenderRunDTO to ThoughtDefenderRunPayload
       const payload = {
         score: run.score,
         level: run.level,
         durationMs: run.durationMs,
-        enemiesDestroyed: run.wavesCleared || 0, // Map wavesCleared to enemiesDestroyed
-        damageTaken: Math.max(0, 3 - run.livesRemaining), // Calculate damage taken from lives lost
-        completed: run.result === 'win', // Map result to completed boolean
+        enemiesDestroyed: run.wavesCleared || 0,
+        damageTaken: Math.max(0, 3 - run.livesRemaining),
+        completed: run.result === 'win',
         modifiers: {
           difficulty: run.difficulty,
           accuracy: run.accuracy,
@@ -1535,7 +1418,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       };
       
       const res = await apiService.logThoughtDefenderRun(payload);
-      // Refresh home/profile data so XP/score/anything reflected immediately
       await memoizedLoadHomeData();
       return res;
     } catch (e: any) {
@@ -1543,44 +1425,28 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  // ===== NEW REWARD SYSTEM HANDLERS =====
   const handleStoryRewardTracker = (rewardTracker: any) => {
-    
-    // This will be called when a story is completed with accumulated rewards
-    
-    // Update archive progress with the rewards
     if (rewardTracker.totalStatGains) {
-      // Apply stat gains to character
       Object.entries(rewardTracker.totalStatGains).forEach(([stat, value]) => {
         if (typeof value === 'number' && value > 0) {
-          
-          // Update character stats through the backend
           if (backendCharacter) {
-            // Different reward handling based on user type
             if (researchCondition === "character") {
-              // Character users get resonance for main progression
               if (stat === "resonance") {
                 gainResonance(value, `story_${rewardTracker.storyId}`);
               } else if (stat === "experience") {
-                // Character users also get experience but as secondary reward
                 gainExperience(value, `story_${rewardTracker.storyId}`);
               } else {
-                // Handle wellness stats for character users
                 gainWellness({ [stat]: value });
               }
             } else if (researchCondition === "survey") {
-              // Personality users get experience for main progression
               if (stat === "experience") {
                 gainExperience(value, `story_${rewardTracker.storyId}`);
               } else if (stat === "resonance") {
-                // Personality users can also get resonance but as secondary reward
                 gainResonance(value, `story_${rewardTracker.storyId}`);
               } else {
-                // Handle wellness stats for personality users
                 gainWellness({ [stat]: value });
               }
             } else {
-              // Unknown condition - handle all stats as wellness gains
               if (stat !== "experience" && stat !== "resonance") {
                 gainWellness({ [stat]: value });
               }
@@ -1590,11 +1456,9 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       });
     }
     
-    // Handle final rewards and skills differently for each user type
     if (rewardTracker.finalRewards && rewardTracker.finalRewards.length > 0) {
       rewardTracker.finalRewards.forEach((reward: string) => {
         if (researchCondition === "character") {
-          // Character users get gear/artifacts
           handleArtifactUnlock({ 
             name: reward, 
             type: 'gear_reward', 
@@ -1604,7 +1468,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
             rarity: 'Common' as any 
           });
         } else if (researchCondition === "survey") {
-          // Personality users get coping tools/skills
           handleArtifactUnlock({ 
             name: reward, 
             type: 'coping_tool', 
@@ -1621,46 +1484,29 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       handleSkillLearned(rewardTracker.skillsLearned);
     }
     
-    // Handle quest progress for personality users
     if (rewardTracker.questProgress && Object.keys(rewardTracker.questProgress).length > 0) {
-      // Quest progress is primarily for personality users
       if (researchCondition === "survey") {
-        // This should be handled by the personality screen directly
-        
-        // Store quest progress in a way that the PersonalityHomeScreen can detect updates
-        // This will help trigger a refresh when the user returns to the home screen
         try {
           const questProgressUpdate = {
             timestamp: Date.now(),
             questProgress: rewardTracker.questProgress,
             needsRefresh: true
           };
-          // Store quest progress update for the PersonalityHomeScreen to check
-        } catch (error) {
+        } catch {
         }
       }
     }
   };
 
-  // ===== ENHANCED EQUIPMENT UPGRADE HANDLERS =====
   const handleEquipmentUpgrade = (upgradeResult: any) => {
-    // Handle equipment upgrades from the new upgrade system
     if (upgradeResult && upgradeResult.upgrade) {
       const { upgrade } = upgradeResult;
-      
-      // Show upgrade notification with appropriate styling
       const notificationType = upgrade.currentLevel === 0 ? 'new' : 
                               upgrade.currentLevel === upgrade.newLevel ? 'strengthen' : 'upgrade';
       
-      // Update local inventory if needed
       if (upgradeResult.isUpgrade) {
-        // Remove old item and add new upgraded item
         setInventory(prev => prev.filter(item => item.name !== upgradeResult.originalItem));
-        
-        // Map the upgraded item name to proper type and subtype
         const { type, subtype } = mapEquipmentNameToTypeAndSubtype(upgradeResult.upgradedItem);
-        
-        // Add the upgraded item with proper mapping
         const upgradedItem: EquipmentItem = {
           id: Date.now().toString(),
           name: upgradeResult.upgradedItem,
@@ -1677,7 +1523,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         setInventory(prev => [...prev, upgradedItem]);
       }
       
-      // Apply stat boosts if any
       if (upgrade.statBonus > 0) {
         const statGains = {
           awareness: upgrade.statBonus,
@@ -1691,53 +1536,41 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  // Get player inventory for upgrade system
   const getPlayerInventory = (): string[] => {
     return inventory.map(item => item.name);
   };
 
-  // Get story replay count (this would be tracked per story)
   const getStoryReplayCount = (storyId: string): number => {
-    // This would be implemented to track how many times a story has been replayed
-    // For now, return 0 as default
     return 0;
   };
 
-  // Enhanced equipment acquisition with upgrade system
   const acquireEquipmentWithUpgrade = async (itemName: string, storyId?: string) => {
     try {
       const playerInventory = getPlayerInventory();
       const storyReplayCount = storyId ? getStoryReplayCount(storyId) : 0;
       
-      // Check for upgrade opportunities using the new system
-      const { checkItemOwnershipAndUpgrade } = await import('../utils/rewardsUtils');
+      const { checkItemOwnershipAndUpgrade } = await import('../utils/storyRewardIntegration');
       const upgradeResult = checkItemOwnershipAndUpgrade(itemName, playerInventory, storyReplayCount);
       
       if (upgradeResult) {
-        // Handle the upgrade result
         handleEquipmentUpgrade(upgradeResult);
         
-        // Save to backend
         if (upgradeResult.isUpgrade || upgradeResult.upgrade.statBonus > 0) {
-                          // Map the upgraded item name to gear type ID using proper backend mapping
-        const { getBackendGearTypeId } = await import('../utils/rewardsUtils');
-        const gearTypeId = getBackendGearTypeId(upgradeResult.upgradedItem);
-        
-        if (gearTypeId) {
-          await apiService.acquireGear(gearTypeId);
-        } else {
-        }
+          const { getBackendGearTypeId } = await import('../utils/rewardsUtils');
+          const gearTypeId = getBackendGearTypeId(upgradeResult.upgradedItem);
+          
+          if (gearTypeId) {
+            await apiService.acquireGear(gearTypeId);
+          }
         }
         
         return upgradeResult;
       } else {
-        // Fall back to regular acquisition
         const { getBackendGearTypeId } = await import('../utils/rewardsUtils');
         const gearTypeId = getBackendGearTypeId(itemName);
         
         if (gearTypeId) {
           await apiService.acquireGear(gearTypeId);
-        } else {
         }
         return { originalItem: itemName, upgradedItem: itemName, isUpgrade: false };
       }
@@ -1746,7 +1579,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  const handleArtifactUnlock = (artifact: MentalArtifact) => { // gear unlock and rewrds - gained from story/journal
+  const handleArtifactUnlock = (artifact: MentalArtifact) => {
     if (
       !discoveredArtifacts.find((a) => a.name === artifact.name) &&
       !finalRewardsArtifacts.find((a) => a.name === artifact.name)
@@ -1755,18 +1588,16 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   };
 
-  const handleSkillLearned = (skills: string[]) => { //skills learned from story/journal
+  const handleSkillLearned = (skills: string[]) => {
     setLearnedSkills((prev) => [...new Set([...prev, ...skills])]);
   };
 
-  // ===== NEW CHARACTER CREATION HANDLERS (UPDATED FOR NEW BACKEND) =====
-  const createCharacter = async () => {//character creation
+  const createCharacter = async () => {
     if (!authToken) {
       setError("No authentication token");
       return;
     }
 
-    // Prevent multiple simultaneous calls
     if (isLoading) {
       return;
     }
@@ -1775,9 +1606,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     setError(null);
 
     try {
-      // Check if we already have a character (for updates)
       if (backendCharacter) {
-        // Update existing character - include character_config to ensure backend syncs both
         const updatedCharacter = await apiService.updateCharacterCustomization({
           ...(backendCharacter || {}),
           name: characterName,
@@ -1794,7 +1623,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
           selected_shirt_color: selectedClothesColor,
           selected_background_type: selectedBackgroundType,
           selected_background_color: selectedBackgroundColor,
-          // Also update character_config to ensure backend syncs both
           character_config: {
             selected_base_model: selectedBaseModel,
             selected_skin_color: selectedBaseColor,
@@ -1814,18 +1642,12 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         
         setBackendCharacter(updatedCharacter);
         
-        // Complete onboarding after character update (for admin/existing users)
         try {
           await completeCharacter();
-        } catch (onboardingError) {
-          // Don't fail character update if onboarding completion fails
-          console.warn('Onboarding completion failed but character was updated:', onboardingError);
+        } catch {
         }
         
-        // Don't reload character data since we already have the updated data
-        // The backend might return old character_config values, so we keep our local state
       } else {
-        // Create new character using the dedicated createCharacter endpoint
         const characterData = {
           name: characterName,
           character_config: {
@@ -1843,7 +1665,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
             selected_background_type: selectedBackgroundType,
             selected_background_color: selectedBackgroundColor,
           },
-          // Also send the main character fields
           selected_base_model: selectedBaseModel,
           selected_skin_color: selectedBaseColor,
           selected_hair_style: selectedHairStyle,
@@ -1859,22 +1680,16 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
           selected_background_color: selectedBackgroundColor,
         };
 
-        // Use the dedicated createCharacter endpoint instead of updateProfile
         const createdCharacter = await apiService.createCharacter(characterData);
-        
         setBackendCharacter(createdCharacter);
-        
-        // Complete onboarding after character creation
         await completeCharacter();
       }
 
-      // Load additional data after character creation
       try {
         await memoizedLoadHomeData();
         await memoizedLoadAvailableTools();
         await memoizedLoadMyTools();
-      } catch (loadError) {
-        console.warn('Some data failed to load after character creation:', loadError);
+      } catch {
       }
     } catch (error: any) {
       setError(
@@ -1971,13 +1786,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         );
       }
     } catch (error: any) {
-      console.error('❌ Failed to gain experience:', error);
-      console.error('❌ Error details:', {
-        characterId: backendCharacter?.id,
-        amount,
-        source,
-        error: error?.message || error
-      });
       setError(
         "Failed to gain experience: " + (error?.message || "Unknown error")
       );
@@ -2072,12 +1880,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         ]);
       }
     } catch (error: any) {
-      console.error('❌ Failed to gain wellness:', error);
-      console.error('❌ Error details:', {
-        characterId: backendCharacter?.id,
-        gains,
-        error: error?.message || error
-      });
       setError(
         "Failed to gain wellness: " + (error?.message || "Unknown error")
       );
@@ -2219,10 +2021,8 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     content: string;
   }) => {
     try {
-      
       const uid = homeData?.userProfile?.user?.id ?? homeData?.userProfile?.id;
       if (!uid) {
-        console.error('❌ No user ID found - cannot create codex entry');
         return;
       }
       
@@ -2288,8 +2088,18 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     try {
       const prompts = await apiService.getPromptsByCategory(areas, completed);
       setCategoryPrompts(prompts);
-    } catch (error) {
-      setCategoryPrompts({ journal: null, draw: null, voice: null });
+    } catch {
+      try {
+        const fallbackPrompts = await apiService.getJournalPrompts();
+        const fallbackResult = {
+          journal: fallbackPrompts.find(p => p.category === 'journal') || null,
+          draw: fallbackPrompts.find(p => p.category === 'draw') || null,
+          voice: fallbackPrompts.find(p => p.category === 'voice') || null,
+        };
+        setCategoryPrompts(fallbackResult);
+      } catch {
+        setCategoryPrompts({ journal: null, draw: null, voice: null });
+      }
     }
   }, []);
 
@@ -2413,21 +2223,14 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       let characterData: Character | null = null;
       
       if (homeData) {
-        // Use the unified HomeData structure
         characterData = homeData.character || null;
-        if (characterData) {
-        } else {
-        }
       }
       
-      // If no character data in homeData, fall back to API call (for backward compatibility)
       if (!characterData && forceLoad) {
         try {
           characterData = await apiService.getMyCharacter();
         } catch (apiError: any) {
-          if (apiError.response?.status === 404) {
-          } else {
-            console.error('❌ Error loading character from API:', apiError);
+          if (apiError.response?.status !== 404) {
           }
         }
       }
@@ -2580,25 +2383,18 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     }
   }, []);
 
-  // Update the useEffect to use memoized functions
   useEffect(() => {
-    // Initialize the API service
     const initializeApiService = async () => {
       try {
         await apiService.initialize();
-      } catch (error) {
-        console.error('MasterStateContext: Failed to initialize API service:', error);
+      } catch {
       }
     };
     
-    // Always initialize the API service
     initializeApiService();
     
-    // Load onboarding status first
     if (authToken) {
       loadUserOnboardingStatus();
-      // Only load character data if user has completed onboarding with character path
-      // Don't load character data during character creation process
     }
     
   }, [authToken]);
@@ -2661,6 +2457,13 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       resetCharacterCreatorToDefaults();
     }
   }, [authToken, isComplete, assignedPath, characterId]);
+
+  // Reset character creator when user logs out or auth token changes
+  useEffect(() => {
+    if (!authToken) {
+      resetCharacterCreatorToDefaults();
+    }
+  }, [authToken]);
 
   // Reset home screen initialization guard when auth changes
   useEffect(() => {

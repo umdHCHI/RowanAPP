@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from 'react';
 import { apiService, LogPlayerProgressPayload, TDProgressEvent } from '../services/apiService';
 
 function safeSessionId() {
-    // use crypto.randomUUID if available; fallback to timestamp-rand
     if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
         return (crypto as any).randomUUID();
     }
@@ -11,8 +10,8 @@ function safeSessionId() {
 
 export function useProgressLogger(opts: {
     game: 'thought_defender';
-    flushIntervalMs?: number; // default 4000
-    maxBuffer?: number; // default 200 (starts dropping oldest)
+    flushIntervalMs?: number;
+    maxBuffer?: number;
 }) {
     const { game, flushIntervalMs = 4000, maxBuffer = 200 } = opts;
     const sessionIdRef = useRef<string>(safeSessionId());
@@ -24,7 +23,7 @@ export function useProgressLogger(opts: {
         const buf = bufferRef.current;
         buf.push(e);
         if (buf.length > maxBuffer) {
-            buf.splice(0, buf.length - maxBuffer); // drop oldest
+            buf.splice(0, buf.length - maxBuffer);
         }
     }, [maxBuffer]);
 
@@ -40,7 +39,6 @@ export function useProgressLogger(opts: {
         };
 
         try {
-            // Convert TDProgressEvent[] to the expected format
             const convertedEvents = events.map(event => ({
                 type: event.type,
                 t: event.client_ts,
@@ -48,11 +46,9 @@ export function useProgressLogger(opts: {
             }));
             const result = await apiService.logPlayerProgress(convertedEvents);
             if (result.ok) {
-                // clear only if success
                 bufferRef.current = [];
             }
         } catch {
-            // keep buffer to retry on next tick
         } finally {
             isFlushingRef.current = false;
         }
@@ -69,7 +65,6 @@ export function useProgressLogger(opts: {
         });
 
         if (!timerRef.current) {
-            // @ts-ignore setInterval typing in RN/web
             timerRef.current = setInterval(flush, flushIntervalMs) as unknown as number;
         }
     }, [enqueue, flush, flushIntervalMs]);
@@ -92,7 +87,6 @@ export function useProgressLogger(opts: {
             ...final,
         });
 
-        // force a last flush shortly after
         setTimeout(() => flush(), 250);
     }, [enqueue, flush]);
 
@@ -143,7 +137,6 @@ export function useProgressLogger(opts: {
                 clearInterval(timerRef.current as unknown as number);
             }
             timerRef.current = null;
-            // best-effort final flush
             flush();
         };
     }, [flush]);

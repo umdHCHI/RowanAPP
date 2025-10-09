@@ -18,10 +18,11 @@ export {
 } from 'react-native';
 
 export {
-  createContext, ReactNode, useCallback, useContext,
+  createContext, useCallback, useContext,
   useEffect,
   useState
 } from 'react';
+export type { ReactNode } from 'react';
 
 export { default as React } from 'react';
 
@@ -72,10 +73,10 @@ export {
   baseOptions,
   bgOptions,
   // Frame assets
-  characterCreatorAssets, equipmentIcons,
+  equipmentIcons,
   equipmentTypeLabels, getUIAsset, mouthOptions,
   rarityColors,
-  sampleHeadBar, uiAssetLabels,
+  uiAssetLabels,
   // UI assets and icons
   uiIcons
 } from './assets';

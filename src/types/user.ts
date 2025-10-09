@@ -252,7 +252,21 @@ export interface ResearchGroup {
 
 export interface GameData {
     id: number;
-    user: number;
+    user: {
+        id: number;
+        username: string;
+        email: string;
+        date_joined: string;
+        research_group: {
+            id: number;
+            condition: string;
+            name: string;
+        } | null;
+    };
+    research_group: {
+        condition: string;
+        name: string;
+    } | null;
     player_name: string;
     score: number;
     level: number;
@@ -261,6 +275,50 @@ export interface GameData {
     current_passage_id: string | null;
     completed_prompts: string[];
     total_entries: number;
+    difficulty_levels: string[];
+    unlocked_areas: string[];
+    character_data: any | null;
+    personality_data: {
+        openness: number;
+        conscientiousness: number;
+        extraversion: number;
+        agreeableness: number;
+        neuroticism: number;
+    };
+    journal_data: {
+        total_entries: number;
+        recent_entries: Array<{
+            id: number;
+            entry_type: string;
+            skill_category: string;
+            created_at: string;
+        }>;
+        entries_by_type: Array<{
+            entry_type: string;
+            count: number;
+        }>;
+    };
+    story_data: {
+        stories_started: number;
+        stories_completed: number;
+        current_stories: Array<{
+            story_id: number;
+            story_title: string;
+            current_passage: string;
+            is_completed: boolean;
+            last_played: string;
+        }>;
+        completed_stories: Array<{
+            story_id: number;
+            story_title: string;
+            completed_at: string;
+            completion_type: string;
+        }>;
+    };
+    progress_summary: any;
+    wellness_stats: Record<string, any>;
+    acquired_gear: any[];
+    coping_tools: any[];
 }
 
 

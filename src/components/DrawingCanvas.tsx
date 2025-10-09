@@ -30,9 +30,11 @@ type Stroke = {
 type DrawingCanvasProps = {
   onSave: (paths: Stroke[]) => void;
   onCancel: () => void;
+  hideButtons?: boolean;
+  onStrokesChange?: (paths: Stroke[]) => void;
 };
 
-const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
+const DrawingCanvas = ({ onSave, onCancel, hideButtons = false, onStrokesChange }: DrawingCanvasProps) => {
   const { theme } = useTheme();
   const globalStyles = createGlobalStyles(theme);
   
@@ -50,41 +52,26 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
   const colors = ['#4ee6e6', '#ffe066', '#ff6b6b', '#ffffff'];
   const widths = [2, 3, 5, 8];
 
-  // Calculate canvas dimensions - make it smaller for mobile
-  const canvasWidth = isMobile ? width - 48 : width - 32;
-  const canvasHeight = isMobile ? height / 4 : height / 2; // Make it even smaller on mobile
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: 300, height: 200 });
 
-  // Add a test stroke for debugging
-  useEffect(() => {
-    if (isMobile && strokes.length === 0) {
-      console.log('Drawing canvas ready for mobile drawing');
-    }
-  }, [isMobile, strokes.length]);
-
-  // Create gesture for mobile drawing
   const panGesture = Gesture.Pan()
     .minDistance(0)
     .runOnJS(true)
     .onStart((event) => {
       try {
-        // Ensure coordinates are within canvas bounds
-        const x = Math.max(0, Math.min(event.x, canvasWidth));
-        const y = Math.max(0, Math.min(event.y, canvasHeight));
+        const x = Math.max(0, Math.min(event.x, canvasDimensions.width));
+        const y = Math.max(0, Math.min(event.y, canvasDimensions.height));
         
-        // Create a simple stroke object
         const newStroke: Stroke = {
           points: [{ x, y }],
           color: selectedColor,
           width: selectedWidth,
         };
         
-        // Update state safely
         setIsDrawing(true);
         setCurrentStroke(newStroke);
         currentStrokeRef.current = newStroke;
-      } catch (error) {
-        console.error('Error in gesture onStart:', error);
-        // Reset state on error
+      } catch {
         setIsDrawing(false);
         setCurrentStroke(null);
         currentStrokeRef.current = null;
@@ -94,44 +81,36 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
       try {
         if (!isDrawing || !currentStrokeRef.current) return;
         
-        // Ensure coordinates are within canvas bounds
-        const x = Math.max(0, Math.min(event.x, canvasWidth));
-        const y = Math.max(0, Math.min(event.y, canvasHeight));
+        const x = Math.max(0, Math.min(event.x, canvasDimensions.width));
+        const y = Math.max(0, Math.min(event.y, canvasDimensions.height));
         
-        // Update the ref directly
         if (currentStrokeRef.current) {
           currentStrokeRef.current.points.push({ x, y });
           
-          // Update state with the new stroke
           setCurrentStroke({
             ...currentStrokeRef.current,
             points: [...currentStrokeRef.current.points]
           });
         }
-      } catch (error) {
-        console.error('Error in gesture onUpdate:', error);
+      } catch {
       }
     })
     .onEnd(() => {
       try {
-        // Get the stroke to save
         const strokeToSave = currentStrokeRef.current;
         
         if (strokeToSave && strokeToSave.points.length > 1) {
-          // Add to strokes array
           setStrokes((prev) => {
             const newStrokes = [...prev, strokeToSave];
+            onStrokesChange?.(newStrokes);
             return newStrokes;
           });
         }
         
-        // Clean up
         setCurrentStroke(null);
         currentStrokeRef.current = null;
         setIsDrawing(false);
-      } catch (error) {
-        console.error('Error in gesture onEnd:', error);
-        // Clean up on error
+      } catch {
         setCurrentStroke(null);
         currentStrokeRef.current = null;
         setIsDrawing(false);
@@ -143,6 +122,7 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
       if (prev.length === 0) return prev;
       const newStrokes = prev.slice(0, -1);
       setRedoStack((redo) => [prev[prev.length - 1], ...redo]);
+      onStrokesChange?.(newStrokes);
       return newStrokes;
     });
   };
@@ -150,7 +130,11 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
   const handleRedo = () => {
     setRedoStack((redo) => {
       if (redo.length === 0) return redo;
-      setStrokes((prev) => [...prev, redo[0]]);
+      setStrokes((prev) => {
+        const newStrokes = [...prev, redo[0]];
+        onStrokesChange?.(newStrokes);
+        return newStrokes;
+      });
       return redo.slice(1);
     });
   };
@@ -159,6 +143,7 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
     setStrokes([]);
     setCurrentStroke(null);
     setRedoStack([]);
+    onStrokesChange?.([]);
   };
 
   const getPathFromPoints = (points: Point[]) => {
@@ -169,10 +154,8 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
       .join(' ')}`;
   };
 
-  // Web pointer event handlers using global listeners
   useEffect(() => {
     if (!isWeb) return;
-    // Cleanup on unmount
     return () => {
       if (typeof window !== 'undefined') {
         (window as any).removeEventListener('pointermove', globalPointerMove);
@@ -206,7 +189,11 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
       (window as any).removeEventListener('pointerup', globalPointerUp);
     }
     if (currentStrokeRef.current && currentStrokeRef.current.points.length > 1) {
-      setStrokes((prev) => [...prev, currentStrokeRef.current!]);
+      setStrokes((prev) => {
+        const newStrokes = [...prev, currentStrokeRef.current!];
+        onStrokesChange?.(newStrokes);
+        return newStrokes;
+      });
     }
     setCurrentStroke(null);
     currentStrokeRef.current = null;
@@ -215,11 +202,9 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
   
   const pointerDown = (e: any) => {
     if (!isWeb) return;
-    // Pointer capture for continuous drawing
     if (e.target && e.target.setPointerCapture) {
       e.target.setPointerCapture(e.pointerId);
     }
-    // If a stroke is in progress, finalize it
     if (currentStroke && currentStroke.points.length > 1) {
       setStrokes((prev) => [...prev, currentStroke]);
       setCurrentStroke(null);
@@ -238,7 +223,7 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
     };
     setCurrentStroke(newStroke);
     currentStrokeRef.current = newStroke;
-    setRedoStack([]); // Clear redo stack on new stroke
+    setRedoStack([]);
     if (typeof window !== 'undefined') {
       (window as any).addEventListener('pointermove', globalPointerMove);
       (window as any).addEventListener('pointerup', globalPointerUp);
@@ -246,9 +231,24 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
   };
 
   return (
-    <View style={isMobile ? globalStyles.drawingCanvasContainerMobile : globalStyles.drawingCanvasContainer}>
-      <View style={isMobile ? globalStyles.drawingCanvasToolbarMobile : globalStyles.drawingCanvasToolbar}>
-        <View style={globalStyles.drawingCanvasColorPicker}>
+    <View style={[
+      { flex: 1, flexDirection: 'column' },
+      hideButtons && { gap: 8 }
+    ]}>
+      <View style={[
+        isMobile ? globalStyles.drawingCanvasToolbarMobile : globalStyles.drawingCanvasToolbar,
+        { 
+          flexShrink: 0, 
+          minHeight: 60,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 12,
+          paddingVertical: 8,
+          paddingHorizontal: 12
+        }
+      ]}>
+        <View style={[globalStyles.drawingCanvasColorPicker, { flexDirection: 'row', gap: 8, flexWrap: 'wrap' }]}>
           {colors.map((color) => (
             <TouchableOpacity
               key={color}
@@ -262,7 +262,7 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
             />
           ))}
         </View>
-        <View style={globalStyles.drawingCanvasWidthPicker}>
+        <View style={[globalStyles.drawingCanvasWidthPicker, { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }]}>
           {widths.map((w) => (
             <TouchableOpacity
               key={w}
@@ -275,7 +275,7 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
             />
           ))}
         </View>
-        <View style={globalStyles.drawingCanvasActions}>
+        <View style={[globalStyles.drawingCanvasActions, { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }]}>
           <TouchableOpacity style={globalStyles.drawingCanvasActionButton} onPress={handleUndo}>
             <Ionicons name="arrow-undo" size={isMobile ? 32 : 24} color={theme.archiveText} />
           </TouchableOpacity>
@@ -292,8 +292,7 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
         <View
           ref={canvasRef}
           style={{
-            width: canvasWidth,
-            height: canvasHeight,
+            flex: 1,
             backgroundColor: theme.archiveMode === 'dark' ? '#0F172A' : '#FFFFFF',
             borderWidth: 1,
             borderColor: theme.archiveBorder,
@@ -301,12 +300,18 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
             overflow: 'hidden',
             position: 'relative'
           }}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout;
+            if (width > 0 && height > 0) {
+              setCanvasDimensions({ width, height });
+            }
+          }}
         >
           {isWeb ? (
             <svg
               ref={svgRef}
-              width={canvasWidth}
-              height={canvasHeight}
+              width={canvasDimensions.width}
+              height={canvasDimensions.height}
               style={{ display: 'block', width: '100%', height: '100%' }}
             >
               {Array.isArray(strokes) && strokes.map((stroke, index) => (
@@ -335,8 +340,8 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
               <rect
                 x={0}
                 y={0}
-                width={canvasWidth}
-                height={canvasHeight}
+                width={canvasDimensions.width}
+                height={canvasDimensions.height}
                 fill="transparent"
                 pointerEvents="all"
                 onPointerDown={pointerDown}
@@ -344,14 +349,14 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
             </svg>
           ) : (
             <Svg
-              width={canvasWidth}
-              height={canvasHeight}
+              width={canvasDimensions.width}
+              height={canvasDimensions.height}
               style={{ 
                 position: 'absolute', 
                 left: 0, 
                 top: 0, 
-                width: canvasWidth, 
-                height: canvasHeight
+                width: canvasDimensions.width, 
+                height: canvasDimensions.height
               }}
             >
               {Array.isArray(strokes) && strokes.map((stroke, index) => {
@@ -369,8 +374,7 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
                       />
                     );
                   }
-                } catch (error) {
-                  console.error('Error rendering stroke:', error);
+                } catch {
                 }
                 return null;
               })}
@@ -389,17 +393,19 @@ const DrawingCanvas = ({ onSave, onCancel }: DrawingCanvasProps) => {
         </View>
       </GestureDetector>
 
-      <View style={isMobile ? globalStyles.drawingCanvasBottomBarMobile : globalStyles.drawingCanvasBottomBar}>
-        <TouchableOpacity style={globalStyles.drawingCanvasCancelButton} onPress={onCancel}>
-          <Text style={globalStyles.drawingCanvasButtonText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={globalStyles.drawingCanvasSaveButton}
-          onPress={() => onSave(strokes)}
-        >
-          <Text style={globalStyles.drawingCanvasButtonText}>Save Drawing</Text>
-        </TouchableOpacity>
-      </View>
+      {!hideButtons && (
+        <View style={isMobile ? globalStyles.drawingCanvasBottomBarMobile : globalStyles.drawingCanvasBottomBar}>
+          <TouchableOpacity style={globalStyles.drawingCanvasCancelButton} onPress={onCancel}>
+            <Text style={globalStyles.drawingCanvasButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={globalStyles.drawingCanvasSaveButton}
+            onPress={() => onSave(strokes)}
+          >
+            <Text style={globalStyles.drawingCanvasButtonText}>Save Drawing</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };

@@ -3,6 +3,7 @@ import {
   createGlobalStyles,
   Dimensions,
   Icon,
+  Image,
   LinearGradient,
   Modal,
   React,
@@ -16,12 +17,9 @@ import {
   View
 } from "../../imports";
 
+import { sectionIcons } from "../../assets/ui";
 import { useMasterState } from "../../context/MasterStateContext";
 import { apiService } from "../../services/apiService";
-// Import test function
-// Import ChapterScreen for chapter selection - temporarily disabled
-// import ChapterScreen from './ChapterScreen';
-
 const { width } = Dimensions.get("window");
 
 type StoryCatalogModalProps = {
@@ -47,8 +45,7 @@ const StoryCatalogModal = ({
   const [storyProgress, setStoryProgress] = useState<Record<number, any>>({});
   const [progressFilter, setProgressFilter] = useState<ProgressFilter>('all');
   const [sortBy, setSortBy] = useState<'title' | 'progress' | 'recent'>('progress');
-
-  // Load stories when modal becomes visible
+  const [bookOpen] = useState(sectionIcons.bookOpen);
   useEffect(() => {
     const loadStories = async () => {
       if (!visible) return;
@@ -75,10 +72,9 @@ const StoryCatalogModal = ({
       }
     };
 
-          loadStories();
+    loadStories();
   }, [visible]);
 
-  // Load story progress for all stories
   const loadStoryProgress = async (storyList: Story[]) => {
     try {
       const allProgress = await apiService.getStoryProgressRecords('');
@@ -99,11 +95,9 @@ const StoryCatalogModal = ({
     }
   };
 
-  // Filter and sort stories based on progress
   const getFilteredAndSortedStories = () => {
     let filteredStories = [...stories];
 
-    // Apply progress filter
     switch (progressFilter) {
       case 'completed':
         filteredStories = filteredStories.filter(story => 
@@ -121,11 +115,9 @@ const StoryCatalogModal = ({
         );
         break;
       default:
-        // 'all' - no filtering
         break;
     }
 
-    // Apply sorting
     filteredStories.sort((a, b) => {
       const progressA = storyProgress[a.id];
       const progressB = storyProgress[b.id];
@@ -136,88 +128,74 @@ const StoryCatalogModal = ({
         case 'recent':
           const lastPlayedA = progressA?.last_played ? new Date(progressA.last_played).getTime() : 0;
           const lastPlayedB = progressB?.last_played ? new Date(progressB.last_played).getTime() : 0;
-          return lastPlayedB - lastPlayedA; // Most recent first
+          return lastPlayedB - lastPlayedA;
         case 'progress':
         default:
-          // Custom story ordering by ID: Introduction (12), The Whispering Stacks (27), Tea with The Curator (2)
           const storyOrder = {
-            12: 1, // Introduction
-            27: 2, // The Whispering Stacks - Base data (Character)
-            2: 3   // Tea with The Curator
+            12: 1,
+            27: 2,
+            2: 3
           };
           
           const orderA = storyOrder[a.id as keyof typeof storyOrder] || 999;
           const orderB = storyOrder[b.id as keyof typeof storyOrder] || 999;
           
           if (orderA !== orderB) {
-            return orderA - orderB; // Custom order first
+            return orderA - orderB;
           }
           
-          // If not in custom order, fall back to progress-based sorting
           const progressPercentA = progressA?.progress_percentage || 0;
           const progressPercentB = progressB?.progress_percentage || 0;
-          return progressPercentB - progressPercentA; // Highest progress first
+          return progressPercentB - progressPercentA;
       }
     });
 
     return filteredStories;
   };
 
-  // Handle story selection with progress management
   const handleStorySelection = async (selectedStory: Story) => {
     try {
-      // Always restart the story to ensure we start from the beginning
       try {
         await apiService.restartStory(selectedStory.id);
-        console.log(`✅ Story ${selectedStory.id} restarted successfully from catalog`);
       } catch (restartError) {
-        console.warn(`⚠️ Story restart failed, continuing anyway:`, restartError);
+        // Silently handle restart error
       }
       
       const progress = storyProgress[selectedStory.id];
       
       if (progress) {
-        // Story has existing progress - always restart regardless of completion status
         onSelectStory(selectedStory);
       } else {
-        // No progress - start new story
         try {
-          // Create new progress record
           const newProgress = await apiService.createStoryProgress(selectedStory.id, {
             current_passage_id: selectedStory.starting_passage_id || '',
             story_variables: {}
           });
           
-          // Update local progress state
           setStoryProgress(prev => ({
             ...prev,
             [selectedStory.id]: newProgress
           }));
           
-          // Start the story
           onSelectStory(selectedStory);
         } catch (progressError) {
-          // Still allow story to start even if progress creation fails
           onSelectStory(selectedStory);
         }
       }
     } catch (error) {
-      // Fallback to direct story selection
       onSelectStory(selectedStory);
     }
   };
 
-  // Refresh story progress
   const refreshStoryProgress = async () => {
     try {
       await loadStoryProgress(stories);
     } catch (error) {
-      // Failed to refresh story progress
+      // Silently handle refresh error
     }
   };
 
   const getRarityColors = (rarity: string): readonly [string, string] => {
-    // Normalize rarity to handle both uppercase and lowercase inputs
     const normalizedRarity = rarity.charAt(0).toUpperCase() + rarity.slice(1).toLowerCase();
     
     switch (normalizedRarity) {
@@ -233,7 +211,6 @@ const StoryCatalogModal = ({
   };
 
   const getRarityGlow = (rarity: string): string => {
-    // Normalize rarity to handle both uppercase and lowercase inputs
     const normalizedRarity = rarity.charAt(0).toUpperCase() + rarity.slice(1).toLowerCase();
     
     switch (normalizedRarity) {
@@ -271,7 +248,7 @@ const StoryCatalogModal = ({
             "rgba(30, 41, 59, 0.8)",
             "rgba(10, 11, 15, 0.95)",
           ]}
-          style={[globalStyles.StoryCardGradient, {
+            style={[globalStyles.StoryCardGradient, {
             borderColor: '#d4af37',
             borderWidth: 1,
             shadowColor: '#d4af37',
@@ -282,13 +259,11 @@ const StoryCatalogModal = ({
           }]}
         >
           <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
-            {/* Rarity Border */}
             <LinearGradient
               colors={getRarityColors(Story.rarity || "Common")}
               style={globalStyles.StoryRarityBorder}
             />
 
-            {/* Lock Overlay */}
             {Story.isLocked && (
               <View style={globalStyles.StoryLockOverlay}>
                 <LinearGradient
@@ -305,7 +280,6 @@ const StoryCatalogModal = ({
               </View>
             )}
 
-            {/* Header */}
             <View style={globalStyles.StoryCardHeader}>
               <View style={globalStyles.StoryTitleSection}>
                 <Text style={[globalStyles.StoryCardTitle, { 
@@ -342,7 +316,6 @@ const StoryCatalogModal = ({
               </View>
             </View>
 
-            {/* Progress Indicator */}
             {hasProgress && (
               <View style={globalStyles.StoryProgressSection}>
                 <View style={globalStyles.StoryProgressHeader}>
@@ -365,8 +338,7 @@ const StoryCatalogModal = ({
                     ]}
                   />
                 </View>
-                
-                {/* Progress Stats */}
+
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Icon name="map-pin" size={10} color="#06B6D4" />
@@ -381,15 +353,13 @@ const StoryCatalogModal = ({
                     </Text>
                   </View>
                 </View>
-                
-                {/* Completion Date for completed stories */}
+
                 {isCompleted && completedAt && (
                   <Text style={[globalStyles.StoryProgressLabel, { color: "#10B981", fontSize: 10, marginTop: 2 }]}>
                     Completed: {new Date(completedAt).toLocaleDateString()}
                   </Text>
                 )}
-                
-                {/* Last played for in-progress stories */}
+
                 {!isCompleted && lastPlayed && (
                   <Text style={[globalStyles.StoryProgressLabel, { color: "#6B7280", fontSize: 10, marginTop: 2 }]}>
                     Last played: {new Date(lastPlayed).toLocaleDateString()} at {new Date(lastPlayed).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -398,12 +368,10 @@ const StoryCatalogModal = ({
               </View>
             )}
 
-            {/* Description */}
             <Text style={[globalStyles.StoryDescription, { color: "#9CA3AF" }]}>
               {Story.description || "No description available"}
             </Text>
 
-            {/* Atmosphere */}
             <View style={globalStyles.StoryAtmosphereContainer}>
               <Icon name="eye" size={10} color="#06B6D4" />
               <Text
@@ -413,7 +381,6 @@ const StoryCatalogModal = ({
               </Text>
             </View>
 
-            {/* Skill Focus Tags */}
             <View style={globalStyles.StorySkillFocusContainer}>
               <Text
                 style={[globalStyles.StorySkillFocusLabel, { color: "#9CA3AF" }]}
@@ -436,7 +403,6 @@ const StoryCatalogModal = ({
               </View>
             </View>
 
-            {/* Stat Boosts */}
             <View style={globalStyles.StoryStatBoostsContainer}>
               <Text
                 style={[globalStyles.StoryStatBoostsLabel, { color: "#9CA3AF" }]}
@@ -460,7 +426,6 @@ const StoryCatalogModal = ({
               </View>
             </View>
 
-            {/* Footer Info */}
             <View style={globalStyles.StoryFooter}>
               <View style={globalStyles.StoryFooterStat}>
                 <Icon name="clock" size={12} color="#FB923C" />
@@ -488,7 +453,6 @@ const StoryCatalogModal = ({
               </View>
             </View>
 
-            {/* Action Button */}
             {!Story.isLocked && (
               <View style={globalStyles.StoryActionButton}>
                 <LinearGradient
@@ -526,7 +490,6 @@ const StoryCatalogModal = ({
     );
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <Modal visible={visible} transparent onRequestClose={onClose}>
@@ -545,14 +508,13 @@ const StoryCatalogModal = ({
             style={{ marginBottom: 16 }}
           />
           <Text style={{ color: "white", fontSize: 18, margin: 20 }}>
-                            Loading Stories from the Archive...
+            Loading Stories from the Archive...
           </Text>
         </View>
       </Modal>
     );
   }
 
-  // Error state
   if (error) {
     return (
       <Modal visible={visible} transparent onRequestClose={onClose}>
@@ -638,10 +600,9 @@ const StoryCatalogModal = ({
               ]}
             >
               <BlurView intensity={20} style={globalStyles.StoryModalBlur}>
-                {/* Header */}
                 <View style={globalStyles.StoryModalHeader}>
                   <View style={globalStyles.StoryHeaderpassages}>
-                    <Icon name="book" size={24} color="#4ee6e6" />
+                   <Image source={bookOpen} style={{ width: 24, height: 24 }} />
                     <Text
                       style={[
                         globalStyles.StoryModalTitle,
@@ -717,7 +678,6 @@ const StoryCatalogModal = ({
                   </View>
                 </View>
 
-                {/* Progress Summary */}
                 {Object.keys(storyProgress).length > 0 && (
                   <View style={{
                     backgroundColor: 'rgba(78, 230, 230, 0.1)',
@@ -770,7 +730,6 @@ const StoryCatalogModal = ({
                   </View>
                 )}
 
-                {/* Filter and Sort Controls */}
                 <View style={{
                   flexDirection: 'row',
                   justifyContent: 'space-between',
@@ -778,7 +737,6 @@ const StoryCatalogModal = ({
                   paddingHorizontal: 16,
                   marginBottom: 16
                 }}>
-                  {/* Progress Filter */}
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Text style={{ color: '#d4af37', fontSize: 12, marginRight: 8, fontStyle: 'italic' }}>Filter:</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -848,7 +806,6 @@ const StoryCatalogModal = ({
                     </ScrollView>
                   </View>
 
-                  {/* Sort Options */}
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Text style={{ color: '#d4af37', fontSize: 12, marginRight: 8, fontStyle: 'italic' }}>Sort:</Text>
                     <TouchableOpacity
@@ -901,7 +858,6 @@ const StoryCatalogModal = ({
                   </View>
                 </View>
 
-                {/* Story Grid */}
                 <ScrollView
                   style={globalStyles.StoryScrollView}
                   contentContainerStyle={globalStyles.StoryGrid}
@@ -960,75 +916,27 @@ const StoryCatalogModal = ({
   );
 };
 
-// Add a comprehensive test function
 const runComprehensiveTest = async () => {
-  console.log("=== RUNNING COMPREHENSIVE STORY TEST ===");
-
   try {
-    // Test 1: Get story catalog
-    console.log("1. Testing story catalog...");
     const catalog = await apiService.getAvailableStories();
-    console.log("Story catalog result:", catalog);
-    console.log("Catalog length:", catalog?.length);
 
     if (catalog && catalog.length > 0) {
       const firstStory = catalog[0];
-      console.log("First story:", firstStory);
-
-      // Test 2: Get story progress
-      console.log("2. Testing story progress...");
       const allProgress = await apiService.getStoryProgressRecords('');
-      console.log("All progress records:", allProgress);
-      console.log("Progress count:", allProgress?.length);
-
-      // Test 3: Get specific story progress
-      console.log("3. Testing specific story progress...");
       const storyProgress = await apiService.getStoryProgress(firstStory.id);
-      console.log("Story progress for first story:", storyProgress);
-
-      // Test 4: Get chapters for first story
-      console.log("4. Testing chapters for story:", firstStory.id);
       const chapters = await apiService.getChapters(firstStory.id);
-      console.log("Chapters result:", chapters);
 
       if (chapters && chapters.length > 0) {
         const firstChapter = chapters[0];
-        console.log("First chapter:", firstChapter);
-
-        // Test 5: Get story passages from chapter
-        console.log("5. Testing story passages from chapter:", firstChapter.id);
         const storypassages = await apiService.getStorypassagesFromChapter(
           firstStory.id,
           firstChapter.id
         );
-        console.log("Story passages result:", storypassages);
-        console.log("Story passages passages:", storypassages?.passages);
-        console.log(
-          "Story passages passages length:",
-          storypassages?.passages?.length
-        );
-
-        if (
-          storypassages &&
-          storypassages.passages &&
-          storypassages.passages.length > 0
-        ) {
-          console.log("✅ SUCCESS: Story passages loaded with passages");
-          console.log("First passage:", storypassages.passages[0]);
-        } else {
-          console.log("❌ FAILED: No passages in story passages");
-        }
-      } else {
-        console.log("❌ FAILED: No chapters found");
       }
-    } else {
-      console.log("❌ FAILED: No stories in catalog");
     }
   } catch (error) {
-    console.error("❌ TEST FAILED:", error);
+    // Silently handle test error
   }
-
-  console.log("=== END COMPREHENSIVE TEST ===");
 };
 
 export default StoryCatalogModal;

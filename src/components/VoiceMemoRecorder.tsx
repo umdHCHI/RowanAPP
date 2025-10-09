@@ -93,17 +93,14 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const animatedValue = useRef(new Animated.Value(0)).current;
 
-  // Web Audio API refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
-  // Mobile Audio refs
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  // Animate bar
   React.useEffect(() => {
     if (isRecording) {
       Animated.loop(
@@ -118,7 +115,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
     }
   }, [isRecording]);
 
-  // Timer
   React.useEffect(() => {
     if (isRecording) {
       const id = setInterval(() => setTimer(t => t + 1), 1000);
@@ -132,13 +128,11 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
     };
   }, [isRecording]);
 
-  // Cleanup on unmount
   React.useEffect(() => {
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
       }
-      // Cleanup mobile audio
       if (soundRef.current) {
         soundRef.current.unloadAsync();
       }
@@ -151,7 +145,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
       setTimer(0);
       
       if (Platform.OS === 'web') {
-        // Web implementation using MediaRecorder API
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
@@ -172,16 +165,13 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         mediaRecorder.start();
         setIsRecording(true);
       } else {
-        // Mobile implementation using expo-av
         try {
-          // Request permissions
           const { status } = await Audio.requestPermissionsAsync();
           if (status !== 'granted') {
             Alert.alert('Permission required', 'Please grant microphone permissions to record audio.');
             return;
           }
 
-          // Configure audio mode
           await Audio.setAudioModeAsync({
             allowsRecordingIOS: true,
             playsInSilentModeIOS: true,
@@ -190,20 +180,17 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
             playThroughEarpieceAndroid: false,
           });
 
-          // Start recording
           const { recording } = await Audio.Recording.createAsync(
             Audio.RecordingOptionsPresets.HIGH_QUALITY
           );
           
           recordingRef.current = recording;
           setIsRecording(true);
-        } catch (error) {
-          console.error('Failed to start recording:', error);
+        } catch {
           Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
         }
       }
-    } catch (err) {
-      console.error('Failed to start recording:', err);
+    } catch {
       Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
     }
   };
@@ -216,7 +203,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         }
         setIsRecording(false);
       } else {
-        // Mobile implementation
         if (recordingRef.current) {
           await recordingRef.current.stopAndUnloadAsync();
           const uri = recordingRef.current.getURI();
@@ -229,8 +215,7 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
           setIsRecording(false);
         }
       }
-    } catch (err) {
-      console.error('Failed to stop recording:', err);
+    } catch {
       Alert.alert('Recording Error', 'Failed to stop recording. Please try again.');
     }
   };
@@ -240,7 +225,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
       if (!recordingUri) return;
 
       if (Platform.OS === 'web') {
-        // Web playback using Web Audio API
         if (!audioContextRef.current) {
           audioContextRef.current = new AudioContext();
         }
@@ -267,13 +251,11 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         setIsPlaying(true);
         setPlaybackDuration(audioBuffer.duration);
       } else {
-        // Mobile playback using expo-av
         try {
           if (soundRef.current) {
             await soundRef.current.unloadAsync();
           }
 
-          // Configure audio mode for playback
           await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
             playsInSilentModeIOS: true,
@@ -282,7 +264,6 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
             playThroughEarpieceAndroid: false,
           });
 
-          console.log('Creating sound with URI:', recordingUri);
           const { sound } = await Audio.Sound.createAsync(
             { uri: recordingUri },
             { 
@@ -294,16 +275,12 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
 
           soundRef.current = sound;
 
-          // Get duration
           const status = await sound.getStatusAsync();
-          console.log('Sound status:', status);
           if (status.isLoaded) {
             setPlaybackDuration(status.durationMillis ? status.durationMillis / 1000 : 0);
           }
 
-          // Set up status update listener
           sound.setOnPlaybackStatusUpdate((status) => {
-            console.log('Playback status update:', status);
             if (status.isLoaded) {
               setIsPlaying(status.isPlaying);
               setPlaybackPosition(status.positionMillis ? status.positionMillis / 1000 : 0);
@@ -316,13 +293,11 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
           });
 
           setIsPlaying(true);
-        } catch (error) {
-          console.error('Failed to play recording:', error);
+        } catch {
           Alert.alert('Playback Error', 'Failed to play recording. Please try again.');
         }
       }
-    } catch (err) {
-      console.error('Failed to play recording:', err);
+    } catch {
       Alert.alert('Playback Error', 'Failed to play recording. Please try again.');
     }
   };
@@ -337,15 +312,13 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         setIsPlaying(false);
         setPlaybackPosition(0);
       } else {
-        // Mobile implementation
         if (soundRef.current) {
           await soundRef.current.stopAsync();
           setIsPlaying(false);
           setPlaybackPosition(0);
         }
       }
-    } catch (err) {
-      console.error('Failed to stop playback:', err);
+    } catch {
     }
   };
 
@@ -354,15 +327,12 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
       if (Platform.OS === 'web' && recordingUri) {
         URL.revokeObjectURL(recordingUri);
       } else if (Platform.OS !== 'web' && recordingUri) {
-        // Delete file from mobile storage
         try {
           await FileSystem.deleteAsync(recordingUri);
-        } catch (error) {
-          console.warn('Failed to delete recording file:', error);
+        } catch {
         }
       }
       
-      // Stop playback if playing
       if (isPlaying) {
         await stopPlayback();
       }
@@ -371,12 +341,10 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
       setIsPlaying(false);
       setPlaybackPosition(0);
       setPlaybackDuration(0);
-    } catch (error) {
-      console.error('Failed to delete recording:', error);
+    } catch {
     }
   };
 
-  // Format timer as mm:ss
   const formatTime = (t: number) => `${Math.floor(t / 60).toString().padStart(2, '0')}:${(t % 60).toString().padStart(2, '0')}`;
 
   return (

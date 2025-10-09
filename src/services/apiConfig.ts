@@ -59,8 +59,9 @@ export const API_ENDPOINTS = {
     currentUser: 'users/me/',
     userProfile: 'users/',
     updateUserProfile: 'users/update_profile/',
+    completeOnboarding: 'users/complete_onboarding/',
 
-    researchGroupPost: 'users/research-groups/',
+    //researchGroupPost: 'users/research-groups/',
     
     // Character endpoints
     characters: 'characters/',
@@ -119,6 +120,9 @@ export const API_ENDPOINTS = {
     personalitySurveySubmit: 'personality/surveys/submit/',
     personalitySurveyMySurvey: 'personality/surveys/my_survey/',
     personalitySurveyUpdateScores: 'personality/surveys/update_scores/',
+    personalityProfiles: 'personality/profiles/',
+    personalityProfileMyProfile: 'personality/profiles/my_profile/',
+    personalityProfileCompleteData: 'personality/profiles/complete_data/',
     personalityStatus: 'story/personality/status/',
     personalityStories: 'story/personality/',
     adminTestStories: 'story/admin/test/',
@@ -168,6 +172,7 @@ export const API_ENDPOINTS = {
     gameData: 'game/my-data/',
     
     // Game endpoints
+    gameDataList: 'game/game-data/',
     gameDataLogThoughtDefenderRun: 'game/game-data/thought-defender/run/',
     gameProgressRecord: 'game/progress/record_progress/',
     

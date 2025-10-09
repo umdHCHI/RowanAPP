@@ -27,19 +27,12 @@ export const useCharacterCreation = ({
   }, []);
 
   const handleCharacterCreation = useCallback(async () => {
-    // Prevent multiple simultaneous calls
     if (isCreatingRef.current) {
-      console.log('Character creation already in progress, ignoring duplicate call');
       return;
     }
     
-    // Set loading state immediately and synchronously
     setIsCreating(true);
     isCreatingRef.current = true;
-
-    console.log('=== CHARACTER CREATION STARTED ===');
-    console.log('Character name:', characterName);
-    console.log('Name validation passed:', validateCharacterName(characterName));
     
     if (!validateCharacterName(characterName)) {
       Alert.alert(
@@ -53,23 +46,14 @@ export const useCharacterCreation = ({
     }
     
     try {
-      console.log('Calling createCharacter...');
-      
       if(characterId) {
-        console.log('Updating existing character...');
         await updateCharacterCustomization();
       } else {
-        console.log('Creating new character...');
         await createCharacter();
       }
       
-      console.log('Character creation/update and onboarding completed successfully');
-      
-      // Navigate immediately after successful character creation and onboarding completion
-      console.log('Navigating to character home...');
       router.push('/(character)/character');
       
-      // Show success alert after navigation
       setTimeout(() => {
         Alert.alert(
           '🎉 Character Created Successfully!',
@@ -77,15 +61,13 @@ export const useCharacterCreation = ({
           [{ text: 'OK', style: 'default' }]
         );
       }, 500);
-    } catch (error) {
-      console.error('Character creation failed:', error);
+    } catch {
       Alert.alert(
         'Character Creation Failed',
         'There was an error creating your character. Please try again.',
         [{ text: 'OK', style: 'default' }]
       );
     } finally {
-      // Always reset loading state
       setIsCreating(false);
       isCreatingRef.current = false;
     }

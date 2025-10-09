@@ -2,7 +2,6 @@ import {
   BlurView,
   createGlobalStyles,
   Dimensions,
-  Icon,
   LinearGradient,
   Modal,
   React,
@@ -15,11 +14,11 @@ import {
   View,
 } from "../../imports";
 
-// Import useTheme directly to avoid circular dependency issues
+import { Image } from "react-native";
+import { sectionIcons } from "../../assets/ui";
 import { useMasterState } from "../../context/MasterStateContext";
 import { apiService } from "../../services/apiService";
 import { ChapterSummary } from "../../types/story";
-
 const { width, height } = Dimensions.get("window");
 
 type ChapterScreenProps = {
@@ -44,7 +43,6 @@ const ChapterScreen = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load chapters when modal becomes visible
   useEffect(() => {
     const loadChapters = async () => {
       if (!visible || !storyId) return;
@@ -82,8 +80,8 @@ const ChapterScreen = ({
       onPress={() => handleChapterSelect(chapter)}
       activeOpacity={0.8}
     >
-              <LinearGradient
-          colors={[
+      <LinearGradient
+        colors={[
             "rgba(10, 11, 15, 0.95)",
             "rgba(30, 41, 59, 0.8)",
             "rgba(10, 11, 15, 0.95)",
@@ -98,9 +96,8 @@ const ChapterScreen = ({
             elevation: 4,
           }]}
         >
-        <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
-          {/* Header */}
-          <View style={globalStyles.StoryCardHeader}>
+          <BlurView intensity={10} style={globalStyles.StoryCardBlur}>
+            <View style={globalStyles.StoryCardHeader}>
             <View style={globalStyles.StoryTitleSection}>
               <Text style={[globalStyles.StoryCardTitle, { 
                 color: "#4ee6e6",
@@ -127,7 +124,6 @@ const ChapterScreen = ({
             </View>
           </View>
 
-          {/* Action Button */}
           <View style={[globalStyles.StoryActionButton, {
             alignSelf: 'flex-start',
             borderRadius: 20,
@@ -146,7 +142,9 @@ const ChapterScreen = ({
                 paddingHorizontal: 16,
               }]}
             >
-              <Icon name="book-open" size={14} color="#0a0b0f" />
+              <Image 
+              source={sectionIcons.bookOpen} style={{ width: 14, height: 14 }} />
+            
               <Text style={[globalStyles.StoryActionButtonText, {
                 color: '#0a0b0f',
                 fontWeight: 'bold',
@@ -156,12 +154,11 @@ const ChapterScreen = ({
               </Text>
             </LinearGradient>
           </View>
-        </BlurView>
-      </LinearGradient>
+          </BlurView>
+        </LinearGradient>
     </TouchableOpacity>
   );
 
-  // Loading state
   if (isLoading) {
     return (
       <Modal visible={visible} transparent onRequestClose={onClose}>
@@ -173,11 +170,11 @@ const ChapterScreen = ({
             backgroundColor: "rgba(0,0,0,0.8)",
           }}
         >
-          <Icon
-            name="loader"
-            size={40}
-            color="#4ee6e6"
-            style={{ marginBottom: 16 }}
+          <Image
+            source={sectionIcons.bookOpen}
+            style={{ width: 40, height: 40 }}
+            
+          
           />
           <Text style={{ color: "#4ee6e6", fontSize: 18, margin: 20, textShadowColor: 'rgba(78, 230, 230, 0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }}>
             Loading Chapters...
@@ -187,7 +184,6 @@ const ChapterScreen = ({
     );
   }
 
-  // Error state
   if (error) {
     return (
       <Modal visible={visible} transparent onRequestClose={onClose}>
@@ -199,11 +195,10 @@ const ChapterScreen = ({
             backgroundColor: "rgba(0,0,0,0.8)",
           }}
         >
-          <Icon
-            name="alert-circle"
-            size={40}
-            color="#EF4444"
-            style={{ marginBottom: 16 }}
+          <Image
+              source={sectionIcons.bookOpen}
+              style={{ width: 40, height: 40 }}
+          
           />
           <Text
             style={{
@@ -271,7 +266,6 @@ const ChapterScreen = ({
               ]}
             >
               <BlurView intensity={20} style={globalStyles.StoryModalBlur}>
-                {/* Header */}
                 <View
                   style={[
                     globalStyles.StoryModalHeader,
@@ -286,7 +280,7 @@ const ChapterScreen = ({
                   ]}
                 >
                   <View style={[globalStyles.StoryHeaderpassages, { flex: 1 }]}>
-                    <Icon name="book" size={24} color="#4ee6e6" />
+                    <Image source={sectionIcons.bookOpen} style={{ width: 24, height: 24 }} />
                     <Text
                       style={[
                         globalStyles.StoryModalTitle,
@@ -323,7 +317,7 @@ const ChapterScreen = ({
                     }}
                     onPress={onClose}
                   >
-                    <Icon name="x" size={20} color="#EF4444" />
+                    <Image source={sectionIcons.bookOpen} style={{ width: 20, height: 20 }} />
                   </TouchableOpacity>
                 </View>
                 <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
@@ -357,7 +351,6 @@ const ChapterScreen = ({
                   </Text>
                 </View>
 
-                {/* Chapters Grid */}
                 <ScrollView
                   style={globalStyles.StoryScrollView}
                   contentContainerStyle={globalStyles.StoryGrid}
@@ -376,13 +369,12 @@ const ChapterScreen = ({
                         padding: 40,
                       }}
                     >
-                                <Icon
-            name="book"
-            size={40}
-            color="#4ee6e6"
-            style={{ marginBottom: 16 }}
-          />
-          <Text
+                      <Image
+                        source={sectionIcons.bookOpen}
+                        style={{ width: 40, height: 40 }}        
+                      
+                      />
+                      <Text
             style={{
               color: "#4ee6e6",
               fontSize: 18,
@@ -394,17 +386,17 @@ const ChapterScreen = ({
           >
             No Chapters Available
           </Text>
-          <Text
-            style={{
-              color: "#d4af37",
-              fontSize: 14,
-              textAlign: "center",
-              marginTop: 8,
-              fontStyle: 'italic',
-            }}
-          >
-            This story may not have chapters yet.
-          </Text>
+                      <Text
+                        style={{
+                          color: "#d4af37",
+                          fontSize: 14,
+                          textAlign: "center",
+                          marginTop: 8,
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        This story may not have chapters yet.
+                      </Text>
                     </View>
                   )}
                 </ScrollView>

@@ -2,9 +2,9 @@
 // This file demonstrates how to integrate the new reward system into StoryScreen
 // Works with the actual backend data structure where rewards are in effects field
 
-import { CopingTools, toPersonalityKey } from '../types/personality';
+import { CopingTools } from '../types/personality';
 import { Choice, Passage, SavedRewards } from '../types/story';
-import { filterByPersonality, normalizePersonalitySlug } from './personalityFilter';
+import { normalizePersonalitySlug } from './personalityFilter';
 import {
   applyChoiceRewards,
   applyPassageRewards,
@@ -34,8 +34,10 @@ export class StoryRewardManager {
   private userId?: number; // Add userId for personality users
   private processedPassages: Set<string> = new Set(); // Track processed passages to avoid duplicates
   private processedChoices: Set<string> = new Set(); // Track processed choices to avoid duplicates
+  private processedQuests: Set<string> = new Set(); // Track processed quests to avoid duplicate rewards
   private newlyAcquiredGear: Set<string> = new Set(); // Track newly acquired gear to avoid duplicate notifications
   private sentNotifications: Set<string> = new Set();
+  private processedItems: Set<string> = new Set(); // Track processed items to prevent duplicate notifications
   private playerInventory: string[] = []; // Track player's current inventory
   private storyReplayCount: number = 0; // Track how many times this story has been replayed
   private researchCondition: "character" | "personality"; // Track research condition
@@ -74,16 +76,11 @@ export class StoryRewardManager {
     console.log('Research condition:', this.researchCondition);
     console.log('Primary trait:', this.primaryTrait);
     
+    const filteredEffects = { ...effects };
+    
     if (this.researchCondition === "personality") {
-      // For personality users, filter out character-specific rewards
-      const filteredEffects = { ...effects };
-      
-      // Log user personality trait for verification
-      if (this.primaryTrait) {
-        const personalityKey = toPersonalityKey(this.primaryTrait);
-        console.log('User personality trait:', this.primaryTrait);
-        console.log('User personality key:', personalityKey);
-      }
+      // For personality users, convert character rewards to coping tools
+      console.log('Processing effects for personality user');
       
       // Remove resonance (personality users get experience instead)
       if (filteredEffects.resonance) {
@@ -91,49 +88,53 @@ export class StoryRewardManager {
         delete filteredEffects.resonance;
       }
       
-      // Filter character items/artifacts by personality tags before removing them
-      if (this.researchCondition === "personality") {
-        // Personality users: filter by personality tags
-        if (filteredEffects.rewards && this.primaryTrait) {
-          console.log('Items in:', filteredEffects.rewards.length);
-          const userSlug = normalizePersonalitySlug(this.primaryTrait);
-          filteredEffects.rewards = filterByPersonality(filteredEffects.rewards, userSlug);
-          console.log('Items out:', filteredEffects.rewards.length);
+      // Convert character items/artifacts to coping tools for personality users
+      if (filteredEffects.rewards || filteredEffects.artifacts) {
+        console.log('Converting character rewards to coping tools for personality user');
+        
+        // Combine rewards and artifacts into tools array
+        const allItems = [...(filteredEffects.rewards || []), ...(filteredEffects.artifacts || [])];
+        console.log('All items to convert:', allItems);
+        
+        if (allItems.length > 0) {
+          // Convert character gear names to coping tool IDs
+          const convertedTools = allItems.map((itemName: string) => {
+            // Map common gear names to coping tool IDs
+            const gearToToolMap: Record<string, string> = {
+              'Ancient Scroll': 'mindfulness_meditation',
+              'Lens of Gentle Seeing': 'mindful_observation',
+              'Notebook of the Wanderer': 'journaling_practice',
+              'Compass of Quiet Knowing': 'body_scan',
+              'Cloak of True Form': 'self_compassion_break',
+              'Wrap of Rooted Memory': 'grounding_technique',
+              'Shield of Flexible Boundaries': 'assertive_communication',
+              'Mask of Discernment': 'emotional_awareness',
+              'Crown of Becoming': 'values_clarification',
+              'Helm of the Unmasked': 'authentic_expression',
+              'Foundation of Inner Stone': 'progressive_relaxation',
+              'Roots of Connection': 'loving_kindness_meditation',
+              'Stone of Self-Compassion': 'self_compassion_meditation'
+            };
+            
+            const toolId = gearToToolMap[itemName] || itemName.toLowerCase().replace(/\s+/g, '_');
+            console.log(`Converting gear "${itemName}" to coping tool "${toolId}"`);
+            return toolId;
+          });
           
-          // Remove character items/artifacts (personality users don't get gear)
-          if (filteredEffects.rewards.length === 0) {
-            console.log('Filtering out character items/rewards for personality user');
-            delete filteredEffects.rewards;
-          }
-        } else if (filteredEffects.rewards) {
-          console.log('Filtering out character items/rewards for personality user');
-          delete filteredEffects.rewards;
+          // Add converted tools to effects
+          filteredEffects.tools = convertedTools;
+          console.log('Converted tools:', convertedTools);
         }
         
-        if (filteredEffects.artifacts && this.primaryTrait) {
-          console.log('Artifacts in:', filteredEffects.artifacts.length);
-          const userSlug = normalizePersonalitySlug(this.primaryTrait);
-          filteredEffects.artifacts = filterByPersonality(filteredEffects.artifacts, userSlug);
-          console.log('Artifacts out:', filteredEffects.artifacts.length);
-          
-          if (filteredEffects.artifacts.length === 0) {
-            console.log('Filtering out character artifacts for personality user');
-            delete filteredEffects.artifacts;
-          }
-        } else if (filteredEffects.artifacts) {
-          console.log('Filtering out character artifacts for personality user');
-          delete filteredEffects.artifacts;
-        }
-      } else {
-        // Character users: keep all items/artifacts (no personality filtering)
-        console.log('Character user: keeping all items and artifacts');
+        // Remove the original rewards and artifacts
+        delete filteredEffects.rewards;
+        delete filteredEffects.artifacts;
       }
       
-      // Filter tools by personality trait
+      // Filter existing tools by personality trait
       if (filteredEffects.tools) {
         if (this.primaryTrait) {
-          // Personality users: filter by personality trait
-          console.log('Filtering tools by personality trait:', filteredEffects.tools);
+          console.log('Filtering existing tools by personality trait:', filteredEffects.tools);
           const originalTools = filteredEffects.tools;
           filteredEffects.tools = originalTools.filter((toolId: string) => {
             // Check if this tool belongs to the user's personality type
@@ -157,17 +158,12 @@ export class StoryRewardManager {
           } else {
             console.log('Tools remaining after filtering:', filteredEffects.tools);
           }
-        } else {
-          // Character users: remove tools entirely (they don't get coping tools)
-          console.log('Character user: removing tools field');
-          delete filteredEffects.tools;
         }
       }
       
       // Filter quests by personality trait
       if (filteredEffects.quests) {
         if (this.primaryTrait) {
-          // Personality users: filter by personality trait
           console.log('Filtering quests by personality trait:', filteredEffects.quests);
           const originalQuests = filteredEffects.quests;
           filteredEffects.quests = originalQuests.filter((questId: string) => {
@@ -195,15 +191,14 @@ export class StoryRewardManager {
             console.log('Quests remaining after filtering:', filteredEffects.quests);
           }
         } else {
-          // Character users: keep all quests (no personality filtering)
-          console.log('Character user: keeping all quests');
+          // Personality users without trait: keep all quests
+          console.log('Personality user without trait: keeping all quests');
         }
       }
       
       // Filter quest_progress by personality trait
       if (filteredEffects.quest_progress) {
         if (this.primaryTrait) {
-          // Personality users: filter by personality trait
           console.log('Filtering quest_progress by personality trait:', filteredEffects.quest_progress);
           const originalQuestProgress = filteredEffects.quest_progress;
           filteredEffects.quest_progress = originalQuestProgress.filter((questId: string) => {
@@ -231,8 +226,8 @@ export class StoryRewardManager {
             console.log('Quest_progress remaining after filtering:', filteredEffects.quest_progress);
           }
         } else {
-          // Character users: keep all quest progress (no personality filtering)
-          console.log('Character user: keeping all quest progress');
+          // Personality users without trait: keep all quest progress
+          console.log('Personality user without trait: keeping all quest progress');
         }
       }
       
@@ -240,15 +235,23 @@ export class StoryRewardManager {
       return filteredEffects;
     } else {
       // For character users, filter out personality-specific rewards
-      const filteredEffects = { ...effects };
+      console.log('Processing effects for character user');
       
-      // Remove experience (character users get resonance instead)
+      // Convert experience to resonance for character users
       if (filteredEffects.experience) {
-        console.log('Filtering out experience rewards for character user');
+        console.log(`Converting experience ${filteredEffects.experience} to resonance for character user`);
+        filteredEffects.resonance = filteredEffects.experience;
         delete filteredEffects.experience;
       }
       
+      // Remove tools (character users don't get coping tools)
+      if (filteredEffects.tools) {
+        console.log('Filtering out tools for character user');
+        delete filteredEffects.tools;
+      }
+      
       // Keep character items, artifacts, and all quests for character users
+      console.log('Character user: keeping all items, artifacts, and quests');
       console.log('Filtered effects for character user:', filteredEffects);
       return filteredEffects;
     }
@@ -567,6 +570,12 @@ export class StoryRewardManager {
       console.log('User ID:', this.userId);
 
       // Process items from effects
+      console.log('Checking for rewards field:', effects.rewards);
+      console.log('Checking for artifacts field:', effects.artifacts);
+      console.log('Effects.rewards exists:', !!effects.rewards);
+      console.log('Effects.artifacts exists:', !!effects.artifacts);
+      console.log('Condition (effects.rewards || effects.artifacts):', !!(effects.rewards || effects.artifacts));
+      
       if (effects.rewards || effects.artifacts) {
         const items = [...(effects.rewards || []), ...(effects.artifacts || [])];
         console.log('Processing items:', items);
@@ -576,10 +585,10 @@ export class StoryRewardManager {
             console.log(`=== PROCESSING ITEM: ${itemName} ===`);
             
             if (this.researchCondition === 'character') {
-              // Character users get gear
+              // Character users get gear (ownership check happens inside this method)
               await this.processCharacterGearReward(itemName);
             } else {
-              // Personality users get coping tools
+              // Personality users get coping tools (ownership check happens inside this method)
               await this.processPersonalityCopingToolReward(itemName);
             }
             
@@ -601,6 +610,15 @@ export class StoryRewardManager {
   private async processCharacterGearReward(itemName: string): Promise<void> {
     console.log(`=== PROCESSING CHARACTER GEAR REWARD: ${itemName} ===`);
     
+    // Check if this item has already been processed to prevent duplicate notifications
+    if (this.processedItems.has(itemName)) {
+      console.log(`⚠️ Item "${itemName}" already processed, skipping to prevent duplicate notifications...`);
+      return;
+    }
+    
+    // Mark this item as processed
+    this.processedItems.add(itemName);
+    
     try {
       // Step 1: Get available gear types from the master gear list
       console.log('Step 1: Fetching available gear types from master list...');
@@ -619,12 +637,30 @@ export class StoryRewardManager {
       
       console.log(`✅ Found matching gear type in master list: ${matchingGearType.name} (ID: ${matchingGearType.id})`);
       
-      // Step 3: Get character's current gear using the equipped_gear endpoint
-      console.log('Step 2: Fetching character\'s current gear...');
-      const characterWithGear = await this.apiService.getCharacterWithGear(this.characterId);
-      console.log('Character equipped_gear:', characterWithGear.equipped_gear);
+      // Step 3: Get character's all owned gear (both equipped and unequipped)
+      console.log('Step 3: Fetching character\'s all owned gear...');
+      const allOwnedGear = await this.apiService.getMyGear();
+      console.log('Character all owned gear:', allOwnedGear);
       
-      // Step 4: Check if character already has this gear equipped
+      // Step 4: Check if character already owns this gear (equipped or unequipped)
+      const alreadyOwnsGear = allOwnedGear?.some((gear: any) => 
+        gear?.gear_type?.name?.toLowerCase() === itemName.toLowerCase() ||
+        gear?.gear_type?.id === matchingGearType.id
+      );
+      
+      if (alreadyOwnsGear) {
+        console.log(`⚠️ Character already owns "${itemName}", skipping reward...`);
+        
+        // Show notification that reward was skipped
+        this.showNotification(
+          `You already own ${itemName}. Reward skipped.`,
+          'item'
+        );
+        return;
+      }
+      
+      // Check if character has this gear equipped (for upgrade logic)
+      const characterWithGear = await this.apiService.getCharacterWithGear(this.characterId);
       const alreadyEquipped = characterWithGear.equipped_gear?.some((gear: any) => 
         gear?.name?.toLowerCase() === itemName.toLowerCase() ||
         gear?.id === matchingGearType.id
@@ -754,6 +790,15 @@ export class StoryRewardManager {
   private async processPersonalityCopingToolReward(itemName: string): Promise<void> {
     console.log(`=== PROCESSING PERSONALITY COPING TOOL REWARD: ${itemName} ===`);
     
+    // Check if this item has already been processed to prevent duplicate notifications
+    if (this.processedItems.has(itemName)) {
+      console.log(`⚠️ Item "${itemName}" already processed, skipping to prevent duplicate notifications...`);
+      return;
+    }
+    
+    // Mark this item as processed
+    this.processedItems.add(itemName);
+    
     try {
       // Get available coping tools from the API
       const availableCopingTools = await this.apiService.getAvailableCopingTools();
@@ -767,7 +812,31 @@ export class StoryRewardManager {
       if (matchingTool) {
         console.log(`✅ Found matching coping tool: ${matchingTool.name}`);
         
-        // Acquire the coping tool directly since we can't check ownership without character-tools endpoints
+        // Check if user already has this coping tool
+        try {
+          const myTools = await this.apiService.getMyTools();
+          console.log('User\'s current coping tools:', myTools);
+          
+          const alreadyOwnsTool = myTools?.some((tool: any) => 
+            tool?.name?.toLowerCase() === itemName.toLowerCase() ||
+            tool?.tool_id === matchingTool.tool_id
+          );
+          
+          if (alreadyOwnsTool) {
+            console.log(`⚠️ User already owns coping tool "${itemName}", skipping reward...`);
+            
+            // Show notification that reward was skipped
+            this.showNotification(
+              `You already have ${matchingTool.name}. Reward skipped.`,
+              'skill'
+            );
+            return;
+          }
+        } catch (ownershipError) {
+          console.warn('Could not check coping tool ownership, proceeding with acquisition:', ownershipError);
+        }
+        
+        // Acquire the coping tool since user doesn't already have it
         try {
           const acquiredTool = await this.apiService.acquireCopingToolByName(matchingTool.name);
           console.log(`✅ Successfully acquired coping tool: ${acquiredTool?.name || matchingTool.name}`);
@@ -1180,6 +1249,7 @@ export class StoryRewardManager {
       console.log('Current passage ID:', currentPassageId);
       console.log('Research condition:', this.researchCondition);
       console.log('Primary trait:', this.primaryTrait);
+      console.log('Already processed quests:', Array.from(this.processedQuests));
       
       // Extract quest progress from effects
       const questProgress: Record<string, number> = {};
@@ -1209,37 +1279,58 @@ export class StoryRewardManager {
         }
       }
       
-      if (Object.keys(questProgress).length > 0) {
-        console.log('Quest progress to save:', questProgress);
+      // Filter quests based on user type
+      const filteredQuestProgress: Record<string, number> = {};
+      
+      for (const [questId, progress] of Object.entries(questProgress)) {
+        if (this.researchCondition === 'character') {
+          // Character users should NOT get personality-specific quests
+          const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+          if (questTraitMatch) {
+            console.log(`🚫 Filtering out personality quest ${questId} for character user`);
+            continue; // Skip personality-specific quests for character users
+          }
+          // Keep common quests (those that don't match personality pattern)
+          filteredQuestProgress[questId] = progress;
+          console.log(`✅ Keeping common quest ${questId} for character user`);
+        } else {
+          // Personality users get quests that match their trait
+          const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+          if (questTraitMatch && this.primaryTrait) {
+            const questTrait = questTraitMatch[1];
+            const matches = questTrait.toLowerCase() === this.primaryTrait.toLowerCase();
+            if (matches) {
+              filteredQuestProgress[questId] = progress;
+              console.log(`✅ Keeping quest ${questId} for personality user with trait ${this.primaryTrait}`);
+            } else {
+              console.log(`🚫 Filtering out quest ${questId} for personality user with trait ${this.primaryTrait}`);
+            }
+          } else {
+            // Keep common quests (those that don't match personality pattern)
+            filteredQuestProgress[questId] = progress;
+            console.log(`✅ Keeping common quest ${questId} for personality user`);
+          }
+        }
+      }
+      
+      if (Object.keys(filteredQuestProgress).length > 0) {
+        console.log('Filtered quest progress to save:', filteredQuestProgress);
         console.log('Research condition:', this.researchCondition);
         console.log('Primary trait:', this.primaryTrait);
         console.log('=== QUEST PROGRESS SAVING DEBUG ===');
         console.log('Effects received by sendQuestCompletionEvents:', effects);
         console.log('Quest progress extracted:', questProgress);
-        console.log('Number of quests to save:', Object.keys(questProgress).length);
+        console.log('Filtered quest progress:', filteredQuestProgress);
+        console.log('Number of quests to save:', Object.keys(filteredQuestProgress).length);
         
         try {
           // Save quest progress directly to backend - one call per quest
-          for (const [questId, progress] of Object.entries(questProgress)) {
+          for (const [questId, progress] of Object.entries(filteredQuestProgress)) {
             console.log(`=== SAVING QUEST: ${questId} ===`);
             console.log(`Quest ID: ${questId}`);
             console.log(`Progress: ${progress}`);
             console.log(`Story ID: ${this.storyId}`);
-            console.log(`Primary trait: ${this.primaryTrait}`);
-            
-            // Double-check if this quest should be saved for this personality type
-            const questTraitMatch = questId.match(/^(\w+)_\d+$/);
-            if (questTraitMatch && this.primaryTrait) {
-              const questTrait = questTraitMatch[1];
-              const matches = questTrait.toLowerCase() === this.primaryTrait.toLowerCase();
-              console.log(`Quest trait: ${questTrait}, User trait: ${this.primaryTrait}, Matches: ${matches}`);
-              
-              if (!matches) {
-                console.log(`⚠️ WARNING: Saving quest ${questId} for user with trait ${this.primaryTrait} - this should have been filtered out!`);
-              } else {
-                console.log(`✅ Quest ${questId} matches user trait ${this.primaryTrait}`);
-              }
-            }
+            console.log(`Research condition: ${this.researchCondition}`);
             
             await this.apiService.saveQuestProgress({
               storyId: this.storyId,
@@ -1257,7 +1348,7 @@ export class StoryRewardManager {
           console.log('✅ All quest progress saved successfully');
           
           // Show quest completion notifications
-          Object.entries(questProgress).forEach(([questId, progress]) => {
+          Object.entries(filteredQuestProgress).forEach(([questId, progress]) => {
             const questInfo = getQuestInfo(questId);
             const questTitle = questInfo?.title || questId;
             this.showNotification(`🎯 Quest Progress: ${questTitle}`, 'quest');
@@ -1940,7 +2031,7 @@ export async function debugEquipmentEndpoints(apiService: any): Promise<void> {
 // Export the debug function for use in story components
 // export { debugRewardDetection } from './rewardsUtils'; // Removed: not exported by rewardsUtils
 
-function checkItemOwnershipAndUpgrade(itemName: string, playerInventory: string[], storyReplayCount: number): UpgradedEquipmentReward | undefined {
+export function checkItemOwnershipAndUpgrade(itemName: string, playerInventory: string[], storyReplayCount: number): UpgradedEquipmentReward | undefined {
   // Example implementation: check if item is in inventory and if replay count allows upgrade
   const alreadyOwned = playerInventory.some(item => item.toLowerCase() === itemName.toLowerCase());
   const isUpgrade = alreadyOwned && storyReplayCount > 0;

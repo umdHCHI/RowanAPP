@@ -120,12 +120,11 @@ type PersonalityStoryCatalogProps = {
   isLoading: boolean;
   onStorySelect: (story: Story) => void;
   globalStyles: any;
-  personalityStyles?: any; // Add personality styles
+  personalityStyles?: any;
   userPersonalityTrait?: string;
   setStories: (stories: Story[]) => void;
   onStoryRestart?: () => void;
   setIsLoading: (loading: boolean) => void;
-  debugPersonalityMatching?: () => void;
 };
 
 const PersonalityStoryCatalog = ({
@@ -135,22 +134,13 @@ const PersonalityStoryCatalog = ({
   onStorySelect,
   globalStyles,
   personalityStyles,
-  userPersonalityTrait,
-  setStories,
-  onStoryRestart,
   setIsLoading,
-  debugPersonalityMatching,
 }: PersonalityStoryCatalogProps) => {
 
   const [error, setError] = useState<string | null>(null);
 
   const theme = PersonalityThemes[primaryTrait];
 
-  // Debug: Log stories to understand what's being rendered
-  console.log('PersonalityStoryCatalog - Stories count:', stories.length);
-  console.log('PersonalityStoryCatalog - Stories:', stories.map(s => ({ id: s.id, title: s.title })));
-
-  // Stories are now loaded by the parent component, so we don't need internal loading logic
   const getRarityColors = (rarity: string): readonly [string, string] => {
     const colors = theme.rarityColors[rarity as keyof typeof theme.rarityColors] || theme.rarityColors.Common;
     return [colors[0], colors[1]] as const;
@@ -158,7 +148,7 @@ const PersonalityStoryCatalog = ({
 
   const getRarityGlow = (rarity: string): string => {
     const colors = getRarityColors(rarity);
-    return `${colors[0]}40`; // Add transparency
+    return `${colors[0]}40`;
   };
 
   const getCardStyleOverrides = () => {
@@ -208,8 +198,6 @@ const PersonalityStoryCatalog = ({
 
   const StoryCard = ({ story }: { story: Story }) => {
     const cardOverrides = getCardStyleOverrides();
-    
-    // Use personality-specific colors for the left border
     const leftBorderColor = personalityStyles ? theme.primary : "rgba(78, 230, 230, 0.8)";
     
     return (
@@ -219,7 +207,7 @@ const PersonalityStoryCatalog = ({
           { 
             opacity: story.isLocked ? 0.6 : 1,
             shadowColor: leftBorderColor,
-            maxHeight: 400, // Constrain story card height to enable better scrolling
+            maxHeight: 400,
           },
           cardOverrides
         ]}
@@ -240,8 +228,8 @@ const PersonalityStoryCatalog = ({
                 borderRadius: (cardOverrides as any).borderRadius,
                 shadowColor: getRarityGlow(story.rarity || "Common"),
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1, // Reduce shadow opacity
-                shadowRadius: 2, // Reduce shadow radius
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
               }
             ]}
           />
@@ -469,10 +457,6 @@ const PersonalityStoryCatalog = ({
           onPress={() => {
             setError(null);
             setIsLoading(true);
-            // Retry loading
-            setTimeout(() => {
-              setIsLoading(false);
-            }, 1000);
           }}
           style={{
             padding: 20,
@@ -481,7 +465,7 @@ const PersonalityStoryCatalog = ({
             marginTop: 20,
           }}
         >
-          <Text style={{ color: "white" }}>Retry</Text>
+          <Text style={{ color: "white", fontWeight: "600" }}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
@@ -514,14 +498,10 @@ const PersonalityStoryCatalog = ({
 
       {/* Story Grid */}
       <ScrollView
-        style={[globalStyles.personalityStoryScrollView, { 
-          backgroundColor: 'rgba(255, 0, 0, 0.1)', // Debug: red tint to see ScrollView bounds
-        }]}
-        contentContainerStyle={[globalStyles.personalityStoryGrid, {
-          backgroundColor: 'rgba(0, 255, 0, 0.1)', // Debug: green tint to see content bounds
-        }]}
-        showsVerticalScrollIndicator={true} // Enable to see if scrollbar appears
-        nestedScrollEnabled={true} // Enable nested scrolling  
+        style={globalStyles.personalityStoryScrollView}
+        contentContainerStyle={globalStyles.personalityStoryGrid}
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
         bounces={true}
         scrollEnabled={true}
         keyboardShouldPersistTaps="handled"
@@ -531,17 +511,6 @@ const PersonalityStoryCatalog = ({
             {stories.map((story) => (
               <StoryCard key={story.id} story={story} />
             ))}
-            {/* Debug: Add extra content to force scrolling */}
-            <View style={{ height: 100, backgroundColor: 'rgba(0, 0, 255, 0.2)', margin: 20, justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={{ color: 'white', fontSize: 16 }}>Debug: Extra content for testing scroll</Text>
-            </View>
-            <View style={{ height: 100, backgroundColor: 'rgba(255, 255, 0, 0.2)', margin: 20, justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={{ color: 'black', fontSize: 16 }}>Debug: More content to ensure scroll</Text>
-            </View>
-            <View style={{ height: 200, backgroundColor: 'rgba(255, 0, 255, 0.2)', margin: 20, justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={{ color: 'white', fontSize: 16 }}>Debug: Final content block</Text>
-              <Text style={{ color: 'white', fontSize: 12, marginTop: 10 }}>Total stories: {stories.length}</Text>
-            </View>
           </>
         ) : (
           <View

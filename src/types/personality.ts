@@ -13,9 +13,11 @@ export type PersonalityKey =
 const SLUG_TO_KEY: Record<string, PersonalityKey> = {
   agreeableness: 'Agreeableness',
   openness: 'Openness',
+  openmindedness: 'Openness', // Survey uses 'openMindedness'
   conscientiousness: 'Conscientiousness',
   extraversion: 'Extraversion',
-  neuroticism: 'Neuroticism'
+  neuroticism: 'Neuroticism',
+  negativeemotionality: 'Neuroticism' // Survey uses 'negativeEmotionality'
 };
 
 export function toPersonalityKey(input?: string | null): PersonalityKey | null {

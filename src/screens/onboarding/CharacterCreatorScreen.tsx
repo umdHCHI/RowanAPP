@@ -28,10 +28,8 @@ export default function ArchiveCharacterCreatorScreen() {
   const creatorStyles = characterCreatorStyles(theme.characterCreatorTheme);
   const [selectedCategory, setSelectedCategory] = useState<number>(0);
 
-  // Use the memoized categories from MasterStateContext
   const { styleCategories, colorCategories } = character;
 
-  // Custom hook for character creation logic
   const { handleCharacterCreation, isCreating } = useCharacterCreation({
     characterName: character.characterName,
     createCharacter: character.createCharacter,
@@ -41,7 +39,6 @@ export default function ArchiveCharacterCreatorScreen() {
     completeCharacter: onboarding.completeCharacter,
   });
 
-  // Memoized handlers 
   const handleNameChange = useCallback(
     (name: string): void => {
       character.setCharacterName(name);
@@ -53,28 +50,26 @@ export default function ArchiveCharacterCreatorScreen() {
     setSelectedCategory(index);
   }, []);
 
-  // Memoized current category 
   const currentStyleCategory = useMemo(
     () => styleCategories[selectedCategory],
     [styleCategories, selectedCategory]
   );
 
-  // Get the color category that corresponds to the selected style category
   const getCurrentColorCategory = useMemo(() => {
-    // Always show Skin Color color picker when Base Model is selected
     if (selectedCategory === 0) {
-      return colorCategories[0]; // Skin Color
+      return colorCategories[0];
     }
-    // Otherwise, use the normal mapping
+    
     const styleToColorIndexMap: { [key: number]: number } = {
-      0: 0, // Base Model → Skin Color
-      1: 1, // Hair Style → Hair Color
-      2: 2, // Eyes → Eye Color
-      3: 3, // Eyebrow Style → Eyebrow Color
-      4: -1, // Mouth → No color equivalent
-      5: 4, // Clothes → Clothes Color
-      6: 5, // Background → Background Color
+      0: 0,
+      1: 1,
+      2: 2,
+      3: 3,
+      4: -1,
+      5: 4,
+      6: 5,
     };
+    
     const colorIndex = styleToColorIndexMap[selectedCategory];
     return colorIndex !== -1 && colorIndex !== undefined ? colorCategories[colorIndex] : null;
   }, [selectedCategory, colorCategories]);
@@ -83,7 +78,6 @@ export default function ArchiveCharacterCreatorScreen() {
     <View style={creatorStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor={creatorStyles.backgroundColor} />
 
-      {/* Mystical Background */}
       <View style={creatorStyles.backgroundContainer}>
         <View style={creatorStyles.floatingElements}>
           <FloatingElement delay={0} duration={5000} translateY={20}>
@@ -115,14 +109,12 @@ export default function ArchiveCharacterCreatorScreen() {
       </View>
 
       <ScrollView style={creatorStyles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={creatorStyles.header}>
           <Text style={creatorStyles.forgeTitle}>THE ARCHIVE</Text>
           <Text style={creatorStyles.forgeSubtitle}>Soul Forge Workshop</Text>
           <View style={creatorStyles.decorativeLine} />
         </View>
 
-        {/* Character Name Input - Made Prominent */}
         <View style={creatorStyles.nameSection}>
           <AssetLabel
             assetType="sectionIcons"
@@ -139,13 +131,12 @@ export default function ArchiveCharacterCreatorScreen() {
           />
         </View>
 
-        {/* Character Preview */}
         <View style={creatorStyles.previewSection}>
           <AssetLabel
             assetType="sectionIcons"
             assetName="preview"
             text="Avatar Preview"
-                        style={{ justifyContent: 'center', alignSelf: 'center' }}
+            style={{ justifyContent: 'center', alignSelf: 'center' }}
             iconStyle={{ width: 32, height: 32, marginRight: 8 }}
             textStyle={creatorStyles.sectionTitle}
           />
@@ -154,20 +145,17 @@ export default function ArchiveCharacterCreatorScreen() {
           </View>
         </View>
 
-        {/* Style Options - Two Rows for Mobile */}
         <View style={creatorStyles.styleSection}>
           <AssetLabel
             assetType="sectionIcons"
             assetName="appearance"
             text="Appearance Options"
-                        style={{ justifyContent: 'center', alignSelf: 'center' }}
+            style={{ justifyContent: 'center', alignSelf: 'center' }}
             iconStyle={{ width: 32, height: 32, marginRight: 8 }}
             textStyle={creatorStyles.sectionTitle}
           />
 
-          {/* Custom Two-Row Grid Layout */}
           <View style={creatorStyles.categoryGrid}>
-            {/* First Row */}
             <View style={creatorStyles.categoryRow}>
               {styleCategories.slice(0, 4).map((category, index) => (
                 <TouchableOpacity
@@ -187,8 +175,7 @@ export default function ArchiveCharacterCreatorScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            
-            {/* Second Row */}
+
             <View style={creatorStyles.categoryRow}>
               {styleCategories.slice(4).map((category, index) => (
                 <TouchableOpacity
@@ -210,7 +197,6 @@ export default function ArchiveCharacterCreatorScreen() {
             </View>
           </View>
 
-          {/* Style Options Display */}
           {currentStyleCategory && (
             <View>
               <StyleControls
@@ -221,14 +207,13 @@ export default function ArchiveCharacterCreatorScreen() {
           )}
         </View>
 
-        {/* Single Color Picker */}
         {getCurrentColorCategory && (
           <View style={creatorStyles.colorSection}>
             <AssetLabel
               assetType="sectionIcons"
               assetName="appearance"
-                          style={{ justifyContent: 'center', alignSelf: 'center' }}
-            iconStyle={{ width: 32, height: 32, marginRight: 8 }}
+              style={{ justifyContent: 'center', alignSelf: 'center' }}
+              iconStyle={{ width: 32, height: 32, marginRight: 8 }}
               text={`Color for ${currentStyleCategory?.label}`}
               textStyle={creatorStyles.sectionTitle}
             />
@@ -241,7 +226,6 @@ export default function ArchiveCharacterCreatorScreen() {
           </View>
         )}
 
-        {/* Complete Button -*/}
         <View style={creatorStyles.completeSection}>
           <TouchableOpacity
             style={[

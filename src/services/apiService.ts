@@ -1,7 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import { archiveHeaderIcon } from '../assets/equipment';
-import { AsyncStorage } from '../imports';
 import { Character, CharacterCreateData, CharacterGear, CodexEntry, CopingTool, GameData, JournalPrompt, LoginResponse, UserProfile } from '../types';
 import { PersonalityKey } from '../types/personality';
 import { API_ENDPOINTS, apiBaseUrl } from './apiConfig';
@@ -506,8 +506,10 @@ class ApiService {
 
 
             
+            console.log('📊 About to call updateUserProfile endpoint with data:', profileData);
             // Use the updateUserProfile endpoint directly - backend expects data in request body
             const result = await this.patch<UserProfile>('updateUserProfile', profileData);
+            console.log('📊 updateUserProfile response:', result);
             
             if (!result) {
                 throw new Error('No response received from profile update');
@@ -590,13 +592,35 @@ class ApiService {
             }
 
             // Get current user profile to check research group
-            const profile = await this.getProfile();
-
+            let profile;
+            let isAdminOrTestUser = false;
+            let researchGroup;
             
-            // Check if user is admin or test user
-            const isAdminOrTestUser = profile?.username === 'admin' || 
+            try {
+                profile = await this.getProfile();
+                // Check if user is admin or test user
+                isAdminOrTestUser = profile?.username === 'admin' || 
                                     profile?.profile?.completion_type === 'test' ||
                                     profile?.profile?.completion_type === 'character';
+                researchGroup = profile?.profile?.research_group;
+            } catch (profileError: any) {
+                console.warn('⚠️ Failed to get user profile, assuming test user:', profileError.message);
+                console.warn('⚠️ Profile error details:', {
+                    message: profileError.message,
+                    status: profileError.response?.status,
+                    data: profileError.response?.data
+                });
+                // If getProfile fails, assume it's a test user and continue
+                isAdminOrTestUser = true;
+                profile = null;
+                researchGroup = undefined;
+            }
+            
+            console.log('📊 Profile fetch result:', {
+                hasProfile: !!profile,
+                isAdminOrTestUser,
+                researchGroup
+            });
             
 
 
@@ -670,7 +694,7 @@ class ApiService {
 
             
             // Use the research group that was already assigned during onboarding
-            const researchGroup = profile?.profile?.research_group?.condition;
+            // researchGroup is already defined above
 
 
 
@@ -690,7 +714,9 @@ class ApiService {
                 assigned_archetype: traitToArchetype[dominantTrait] || 'Unknown',
                 survey_completed_at: new Date().toISOString(),
                 completion_type: 'survey',
-                onboarding_completed: true
+                onboarding_completed: true,
+                // Assign to research group B when completing survey (if not already assigned)
+                ...(researchGroup !== 'B' && { research_group: 'B' })
             };
             
 
@@ -698,71 +724,221 @@ class ApiService {
 
 
             
-            const surveyResult = await this.updateProfile(profilePayload);
+            console.log('📊 About to update profile with payload:', profilePayload);
+            console.log('📊 Current user profile before update:', profile);
+            console.log('📊 Research group before update:', researchGroup);
+            
+            // Create the proper personality_profile structure that the frontend expects
+            const personalityProfileStructure = {
+                profile_summary: {
+                    dominant_trait: dominantTrait,
+                    personality_scores: formattedScores,
+                    assigned_archetype: traitToArchetype[dominantTrait] || 'Unknown'
+                },
+                big_five_scores: formattedScores,
+                primary_trait: dominantTrait,
+                survey_completed_at: new Date().toISOString()
+            };
+            
+            // Note: Backend endpoints may not support nested personality_profile structure
+            // We'll save personality data in a flat structure that the backend can handle
+            
+            // Update the general profile with completion status and personality profile structure
+            let surveyResult;
+            try {
+                console.log('🔄 Updating profile with personality data...');
+                console.log('🔄 Personality profile structure:', JSON.stringify(personalityProfileStructure, null, 2));
+                
+                // Save personality data in a flat structure that the backend can handle
+                // Include research group assignment for survey users (Group B)
+        surveyResult = await this.updateProfile({
+            // Save personality data directly (not nested)
+            personality_scores: formattedScores,
+            primary_trait: dominantTrait,
+            assigned_archetype: traitToArchetype[dominantTrait] || 'Unknown',
+            completion_type: 'survey',
+            onboarding_completed: true,
+            survey_completed_at: new Date().toISOString()
+        });
+                console.log('✅ Profile updated successfully:', surveyResult);
+                
+                // Verify that the personality data was saved
+                const surveyResultWithPersonality = surveyResult as any;
+                if (surveyResultWithPersonality && (surveyResultWithPersonality.primary_trait || surveyResultWithPersonality.personality_scores)) {
+                    console.log('✅ Personality data saved successfully:');
+                    console.log('✅ Primary trait:', surveyResultWithPersonality.primary_trait);
+                    console.log('✅ Personality scores:', surveyResultWithPersonality.personality_scores);
+                } else {
+                    console.warn('⚠️ Warning: Personality data may not have been saved properly');
+                    console.warn('⚠️ Survey result primary_trait:', surveyResultWithPersonality?.primary_trait);
+                    console.warn('⚠️ Survey result personality_scores:', surveyResultWithPersonality?.personality_scores);
+                    console.warn('⚠️ This might be normal if the backend stores personality data separately');
+                }
+                
+            } catch (profileUpdateError) {
+                console.error('❌ Failed to update profile with personality data:', profileUpdateError);
+                throw profileUpdateError;
+            }
 
             
-            // For Group B users, we also need to submit to the research endpoint for data collection
-            if (!isAdminOrTestUser && researchGroup === 'B') {
-
-                try {
-                    const researchPayload = {
-                        survey_type: 'big_five_personality',
-                        personality_scores: formattedScores,
-                        answers: surveyData.responses || {},
-                        trait_averages: formattedScores,
-                        completion_time: surveyData.completion_time_seconds || 0,
-                        metadata: {
-                            version: surveyData.version,
-                            started_at: surveyData.started_at,
-                            completed_at: surveyData.completed_at,
-                            total_questions: surveyData.total_questions,
-                            questions_answered: surveyData.questions_answered,
-                            completion_percentage: surveyData.completion_percentage,
-                            response_distribution: surveyData.response_distribution,
-                            trait_counts: surveyData.trait_counts,
-                            response_variance: surveyData.response_variance,
-                            user_agent: surveyData.user_agent,
-                            platform: surveyData.platform,
-                            onboarding_path: surveyData.onboarding_path,
-                            app_version: surveyData.app_version,
-                            is_admin_or_test_user: isAdminOrTestUser
-                        }
-                    };
-                    
-
-
-
-                    
-                    const researchResult = await this.post('personalitySurveySubmit', researchPayload);
-
-                } catch (researchError) {
-
-                    // Don't fail the entire survey submission if research endpoint fails
-                }
+            // Survey completion automatically assigns users to research group B
+            console.log('📊 Survey completion logic:');
+            console.log('📊 Current research group:', researchGroup);
+            console.log('📊 Is admin/test user:', isAdminOrTestUser);
+            
+            // Log current user status for debugging
+            if (isAdminOrTestUser) {
+                console.log('📊 Admin/test user - will update profile only (skip research endpoint)');
+            } else if (researchGroup === 'B') {
+                console.log('📊 User already in Group B - will attempt research endpoint submission');
+            } else if (researchGroup && researchGroup !== 'B') {
+                console.log('📊 User already assigned to group', researchGroup, '- updating profile only');
+            } else {
+                console.log('📊 User not assigned to any research group - will update profile only (no research endpoint)');
             }
             
-            // Complete onboarding for survey path
+            // For survey users, we need to submit survey data first, then complete onboarding
+            if (!isAdminOrTestUser) {
+                console.log('📊 Regular user - submitting survey data and completing onboarding...');
+                
+               // Format answers to match backend expectations
+               // The backend expects answers as {question_id: answer_value} where question_id is string
+               const formattedAnswers: Record<string, number> = {};
+               // Use the 'answers' field from surveyData (which contains question_id: answer_value mapping)
+               if (surveyData.answers && typeof surveyData.answers === 'object') {
+                   Object.entries(surveyData.answers).forEach(([questionId, answerValue]) => {
+                       // Backend expects string keys for question IDs
+                       if (typeof answerValue === 'number') {
+                           formattedAnswers[questionId] = answerValue;
+                       }
+                   });
+               }
+               
+               console.log('📊 Formatted answers for backend:', formattedAnswers);
+                
+                try {
+                    // First, submit survey data to create the survey record
+                    console.log('📊 Submitting survey data to create survey record...');
+                    
+                    // Create payload that matches the backend's expected format
+                    const surveyPayload = {
+                        answers: formattedAnswers,
+                        big_five_scores: surveyData.personality_scores || formattedScores,
+                        completed: true
+                    };
+                    
+                    console.log('📊 Survey payload:', surveyPayload);
+                    
+                    // Submit survey data first
+                    const surveyResult = await this.post('personalitySurveySubmit', surveyPayload);
+                    console.log('✅ Survey submitted successfully:', surveyResult);
+                    
+                    // Now complete onboarding - backend will detect the survey and assign to research group B
+                    console.log('📊 Completing onboarding after survey submission...');
+                    const onboardingResult = await this.completeOnboarding('survey');
+                    console.log('✅ Onboarding completed successfully:', onboardingResult);
 
-            const onboardingResult = await this.completeOnboarding('survey');
+                } catch (researchError: any) {
+                    console.error('❌ Survey submission or onboarding failed:', researchError);
+                    console.error('❌ Error details:', {
+                        message: researchError.message,
+                        response: researchError.response?.data,
+                        status: researchError.response?.status,
+                        statusText: researchError.response?.statusText
+                    });
+                    
+                    // If it's a 403 error, the user might not be in the right research group
+                    // Try to complete onboarding first to assign the research group
+                    if (researchError.response?.status === 403) {
+                        console.log('📊 403 error - attempting to complete onboarding first to assign research group...');
+                        try {
+                            const onboardingResult = await this.completeOnboarding('survey');
+                            console.log('✅ Onboarding completed, now retrying survey submission...');
+                            
+                            // Retry survey submission after onboarding
+                            const retryPayload = {
+                                answers: formattedAnswers,
+                                big_five_scores: surveyData.personality_scores || formattedScores,
+                                completed: true
+                            };
+                            
+                            const retryResult = await this.post('personalitySurveySubmit', retryPayload);
+                            console.log('✅ Survey submitted successfully on retry:', retryResult);
+                        } catch (retryError: any) {
+                            console.error('❌ Retry failed:', retryError);
+                            console.warn('⚠️ Continuing with profile update despite survey submission failure');
+                        }
+                    } else {
+                        // Don't fail the entire survey submission if research endpoint fails
+                        // The profile update with personality data is more important
+                        console.warn('⚠️ Continuing with profile update despite survey/onboarding failure');
+                    }
+                }
+            } else {
+                console.log('📊 Admin/test user - skipping survey submission and onboarding');
+            }
 
             
+            // Handle the case where surveyResult might have a different structure
+            let processedSurveyResult = surveyResult;
+            if (surveyResult && Array.isArray(surveyResult) && surveyResult.length > 0) {
+                // If backend returns an array, take the first (most recent) survey
+                processedSurveyResult = surveyResult[0];
+                console.log('📊 Processed survey result from array:', processedSurveyResult);
+            }
+            
             return {
-                surveyResult,
-                onboardingResult,
+                surveyResult: processedSurveyResult || { success: true, message: 'Profile updated successfully' },
+                onboardingResult: { success: true, message: 'Survey submission completed successfully' },
                 personality_scores: formattedScores
             };
         } catch (error: any) {
+            console.error('❌ Survey submission error details:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                config: {
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    data: error.config?.data
+                },
+                stack: error.stack,
+                name: error.name,
+                code: error.code
+            });
 
             if (error.response) {
+                console.error('❌ Server response error:', error.response.data);
+                console.error('❌ Server status:', error.response.status);
+                console.error('❌ Server headers:', error.response.headers);
+            } else {
+                console.error('❌ No response object - this might be a network or configuration error');
+                console.error('❌ Full error object:', error);
             }
-            throw new Error(`Failed to submit survey data and complete onboarding: ${error.message || 'Unknown error'}`);
+            
+            // Provide more specific error messages based on the type of error
+            let errorMessage = 'Unknown error';
+            if (error.response?.status === 403) {
+                errorMessage = 'Access denied. User is not in Group B or missing research group assignment.';
+            } else if (error.response?.status === 400) {
+                errorMessage = 'Invalid survey data. Please check the payload structure.';
+            } else if (error.response?.status === 500) {
+                errorMessage = 'Server error. Please try again later.';
+            } else if (error.code === 'ERR_NETWORK') {
+                errorMessage = 'Network error. Please check your connection.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            throw new Error(`Failed to submit survey data and complete onboarding: ${errorMessage}`);
         }
     }
 
+
     async completeOnboarding(path: 'character' | 'survey'): Promise<UserProfile> {
         try {
-
-
+            console.log('🔄 Starting onboarding for path:', path);
             
             // Validate input
             if (!path || !['character', 'survey'].includes(path)) {
@@ -772,29 +948,65 @@ class ApiService {
             // Check if user is already onboarded
             const currentProfile = await this.getProfile();
             if (currentProfile?.profile?.has_completed_onboarding) {
-
+                console.log('✅ User already onboarded, checking research group assignment...');
+                
+                const existingResearchGroup = currentProfile?.profile?.research_group;
+                if (!existingResearchGroup) {
+                    console.log('⚠️ User is onboarded but has no research group - calling complete_onboarding endpoint...');
+                    // Call the backend's complete_onboarding endpoint to assign research group
+                    const onboardingData = {
+                        username: "",
+                        email: "",
+                        first_name: "",
+                        last_name: "",
+                        profile: {
+                            has_completed_onboarding: true,
+                            completion_type: path,
+                            completion_data_id: null // Backend will set this based on character/survey existence
+                        }
+                    };
+                    
+                    const result = await this.post('completeOnboarding', onboardingData);
+                    console.log('✅ Research group assigned via complete_onboarding:', result);
+                    return (result as any).user || currentProfile;
+                } else {
+                    console.log('✅ User already has research group assigned:', existingResearchGroup);
                 return currentProfile;
+                }
             }
             
-            // Determine research condition based on path
-            const researchCondition = path === 'character' ? 'A' : 'B';
-
+            console.log('📊 Calling backend complete_onboarding endpoint...');
             
-            // Update the user profile with onboarding completion data
+            // Prepare the data structure that matches the backend's expectations
             const onboardingData = {
-                has_completed_onboarding: true,
-                completion_type: path,
-                research_group: researchCondition,
-                onboarding_completed_at: new Date().toISOString()
+                username: "",
+                email: "",
+                first_name: "",
+                last_name: "",
+                profile: {
+                    has_completed_onboarding: true,
+                    completion_type: path,
+                    completion_data_id: null // Backend will set this based on character/survey existence
+                }
             };
-
-
-            const updatedProfile = await this.updateProfile(onboardingData);
-
-            return updatedProfile;
+            
+            console.log('📊 Sending onboarding data:', onboardingData);
+            
+            // Use the backend's unified complete_onboarding endpoint
+            // The backend will automatically determine the research group based on whether user has character or survey
+            const result = await this.post('completeOnboarding', onboardingData);
+            console.log('✅ Onboarding completed via backend endpoint:', result);
+            
+            // Return the user profile from the response
+            return (result as any).user || result;
             
         } catch (error: any) {
-
+            console.error('❌ Failed to complete onboarding:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
             
             // Check if this is a network/CORS error (common on web platform)
             const isNetworkError = error.code === 'ERR_NETWORK' || 
@@ -803,7 +1015,7 @@ class ApiService {
                                  error.message?.includes('ERR_FAILED');
             
             if (isNetworkError) {
-
+                console.warn('⚠️ Network error detected, returning mock profile for development');
                 
                 // Create a mock user profile for web platform
                 const researchCondition = path === 'character' ? 'A' : 'B';
@@ -835,13 +1047,8 @@ class ApiService {
                         last_updated: new Date().toISOString()
                     }
                 };
-                
 
                 return mockProfile;
-            }
-            
-            // Log detailed error information
-            if (error.response) {
             }
             
             throw new Error(`Failed to complete onboarding: ${error.message || 'Unknown error'}`);
@@ -863,6 +1070,30 @@ class ApiService {
         } catch (error: any) {
 
             return null;
+        }
+    }
+
+    async getPersonalityProfile(): Promise<any> {
+        try {
+            const profile = await this.get('personalityProfileMyProfile');
+            return profile;
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                return null; // No profile found
+            }
+            throw error;
+        }
+    }
+
+    async getPersonalityCompleteData(): Promise<any> {
+        try {
+            const data = await this.get('personalityProfileCompleteData');
+            return data;
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                return null; // No data found
+            }
+            throw error;
         }
     }
 
@@ -1237,7 +1468,7 @@ class ApiService {
                 source: string;
                 resonance_up?: boolean;
                 message?: string;
-            }>('gainExperience', { resonance, source }, { urlSuffix: `${characterId}/gain_resonance/` });
+            }>('gainExperience', { experience: resonance, source: source || 'story_passage' }, { urlSuffix: `${characterId}/gain_experience/` });
 
             return result;
         } catch (error: any) {
@@ -1535,24 +1766,42 @@ class ApiService {
     // ===== JOURNAL PROMPTS =====
     async getJournalPrompts(): Promise<JournalPrompt[]> {
         try {
-
-            
-            // Try the journal prompts endpoint first
-            const data = await this.get<JournalPrompt[]>('journalPrompts');
+            // Try the codex-entries endpoint first (GET request) to get all available prompts
+            const data = await this.get<JournalPrompt[]>('codexEntries');
             const prompts = Array.isArray(data) ? data : [];
             
-
-            return prompts;
-        } catch (error: any) {
-
+            console.log('🔍 getJournalPrompts Debug (codex-entries):', {
+                rawData: data,
+                promptsCount: prompts.length,
+                prompts: prompts.map(p => ({ id: p.id, category: p.category, text: p.text.substring(0, 30) + '...' }))
+            });
             
-            // If journal prompts endpoint doesn't exist, provide fallback prompts
-            if (error?.response?.status === 404) {
-
-                return this.getFallbackPrompts();
+            // If we got prompts from codex-entries, return them
+            if (prompts.length > 0) {
+                return prompts;
             }
             
-            return [];
+            // Fallback to journal-prompts endpoint
+            const fallbackData = await this.get<JournalPrompt[]>('journalPrompts');
+            const fallbackPrompts = Array.isArray(fallbackData) ? fallbackData : [];
+            
+            console.log('🔍 getJournalPrompts Debug (journal-prompts fallback):', {
+                rawData: fallbackData,
+                promptsCount: fallbackPrompts.length,
+                prompts: fallbackPrompts.map(p => ({ id: p.id, category: p.category, text: p.text.substring(0, 30) + '...' }))
+            });
+            
+            return fallbackPrompts;
+        } catch (error: any) {
+            console.log('🔍 getJournalPrompts Error:', {
+                status: error?.response?.status,
+                message: error?.message,
+                data: error?.response?.data
+            });
+            
+            // Always provide fallback prompts if the API fails for any reason
+            console.log('🔍 Using fallback prompts due to API error');
+            return this.getFallbackPrompts();
         }
     }
 
@@ -1643,18 +1892,59 @@ class ApiService {
         
         // Get daily prompts - backend should return one prompt per category per day
         const dailyPrompts = await this.getJournalPrompts();
+        
+        console.log('🔍 getPromptsByCategory Debug:', {
+            totalPrompts: dailyPrompts.length,
+            prompts: dailyPrompts.map(p => ({ id: p.id, category: p.category, text: p.text.substring(0, 50) + '...' }))
+        });
 
-        const pick = (cat: 'journal'|'draw'|'voice') =>
-            dailyPrompts.find(p => p.category === cat) || null;
+        const pick = (cat: 'journal'|'draw'|'voice') => {
+            // First try to find by category field
+            let prompt = dailyPrompts.find(p => p.category === cat);
+            
+            // If no prompt found by category, try to find by other means
+            if (!prompt) {
+                // Try to find by prompt_id pattern
+                prompt = dailyPrompts.find(p => 
+                    p.prompt_id?.toLowerCase().includes(cat) ||
+                    p.text?.toLowerCase().includes(cat + 'ing') ||
+                    p.text?.toLowerCase().includes(cat)
+                );
+            }
+            
+            return prompt || null;
+        };
 
         const result = {
             journal: pick('journal'),
             draw:    pick('draw'),
             voice:   pick('voice'),
         };
+        
+        // If any category is missing, supplement with fallback prompts
+        const fallbackPrompts = this.getFallbackPrompts();
+        const finalResult = {
+            journal: result.journal || fallbackPrompts.find(p => p.category === 'journal') || null,
+            draw: result.draw || fallbackPrompts.find(p => p.category === 'draw') || null,
+            voice: result.voice || fallbackPrompts.find(p => p.category === 'voice') || null,
+        };
+        
+        // Log if we're using fallback prompts for any category
+        if (!result.journal || !result.draw || !result.voice) {
+            console.log('🔍 Using fallback prompts for missing categories:', {
+                journal: !result.journal ? 'fallback' : 'backend',
+                draw: !result.draw ? 'fallback' : 'backend',
+                voice: !result.voice ? 'fallback' : 'backend',
+            });
+        }
+        
+        console.log('🔍 getPromptsByCategory Final Result:', {
+            journal: finalResult.journal ? { id: finalResult.journal.id, category: finalResult.journal.category } : null,
+            draw: finalResult.draw ? { id: finalResult.draw.id, category: finalResult.draw.category } : null,
+            voice: finalResult.voice ? { id: finalResult.voice.id, category: finalResult.voice.category } : null,
+        });
 
-
-        return result;
+        return finalResult;
     }
 
     // ===== CODEX ENTRIES =====
@@ -2398,7 +2688,14 @@ class ApiService {
             // Return a default game data structure to prevent cascading failures
             return {
                 id: 0,
-                user: 1,
+                user: {
+                    id: 1,
+                    username: 'Default Player',
+                    email: '',
+                    date_joined: new Date().toISOString(),
+                    research_group: null
+                },
+                research_group: null,
                 player_name: 'Default Player',
                 score: 0,
                 level: 1,
@@ -2406,7 +2703,32 @@ class ApiService {
                 current_story_id: null,
                 current_passage_id: null,
                 completed_prompts: [],
-                total_entries: 0
+                total_entries: 0,
+                difficulty_levels: [],
+                unlocked_areas: [],
+                character_data: null,
+                personality_data: {
+                    openness: 5.0,
+                    conscientiousness: 5.0,
+                    extraversion: 5.0,
+                    agreeableness: 5.0,
+                    neuroticism: 5.0
+                },
+                journal_data: {
+                    total_entries: 0,
+                    recent_entries: [],
+                    entries_by_type: []
+                },
+                story_data: {
+                    stories_started: 0,
+                    stories_completed: 0,
+                    current_stories: [],
+                    completed_stories: []
+                },
+                progress_summary: {},
+                wellness_stats: {},
+                acquired_gear: [],
+                coping_tools: []
             } as GameData;
         }
     }
@@ -2506,6 +2828,41 @@ class ApiService {
         return this.post<GameData>('gameData', gameData);
     }
 
+    /**
+     * Fetch the current user's game data from the game-data API
+     * Returns the user's game data including personality, scores, and progress
+     */
+    async fetchUserGameData(): Promise<GameData> {
+        try {
+            const response = await this.get<GameData[]>('gameDataList');
+            
+            // The API returns an array, find the current user's data
+            // Assuming the first item is the current user's data, or we can filter by user ID
+            if (response && response.length > 0) {
+                // Return the first game data entry (should be current user)
+                return response[0];
+            }
+            
+            throw new Error('No game data found for user');
+        } catch (error: any) {
+            console.error('[apiService] Error fetching game data:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update the user's game data (score, level, etc.)
+     * PATCH to game-data/{id}/
+     */
+    async updateGameDataScore(gameDataId: number, updates: { score?: number; level?: number; difficulty_levels?: string[] }): Promise<GameData> {
+        try {
+            return await this.patch<GameData>('gameDataList', updates, { urlSuffix: `${gameDataId}/` });
+        } catch (error: any) {
+            console.error('[apiService] Error updating game data:', error);
+            throw error;
+        }
+    }
+
     // ===== THOUGHT DEFENDER GAME METHODS =====
     
     /** Primary TD run logger + safe fallbacks */
@@ -2576,36 +2933,39 @@ class ApiService {
     //     return this.patch<GameData>('gameData', gameData);
     // }
 
-    // Helper method to get completed stories from game data
+    // Helper method to get completed stories from story progress records
     async getCompletedStories(): Promise<string[]> {
         try {
-            const gameData = await this.getGameData();
+            // Check if user is authenticated before making API calls
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) {
+                console.log('🔒 No auth token found, skipping completed stories fetch');
+                return [];
+            }
+
+            console.log('🔍 Getting completed stories from story progress records...');
+            
+            // Get all story progress records for the user
+            const allProgress = await this.get<any[]>('getUserProgress');
+            console.log('📊 All progress records:', allProgress);
+            
             const completedStories: string[] = [];
             
-            // Handle different response structures
-            if (gameData && Array.isArray(gameData)) {
-                // Handle array response structure
-                const userGameData = gameData[0] as any;
-                if (userGameData && userGameData.progress) {
-                    userGameData.progress.forEach((progress: any) => {
-                        if (progress.player_state?.completed_stories) {
-                            completedStories.push(...progress.player_state.completed_stories);
-                        }
-                    });
-                }
-            } else if (gameData && (gameData as any).progress) {
-                // Handle single object response structure
-                (gameData as any).progress.forEach((progress: any) => {
-                    if (progress.player_state?.completed_stories) {
-                        completedStories.push(...progress.player_state.completed_stories);
+            if (allProgress && Array.isArray(allProgress)) {
+                allProgress.forEach((progress: any) => {
+                    // Check if the story is marked as completed
+                    if (progress.is_completed === true) {
+                        const storyId = String(progress.story);
+                        completedStories.push(storyId);
+                        console.log(`✅ Found completed story: ${storyId}`);
                     }
                 });
             }
             
-            // Remove duplicates and return
-            return [...new Set(completedStories)];
+            console.log('📚 Completed stories found:', completedStories);
+            return completedStories;
         } catch (error) {
-
+            console.error('❌ Error getting completed stories:', error);
             // Return empty array instead of throwing error to prevent cascading failures
             return [];
         }

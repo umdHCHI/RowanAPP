@@ -30,7 +30,12 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
   const characterName = characterData?.name || characterData?.username || 'Scholar';
   const characterLevel = characterData?.level || 1;
   
-  console.log("Experience:", experience, "Experience Needed:", experienceNeeded, "Percentage:", experiencePercentage);
+  console.log("🔍 PersonalizedArchiveHeader Experience Debug:");
+  console.log("  characterData:", characterData);
+  console.log("  characterData?.experience:", characterData?.experience);
+  console.log("  characterData?.experience_needed:", characterData?.experience_needed);
+  console.log("  characterData?.level:", characterData?.level);
+  console.log("  Final values - Experience:", experience, "Experience Needed:", experienceNeeded, "Level:", characterLevel, "Percentage:", experiencePercentage);
   console.log("=== End PersonalizedArchiveHeader Debug ===");
   
   // Handle case where config might not exist

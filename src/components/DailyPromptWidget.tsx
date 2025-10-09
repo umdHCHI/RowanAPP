@@ -21,8 +21,7 @@ const DailyPromptWidget: React.FC<DailyPromptWidgetProps> = ({ onPromptSelect })
       setLoading(true);
       const response = await apiService.getDailyPrompt();
       setDailyPrompt(response);
-    } catch (error) {
-      console.error('Failed to load daily prompt:', error);
+    } catch {
       Alert.alert('Error', 'Failed to load daily prompt');
     } finally {
       setLoading(false);

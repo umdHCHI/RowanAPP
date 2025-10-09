@@ -1,7 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { CopingTool, PersonalityConfigs, PersonalityKey, PersonalityQuests, useMasterState } from '../../imports';
+import { useMasterState } from '../../context/MasterStateContext';
+import { CopingTool, PersonalityConfigs, PersonalityKey, PersonalityQuests } from '../../imports';
+import { apiService } from '../../services/apiService';
 import { CopingTools } from '../../types/personality';
 import { CopingToolsCollection } from './CopingToolsCollection';
 
@@ -46,9 +48,52 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
   const personalityQuests = (PersonalityQuests as any)[primaryTrait] || [];
   const personalityCopingTools = (CopingTools as any)[primaryTrait] || [];
   const userUnlockedTools = character.backendCharacter?.coping_tools || [];
+  
+  // State for completed stories from apiService
+  const [completedStories, setCompletedStories] = useState<Set<string>>(new Set());
+  const [isLoadingCompletedStories, setIsLoadingCompletedStories] = useState(true);
+  
+  // Function to fetch completed stories from apiService
+  const fetchCompletedStories = async () => {
+    try {
+      // Check if user is authenticated before making API calls
+      if (!userProfile) {
+        console.log('🔒 No user profile found, skipping completed stories fetch');
+        setCompletedStories(new Set());
+        setIsLoadingCompletedStories(false);
+        return;
+      }
+
+      console.log('🔍 Fetching completed stories for Chronicles of Mastery...');
+      const completed = await apiService.getCompletedStories();
+      console.log('✅ Completed stories from apiService:', completed);
+      setCompletedStories(new Set(completed));
+    } catch (error) {
+      console.error('❌ Failed to fetch completed stories:', error);
+      setCompletedStories(new Set());
+    } finally {
+      setIsLoadingCompletedStories(false);
+    }
+  };
+
+  // Fetch completed stories from apiService on component mount
+  useEffect(() => {
+    fetchCompletedStories();
+  }, []);
+
+  // Refresh completed stories when stories prop changes (in case new stories are completed)
+  useEffect(() => {
+    if (stories.length > 0) {
+      fetchCompletedStories();
+    }
+  }, [stories]);
+  
   // Calculate overall progress statistics
   const getOverallStats = () => {
-    const completedStories = stories.filter(story => story.isCompleted).length;
+    // Use real completion data from apiService instead of static isCompleted property
+    const actuallyCompletedStories = stories.filter(story => 
+      completedStories.has(String(story.id))
+    ).length;
     const totalStories = stories.length;
     
     const questProgress = userProfile?.quest_progress || {};
@@ -62,18 +107,33 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
     ).length;
     
     const wellnessStats = userProfile?.wellness_stats || [];
-    const totalWellnessValue = wellnessStats.reduce((sum: number, stat: any) => sum + (stat.value || 0), 0);
-    const averageWellness = wellnessStats.length > 0 ? totalWellnessValue / wellnessStats.length : 0;
+    
+    // Handle both array and object formats for wellness_stats
+    let totalWellnessValue = 0;
+    let wellnessCount = 0;
+    
+    if (Array.isArray(wellnessStats)) {
+      // Array format: [{ value: 20, label: "Awareness" }, ...]
+      totalWellnessValue = wellnessStats.reduce((sum: number, stat: any) => sum + (stat.value || 0), 0);
+      wellnessCount = wellnessStats.length;
+    } else if (wellnessStats && typeof wellnessStats === 'object') {
+      // Object format: { awareness: 20, balance: 20, connection: 15, resilience: 20 }
+      const values = Object.values(wellnessStats);
+      totalWellnessValue = values.reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0);
+      wellnessCount = values.length;
+    }
+    
+    const averageWellness = wellnessCount > 0 ? totalWellnessValue / wellnessCount : 0;
     
     return {
-      completedStories,
+      completedStories: actuallyCompletedStories,
       totalStories,
       completedQuests,
       totalQuests: personalityQuests.length,
       availableTools,
       totalTools: userUnlockedTools.length,
       averageWellness,
-      maxWellness: wellnessStats.length * 10 // Assuming max value is 10 per stat
+      maxWellness: wellnessCount * 10 // Assuming max value is 10 per stat
     };
   };
 
@@ -312,29 +372,45 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
 
       {/* Story Completion Section */}
       <View style={{ marginBottom: 24 }}>
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: personalityConfig.theme.primary,
-          marginBottom: 16,
-          textAlign: 'center'
-        }}>
-          📖 Chronicle Mastery
-        </Text>
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: personalityConfig.theme.primary,
+            textAlign: 'center'
+          }}>
+            📖 Chronicle Mastery
+          </Text>
+        </View>
         
-        {stories.length > 0 ? (
-          stories.map((story, index) => (
-            <AchievementCard
-              key={story.id}
-              title={story.title}
-              description={`Complete "${story.title}" to unlock new wisdom`}
-              icon="📚"
-              progress={story.isCompleted ? 1 : 0}
-              total={1}
-              isCompleted={story.isCompleted}
-              reward={story.isCompleted ? "Story Wisdom Gained" : undefined}
-            />
-          ))
+
+        {isLoadingCompletedStories ? (
+          <View style={{
+            padding: 20,
+            backgroundColor: 'rgba(26, 26, 26, 0.5)',
+            borderRadius: 8,
+            alignItems: 'center'
+          }}>
+            <Text style={{ color: '#fff', opacity: 0.7, textAlign: 'center' }}>
+              🔍 Loading your story progress...
+            </Text>
+          </View>
+        ) : stories.length > 0 ? (
+          stories.map((story, index) => {
+            const isStoryCompleted = completedStories.has(String(story.id));
+            return (
+              <AchievementCard
+                key={story.id}
+                title={story.title}
+                description={`Complete "${story.title}" to unlock new wisdom`}
+                icon="📚"
+                progress={isStoryCompleted ? 1 : 0}
+                total={1}
+                isCompleted={isStoryCompleted}
+                reward={isStoryCompleted ? "Story Wisdom Gained" : undefined}
+              />
+            );
+          })
         ) : (
           <View style={{
             padding: 20,
@@ -424,18 +500,52 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
           🌟 Foundation of Being
         </Text>
         
-        {(userProfile?.wellness_stats || []).map((stat: any, index: number) => (
-          <AchievementCard
-            key={index}
-            title={`${stat.icon} ${stat.label} Mastery`}
-            description={`Develop your ${stat.label.toLowerCase()} through mindful practice`}
-            icon={stat.icon}
-            progress={stat.value || 0}
-            total={10}
-            isCompleted={stat.value >= 8}
-            reward={stat.value >= 8 ? `${stat.label} Sage` : undefined}
-          />
-        ))}
+        {(() => {
+          const wellnessStats = userProfile?.wellness_stats || [];
+          
+          // Handle both array and object formats
+          if (Array.isArray(wellnessStats)) {
+            // Array format: [{ value: 20, label: "Awareness", icon: "🧘" }, ...]
+            return wellnessStats.map((stat: any, index: number) => (
+              <AchievementCard
+                key={index}
+                title={`${stat.icon} ${stat.label} Mastery`}
+                description={`Develop your ${stat.label.toLowerCase()} through mindful practice`}
+                icon={stat.icon}
+                progress={stat.value || 0}
+                total={10}
+                isCompleted={stat.value >= 8}
+                reward={stat.value >= 8 ? `${stat.label} Sage` : undefined}
+              />
+            ));
+          } else if (wellnessStats && typeof wellnessStats === 'object') {
+            // Object format: { awareness: 20, balance: 20, connection: 15, resilience: 20 }
+            const statLabels = {
+              awareness: { label: "Awareness", icon: "🧘" },
+              balance: { label: "Balance", icon: "⚖️" },
+              connection: { label: "Connection", icon: "🤝" },
+              resilience: { label: "Resilience", icon: "💚" }
+            };
+            
+            return Object.entries(wellnessStats).map(([key, value], index) => {
+              const statInfo = statLabels[key as keyof typeof statLabels] || { label: key, icon: "🌟" };
+              return (
+                <AchievementCard
+                  key={index}
+                  title={`${statInfo.icon} ${statInfo.label} Mastery`}
+                  description={`Develop your ${statInfo.label.toLowerCase()} through mindful practice`}
+                  icon={statInfo.icon}
+                  progress={typeof value === 'number' ? value : 0}
+                  total={10}
+                  isCompleted={typeof value === 'number' && value >= 8}
+                  reward={typeof value === 'number' && value >= 8 ? `${statInfo.label} Sage` : undefined}
+                />
+              );
+            });
+          }
+          
+          return null;
+        })()}
       </View>
 
       {/* Mind States Section */}
@@ -451,11 +561,31 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
         </Text>
         
         {personalityConfig.mindStates.map((mindState: any, index: number) => {
-          // Find corresponding wellness stat
-          const correspondingStat = userProfile?.wellness_stats?.find((stat: any) => 
-            stat.label.toLowerCase().includes(mindState.label.toLowerCase())
-          );
-          const statValue = correspondingStat?.value || 0;
+          // Find corresponding wellness stat - handle both array and object formats
+          let statValue = 0;
+          const wellnessStats = userProfile?.wellness_stats || [];
+          
+          if (Array.isArray(wellnessStats)) {
+            // Array format: [{ value: 20, label: "Awareness" }, ...]
+            const correspondingStat = wellnessStats.find((stat: any) => 
+              stat.label.toLowerCase().includes(mindState.label.toLowerCase())
+            );
+            statValue = correspondingStat?.value || 0;
+          } else if (wellnessStats && typeof wellnessStats === 'object') {
+            // Object format: { awareness: 20, balance: 20, connection: 15, resilience: 20 }
+            // Map mind state labels to wellness stat keys
+            const labelToKey: Record<string, string> = {
+              'awareness': 'awareness',
+              'balance': 'balance', 
+              'connection': 'connection',
+              'resilience': 'resilience'
+            };
+            
+            const key = labelToKey[mindState.label.toLowerCase()];
+            if (key && typeof wellnessStats[key] === 'number') {
+              statValue = wellnessStats[key];
+            }
+          }
           
           return (
             <AchievementCard

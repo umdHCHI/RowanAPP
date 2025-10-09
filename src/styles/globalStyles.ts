@@ -4812,7 +4812,7 @@ export const createGlobalStyles = (theme: ThemeColors): { [key: string]: any } =
     codexpassagesContainer: {
       flex: 1,
       flexDirection: 'column',
-      gap: 16,
+      gap: 4,
     },
     codexPromptSection: {
       flex: 0.4,
@@ -6209,6 +6209,12 @@ characterCreatorNameInput: {
       fontSize: 18,
       fontWeight: 'bold',
       marginBottom: 4,
+    },
+    personalityToolsSubtitle: {
+      color: '#D1D5DB',
+      fontSize: 14,
+      marginBottom: 12,
+      fontStyle: 'italic',
     },
     personalityToolsCounter: {
       color: '#ccc',

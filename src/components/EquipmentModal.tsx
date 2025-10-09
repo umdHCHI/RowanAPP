@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Dimensions,
   Image,
@@ -40,21 +40,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('EquipmentModal - visible:', visible);
-    console.log('EquipmentModal - backendGear length:', backendGear.length);
-    console.log('EquipmentModal - equippedGear length:', equippedGear.length);
-  }, [visible, backendGear.length, equippedGear.length]);
-
-  // Load backend gear when modal opens
-  useEffect(() => {
-    if (visible && backendGear.length === 0) {
-      // The gear should be loaded by the parent component before opening the modal
-      // This is just a fallback
-    }
-  }, [visible, backendGear.length]);
-
   const getSlotLabel = (type: string) => {
     switch (type) {
       case "focus":
@@ -85,7 +70,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
     return colors[stat] || '#ffffff';
   };
 
-  // Map backend gear stat bonuses to frontend wellness stats
   const mapBackendStatsToWellnessStats = (statBonuses: Record<string, number>): Record<string, number> => {
     const wellnessStats: Record<string, number> = {
       awareness: 0,
@@ -94,7 +78,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       balance: 0
     };
     
-    // Map backend attributes to frontend wellness stats
     if (statBonuses.mindfulness) {
       wellnessStats.awareness += statBonuses.mindfulness;
     }
@@ -118,18 +101,15 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
   };
 
   const getItemImage = (gear: CharacterGear) => {
-    // Map backend gear to equipment images based on slot and name
     const slot = gear.gear_type.slot;
     const name = gear.gear_type.name.toLowerCase();
     
-    // Map backend slot to frontend equipment type
     let equipmentType: string;
     let subtype: string;
     
     switch (slot) {
       case 'weapon':
         equipmentType = 'focus';
-        // Determine subtype based on gear name
         if (name.includes('scroll') || name.includes('stillness')) {
           subtype = 'scroll';
         } else if (name.includes('breathing') || name.includes('breath')) {
@@ -137,7 +117,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
         } else if (name.includes('journal') || name.includes('notebook')) {
           subtype = 'journaling';
         } else {
-          subtype = 'meditation'; // default
+          subtype = 'meditation';
         }
         break;
         
@@ -150,7 +130,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
         } else if (name.includes('nature') || name.includes('outdoor')) {
           subtype = 'nature';
         } else {
-          subtype = 'social'; // default
+          subtype = 'social';
         }
         break;
         
@@ -163,7 +143,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
         } else if (name.includes('routine') || name.includes('habit')) {
           subtype = 'routine';
         } else {
-          subtype = 'boundary'; // default
+          subtype = 'boundary';
         }
         break;
         
@@ -176,7 +156,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
         } else if (name.includes('nutrition') || name.includes('food')) {
           subtype = 'nutrition';
         } else {
-          subtype = 'exercise'; // default
+          subtype = 'exercise';
         }
         break;
         
@@ -185,7 +165,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
         subtype = 'meditation';
     }
     
-    // Return the appropriate equipment image
     return (equipmentIcons as any)[equipmentType][subtype];
   };
 
@@ -215,57 +194,45 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
     
     switch (slot) {
       case 'weapon':
-        // Story reward items
         if (name.includes('ancient scroll')) return 'meditation';
         if (name.includes('clarity lens')) return 'meditation';
         if (name.includes('explorer') && name.includes('notebook')) return 'journaling';
         if (name.includes('intuition compass')) return 'meditation';
         if (name.includes('empathy conduit')) return 'meditation';
         if (name.includes('toolkit story')) return 'meditation';
-        
-        // Generic weapon types
         if (name.includes('meditation') || name.includes('breathing')) return 'meditation';
         if (name.includes('journal')) return 'journaling';
-        return 'meditation'; // default for focus items
+        return 'meditation';
         
       case 'armor':
-        // Story reward items
         if (name.includes('personal style cloak')) return 'social';
         if (name.includes('cultural wisdom wrap')) return 'social';
         if (name.includes('adaptation shield')) return 'social';
         if (name.includes('sanctuary shroud')) return 'social';
-        
-        // Generic armor types
         if (name.includes('social') || name.includes('friend')) return 'social';
         if (name.includes('hobby') || name.includes('activity')) return 'hobby';
         if (name.includes('nature') || name.includes('outdoor')) return 'nature';
-        return 'social'; // default for comfort items
+        return 'social';
         
       case 'helmet':
-        // Story reward items
         if (name.includes('reality filter')) return 'boundary';
         if (name.includes('growth mindset crown')) return 'affirmation';
         if (name.includes('authenticity guard')) return 'boundary';
         if (name.includes('guardian ward')) return 'boundary';
-        
-        // Generic helmet types
         if (name.includes('boundary') || name.includes('limit')) return 'boundary';
         if (name.includes('affirmation') || name.includes('positive')) return 'affirmation';
         if (name.includes('routine') || name.includes('habit')) return 'routine';
-        return 'boundary'; // default for shield items
+        return 'boundary';
         
       case 'boots':
-        // Story reward items
         if (name.includes('personal values foundation')) return 'exercise';
         if (name.includes('support network roots')) return 'exercise';
         if (name.includes('self-compassion stone')) return 'exercise';
         if (name.includes('foundation stone')) return 'exercise';
-        
-        // Generic boot types
         if (name.includes('exercise') || name.includes('movement')) return 'exercise';
         if (name.includes('sleep') || name.includes('rest')) return 'sleep';
         if (name.includes('nutrition') || name.includes('food')) return 'nutrition';
-        return 'exercise'; // default for ground items
+        return 'exercise';
         
       default:
         return 'meditation';
@@ -299,7 +266,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
         }
         style={styles.itemCardGradient}
       >
-        {/* Item Image */}
         <View style={styles.itemImageContainer}>
           <View style={[
             styles.itemImageFrame,
@@ -327,7 +293,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           )}
         </View>
 
-        {/* Item Info */}
         <View style={styles.itemInfo}>
           <View style={styles.itemHeader}>
             <Text style={styles.itemName}>{item.name}</Text>
@@ -336,7 +301,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
 
           <Text style={styles.itemDescription}>{item.description}</Text>
 
-          {/* Stats */}
           {Object.keys(item.wellnessStats).length > 0 && (
             <View style={styles.statsContainer}>
               <Text style={styles.statsTitle}>Bonuses:</Text>
@@ -349,7 +313,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           <Text style={styles.effectText}>Effect: {item.effect}</Text>
         </View>
 
-        {/* Action Button */}
         <TouchableOpacity
           style={[
             styles.actionButton,
@@ -391,7 +354,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
     </View>
   );
 
-  // Group gear by slot type
   const gearBySlot = backendGear.reduce((acc, gear) => {
     const slot = gear.gear_type.slot;
     if (!acc[slot]) {

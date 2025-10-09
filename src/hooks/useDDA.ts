@@ -43,7 +43,6 @@ export function useDDA(): UseDDAReturn {
     gamesPlayed: 0
   });
 
-  // Load DDA state from storage on mount
   useEffect(() => {
     loadDDAState();
   }, []);
@@ -64,8 +63,7 @@ export function useDDA(): UseDDAReturn {
         config,
         isFirstGame: !baseline
       }));
-    } catch (error) {
-      console.error('Failed to load DDA state:', error);
+    } catch {
     }
   }, []);
 
@@ -82,14 +80,12 @@ export function useDDA(): UseDDAReturn {
       }
       
       await Promise.all(promises);
-    } catch (error) {
-      console.error('Failed to save DDA state:', error);
+    } catch {
     }
   }, []);
 
   const calculateDifficulty = useCallback((performance: PlayerPerformance): DDAResult => {
     if (!ddaState.baseline) {
-      // If no baseline exists, create one from this performance
       const baseline = createBaselineFromFirstGame(performance);
       setDdaState(prev => ({
         ...prev,
@@ -99,7 +95,6 @@ export function useDDA(): UseDDAReturn {
       }));
       saveDDAState({ baseline, gamesPlayed: 1 });
       
-      // Return neutral result for first game
       return {
         difficulty: 0.5,
         ease: 0.5,
@@ -110,7 +105,6 @@ export function useDDA(): UseDDAReturn {
       };
     }
 
-    // Calculate DDA using existing baseline
     const result = calculateDDA(performance, ddaState.baseline, ddaState.config);
     
     setDdaState(prev => ({
@@ -128,7 +122,7 @@ export function useDDA(): UseDDAReturn {
     const updatedBaseline = updateBaselinePerformance(
       ddaState.baseline,
       performance,
-      0.1 // Learning rate
+      0.1
     );
 
     setDdaState(prev => ({
@@ -161,8 +155,7 @@ export function useDDA(): UseDDAReturn {
         isFirstGame: true,
         gamesPlayed: 0
       });
-    } catch (error) {
-      console.error('Failed to reset DDA:', error);
+    } catch {
     }
   }, []);
 
@@ -186,9 +179,6 @@ export function useDDA(): UseDDAReturn {
   };
 }
 
-/**
- * Helper function to convert ThoughtDefender game data to PlayerPerformance
- */
 export function convertGameDataToPerformance(
   score: number,
   level: number,
@@ -201,9 +191,6 @@ export function convertGameDataToPerformance(
 ): PlayerPerformance {
   const duration = gameEndTime - gameStartTime;
   const accuracy = totalThoughts > 0 ? (thoughtsCleared / totalThoughts) * 100 : 0;
-  
-  // Estimate action count based on game events
-  // This could be refined based on actual game mechanics
   const actionCount = thoughtsCleared + (won ? level * 5 : 0);
   
   return {

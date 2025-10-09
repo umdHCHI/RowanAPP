@@ -676,7 +676,7 @@ export function createNotificationFromEffects(
     }
   }
 
-  // Handle quest progress
+  // Handle quest progress - only create notifications for quests that should be processed
   if (effects.quest_progress && Array.isArray(effects.quest_progress)) {
     effects.quest_progress.forEach(() => {
       notifications.push({
@@ -685,9 +685,18 @@ export function createNotificationFromEffects(
       });
     });
   } else if (effects.quests) {
-    // Legacy support for character users
+    // Only create notifications for quests that match the user type
     if (Array.isArray(effects.quests)) {
       effects.quests.forEach((questId: string) => {
+        // For character users, skip personality-specific quests in notifications
+        if (researchCondition === 'character') {
+          const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+          if (questTraitMatch) {
+            console.log(`🚫 Skipping quest notification for ${questId} - character user shouldn't see personality quests`);
+            return; // Skip personality quest notifications for character users
+          }
+        }
+        
         const questInfo = getQuestInfo(questId);
         if (questInfo) {
           notifications.push({
@@ -702,6 +711,15 @@ export function createNotificationFromEffects(
         }
       });
     } else if (typeof effects.quests === 'string') {
+      // For character users, skip personality-specific quests in notifications
+      if (researchCondition === 'character') {
+        const questTraitMatch = effects.quests.match(/^(\w+)_\d+$/);
+        if (questTraitMatch) {
+          console.log(`🚫 Skipping quest notification for ${effects.quests} - character user shouldn't see personality quests`);
+          return notifications; // Skip personality quest notifications for character users
+        }
+      }
+      
       const questInfo = getQuestInfo(effects.quests);
       if (questInfo) {
         notifications.push({
@@ -720,28 +738,60 @@ export function createNotificationFromEffects(
   return notifications;
 }
 
-// Comprehensive list of available equipment items for rewards
+// Comprehensive list of available equipment items for rewards - expanded
 export const AVAILABLE_EQUIPMENT_ITEMS = {
   focus: [
     "Ancient Scroll",
     "Lens of Gentle Seeing",
     "Notebook of the Wanderer",
-    "Compass of Quiet Knowing"
+    "Compass of Quiet Knowing",
+    "Scroll of Stillness",
+    "Magic Wand",
+    "Topaz Staff",
+    "Sapphire Staff",
+    "Torch",
+    "Meditation Focus",
+    "Breathing Tool",
+    "Journal"
   ],
   comfort: [
     "Cloak of True Form",
     "Wrap of Rooted Memory",
-    "Shield of Flexible Boundaries"
+    "Shield of Flexible Boundaries",
+    "Social Comfort",
+    "Hobby Protection",
+    "Nature Comfort",
+    "Comfort Layer I",
+    "Comfort Layer II",
+    "Comfort Layer III"
   ],
   shield: [
     "Mask of Discernment",
     "Crown of Becoming",
-    "Helm of the Unmasked"
+    "Helm of the Unmasked",
+    "Boundary Shield",
+    "Affirmation Shield",
+    "Routine Shield",
+    "Wizard Hat",
+    "Basic Helm",
+    "Iron Helmet",
+    "Leather Helmet"
   ],
   ground: [
     "Foundation of Inner Stone",
     "Roots of Connection",
-    "Stone of Self-Compassion"
+    "Stone of Self-Compassion",
+    "Exercise Boots",
+    "Sleep Boots",
+    "Nutrition Boots",
+    "Iron Boots",
+    "Leather Boots"
+  ],
+  combat: [
+    "Iron Sword",
+    "Golden Sword",
+    "Iron Shield",
+    "Wooden Shield"
   ]
 };
 
@@ -1257,13 +1307,14 @@ export const EQUIPMENT_UPGRADE_TIERS = {
   }
 };
 
-// Equipment base stats and upgrade paths
+// Equipment base stats and upgrade paths - expanded
 export const EQUIPMENT_BASE_STATS: Record<string, {
   baseStats: Record<string, number>;
   upgradePaths: string[];
   rarity: "Common" | "Rare" | "Epic" | "Legendary";
   backendId: number;
 }> = {
+  // Original equipment
   "Ancient Scroll": {
     baseStats: { mindfulness: 1, focus: 1 },
     upgradePaths: ["Enhanced Ancient Scroll", "Master Ancient Scroll", "Transcendent Ancient Scroll"],
@@ -1341,11 +1392,202 @@ export const EQUIPMENT_BASE_STATS: Record<string, {
     upgradePaths: ["Enhanced Stone of Self-Compassion", "Master Stone of Self-Compassion", "Transcendent Stone of Self-Compassion"],
     rarity: "Rare",
     backendId: 13
+  },
+  
+  // Focus Items
+  "Scroll of Stillness": {
+    baseStats: { mindfulness: 2, focus: 1 },
+    upgradePaths: ["Enhanced Scroll of Stillness", "Master Scroll of Stillness", "Transcendent Scroll of Stillness"],
+    rarity: "Common",
+    backendId: 14
+  },
+  "Magic Wand": {
+    baseStats: { focus: 2, awareness: 1 },
+    upgradePaths: ["Enhanced Magic Wand", "Master Magic Wand", "Transcendent Magic Wand"],
+    rarity: "Rare",
+    backendId: 15
+  },
+  "Topaz Staff": {
+    baseStats: { focus: 3, resilience: 1 },
+    upgradePaths: ["Enhanced Topaz Staff", "Master Topaz Staff", "Transcendent Topaz Staff"],
+    rarity: "Rare",
+    backendId: 16
+  },
+  "Sapphire Staff": {
+    baseStats: { focus: 3, awareness: 2 },
+    upgradePaths: ["Enhanced Sapphire Staff", "Master Sapphire Staff", "Transcendent Sapphire Staff"],
+    rarity: "Epic",
+    backendId: 17
+  },
+  "Torch": {
+    baseStats: { awareness: 2, courage: 1 },
+    upgradePaths: ["Enhanced Torch", "Master Torch", "Transcendent Torch"],
+    rarity: "Common",
+    backendId: 18
+  },
+  "Meditation Focus": {
+    baseStats: { mindfulness: 2, balance: 1 },
+    upgradePaths: ["Enhanced Meditation Focus", "Master Meditation Focus", "Transcendent Meditation Focus"],
+    rarity: "Common",
+    backendId: 19
+  },
+  "Breathing Tool": {
+    baseStats: { balance: 2, resilience: 1 },
+    upgradePaths: ["Enhanced Breathing Tool", "Master Breathing Tool", "Transcendent Breathing Tool"],
+    rarity: "Common",
+    backendId: 20
+  },
+  "Journal": {
+    baseStats: { awareness: 1, connection: 1 },
+    upgradePaths: ["Enhanced Journal", "Master Journal", "Transcendent Journal"],
+    rarity: "Common",
+    backendId: 21
+  },
+  
+  // Comfort Layers
+  "Social Comfort": {
+    baseStats: { connection: 2, empathy: 1 },
+    upgradePaths: ["Enhanced Social Comfort", "Master Social Comfort", "Transcendent Social Comfort"],
+    rarity: "Common",
+    backendId: 22
+  },
+  "Hobby Protection": {
+    baseStats: { resilience: 2, balance: 1 },
+    upgradePaths: ["Enhanced Hobby Protection", "Master Hobby Protection", "Transcendent Hobby Protection"],
+    rarity: "Common",
+    backendId: 23
+  },
+  "Nature Comfort": {
+    baseStats: { balance: 2, connection: 1 },
+    upgradePaths: ["Enhanced Nature Comfort", "Master Nature Comfort", "Transcendent Nature Comfort"],
+    rarity: "Common",
+    backendId: 24
+  },
+  "Comfort Layer I": {
+    baseStats: { connection: 1, empathy: 1 },
+    upgradePaths: ["Enhanced Comfort Layer I", "Master Comfort Layer I", "Transcendent Comfort Layer I"],
+    rarity: "Common",
+    backendId: 25
+  },
+  "Comfort Layer II": {
+    baseStats: { connection: 2, empathy: 1 },
+    upgradePaths: ["Enhanced Comfort Layer II", "Master Comfort Layer II", "Transcendent Comfort Layer II"],
+    rarity: "Rare",
+    backendId: 26
+  },
+  "Comfort Layer III": {
+    baseStats: { connection: 3, empathy: 2 },
+    upgradePaths: ["Enhanced Comfort Layer III", "Master Comfort Layer III", "Transcendent Comfort Layer III"],
+    rarity: "Epic",
+    backendId: 27
+  },
+  
+  // Mind Shields
+  "Boundary Shield": {
+    baseStats: { confidence: 2, resilience: 1 },
+    upgradePaths: ["Enhanced Boundary Shield", "Master Boundary Shield", "Transcendent Boundary Shield"],
+    rarity: "Common",
+    backendId: 28
+  },
+  "Affirmation Shield": {
+    baseStats: { confidence: 2, awareness: 1 },
+    upgradePaths: ["Enhanced Affirmation Shield", "Master Affirmation Shield", "Transcendent Affirmation Shield"],
+    rarity: "Common",
+    backendId: 29
+  },
+  "Routine Shield": {
+    baseStats: { balance: 2, resilience: 1 },
+    upgradePaths: ["Enhanced Routine Shield", "Master Routine Shield", "Transcendent Routine Shield"],
+    rarity: "Common",
+    backendId: 30
+  },
+  "Wizard Hat": {
+    baseStats: { awareness: 2, focus: 1 },
+    upgradePaths: ["Enhanced Wizard Hat", "Master Wizard Hat", "Transcendent Wizard Hat"],
+    rarity: "Rare",
+    backendId: 31
+  },
+  "Basic Helm": {
+    baseStats: { resilience: 1, confidence: 1 },
+    upgradePaths: ["Enhanced Basic Helm", "Master Basic Helm", "Transcendent Basic Helm"],
+    rarity: "Common",
+    backendId: 32
+  },
+  "Iron Helmet": {
+    baseStats: { resilience: 2, confidence: 1 },
+    upgradePaths: ["Enhanced Iron Helmet", "Master Iron Helmet", "Transcendent Iron Helmet"],
+    rarity: "Rare",
+    backendId: 33
+  },
+  "Leather Helmet": {
+    baseStats: { resilience: 1, balance: 1 },
+    upgradePaths: ["Enhanced Leather Helmet", "Master Leather Helmet", "Transcendent Leather Helmet"],
+    rarity: "Common",
+    backendId: 34
+  },
+  
+  // Ground Stones
+  "Exercise Boots": {
+    baseStats: { balance: 2, resilience: 1 },
+    upgradePaths: ["Enhanced Exercise Boots", "Master Exercise Boots", "Transcendent Exercise Boots"],
+    rarity: "Common",
+    backendId: 35
+  },
+  "Sleep Boots": {
+    baseStats: { balance: 2, mindfulness: 1 },
+    upgradePaths: ["Enhanced Sleep Boots", "Master Sleep Boots", "Transcendent Sleep Boots"],
+    rarity: "Common",
+    backendId: 36
+  },
+  "Nutrition Boots": {
+    baseStats: { balance: 1, resilience: 2 },
+    upgradePaths: ["Enhanced Nutrition Boots", "Master Nutrition Boots", "Transcendent Nutrition Boots"],
+    rarity: "Common",
+    backendId: 37
+  },
+  "Iron Boots": {
+    baseStats: { resilience: 2, balance: 1 },
+    upgradePaths: ["Enhanced Iron Boots", "Master Iron Boots", "Transcendent Iron Boots"],
+    rarity: "Rare",
+    backendId: 38
+  },
+  "Leather Boots": {
+    baseStats: { balance: 1, resilience: 1 },
+    upgradePaths: ["Enhanced Leather Boots", "Master Leather Boots", "Transcendent Leather Boots"],
+    rarity: "Common",
+    backendId: 39
+  },
+  
+  // Combat Gear
+  "Iron Sword": {
+    baseStats: { courage: 2, resilience: 1 },
+    upgradePaths: ["Enhanced Iron Sword", "Master Iron Sword", "Transcendent Iron Sword"],
+    rarity: "Rare",
+    backendId: 40
+  },
+  "Golden Sword": {
+    baseStats: { courage: 3, confidence: 1 },
+    upgradePaths: ["Enhanced Golden Sword", "Master Golden Sword", "Transcendent Golden Sword"],
+    rarity: "Epic",
+    backendId: 41
+  },
+  "Iron Shield": {
+    baseStats: { resilience: 2, confidence: 1 },
+    upgradePaths: ["Enhanced Iron Shield", "Master Iron Shield", "Transcendent Iron Shield"],
+    rarity: "Rare",
+    backendId: 42
+  },
+  "Wooden Shield": {
+    baseStats: { resilience: 1, balance: 1 },
+    upgradePaths: ["Enhanced Wooden Shield", "Master Wooden Shield", "Transcendent Wooden Shield"],
+    rarity: "Common",
+    backendId: 43
   }
 };
 
-// Backend gear type mapping
+// Backend gear type mapping - expanded to include all equipment from assets
 export const BACKEND_GEAR_MAPPING: Record<string, number> = {
+  // Original equipment
   "Ancient Scroll": 1,
   "Lens of Gentle Seeing": 2,
   "Notebook of the Wanderer": 3,
@@ -1358,7 +1600,47 @@ export const BACKEND_GEAR_MAPPING: Record<string, number> = {
   "Helm of the Unmasked": 10,
   "Foundation of Inner Stone": 11,
   "Roots of Connection": 12,
-  "Stone of Self-Compassion": 13
+  "Stone of Self-Compassion": 13,
+  
+  // Focus Items
+  "Scroll of Stillness": 14,
+  "Magic Wand": 15,
+  "Topaz Staff": 16,
+  "Sapphire Staff": 17,
+  "Torch": 18,
+  "Meditation Focus": 19,
+  "Breathing Tool": 20,
+  "Journal": 21,
+  
+  // Comfort Layers
+  "Social Comfort": 22,
+  "Hobby Protection": 23,
+  "Nature Comfort": 24,
+  "Comfort Layer I": 25,
+  "Comfort Layer II": 26,
+  "Comfort Layer III": 27,
+  
+  // Mind Shields
+  "Boundary Shield": 28,
+  "Affirmation Shield": 29,
+  "Routine Shield": 30,
+  "Wizard Hat": 31,
+  "Basic Helm": 32,
+  "Iron Helmet": 33,
+  "Leather Helmet": 34,
+  
+  // Ground Stones
+  "Exercise Boots": 35,
+  "Sleep Boots": 36,
+  "Nutrition Boots": 37,
+  "Iron Boots": 38,
+  "Leather Boots": 39,
+  
+  // Combat Gear
+  "Iron Sword": 40,
+  "Golden Sword": 41,
+  "Iron Shield": 42,
+  "Wooden Shield": 43
 };
 
 // Enhanced function to get backend gear type ID
