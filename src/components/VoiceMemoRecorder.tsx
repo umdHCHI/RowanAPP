@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { AudioPlayer, AudioRecorder } from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
 import React, { useRef, useState } from 'react';
 import { Alert, Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -98,8 +98,8 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const recorderRef = useRef<AudioRecorder | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
 
   React.useEffect(() => {
     if (isRecording) {
@@ -133,8 +133,8 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
       if (intervalId) {
         clearInterval(intervalId);
       }
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
+      if (playerRef.current) {
+        playerRef.current.remove();
       }
     };
   }, []);
@@ -166,25 +166,35 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         setIsRecording(true);
       } else {
         try {
-          const { status } = await Audio.requestPermissionsAsync();
-          if (status !== 'granted') {
+          const { granted } = await AudioRecorder.requestPermissionsAsync();
+          if (!granted) {
             Alert.alert('Permission required', 'Please grant microphone permissions to record audio.');
             return;
           }
 
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: true,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: false,
-            shouldDuckAndroid: true,
-            playThroughEarpieceAndroid: false,
+          const recorder = new AudioRecorder({
+            android: {
+              extension: '.m4a',
+              audioEncoder: 'aac',
+              sampleRate: 44100,
+              numberOfChannels: 2,
+              bitRate: 128000,
+            },
+            ios: {
+              extension: '.m4a',
+              audioQuality: 'high',
+              sampleRate: 44100,
+              numberOfChannels: 2,
+              bitRate: 128000,
+            },
+            web: {
+              mimeType: 'audio/webm',
+              bitsPerSecond: 128000,
+            },
           });
-
-          const { recording } = await Audio.Recording.createAsync(
-            Audio.RecordingOptionsPresets.HIGH_QUALITY
-          );
           
-          recordingRef.current = recording;
+          await recorder.record();
+          recorderRef.current = recorder;
           setIsRecording(true);
         } catch {
           Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
@@ -203,10 +213,9 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         }
         setIsRecording(false);
       } else {
-        if (recordingRef.current) {
-          await recordingRef.current.stopAndUnloadAsync();
-          const uri = recordingRef.current.getURI();
-          recordingRef.current = null;
+        if (recorderRef.current) {
+          const uri = await recorderRef.current.stop();
+          recorderRef.current = null;
           
           if (uri) {
             setRecordingUri(uri);
@@ -252,47 +261,38 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         setPlaybackDuration(audioBuffer.duration);
       } else {
         try {
-          if (soundRef.current) {
-            await soundRef.current.unloadAsync();
+          if (playerRef.current) {
+            playerRef.current.remove();
           }
 
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: false,
-            shouldDuckAndroid: true,
-            playThroughEarpieceAndroid: false,
+          const player = new AudioPlayer(recordingUri);
+          playerRef.current = player;
+
+          // Get duration when audio is ready
+          player.addListener('audioPlayerDidFinishPlaying', () => {
+            setIsPlaying(false);
+            setPlaybackPosition(0);
           });
 
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: recordingUri },
-            { 
-              shouldPlay: true,
-              volume: 1.0,
-              isLooping: false
-            }
-          );
+          await player.play();
+          setIsPlaying(true);
 
-          soundRef.current = sound;
-
-          const status = await sound.getStatusAsync();
-          if (status.isLoaded) {
-            setPlaybackDuration(status.durationMillis ? status.durationMillis / 1000 : 0);
-          }
-
-          sound.setOnPlaybackStatusUpdate((status) => {
-            if (status.isLoaded) {
-              setIsPlaying(status.isPlaying);
-              setPlaybackPosition(status.positionMillis ? status.positionMillis / 1000 : 0);
-              
-              if (status.didJustFinish) {
-                setIsPlaying(false);
-                setPlaybackPosition(0);
+          // Set duration estimate (expo-audio doesn't provide easy duration access)
+          // We'll update this through playback
+          const checkDuration = setInterval(() => {
+            if (playerRef.current) {
+              const currentTime = playerRef.current.currentTime;
+              setPlaybackPosition(currentTime);
+              // Estimate duration as we play
+              if (currentTime > playbackDuration) {
+                setPlaybackDuration(currentTime);
               }
             }
-          });
+          }, 100);
 
-          setIsPlaying(true);
+          player.addListener('audioPlayerDidFinishPlaying', () => {
+            clearInterval(checkDuration);
+          });
         } catch {
           Alert.alert('Playback Error', 'Failed to play recording. Please try again.');
         }
@@ -312,8 +312,8 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         setIsPlaying(false);
         setPlaybackPosition(0);
       } else {
-        if (soundRef.current) {
-          await soundRef.current.stopAsync();
+        if (playerRef.current) {
+          await playerRef.current.pause();
           setIsPlaying(false);
           setPlaybackPosition(0);
         }

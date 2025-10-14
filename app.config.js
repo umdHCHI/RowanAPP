@@ -39,7 +39,7 @@ const withCustomAndroidModifications = (config) => {
 
 // This is your updated expo configuration
 export default ({ config }) => {
-  // Apply the custom plugin
+  // Apply the custom plugin to enable HTTP traffic in production builds
   config = withCustomAndroidModifications(config);
 
   // Return the final modified config with explicit iOS configuration
@@ -50,23 +50,22 @@ export default ({ config }) => {
     version: "1.0.0",
     sdkVersion: "54.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/archivewelcome.png",
     scheme: "thearchive",
     userInterfaceStyle: "automatic",
-    newArchEnabled: true,
+    // newArchEnabled: true, // Disabled for Expo Go compatibility - enable only for development builds
     plugins: [
       "expo-router",
       "expo-font", // Added for The Archive's mystical typography system
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/archive.png",
+          image: "./assets/images/archivewelcome.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#000000"
+          backgroundColor: "#070707ff"
         }
       ],
-      "expo-av",
     ],
     ios: {
       supportsTablet: true,
@@ -78,7 +77,7 @@ export default ({ config }) => {
     android: {
       package: "com.roesorcerer.thearchivethesisproject",
       adaptiveIcon: {
-        foregroundImage: "./assets/images/icon.png",
+        foregroundImage: "./assets/images/archivewelcome.png",
         backgroundColor: "#070707ff"
       },
       edgeToEdgeEnabled: true,
@@ -93,7 +92,7 @@ export default ({ config }) => {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/icon.png"
+      favicon: "./assets/images/archivewelcome.png"
     },
     experiments: {
       typedRoutes: true

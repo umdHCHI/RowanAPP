@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import { CHARACTER_CREATOR_CONSTANTS } from '../constants/characterCreator';
 
 interface UseCharacterCreationProps {
   characterId?: number | null;
@@ -28,16 +29,19 @@ export const useCharacterCreation = ({
 
   const handleCharacterCreation = useCallback(async () => {
     if (isCreatingRef.current) {
+      console.log('⚠️ Character creation already in progress');
       return;
     }
     
+    console.log('🎭 Starting character creation...');
     setIsCreating(true);
     isCreatingRef.current = true;
     
     if (!validateCharacterName(characterName)) {
+      console.log('❌ Character name validation failed');
       Alert.alert(
-        'Character Name Required',
-        'Please enter a name for your character before creating it.',
+        CHARACTER_CREATOR_CONSTANTS.ALERTS.NAME_REQUIRED.TITLE,
+        CHARACTER_CREATOR_CONSTANTS.ALERTS.NAME_REQUIRED.MESSAGE,
         [{ text: 'OK', style: 'default' }]
       );
       setIsCreating(false);
@@ -46,36 +50,62 @@ export const useCharacterCreation = ({
     }
     
     try {
+      console.log('🔄 Processing character creation...');
+      
       if(characterId) {
+        console.log('📝 Updating existing character customization...');
         await updateCharacterCustomization();
       } else {
+        console.log('✨ Creating new character...');
         await createCharacter();
       }
       
-      router.push('/(character)/character');
+      console.log('✅ Character creation successful!');
       
+      // Complete onboarding process
+      console.log('🎯 Completing onboarding...');
+      await completeCharacter();
+      
+      console.log('🚀 Navigating to character home...');
+      
+      // Navigate immediately after onboarding completion
+      router.push(CHARACTER_CREATOR_CONSTANTS.ROUTES.CHARACTER_HOME);
+      
+      // Show success alert after navigation (non-blocking)
+      // Use setTimeout to ensure navigation happens first
       setTimeout(() => {
-        Alert.alert(
-          '🎉 Character Created Successfully!',
-          `Your character "${characterName}" has been created and you have been redirected to the character home screen.`,
-          [{ text: 'OK', style: 'default' }]
-        );
+        console.log('📱 Showing success notification...');
+        
+        if (Platform.OS === 'web') {
+          // Web fallback - simple console log or could use a toast notification
+          console.log(`🎉 ${CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.TITLE}`);
+          console.log(`📜 ${CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.MESSAGE(characterName)}`);
+        } else {
+          // Native platforms - show alert
+          Alert.alert(
+            CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.TITLE,
+            CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.MESSAGE(characterName),
+            [{ text: CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.BUTTON_TEXT, style: 'default' }]
+          );
+        }
       }, 500);
-    } catch {
+      
+    } catch (error) {
+      console.log('❌ Character creation failed:', error);
       Alert.alert(
-        'Character Creation Failed',
-        'There was an error creating your character. Please try again.',
-        [{ text: 'OK', style: 'default' }]
+        CHARACTER_CREATOR_CONSTANTS.ALERTS.FAILURE.TITLE,
+        CHARACTER_CREATOR_CONSTANTS.ALERTS.FAILURE.MESSAGE,
+        [{ text: CHARACTER_CREATOR_CONSTANTS.ALERTS.FAILURE.BUTTON_TEXT, style: 'default' }]
       );
     } finally {
       setIsCreating(false);
       isCreatingRef.current = false;
     }
-  }, [characterName, createCharacter, validateCharacterName, characterId, updateCharacterCustomization]);
+  }, [characterName, createCharacter, validateCharacterName, characterId, updateCharacterCustomization, completeCharacter]);
 
   return {
     handleCharacterCreation,
     validateCharacterName,
     isCreating
   };
-}; 
+};

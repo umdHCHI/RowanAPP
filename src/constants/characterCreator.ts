@@ -51,12 +51,15 @@ export const CHARACTER_CREATOR_CONSTANTS = {
       MESSAGE: 'Please enter a name for your character before creating it.',
     },
     SUCCESS: {
-      TITLE: '🎉 Character Created Successfully!',
-      MESSAGE: (name: string) => `Your character "${name}" has been created and you will be redirected to the character home screen.`,
+      TITLE: 'Character Created Successfully!',
+      MESSAGE: (name: string) => `${name} is a fine name for an ego.  Welcome to the Archive`,
+      ICON: require('../../assets/UI/assets/fc578.png'), 
+      BUTTON_TEXT: 'Enter The Archive',
     },
     FAILURE: {
       TITLE: 'Character Creation Failed',
-      MESSAGE: 'There was an error creating your character. Please try again.',
+      MESSAGE: 'The ancient magics have faltered. Please try again to inscribe your character.',
+      BUTTON_TEXT: 'Try Again',
     },
   },
   

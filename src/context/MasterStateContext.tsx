@@ -1868,14 +1868,14 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
       // Check if result is a Character object or a message response
       if (result && 'data' in result && 'message' in result.data) {
         // Handle message response (no gains to apply)
-        Alert.alert("ℹ️ Wellness Status", result.data.message, [
+        Alert.alert("Character Attributes", result.data.message, [
           { text: "OK", style: "default" },
         ]);
       } else {
         // Handle Character object response
         setBackendCharacter(result as Character);
-        
-        Alert.alert("✨ Wellness Increased!", "Your wellness stats have been updated!", [
+
+        Alert.alert("✨ Attributes Updated!", "Your character attributes have been updated, making you stronger for this journey!", [
           { text: "Great!", style: "default" },
         ]);
       }

@@ -1,10 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 
 interface FloatingRewardNotificationProps {
   visible: boolean;
   message: string;
   type?: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+  icon?: string;
+  iconImage?: any; // For PNG image assets
+  statName?: string;
   onHide: () => void;
 }
 
@@ -12,6 +15,9 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
   visible,
   message,
   type = 'stat',
+  icon: customIcon,
+  iconImage,
+  statName,
   onHide
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -77,6 +83,27 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
   };
 
   const getTypeStyles = () => {
+    // If it's a stat type and we have a statName, use stat-specific colors
+    if (type === 'stat' && statName) {
+      const statColors: Record<string, { backgroundColor: string; borderColor: string }> = {
+        'awareness': { backgroundColor: '#4A90E2', borderColor: '#357ABD' },
+        'exploration': { backgroundColor: '#4A90E2', borderColor: '#357ABD' },
+        'resilience': { backgroundColor: '#2ECC71', borderColor: '#27AE60' },
+        'courage': { backgroundColor: '#2ECC71', borderColor: '#27AE60' },
+        'connection': { backgroundColor: '#E74C3C', borderColor: '#C0392B' },
+        'balance': { backgroundColor: '#F39C12', borderColor: '#D68910' },
+        'fear': { backgroundColor: '#F39C12', borderColor: '#D68910' }
+      };
+      
+      const statColor = statColors[statName.toLowerCase()];
+      if (statColor) {
+        return {
+          ...statColor,
+          icon: customIcon || '✨'
+        };
+      }
+    }
+    
     switch (type) {
       case 'experience':
         return {
@@ -142,6 +169,9 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
   };
 
   const typeStyles = getTypeStyles();
+  
+  // Use custom icon if provided, otherwise use type-based icon
+  const displayIcon = customIcon || typeStyles.icon;
 
   if (!visible) return null;
 
@@ -167,7 +197,15 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
           }
         ]}
       >
-        <Text style={styles.icon}>{typeStyles.icon}</Text>
+        {iconImage ? (
+          <Image 
+            source={iconImage} 
+            style={styles.iconImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <Text style={styles.icon}>{displayIcon}</Text>
+        )}
         <Text style={styles.message}>{message}</Text>
       </View>
     </Animated.View>
@@ -203,6 +241,11 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 20,
+    marginRight: 8,
+  },
+  iconImage: {
+    width: 24,
+    height: 24,
     marginRight: 8,
   },
   message: {

@@ -45,59 +45,59 @@ export default function PersonalityHomeScreen() {
   const TUTORIAL_STEPS = [
     {
       id: 1,
-      title: "🌟 Welcome to Your Personalized Archive!",
-      message: "This is your unique stress management journey based on your personality. Let's explore how to navigate and grow!",
+      title: "🌟 A Personalized Introduction",
+      message: "Welcome, Archivist. I've had a moment to consult the records. It seems your approach to scholarship is... unique. This Archive will arrange itself to suit your particular way of seeing the world. Let us begin your tailored orientation.",
       highlight: "header",
-      tip: "Your personality traits shape your experience - embrace what makes you unique!"
+      tip: "A note from the Curator: Your specific inclinations are not a flaw; they are simply the primary lens through which you will read these halls."
     },
     {
       id: 2,
-      title: "🎯 Daily Curator & Wellness Attributes",
-      message: "Check your daily curator message for personalized guidance, and track your wellness attributes to see your growth over time.",
+      title: "🎯 The Curator's Missive & Your Foundations",
+      message: "Each day, I will leave a short missive for you here, with guidance suited to your disposition. Below, you can track your Foundations. They will grow as you tend to the tomes that resonate most strongly with you.",
       highlight: "wellness",
-      tip: "Wellness attributes show your progress in different areas of mental health and stress management."
+      tip: "A note from the Curator: These attributes reflect the core narratives of the library. Pay attention to the ones that feel most familiar."
     },
     {
       id: 3,
-      title: "🏆 Quest Achievements & Progress",
-      message: "Complete daily quests and track your achievements. Each completed quest brings you closer to unlocking new tools and stories.",
+      title: "🏆 Daily Inquiries & Achievements",
+      message: "These are your Daily Inquiries—small, suggested tasks to help maintain the order of your Archive. Completing them is a quiet act of scholarship that will be noted in your personal log of achievements.",
       highlight: "quests",
-      tip: "Quests are designed to match your personality type and help you build healthy habits."
+      tip: "A note from the Curator: These tasks are chosen for you. They are designed to be a gentle practice, not a chore."
     },
     {
       id: 4,
-      title: "🛠️ Coping Tools Collection",
-      message: "Access your personalized collection of coping strategies and wellness tools. Unlock new tools by completing stories and quests.",
+      title: "🛠️ The Archivist's Toolkit",
+      message: "Here you will find your collection of Restoration Implements. As you complete stories and inquiries, you will acquire new tools specialized for the kinds of narratives you find most challenging.",
       highlight: "coping",
-      tip: "Different tools work for different people - experiment to find what helps you most."
+      tip: "A note from the Curator: The right tool can mend a torn page or clarify a faded passage. Experiment to find what works for you."
     },
     {
       id: 5,
-      title: "📚 Stories & Personal Growth",
-      message: "Explore stories tailored to your personality type. Each story helps you develop new skills and understanding.",
+      title: "📚 Passages Written for You",
+      message: "The stories within these Passages will speak to you in a unique way. You may find the dialogue shifts, or that certain paths feel more intuitive. This is the Archive adapting to its reader.",
       highlight: "stories",
-      tip: "Stories are designed to resonate with your unique way of thinking and feeling."
+      tip: "A note from the Curator: Do not be surprised if I address you differently within a story; I am simply speaking your language."
     },
     {
       id: 6,
-      title: "🧠 Thought Defender & Codex",
-      message: "Use the Thought Defender to practice challenging negative thoughts, and the Codex to reflect on your journey through journaling.",
+      title: "🧠 The Mind Defender & The Codex",
+      message: "Here you will find the 'Mind Defender,' a training ground to guard the stacks against dissonant whispers (or 'Negative Thoughts,' as they're known outside). Your Codex, as always, is here for your personal 'Inscriptions.'",
       highlight: "tools",
-      tip: "Regular practice with these tools builds resilience and self-awareness."
+      tip: "A note from the Curator: Defending the mind is a practical skill; reflecting in the Codex is a scholarly art. Both are necessary."
     },
     {
       id: 7,
-      title: "🌱 Restoration & Self-Care",
-      message: "Access restoration activities and track your overall progress. This is your space for reflection and renewal.",
+      title: "🌱 The Restoration Wing",
+      message: "This is your personal wing of the Archive, where your illuminated manuscripts are shelved. Every story you help to heal adds its light to this space, making it uniquely your own.",
       highlight: "restoration",
-      tip: "Restoration is just as important as growth - take time to recharge and reflect."
+      tip: "A note from the Curator: Restoration is a quiet, steady process. It is just as important as new discovery."
     },
     {
       id: 8,
-      title: "🎉 You're Ready to Begin!",
-      message: "You now know how to navigate your personalized archive. Remember, this journey is about progress, not perfection.",
+      title: "🎉 Your Path is Your Own",
+      message: "Your personalized orientation is complete. No two Archivists walk the same path through these halls. The journey ahead is yours alone to chart. Read well.",
       highlight: "complete",
-      tip: "Start with small steps and celebrate every bit of progress you make!"
+      tip: "A note from the Curator: Remember that progress is not a straight line, but a meandering path through the stacks. Enjoy the walk."
     }
   ];
 
@@ -502,7 +502,17 @@ export default function PersonalityHomeScreen() {
               stories={stories}
               globalStyles={globalStyles}
               onThemeToggle={() => theme.toggleTheme()}
-              onLogout={() => auth.logout()}
+              onLogout={() => {
+                if (auth && auth.logout) {
+                  try {
+                    auth.logout();
+                  } catch (error) {
+                    Alert.alert('Logout Error', `Failed to logout: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                  }
+                } else {
+                  Alert.alert('Error', 'Logout function not available');
+                }
+              }}
               currentTheme={theme.themeMode}
             />
           </TutorialHighlight>

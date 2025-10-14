@@ -1,3 +1,4 @@
+import { uiIcons } from '../assets/ui';
 import { CopingTools } from '../types/personality';
 import { Choice, Passage, SavedRewards } from '../types/story';
 
@@ -544,18 +545,45 @@ export function createNotificationFromEffects(
 ): Array<{
   message: string;
   type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
+  icon?: string;
+  iconImage?: any;
+  statName?: string;
 }> {
   const notifications: Array<{
     message: string;
     type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
+    icon?: string;
+    iconImage?: any;
+    statName?: string;
   }> = [];
 
-  // Map stat names to frontend display names
+  // Map stat names to frontend display names and icons
   const statDisplayNames: Record<string, string> = {
     'awareness': 'Exploration',
     'resilience': 'Courage', 
     'connection': 'Connection',
     'balance': 'Fear'
+  };
+
+  const statIcons: Record<string, string> = {
+    'awareness': '🧘',
+    'resilience': '💚',
+    'connection': '🤝',
+    'balance': '⚖️',
+    'exploration': '🧘',
+    'courage': '💚',
+    'fear': '⚖️'
+  };
+
+  // Map stat names to image assets (for character users)
+  const statImages: Record<string, any> = {
+    'awareness': uiIcons.sectionIcons.exploration,
+    'resilience': uiIcons.sectionIcons.courage,
+    'connection': uiIcons.sectionIcons.balance,
+    'balance': uiIcons.sectionIcons.fear,
+    'exploration': uiIcons.sectionIcons.exploration,
+    'courage': uiIcons.sectionIcons.courage,
+    'fear': uiIcons.sectionIcons.fear
   };
 
   const rewardType = getRewardType(researchCondition);
@@ -571,15 +599,22 @@ export function createNotificationFromEffects(
     if (!isNaN(numValue) && numValue > 0) {
       if (key === 'experience' || key === 'resonance') {
         const rewardLabel = key === 'experience' ? 'Experience' : 'Resonance';
+        const icon = key === 'experience' ? '⭐' : '🌟';
         notifications.push({
           message: `+${numValue} ${rewardLabel}`,
-          type: key as 'experience' | 'resonance'
+          type: key as 'experience' | 'resonance',
+          icon: icon
         });
       } else {
         const displayName = statDisplayNames[key] || key.charAt(0).toUpperCase() + key.slice(1);
+        const icon = statIcons[key] || '✨';
+        const iconImage = researchCondition === 'character' ? statImages[key] : undefined;
         notifications.push({
           message: `+${numValue} ${displayName}`,
-          type: 'stat'
+          type: 'stat',
+          icon: icon,
+          iconImage: iconImage,
+          statName: key
         });
       }
     }
@@ -599,9 +634,11 @@ export function createNotificationFromEffects(
   
   if (rewardGain > 0 && !notifications.some(n => n.type === rewardType)) {
     const rewardLabel = rewardType === 'experience' ? 'Experience' : 'Resonance';
+    const icon = rewardType === 'experience' ? '⭐' : '🌟';
     notifications.push({
       message: `+${rewardGain} ${rewardLabel}`,
-      type: rewardType
+      type: rewardType,
+      icon: icon
     });
   }
 
@@ -613,9 +650,14 @@ export function createNotificationFromEffects(
       const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
       if (!isNaN(numValue) && numValue > 0) {
         const displayName = statDisplayNames[stat] || stat.charAt(0).toUpperCase() + stat.slice(1);
+        const icon = statIcons[stat] || '✨';
+        const iconImage = researchCondition === 'character' ? statImages[stat] : undefined;
         notifications.push({
           message: `+${numValue} ${displayName}`,
-          type: 'stat'
+          type: 'stat',
+          icon: icon,
+          iconImage: iconImage,
+          statName: stat
         });
       }
     });
@@ -628,14 +670,16 @@ export function createNotificationFromEffects(
         const message = researchCondition === "personality" ? `Acquired ${reward}` : `Gained ${reward}`;
         notifications.push({
           message,
-          type: 'item'
+          type: 'item',
+          icon: '🎁'
         });
       });
     } else if (typeof effects.rewards === 'string') {
       const message = researchCondition === "personality" ? `Acquired ${effects.rewards}` : `Gained ${effects.rewards}`;
       notifications.push({
         message,
-        type: 'item'
+        type: 'item',
+        icon: '🎁'
       });
     }
   }
@@ -646,13 +690,15 @@ export function createNotificationFromEffects(
       effects.skills.forEach((skill: string) => {
         notifications.push({
           message: `Learned ${skill}`,
-          type: 'skill'
+          type: 'skill',
+          icon: '📚'
         });
       });
     } else if (typeof effects.skills === 'string') {
       notifications.push({
         message: `Learned ${effects.skills}`,
-        type: 'skill'
+        type: 'skill',
+        icon: '📚'
       });
     }
   }
@@ -664,14 +710,16 @@ export function createNotificationFromEffects(
         const message = researchCondition === "personality" ? `Acquired ${artifact}` : `Found ${artifact}`;
         notifications.push({
           message,
-          type: researchCondition === "personality" ? 'item' : 'artifact'
+          type: researchCondition === "personality" ? 'item' : 'artifact',
+          icon: researchCondition === "personality" ? '🎁' : '💎'
         });
       });
     } else if (typeof effects.artifacts === 'string') {
       const message = researchCondition === "personality" ? `Acquired ${effects.artifacts}` : `Found ${effects.artifacts}`;
       notifications.push({
         message,
-        type: researchCondition === "personality" ? 'item' : 'artifact'
+        type: researchCondition === "personality" ? 'item' : 'artifact',
+        icon: researchCondition === "personality" ? '🎁' : '💎'
       });
     }
   }
@@ -681,7 +729,8 @@ export function createNotificationFromEffects(
     effects.quest_progress.forEach(() => {
       notifications.push({
         message: 'Quest Progress Updated!',
-        type: 'quest'
+        type: 'quest',
+        icon: '🎯'
       });
     });
   } else if (effects.quests) {
@@ -700,13 +749,15 @@ export function createNotificationFromEffects(
         const questInfo = getQuestInfo(questId);
         if (questInfo) {
           notifications.push({
-            message: `🎯 Quest Progress: ${questInfo.title}`,
-            type: 'quest'
+            message: `Quest Progress: ${questInfo.title}`,
+            type: 'quest',
+            icon: '🎯'
           });
         } else {
           notifications.push({
-            message: `🎯 Quest Progress: ${questId}`,
-            type: 'quest'
+            message: `Quest Progress: ${questId}`,
+            type: 'quest',
+            icon: '🎯'
           });
         }
       });
@@ -723,13 +774,15 @@ export function createNotificationFromEffects(
       const questInfo = getQuestInfo(effects.quests);
       if (questInfo) {
         notifications.push({
-          message: `🎯 Quest Progress: ${questInfo.title}`,
-          type: 'quest'
+          message: `Quest Progress: ${questInfo.title}`,
+          type: 'quest',
+          icon: '🎯'
         });
       } else {
         notifications.push({
-          message: `🎯 Quest Progress: ${effects.quests}`,
-          type: 'quest'
+          message: `Quest Progress: ${effects.quests}`,
+          type: 'quest',
+          icon: '🎯'
         });
       }
     }

@@ -45,6 +45,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     visible: boolean;
     message: string;
     type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+    icon?: string;
+    iconImage?: any;
+    statName?: string;
   }>({
     visible: false,
     message: '',
@@ -54,6 +57,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   const [notificationQueue, setNotificationQueue] = useState<Array<{
     message: string;
     type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+    icon?: string;
+    iconImage?: any;
+    statName?: string;
   }>>([]);
 
   const [isShowingNotification, setIsShowingNotification] = useState(false);
@@ -62,6 +68,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   const notificationQueueRef = useRef<Array<{
     message: string;
     type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+    icon?: string;
+    iconImage?: any;
+    statName?: string;
   }>>([]);
   const isShowingNotificationRef = useRef(false);
 
@@ -206,8 +215,14 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     }
   }, [currentPassage?.passage_id, rewardManager, isInitialized, primaryTrait]);
 
-  const showRewardNotification = (message: string, type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest') => {
-    setNotificationQueue(prev => [...prev, { message, type }]);
+  const showRewardNotification = (
+    message: string, 
+    type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest',
+    icon?: string,
+    iconImage?: any,
+    statName?: string
+  ) => {
+    setNotificationQueue(prev => [...prev, { message, type, icon, iconImage, statName }]);
     
     if (!isShowingNotificationRef.current) {
       setTimeout(() => {
@@ -231,7 +246,10 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     setRewardNotification({
       visible: true,
       message: nextNotification.message,
-      type: nextNotification.type
+      type: nextNotification.type,
+      icon: nextNotification.icon,
+      iconImage: nextNotification.iconImage,
+      statName: nextNotification.statName
     });
     
     setIsShowingNotification(true);
@@ -521,6 +539,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           visible={rewardNotification.visible}
           message={rewardNotification.message}
           type={rewardNotification.type}
+          icon={rewardNotification.icon}
+          iconImage={rewardNotification.iconImage}
+          statName={rewardNotification.statName}
           onHide={hideRewardNotification}
         />
     </Modal>

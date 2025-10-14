@@ -1087,8 +1087,8 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           });
 
           Alert.alert(
-            '🏆 VICTORY! 🏆',
-            `${rewardMessage}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
+            ' You have overcome your negative thoughts! ',
+            `${rewardMessage}\n\n Against all odds you have conquered the ${difficulty.name} difficulty, and overcome your negative thoughts. You are one step closer to tackling anything that comes your way ${homeData?.userProfile?.character?.name}.`,
             [
               { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
               { text: '❌ EXIT', onPress: onClose }
@@ -1103,8 +1103,8 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           });
 
           Alert.alert(
-            '🏆 VICTORY! 🏆',
-            `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
+            'You have overcome your negative thoughts!',
+            `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${homeData?.userProfile?.character?.level}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
             [
               { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
               { text: '❌ EXIT', onPress: onClose }

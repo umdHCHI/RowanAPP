@@ -20,31 +20,42 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   return (
     <View style={[styles.card, { maxWidth: 400, width: '100%' }]}>
       <Text style={styles.subtitle}>{question.question}</Text>
-      {question.options.map((option, idx) => (
-        <TouchableOpacity
-          key={idx}
-          style={[
-            styles.button,
-            { 
-              alignItems: 'flex-start', 
-              backgroundColor: isOptionSelected(idx) ? styles.primary : styles.card, 
-              borderColor: styles.border, 
-              borderWidth: 1, 
-              marginVertical: 4,
-              opacity: isSubmitting ? 0.5 : 1
-            },
-          ]}
-          onPress={() => onOptionSelect(idx)}
-          disabled={isSubmitting}
-        >
-          <Text style={[
-            styles.text, 
-            { color: isOptionSelected(idx) ? '#fff' : styles.tabBarInactive }
-          ]}>
-            {option.text}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {question.options.map((option, idx) => {
+        const selected = isOptionSelected(idx);
+        return (
+          <TouchableOpacity
+            key={idx}
+            style={[
+              styles.button,
+              { 
+                alignItems: 'flex-start', 
+                backgroundColor: selected ? 'rgba(56, 139, 211, 0.38)' : 'rgba(30, 41, 59, 0.5)', 
+                borderColor: selected ? '#4ee6e6' : 'rgba(255, 255, 255, 0.2)', 
+                borderWidth: 2, 
+                marginVertical: 4,
+                opacity: isSubmitting ? 0.5 : 1,
+                shadowColor: selected ? '#4ee6e6' : 'transparent',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: selected ? 0.3 : 0,
+                shadowRadius: 4,
+                elevation: selected ? 4 : 0,
+              },
+            ]}
+            onPress={() => onOptionSelect(idx)}
+            disabled={isSubmitting}
+          >
+            <Text style={[
+              styles.text, 
+              { 
+                color: selected ? '#ffffff' : '#9CA3AF',
+                fontWeight: selected ? 'bold' : 'normal'
+              }
+            ]}>
+              {option.text}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 };

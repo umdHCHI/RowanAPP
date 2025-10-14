@@ -42,52 +42,52 @@ const { width, height } = Dimensions.get("window");
 const TUTORIAL_STEPS = [
   {
     id: 1,
-    title: "🎮 Welcome to The Archive!",
-    message: "This is your personal stress management adventure game. You'll navigate through interactive stories, equip character gear to enhance your abilities, and build your mental resilience. Let's learn how to play!",
+    title: "📜 Orientation, Part I: An Introduction",
+    message: "Ah, you're finally semi-corporeal. Welcome to The Archive,the grand, un-asked-for repository of... well, you. Every thought you've had, every book you were meant to read. This is your induction. Pay attention.",
     highlight: "header",
-    tip: "The Archive is your safe space to explore and grow. Take your time with each feature!"
+    tip: "A note from the Curator: Don't rush. The stacks are infinite; your sanity is not."
   },
   {
     id: 2,
-    title: "📚 Your Character & Stats",
-    message: "This is your character! Your wellness stats (Exploration, Courage, Connection, Fear) show your progress. Each stat represents different aspects of mental wellness that can be explored in the passages. Click on them to see detailed information and track your growth.",
+    title: "🧐 The Archivist's Folio",
+    message: "This is you, or the current draft, anyway. These foundations—Exploration, Courage, Connection, and Fear—are the core subjects of this library. Each is a tome waiting for you to read and understand it. In helping them heal, you strengthen yourself.",
     highlight: "character",
-    tip: "Higher stats unlock new stories and equipment. Focus on areas that feel most challenging to you."
+    tip: "A note from the Curator: Your foundations dictate which forgotten corridors you can navigate. Neglect one at your peril."
   },
   {
     id: 3,
-    title: "⚔️ Equipment System",
-    message: "Equip items to boost your stats! Weapons improve focus and concentration, armor provides comfort and social support, helmets help set healthy boundaries, and boots keep you grounded and active. Each piece of gear has unique benefits.",
+    title: "✒️ Scholarly Implements",
+    message: "Every scholar requires tools. These artifacts are... unconventional. Tomes to focus the mind, cloaks to endure tedious social gatherings, and boots to keep you from floating away into abstraction. Equip them. They might even help.",
     highlight: "equipment",
-    tip: "Mix and match gear to create your perfect wellness loadout. Different combinations work for different situations!"
+    tip: "A note from the Curator: The proper attire can make all the difference between a breakthrough and a breakdown. Choose your 'loadout' with care."
   },
   {
     id: 4,
-    title: "📖 Story Adventures",
-    message: "The 'Passages' tab contains interactive stories where you make choices and learn coping strategies. Each choice affects your character's growth and can unlock new paths. Stories are designed to help you practice real-life stress management techniques.",
+    title: "📖 Accessing the Stacks",
+    message: "The 'Passages' are where the real work begins. These are unread tomes, whispering narratives of past trials. Your choices are your annotations; they dictate the outcome of the research. Your first assignment awaits in 'The Whispering Stacks'.",
     highlight: "passages",
-    tip: "There are no wrong choices! Each path teaches valuable lessons. Replay stories to explore different outcomes."
+    tip: "A note from the Curator: There are no 'wrong' choices, only poorly supported arguments. Re-read the material to explore alternative conclusions."
   },
   {
     id: 5,
-    title: "🔧 Restoration & Growth",
-    message: "The 'Restoration' tab shows your progress through stories and unlocks new content as you complete adventures. Track your achievements, see your growth over time, and discover new challenges as you level up.",
+    title: "✨ Illuminated Manuscripts",
+    message: "This is your 'Restoration' shelf, where you'll find a record of your completed works. As you restore color and meaning to the forgotten tomes you encounter, your own scholarship will deepen, unlocking further sections of the library.",
     highlight: "restoration",
-    tip: "Progress is saved automatically. You can always return to stories you've started and continue your journey."
+    tip: "A note from the Curator: Progress here is a measure of insight, not speed. Unlike your undergraduate career."
   },
   {
     id: 6,
-    title: "📝 The Codex",
-    message: "Your personal journal for reflections and insights. Record your thoughts, draw your feelings, or record voice memos to track your journey. The Codex helps you reflect on your experiences and see patterns in your growth.",
+    title: "✍️ Your Inscriptions",
+    message: "Within The Archive,'Inscriptions' are all your personal marginalia on the text of your own life. Scribe your thoughts, sketch your conclusions, or record your frustrated muttering. A good scholar keeps meticulous field notes.",
     highlight: "codex",
-    tip: "Regular journaling can help you identify triggers and track your progress. Try to write something every day!"
+    tip: "A note from the Curator: Don't neglect your notes. You'll be surprised what patterns emerge when you're not looking for them."
   },
   {
     id: 7,
-    title: "🌟 You're Ready!",
-    message: "Congratulations! You now know the basics of The Archive. Explore stories, equip gear, and build your wellness foundations. Remember: every choice helps you grow stronger, and there's no rush. Take your time and enjoy the journey!",
+    title: "🎓 The Orientation Concludes",
+    message: "Congratulations, you now possess the basic competencies to not get immediately lost. The Archive is vast, and the whispers are waiting. Now, get to it. The books won't read themselves.",
     highlight: "none",
-    tip: "You can always restart this tutorial by clicking the '?' button in the top right corner. Happy adventuring!"
+    tip: "A note from the Curator: Should you require this lecture again, the question mark is your friend. Do try not to need it."
   }
 ];
 
@@ -857,19 +857,15 @@ const ArchiveInterface: React.FC = () => {
   ) => {
     archive.handleMiniGameComplete(gameType, data);
 
-    if (gameType === "thoughtDefender" && data.won) {
-      Alert.alert(
-        "🏆 Mind Defense Victory!",
-        `You've successfully defended your mind!\n\nLevel: ${data.level}\nScore: ${data.score}`,
-        [{ text: "Excellent!", style: "default" }]
-      );
-    } else if (gameType === "drawing") {
+    // Only handle drawing alerts - ThoughtDefenderModal handles its own alerts
+    if (gameType === "drawing") {
       Alert.alert(
         "🎨 Creative Expression Recorded",
         "Your drawing has been added to the Archive.",
         [{ text: "Continue Creating", style: "default" }]
       );
     }
+    // Remove thoughtDefender alert handling - it's handled in the modal itself
   };
 
   const handleEquip = async (item: EquipmentItem) => {
@@ -1123,35 +1119,36 @@ const ArchiveInterface: React.FC = () => {
 
         <View style={{
           position: 'absolute',
-          top: '20%',
-          left: 20,
-          right: 20,
+          top: '15%',
+          left: 12,
+          right: 12,
           backgroundColor: 'rgba(10, 11, 15, 0.95)',
-          borderRadius: 20,
+          borderRadius: 16,
           borderWidth: 2,
           borderColor: '#4ee6e6',
-          padding: 24,
+          padding: 16,
           zIndex: 1001,
           shadowColor: '#4ee6e6',
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.5,
           shadowRadius: 20,
           elevation: 20,
+          maxHeight: '70%',
         }}>
           <View style={{
             flexDirection: 'row',
             justifyContent: 'center',
-            marginBottom: 20,
+            marginBottom: 12,
           }}>
             {TUTORIAL_STEPS.map((_, index) => (
               <View
                 key={index}
                 style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
                   backgroundColor: index === currentTutorialStep ? '#4ee6e6' : 'rgba(78, 230, 230, 0.3)',
-                  marginHorizontal: 4,
+                  marginHorizontal: 3,
                 }}
               />
             ))}
@@ -1159,10 +1156,10 @@ const ArchiveInterface: React.FC = () => {
 
           <Text style={{
             color: '#4ee6e6',
-            fontSize: 24,
+            fontSize: 18,
             fontWeight: 'bold',
             textAlign: 'center',
-            marginBottom: 16,
+            marginBottom: 12,
             textShadowColor: 'rgba(78, 230, 230, 0.5)',
             textShadowOffset: { width: 0, height: 2 },
             textShadowRadius: 4,
@@ -1172,10 +1169,10 @@ const ArchiveInterface: React.FC = () => {
 
           <Text style={{
             color: '#ffffff',
-            fontSize: 16,
-            lineHeight: 24,
+            fontSize: 14,
+            lineHeight: 20,
             textAlign: 'center',
-            marginBottom: 16,
+            marginBottom: 12,
             textShadowColor: 'rgba(0, 0, 0, 0.5)',
             textShadowOffset: { width: 0, height: 1 },
             textShadowRadius: 2,
@@ -1188,20 +1185,20 @@ const ArchiveInterface: React.FC = () => {
               backgroundColor: 'rgba(212, 175, 55, 0.1)',
               borderWidth: 1,
               borderColor: 'rgba(212, 175, 55, 0.3)',
-              borderRadius: 12,
-              padding: 12,
-              marginBottom: 24,
+              borderRadius: 10,
+              padding: 10,
+              marginBottom: 16,
             }}>
               <Text style={{
                 color: '#d4af37',
-                fontSize: 14,
+                fontSize: 12,
                 fontStyle: 'italic',
                 textAlign: 'center',
                 textShadowColor: 'rgba(212, 175, 55, 0.3)',
                 textShadowOffset: { width: 0, height: 1 },
                 textShadowRadius: 2,
               }}>
-                💡 Pro Tip: {currentStep.tip}
+                💡 {currentStep.tip}
               </Text>
             </View>
           )}
@@ -1210,52 +1207,58 @@ const ArchiveInterface: React.FC = () => {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
+            gap: 8,
           }}>
             <TouchableOpacity
               onPress={skipTutorial}
               style={{
-                paddingVertical: 12,
-                paddingHorizontal: 20,
-                borderRadius: 25,
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderRadius: 20,
                 borderWidth: 1,
                 borderColor: 'rgba(255, 255, 255, 0.3)',
                 backgroundColor: 'transparent',
+                flex: 1,
               }}
               activeOpacity={0.7}
             >
               <Text style={{
                 color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: '500',
+                textAlign: 'center',
               }}>
-                Skip Tutorial
+                Skip
               </Text>
             </TouchableOpacity>
 
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
+              gap: 6,
+              flex: 2,
             }}>
               {!isFirstStep && (
                 <TouchableOpacity
                   onPress={previousTutorialStep}
                   style={{
-                    paddingVertical: 12,
-                    paddingHorizontal: 20,
-                    borderRadius: 25,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 20,
                     backgroundColor: 'rgba(78, 230, 230, 0.2)',
                     borderWidth: 1,
                     borderColor: '#4ee6e6',
-                    marginRight: 12,
+                    flex: 1,
                   }}
                   activeOpacity={0.7}
                 >
                   <Text style={{
                     color: '#4ee6e6',
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: '600',
+                    textAlign: 'center',
                   }}>
-                    ← Previous
+                    ← Prev
                   </Text>
                 </TouchableOpacity>
               )}
@@ -1263,24 +1266,26 @@ const ArchiveInterface: React.FC = () => {
               <TouchableOpacity
                 onPress={nextTutorialStep}
                 style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 24,
-                  borderRadius: 25,
+                  paddingVertical: 8,
+                  paddingHorizontal: 14,
+                  borderRadius: 20,
                   backgroundColor: '#4ee6e6',
                   shadowColor: '#4ee6e6',
-                  shadowOffset: { width: 0, height: 4 },
+                  shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 8,
+                  shadowRadius: 4,
+                  elevation: 4,
+                  flex: 1,
                 }}
                 activeOpacity={0.8}
               >
                 <Text style={{
                   color: '#0a0b0f',
-                  fontSize: 16,
+                  fontSize: 12,
                   fontWeight: 'bold',
+                  textAlign: 'center',
                 }}>
-                  {isLastStep ? 'Get Started!' : 'Next →'}
+                  {isLastStep ? 'Start!' : 'Next →'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1374,38 +1379,42 @@ const ArchiveInterface: React.FC = () => {
                   />
                 </LinearGradient>
                 
-                
-                {/* Tutorial Button */}
-                <TouchableOpacity
-                  onPress={startTutorial}
-                  style={{
-                    position: 'absolute',
-                    top: -10,
-                    right: 30,
-                    backgroundColor: 'rgba(78, 230, 230, 0.8)',
-                    borderRadius: 12,
-                    width: 24,
-                    height: 24,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 1000,
-                  }}
-                >
-                  <Text style={{ color: '#0a0b0f', fontSize: 10, fontWeight: 'bold' }}>?</Text>
-                </TouchableOpacity>
                 <View style={homeStyles.archiveHeaderTextContainer}>
-                  <Text style={{
-                    ...homeStyles.archiveHeaderTitle,
-                    color: '#4ee6e6',
-                    fontSize: 32,
-                    fontWeight: 'bold',
-                    letterSpacing: 4,
-                    textShadowColor: 'rgba(78, 230, 230, 0.5)',
-                    textShadowOffset: { width: 0, height: 2 },
-                    textShadowRadius: 8,
-                  }}>
-                    The Archive
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{
+                      ...homeStyles.archiveHeaderTitle,
+                      color: '#4ee6e6',
+                      fontSize: 24,
+                      fontWeight: 'bold',
+                      letterSpacing: 3,
+                      textShadowColor: 'rgba(78, 230, 230, 0.5)',
+                      textShadowOffset: { width: 0, height: 2 },
+                      textShadowRadius: 8,
+                    }}>
+                      The Archive
+                    </Text>
+                    
+                    {/* Tutorial Button */}
+                    <TouchableOpacity
+                      onPress={startTutorial}
+                      style={{
+                        backgroundColor: 'rgba(78, 230, 230, 0.8)',
+                        borderRadius: 12,
+                        width: 26,
+                        height: 26,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginLeft: 10,
+                        shadowColor: '#4ee6e6',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.5,
+                        shadowRadius: 4,
+                        elevation: 4,
+                      }}
+                    >
+                      <Text style={{ color: '#0a0b0f', fontSize: 14, fontWeight: 'bold' }}>?</Text>
+                    </TouchableOpacity>
+                  </View>
                   <Text style={{
                     ...homeStyles.archiveHeaderSubtitle,
                     color: '#d4af37',
@@ -1557,7 +1566,7 @@ const ArchiveInterface: React.FC = () => {
                         {
                           type: "shield" as keyof EquippedItems,
                           label: "Mind Shield",
-                          icon: uiIcons.sectionIcons.shieldwithblue,
+                          icon: uiIcons.sectionIcons.bluejewel,
                           slot: "helmet" as const,
                         },
                       ].map((slot, i) => (
@@ -1576,8 +1585,8 @@ const ArchiveInterface: React.FC = () => {
                         >
                           <LinearGradient
                             colors={[
-                              homeTheme.gearSlotGradientStart,
-                              homeTheme.gearSlotGradientEnd,
+                              homeTheme.gearSlotGradientStart || 'rgba(10, 11, 15, 0.9)',
+                              homeTheme.gearSlotGradientEnd || 'rgba(30, 41, 59, 0.7)',
                             ]}
                             style={homeStyles.gearSlotGradient}
                           >
@@ -1645,7 +1654,7 @@ const ArchiveInterface: React.FC = () => {
                         {
                           type: "comfort" as keyof EquippedItems,
                           label: "Comfort Layer",
-                          icon: uiIcons.sectionIcons.redcape,
+                          icon: uiIcons.sectionIcons.purplebottle,
                           slot: "armor" as const,
                         },
                         {
@@ -1670,8 +1679,8 @@ const ArchiveInterface: React.FC = () => {
                         >
                           <LinearGradient
                             colors={[
-                              homeTheme.gearSlotGradientStart,
-                              homeTheme.gearSlotGradientEnd,
+                              homeTheme.gearSlotGradientStart || 'rgba(10, 11, 15, 0.9)',
+                              homeTheme.gearSlotGradientEnd || 'rgba(30, 41, 59, 0.7)',
                             ]}
                             style={homeStyles.gearSlotGradient}
                           >
@@ -2187,7 +2196,7 @@ const ArchiveInterface: React.FC = () => {
                   }}
                 >
                   <Text style={{
-                    color: 'rgba(78, 230, 230, 0.9)',
+                    color: 'rgba(78, 230, 230,  0.9)',
                     fontSize: 14,
                     fontWeight: '600',
                     textShadowColor: 'rgba(78, 230, 230, 0.2)',
@@ -3968,9 +3977,7 @@ const ArchiveInterface: React.FC = () => {
                       </View>
                     </LinearGradient>
                   </View>
-
-                  <View style={homeStyles.foundationsSection}>
-                    <LinearGradient
+                        <LinearGradient
                       colors={[
                         "rgba(10, 11, 15, 0.95)",
                         "rgba(30, 41, 59, 0.8)",
@@ -4416,7 +4423,7 @@ const ArchiveInterface: React.FC = () => {
                         </Text>
                       </View>
                     </LinearGradient>
-                  </View>
+             
                 </>
               )}
             </View>

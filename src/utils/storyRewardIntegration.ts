@@ -27,7 +27,7 @@ import {
 
 export class StoryRewardManager {
   private rewardTracker: StoryRewardTracker;
-  private showNotification: (message: string, type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest') => void;
+  private showNotification: (message: string, type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest', icon?: string, iconImage?: any, statName?: string) => void;
   private onStoryComplete: (completionData: any) => void;
   private apiService: any;
   private characterId: number;
@@ -46,7 +46,7 @@ export class StoryRewardManager {
 
   constructor(
     storyId: string,
-    showNotification: (message: string, type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest') => void,
+    showNotification: (message: string, type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest', icon?: string, iconImage?: any, statName?: string) => void,
     onStoryComplete: (completionData: any) => void,
     apiService: any,
     characterId: number,
@@ -405,7 +405,7 @@ export class StoryRewardManager {
         
         console.log(`✅ Sending new notification: ${notificationKey}`);
         this.sentNotifications.add(notificationKey);
-        this.showNotification(notification.message, notification.type);
+        this.showNotification(notification.message, notification.type, notification.icon, notification.iconImage, notification.statName);
       });
       
       console.log('=== END NOTIFICATION DEBUG ===');
@@ -550,7 +550,7 @@ export class StoryRewardManager {
         
         console.log(`✅ Sending new notification: ${notificationKey}`);
         this.sentNotifications.add(notificationKey);
-        this.showNotification(notification.message, notification.type);
+        this.showNotification(notification.message, notification.type, notification.icon, notification.iconImage, notification.statName);
       });
       
       console.log('=== END NOTIFICATION DEBUG ===');

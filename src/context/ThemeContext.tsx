@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { createGlobalStyles } from '../styles/globalStyles';
 import { ThemeColors, characterCreatorTheme, characterHomeScreenTheme, darkTheme, lightTheme, loginTheme, onboardingTheme, personalitySurveyTheme } from '../styles/theme';
@@ -50,12 +50,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setThemeMode(prev => prev === 'light' ? 'dark' : 'light');
   };
   
-  // Optional: Sync with system theme on app start
-  useEffect(() => {
-    if (systemColorScheme) {
-      setThemeMode(systemColorScheme as ThemeMode);
-    }
-  }, [systemColorScheme]);
+  // System theme sync disabled - The Archive always starts in dark mode for aesthetic consistency
+  // useEffect(() => {
+  //   if (systemColorScheme) {
+  //     setThemeMode(systemColorScheme as ThemeMode);
+  //   }
+  // }, [systemColorScheme]);
   
   const value: ThemeContextType = {
     // New theme system

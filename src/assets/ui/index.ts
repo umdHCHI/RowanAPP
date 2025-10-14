@@ -63,8 +63,8 @@ export const sectionIcons: Record<string, any> = {
  // whitecarrot: require('../../../assets/UI/assets/whitecarrot.png'),
   pinkflowerblueleaf: require('../../../assets/UI/assets/fc576.png'),
   //blueflowerpinkleaf: require('../../../assets/UI/assets/blueflowerpinkleaf.png'),
- // greenheart: require('../../../assets/UI/assets/greenheart.png'),
- // greybook: require('../../../assets/UI/assets/greybook.png'),
+  //greenheart: require('../../../assets/UI/assets/greenheart.png'),
+  //greybook: require('../../../assets/UI/assets/greybook.png'),
   purplecurlfog: require('../../../assets/UI/assets/fc666.png'),
  // blueblobfog: require('../../../assets/UI/assets/blueblobfog.png'),
  // smugcrossandbones: require('../../../assets/UI/assets/smugcrossandbones.png'),
@@ -75,8 +75,8 @@ export const sectionIcons: Record<string, any> = {
  // bluecomet: require('../../../assets/UI/assets/bluecomet.png'),
  // greeneyecomet: require('../../../assets/UI/assets/greeneyecomet.png'),
   staffwithgreengem: require('../../../assets/UI/assets/fc1571.png'),
- // bluegloveofthanos: require('../../../assets/UI/assets/bluegloveofthanos.png'),
- // shieldwithblue: require('../../../assets/UI/assets/shieldwithblue.png'),
+  bluegloveofthanos: require('../../../assets/UI/assets/bluegloveofthanos.png'),
+  //shieldwithblue: require('../../../assets/UI/assets/shieldwithblue.png'),
   //redcape: require('../../../assets/UI/assets/redcape.png'),
 
 

@@ -49,6 +49,9 @@ const CodexModal = ({
     visible: boolean;
     message: string;
     type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact';
+    icon?: string;
+    iconImage?: any;
+    statName?: string;
   }>({
     visible: false,
     message: '',
@@ -278,7 +281,8 @@ const CodexModal = ({
             setRewardNotification({
               visible: true,
               message: rewardMessage,
-              type: 'experience'
+              type: 'experience',
+              icon: '⭐'
             });
           } catch {
             Alert.alert(
@@ -1095,6 +1099,9 @@ const CodexModal = ({
       visible={rewardNotification.visible}
       message={rewardNotification.message}
       type={rewardNotification.type}
+      icon={rewardNotification.icon}
+      iconImage={rewardNotification.iconImage}
+      statName={rewardNotification.statName}
       onHide={() => setRewardNotification(prev => ({ ...prev, visible: false }))}
     />
     </>
