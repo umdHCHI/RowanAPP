@@ -1,5 +1,6 @@
 
 # The Archive - Gamified Mental Wellness Application
+# This is the final Prod version for Usability Testing. 
 
 A React Native/Expo application for **stress management research in college students** using narrative-based therapeutic interventions. Set in a mystical library overseen by "The Curator," this app delivers evidence-based mental health content through immersive RPG-style storytelling.
 
@@ -207,7 +208,7 @@ Create a `.env` file in the project root:
 # Backend API Configuration
 API_BASE_URL=SAMPLE    # Production backend
 # API_BASE_URL=http://localhost:8000/api/ # Local development
-
+# Contact admin for env info 
 # Development Testing (Optional)
 TEST_USER_TOKEN=your_test_token_here
 
@@ -387,7 +388,7 @@ await testGearRewardSystem();
 
 ```bash
 # Development
-npm start                    # Start Expo development server
+npm start/npx expo start                    # Start Expo development server
 npm run android             # Run on Android device/emulator
 npm run ios                 # Run on iOS device/simulator (macOS only)
 npm run web                 # Run in web browser
@@ -402,7 +403,7 @@ eas build --platform ios --profile production
 ```
 
 ### Testing Strategy
-
+### Testing being merged to JUnit testing
 **Manual Testing Approaches**:
 - **Cross-platform testing** on iOS, Android, and web
 - **Research path validation** ensuring both Character and Personality paths work correctly
@@ -475,7 +476,7 @@ eas build --platform ios --profile production
 npx expo export:web
 # Deploy to your web hosting service
 ```
-
+## Contact Admin for latest prod build
 ### Environment-specific Configuration
 
 SEE PRODUCT OWNER 
