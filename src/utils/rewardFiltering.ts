@@ -1,26 +1,17 @@
 // rewardFiltering.ts
 import { toPersonalityKey } from '../types/personality';
-
-type Rewards = {
-  experienceGained?: number;
-  totalStatGains?: Record<string, number>;
-  skillsLearned?: Array<string | { name: string; personality?: string }>;
-  questsUpdated?: Record<string, number>; // Legacy field name
-  questProgress?: Record<string, number>; // Current field name
-  items?: Array<{ id?: number; name: string; personality?: string }>;
-  gear?: Array<{ id?: number; name: string; personality?: string }>;
-};
+import { ProcessedRewards } from '../types/rewards';
 
 const isCommonQuest = (questKey: string) =>
   /^general_|^common_|^global_/i.test(questKey);
 
 export function filterRewardsByPersonality(
-  base: Rewards,
+  base: ProcessedRewards,
   userPersonalityInput: string | null | undefined,
   userType: "character" | "personality" = "personality"
-): Rewards {
+): ProcessedRewards {
   const trait = toPersonalityKey(userPersonalityInput); // e.g., 'Agreeableness'
-  const result: Rewards = { ...base };
+  const result: ProcessedRewards = { ...base };
 
   // Handle quest progress - support both legacy and current field names
   const questData = base.questProgress || base.questsUpdated;
@@ -35,25 +26,37 @@ export function filterRewardsByPersonality(
       result.questsUpdated = filteredQuests; // Keep both for compatibility
     }
   } else {
-    // For personality users, keep common quests and those that start with the user trait prefix
+    // For personality users, keep common quests and those that EXACTLY match the user trait
     if (questData) {
-      const prefix = trait ? `${trait.toLowerCase()}_` : '';
-      console.log(`🔍 Filtering quests for personality user with trait: ${trait}`);
-      console.log(`🔍 Quest prefix to match: ${prefix}`);
-      console.log(`🔍 Original quest data:`, questData);
-      
       const filteredQuests = Object.fromEntries(
-        Object.entries(questData).filter(([k]) => {
-          const isCommon = isCommonQuest(k);
-          const matchesTrait = trait ? k.toLowerCase().startsWith(prefix) : false;
+        Object.entries(questData).filter(([questId]) => {
+          const isCommon = isCommonQuest(questId);
+
+          // STRICT VALIDATION: Quest MUST follow the pattern {trait}_{number}
+          const questTraitMatch = questId.match(/^([a-zA-Z]+)_(\d+)$/);
+          let matchesTrait = false;
+
+          if (questTraitMatch && trait) {
+            const [, questTrait] = questTraitMatch;
+            const normalizedQuestTrait = questTrait.toLowerCase().trim();
+            const normalizedUserTrait = trait.toLowerCase().trim();
+
+            // EXACT match required - no partial matches
+            matchesTrait = normalizedQuestTrait === normalizedUserTrait;
+
+            console.log(`🔍 rewardFiltering - Quest: "${questId}", Quest trait: "${normalizedQuestTrait}", User trait: "${normalizedUserTrait}", Matches: ${matchesTrait}`);
+          }
+
           const shouldKeep = isCommon || matchesTrait;
-          
-          console.log(`🔍 Quest ${k}: isCommon=${isCommon}, matchesTrait=${matchesTrait}, shouldKeep=${shouldKeep}`);
+
+          if (!shouldKeep) {
+            console.log(`❌ rewardFiltering - Excluding quest: "${questId}"`);
+          }
+
           return shouldKeep;
         })
       );
-      
-      console.log(`🔍 Filtered quest data:`, filteredQuests);
+
       result.questProgress = filteredQuests;
       result.questsUpdated = filteredQuests; // Keep both for compatibility
     }
@@ -84,16 +87,9 @@ export function filterRewardsByPersonality(
     result.items = base.items || [];
     result.gear = base.gear || [];
   } else {
-    // Personality users only get items/gear tagged for their trait
-    const filterPG = <T extends { personality?: string }>(arr?: T[]) =>
-      (arr ?? []).filter((it) => {
-        if (!trait) return false;
-        if (!it.personality) return false;
-        return toPersonalityKey(it.personality) === trait;
-      });
-
-    result.items = filterPG(base.items);
-    result.gear = filterPG(base.gear);
+    // Personality users get NO gear/equipment - they only get coping tools
+    result.items = [];
+    result.gear = [];
   }
 
   return result;

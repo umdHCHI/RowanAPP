@@ -1,3 +1,5 @@
+
+
 import { Dimensions, ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 import { ThemeColors, loginTheme } from './theme';
 

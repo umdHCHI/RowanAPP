@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useMasterState } from '../../context/MasterStateContext';
 import { apiService } from '../../services/apiService';
-import { loginStyles as loginStylesGlobal } from '../../styles/globalStyles';
+import { createLoginStyles } from '../../styles/screens/login';
 
 const { width, height } = Dimensions.get('window');
 
@@ -97,7 +97,7 @@ export default function ArchiveLoginScreen() {
   const router = useRouter();
   const { auth, theme, onboarding } = useMasterState();
   const { login } = auth;
-  const loginStyles = loginStylesGlobal(theme.loginTheme);
+  const loginStyles = createLoginStyles(theme.loginTheme);
 
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState('');
@@ -105,6 +105,7 @@ export default function ArchiveLoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [currentPersonality, setCurrentPersonality] = useState(0);
   const [showCurator, setShowCurator] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -249,15 +250,30 @@ export default function ArchiveLoginScreen() {
             
             <View style={loginStyles.inputContainer}>
               <Text style={loginStyles.inputLabel}>Secret Phrase</Text>
-              <TextInput
-                style={loginStyles.mysticalInput}
-                placeholder="Whisper your passphrase..."
-                placeholderTextColor={theme.loginTheme.placeholderTextColor}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!isLoading}
-              />
+              <View style={{ position: 'relative' }}>
+                <TextInput
+                  style={loginStyles.mysticalInput}
+                  placeholder="Whisper your passphrase..."
+                  placeholderTextColor={theme.loginTheme.placeholderTextColor}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={{
+                    position: 'absolute',
+                    right: 15,
+                    top: 0,
+                    bottom: 0,
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Text style={{ fontSize: 20 }}>{showPassword ? '🙈' : '👁️'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {error && (

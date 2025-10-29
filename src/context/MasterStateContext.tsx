@@ -95,6 +95,7 @@ import {
 } from "../assets/characterOptions";
 import { apiService } from "../services/apiService";
 import { Character, CharacterGear, CodexEntry, CopingTool, EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems, HomeData, JournalPrompt, MiniGameProgress, PersonalityKey, Story } from "../types";
+import { getRarityColors, mapBackendGearToSubtype, mapBackendSlotToFrontendType, mapBackendStatsToWellnessStats } from "../types/equipment";
 import { ThoughtDefenderRunDTO, ThoughtDefenderRunResponse } from "../types/thoughtDefender";
 import { CategoryConfig, createCharacterCreatorCategories, UserProfile } from "../types/user";
 import { useAuth } from "./AuthContext";
@@ -556,95 +557,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   const [inventory, setInventory] = useState<EquipmentItem[]>([]);
   const [backendGear, setBackendGear] = useState<CharacterGear[]>([]);
   const [equippedGear, setEquippedGear] = useState<CharacterGear[]>([]);
-  const mapBackendStatsToWellnessStats = (statBonuses: Record<string, number>): Record<string, number> => {
-    const wellnessStats: Record<string, number> = {
-      awareness: 0,
-      resilience: 0,
-      connection: 0,
-      balance: 0
-    };
-    
-    if (statBonuses.mindfulness) {
-      wellnessStats.awareness += statBonuses.mindfulness;
-    }
-    if (statBonuses.focus) {
-      wellnessStats.awareness += statBonuses.focus;
-    }
-    if (statBonuses.confidence) {
-      wellnessStats.resilience += statBonuses.confidence;
-    }
-    if (statBonuses.resilience) {
-      wellnessStats.resilience += statBonuses.resilience;
-    }
-    if (statBonuses.empathy) {
-      wellnessStats.connection += statBonuses.empathy;
-    }
-    if (statBonuses.organization) {
-      wellnessStats.balance += statBonuses.organization;
-    }
-    
-    return wellnessStats;
-  };
-
-  const mapBackendSlotToFrontendType = (slot: 'weapon' | 'armor' | 'helmet' | 'boots'): keyof EquippedItems => {
-    switch (slot) {
-      case 'weapon': return 'focus';
-      case 'armor': return 'comfort';
-      case 'helmet': return 'shield';
-      case 'boots': return 'ground';
-      default: return 'focus';
-    }
-  };
-
-  const mapBackendGearToSubtype = (gearName: string, slot: 'weapon' | 'armor' | 'helmet' | 'boots'): EquipmentSubtype => {
-    const name = gearName.toLowerCase();
-    
-    switch (slot) {
-      case 'weapon':
-        if (name.includes('ancient scroll')) return 'meditation';
-        if (name.includes('clarity lens')) return 'meditation';
-        if (name.includes('explorer') && name.includes('notebook')) return 'journaling';
-        if (name.includes('intuition compass')) return 'meditation';
-        if (name.includes('empathy conduit')) return 'meditation';
-        if (name.includes('toolkit story')) return 'meditation';
-        if (name.includes('meditation') || name.includes('breathing')) return 'meditation';
-        if (name.includes('journal')) return 'journaling';
-        return 'meditation';
-        
-      case 'armor':
-        if (name.includes('personal style cloak')) return 'social';
-        if (name.includes('cultural wisdom wrap')) return 'social';
-        if (name.includes('adaptation shield')) return 'social';
-        if (name.includes('sanctuary shroud')) return 'social';
-        if (name.includes('social') || name.includes('friend')) return 'social';
-        if (name.includes('hobby') || name.includes('activity')) return 'hobby';
-        if (name.includes('nature') || name.includes('outdoor')) return 'nature';
-        return 'social';
-        
-      case 'helmet':
-        if (name.includes('reality filter')) return 'boundary';
-        if (name.includes('growth mindset crown')) return 'affirmation';
-        if (name.includes('authenticity guard')) return 'boundary';
-        if (name.includes('guardian ward')) return 'boundary';
-        if (name.includes('boundary') || name.includes('limit')) return 'boundary';
-        if (name.includes('affirmation') || name.includes('positive')) return 'affirmation';
-        if (name.includes('routine') || name.includes('habit')) return 'routine';
-        return 'boundary';
-        
-      case 'boots':
-        if (name.includes('personal values foundation')) return 'exercise';
-        if (name.includes('support network roots')) return 'exercise';
-        if (name.includes('self-compassion stone')) return 'exercise';
-        if (name.includes('foundation stone')) return 'exercise';
-        if (name.includes('exercise') || name.includes('movement')) return 'exercise';
-        if (name.includes('sleep') || name.includes('rest')) return 'sleep';
-        if (name.includes('nutrition') || name.includes('food')) return 'nutrition';
-        return 'exercise';
-        
-      default:
-        return 'meditation';
-    }
-  };
 
   const equippedItems = useMemo(() => {
     const convertedEquippedItems: EquippedItems = {};
@@ -980,21 +892,6 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     return require("../../assets/equipment/armor/fb1857.png");
   };
 
-  const getRarityColors = (rarity: string): string[] => {
-    const normalizedRarity = rarity.charAt(0).toUpperCase() + rarity.slice(1).toLowerCase();
-    
-    switch (normalizedRarity) {
-      case "Legendary":
-        return ["#F97316", "#FCD34D"];
-      case "Epic":
-        return ["#A855F7", "#F472B6"];
-      case "Rare":
-        return ["#3B82F6", "#06B6D4"];
-      default:
-        return ["#6B7280", "#9CA3AF"];
-    }
-  };
-
   const equipItem = (type: keyof EquippedItems, item: EquipmentItem) => {
   };
 
@@ -1018,75 +915,25 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   };
 
   const mapEquipmentNameToTypeAndSubtype = (itemName: string): { type: EquipmentType; subtype: EquipmentSubtype } => {
+    // Determine slot based on item name patterns, then use shared mapper
     const name = itemName.toLowerCase();
-    if (name.includes('ancient scroll') || name.includes('clarity lens') || name.includes('intuition compass') || 
-        name.includes('empathy conduit') || name.includes('toolkit story') || name.includes('meditation') || 
-        name.includes('breathing')) {
-      return { type: 'focus', subtype: 'meditation' };
+    let slot: 'weapon' | 'armor' | 'helmet' | 'boots' = 'weapon';
+    
+    if (name.includes('cloak') || name.includes('wrap') || name.includes('armor') || 
+        name.includes('robe') || name.includes('shroud')) {
+      slot = 'armor';
+    } else if (name.includes('helm') || name.includes('crown') || name.includes('hat') ||
+               name.includes('filter') || name.includes('guard') || name.includes('ward')) {
+      slot = 'helmet';
+    } else if (name.includes('boot') || name.includes('foundation') || name.includes('roots') || 
+               name.includes('stone') && !name.includes('compass')) {
+      slot = 'boots';
     }
     
-    if (name.includes('explorer') && name.includes('notebook') || name.includes('journal')) {
-      return { type: 'focus', subtype: 'journaling' };
-    }
+    const type = mapBackendSlotToFrontendType(slot);
+    const subtype = mapBackendGearToSubtype(itemName, slot);
     
-    if (name.includes('personal style cloak') || name.includes('cultural wisdom wrap') || 
-        name.includes('adaptation shield') || name.includes('sanctuary shroud') || 
-        name.includes('social') || name.includes('friend')) {
-      return { type: 'comfort', subtype: 'social' };
-    }
-    
-    if (name.includes('hobby') || name.includes('activity')) {
-      return { type: 'comfort', subtype: 'hobby' };
-    }
-    
-    if (name.includes('nature') || name.includes('outdoor')) {
-      return { type: 'comfort', subtype: 'nature' };
-    }
-    
-    if (name.includes('reality filter') || name.includes('authenticity guard') || 
-        name.includes('guardian ward') || name.includes('boundary') || name.includes('limit')) {
-      return { type: 'shield', subtype: 'boundary' };
-    }
-    
-    if (name.includes('growth mindset crown') || name.includes('affirmation') || name.includes('positive')) {
-      return { type: 'shield', subtype: 'affirmation' };
-    }
-    
-    if (name.includes('routine') || name.includes('habit')) {
-      return { type: 'shield', subtype: 'routine' };
-    }
-    
-    if (name.includes('personal values foundation') || name.includes('support network roots') || 
-        name.includes('self-compassion stone') || name.includes('foundation stone') || 
-        name.includes('exercise') || name.includes('movement')) {
-      return { type: 'ground', subtype: 'exercise' };
-    }
-    
-    if (name.includes('sleep') || name.includes('rest')) {
-      return { type: 'ground', subtype: 'sleep' };
-    }
-    
-    if (name.includes('nutrition') || name.includes('food')) {
-      return { type: 'ground', subtype: 'nutrition' };
-    }
-    
-    if (name.includes('scroll') || name.includes('lens') || name.includes('compass') || name.includes('conduit')) {
-      return { type: 'focus', subtype: 'meditation' };
-    }
-    
-    if (name.includes('cloak') || name.includes('wrap') || name.includes('shield') || name.includes('shroud')) {
-      return { type: 'comfort', subtype: 'social' };
-    }
-    
-    if (name.includes('filter') || name.includes('guard') || name.includes('ward') || name.includes('crown')) {
-      return { type: 'shield', subtype: 'boundary' };
-    }
-    
-    if (name.includes('foundation') || name.includes('roots') || name.includes('stone')) {
-      return { type: 'ground', subtype: 'exercise' };
-    }
-    
-    return { type: 'focus', subtype: 'meditation' };
+    return { type, subtype };
   };
 
   const equipBackendGear = async (gearId: number) => {
@@ -2184,7 +2031,7 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
     // Check if this is an ending choice
     if (isEnding || (!next && (finalRewards || wisdomGained))) {
       Alert.alert(
-        "📚 Story Mastered! ✨",
+        "📚You Have Finished a Tale. The Archive Watches.",
         `Your journey has transformed your understanding.`,
         [{ text: "Continue Exploring", style: "default" }]
       );

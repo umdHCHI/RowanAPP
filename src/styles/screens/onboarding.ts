@@ -243,9 +243,34 @@ export const createOnboardingStyles = (theme: ThemeColors = onboardingTheme) => 
 
   pathDescription: {
     color: theme.pathDescription || onboardingTheme.pathDescription,
-    fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
-    marginBottom: 15,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 20,
+  } as TextStyle,
+
+  // Curator note
+  curatorNote: {
+    flexDirection: 'row',
+    backgroundColor: theme.curatorNote || onboardingTheme.curatorNote,
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: theme.curatorNoteBorder || onboardingTheme.curatorNoteBorder,
+  } as ViewStyle,
+
+  curatorNoteIcon: {
+    fontSize: 16,
+    marginRight: 10,
+  } as TextStyle,
+
+  curatorNoteText: {
+    color: theme.curatorNoteText || onboardingTheme.curatorNoteText,
+    fontSize: 13,
+    fontStyle: 'italic',
+    flex: 1,
+    lineHeight: 18,
   } as TextStyle,
 
   // Benefits section
@@ -254,24 +279,66 @@ export const createOnboardingStyles = (theme: ThemeColors = onboardingTheme) => 
   } as ViewStyle,
 
   benefitsList: {
+    marginBottom: 25,
+  } as ViewStyle,
+
+  benefitsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  } as TextStyle,
+
+  benefitItem: {
     color: theme.benefitsList || onboardingTheme.benefitsList,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 6,
   } as TextStyle,
 
   // Button
   pathButton: {
-    backgroundColor: theme.pathButton || onboardingTheme.pathButton,
-    borderRadius: SPACING.sm,
-    padding: SPACING.md,
+    borderRadius: 12,
+    padding: 18,
     alignItems: 'center',
+    position: 'relative',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   } as ViewStyle,
 
-  pathButtonText: {
-    color: '#1a1a1a',
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
+  pathButtonDisabled: {
+    opacity: 0.7,
+  } as ViewStyle,
+
+  pathButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 2,
+  } as ViewStyle,
+
+  pathButtonIcon: {
+    fontSize: 18,
+    marginRight: 10,
   } as TextStyle,
+
+  pathButtonText: {
+    color: theme.pathButton || onboardingTheme.pathButton,
+    fontSize: 16,
+    fontWeight: 'bold',
+  } as TextStyle,
+
+  pathButtonGlow: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: 14,
+    opacity: 0.4,
+    zIndex: 1,
+  } as ViewStyle,
 
   // Footer
   footer: {
@@ -291,6 +358,44 @@ export const createOnboardingStyles = (theme: ThemeColors = onboardingTheme) => 
     color: theme.footerSignature || onboardingTheme.footerSignature,
     fontSize: FONT_SIZES.xs,
     fontStyle: 'italic',
+  } as TextStyle,
+
+  // Auth Error Styles
+  authErrorContainer: {
+    flex: 1,
+    backgroundColor: theme.authErrorContainer || onboardingTheme.authErrorContainer,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  } as ViewStyle,
+
+  authErrorTitle: {
+    color: theme.authErrorTitle || onboardingTheme.authErrorTitle,
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+  } as TextStyle,
+
+  authErrorText: {
+    color: theme.authErrorText || onboardingTheme.authErrorText,
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 30,
+  } as TextStyle,
+
+  authErrorButton: {
+    backgroundColor: theme.authErrorButton || onboardingTheme.authErrorButton,
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 12,
+  } as ViewStyle,
+
+  authErrorButtonText: {
+    color: theme.authErrorButtonText || onboardingTheme.authErrorButtonText,
+    fontSize: 16,
+    fontWeight: 'bold',
   } as TextStyle,
 });
 

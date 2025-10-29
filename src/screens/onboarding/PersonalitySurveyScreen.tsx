@@ -12,11 +12,11 @@ import {
 import { useMasterState } from '../../context/MasterStateContext';
 import { SURVEY_QUESTIONS } from '../../data/surveyQuestions';
 import { usePersonalitySurvey } from '../../hooks/usePersonalitySurvey';
-import { getPersonalitySurveyStyles } from '../../styles/globalStyles';
+import { createPersonalitySurveyStyles } from '../../styles/screens/personalitySurvey';
 
 export default function PersonalitySurveyScreen() {
   const { theme } = useMasterState();
-  const personalitySurveyStyles = getPersonalitySurveyStyles(theme.personalitySurveyTheme);
+  const personalitySurveyStyles = createPersonalitySurveyStyles(theme.personalitySurveyTheme);
   
   const [modalVisible, setModalVisible] = useState(true);
   

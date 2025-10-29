@@ -1,4 +1,4 @@
-import { characterCreatorStyles } from "@/src/styles/globalStyles";
+import { createCharacterCreatorStyles } from "@/src/styles/screens/characterCreator";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Dimensions,
@@ -25,7 +25,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function ArchiveCharacterCreatorScreen() {
   const { theme, character, loading, onboarding, auth } = useMasterState();
-  const creatorStyles = characterCreatorStyles(theme.characterCreatorTheme);
+  const creatorStyles = createCharacterCreatorStyles(theme.characterCreatorTheme);
   const [selectedCategory, setSelectedCategory] = useState<number>(0);
 
   const { styleCategories, colorCategories } = character;

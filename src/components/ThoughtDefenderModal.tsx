@@ -434,7 +434,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           if (data.score) setScore(data.score);
           if (data.level) setLevel(data.level);
           
-          console.log('[ThoughtDefender] Loaded game data from API:', data);
         } catch (error) {
           console.error('[ThoughtDefender] Failed to load game data:', error);
           // Continue with default values if API fails
@@ -610,7 +609,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         });
         
         setApiGameData(updatedGameData);
-        console.log('[ThoughtDefender] Updated game data on server:', updatedGameData);
       } catch (error) {
         console.error('[ThoughtDefender] Failed to update game data:', error);
         // Non-critical error, continue with game flow

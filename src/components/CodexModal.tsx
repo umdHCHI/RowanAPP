@@ -199,7 +199,6 @@ const CodexModal = ({
               difficulty: selectedPrompt.difficulty,
             });
             contentToSave = uploadResult.file_url;
-            console.log('Voice recording saved:', uploadResult.file_url);
           } catch (error) {
             console.error('Failed to save voice recording:', error);
             contentToSave = passages;
@@ -222,7 +221,6 @@ const CodexModal = ({
             } else {
               contentToSave = uploadResult.file_url;
             }
-            console.log('Drawing saved:', uploadResult.file_url);
           } catch (error) {
             console.error('Failed to save drawing:', error);
             contentToSave = JSON.stringify(drawingPaths);

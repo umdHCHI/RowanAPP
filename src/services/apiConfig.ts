@@ -5,12 +5,6 @@ const getApiBaseUrl = (): string => {
     // Try multiple ways to access the API base URL
     const envApiBaseUrl = Constants.expoConfig?.extra?.API_BASE_URL;
 
-    console.log('[apiConfig] API_BASE_URL sources:');
-    console.log('  - Constants.expoConfig?.extra?.API_BASE_URL:', Constants.expoConfig?.extra?.API_BASE_URL);
-    console.log('  - Constants.manifest?.extra?.API_BASE_URL:', Constants.manifest?.extra?.API_BASE_URL);
-    console.log('  - process.env.API_BASE_URL:', process.env.API_BASE_URL);
-    console.log('  - Final baseUrl:', envApiBaseUrl);
-
     // Ensure the URL ends with a slash for consistent endpoint construction
     let baseUrl = envApiBaseUrl;
     if (!baseUrl.endsWith('/')) {
@@ -46,7 +40,7 @@ if (!apiBaseUrl) {
     throw new Error('API_BASE_URL is not configured properly. Check your app.config.js file.');
 }
 
-console.log('[apiConfig] Using API Base URL:', apiBaseUrl);
+
 
 // Define API endpoints
 export const API_ENDPOINTS = {
@@ -70,6 +64,12 @@ export const API_ENDPOINTS = {
     gainExperience: 'characters/',
     gainWellness: 'characters/',
     updateCustomization: 'characters/',
+
+    // Quest endpoints
+    quests: 'characters/quests/',
+    questProgress: 'characters/quests/',
+    myQuests: 'characters/quests/my_quests/',
+    userQuestProgress: 'characters/userquestprogress/',
 
     // Wellness & Coping Tools
     copingTools: 'coping-tools/',

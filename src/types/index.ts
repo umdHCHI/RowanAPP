@@ -34,6 +34,14 @@ export type {
     CharacterGear, CopingTool, CopingToolsCollectionProps, EQUIPMENT_CATEGORIES, EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems, RARITY_COLORS
 } from './equipment';
 
+// Equipment utility functions
+export {
+    getRarityColors,
+    mapBackendGearToSubtype,
+    mapBackendSlotToFrontendType,
+    mapBackendStatsToWellnessStats
+} from './equipment';
+
 // Game types
 export type {
     ExtendedGameData, GameAchievement, GameSession, MiniGameProgress, Skill
@@ -68,7 +76,27 @@ export type { ArchiveProgress, Chapter, ChapterPassage, ChapterSummary, Choice, 
 export type { GameState, PowerUp, Projectile, Thought } from './thoughtGame';
 
 
-export type { DailyCuratorMessages, PersonalityHomeData, PersonalityKey, PersonalityQuests, PersonalityWellnessAttributes } from './personality';
+export type {
+    DailyCuratorMessages,
+    PersonalityHomeData,
+    PersonalityKey,
+    PersonalityQuests,
+    PersonalityRewardConfig,
+    PersonalityWellnessAttributes
+} from './personality';
+
+// Reward system types
+export type {
+    EquipmentUpgrade,
+    GearCache,
+    JournalReward,
+    NotificationData,
+    ProcessedRewards,
+    QuestProgress,
+    RewardResult,
+    StoryReward,
+    StoryRewardTracker, ThoughtDefenderResult, ThoughtDefenderReward, UpgradedEquipmentReward
+} from './rewards';
 
 // Unified HomeData type for consistent data structure
 export type HomeData = {
@@ -76,4 +104,8 @@ export type HomeData = {
   character?: Character;         // present for character users
   primaryTrait?: PersonalityKey; // present for personality users
 };
+
+export type {
+    WellnessAttributesDisplayProps
+} from './wellness';
 

@@ -15,9 +15,6 @@ export const QuestAchievements: React.FC<QuestAchievementsProps> = ({
   globalStyles
 }) => {
   // Debug logging
-  console.log('=== QuestAchievements Debug ===');
-  console.log('Primary trait:', primaryTrait);
-  console.log('Quest progress received:', questProgress);
   
   // Get quests ONLY for the current personality type
   const personalityQuests = (PersonalityQuests as any)[primaryTrait] || [];
@@ -25,11 +22,9 @@ export const QuestAchievements: React.FC<QuestAchievementsProps> = ({
   // Map quests with their progress
   const displayQuests = personalityQuests.map((quest: any) => {
     const progress = questProgress[quest.id] || 0;
-    console.log(`Quest: ${quest.id} (${quest.title}): ${progress}/${quest.total}`);
     return { ...quest, progress };
   });
   
-  console.log('Total quests to display for', primaryTrait, ':', displayQuests.length);
   
   return (
     <View style={globalStyles.personalityQuestsContainer}>

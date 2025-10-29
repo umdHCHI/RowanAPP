@@ -3,10 +3,10 @@ import { PersonalityKey } from "../imports";
 export const PersonalityConfigs = {
   Openness: {
     avatar: "🔮",
-    gameTitle: "Chronicles of the Infinite Mind",
-    scholarClass: "Sage Explorer",
-    journeyDesc: "Wandering through endless corridors of possibility...",
-    curatorNote: "The Curator whispers of hidden knowledge...",
+    gameTitle: "The Uncharted Stacks",
+    scholarClass: "Seeker of Doors",
+    journeyDesc: "Charting corridors that appear only when imagined.",
+    curatorNote: "The Curator leaves odd maps that finish themselves when you look.",
     theme: {
       primary: '#4ee6e6',
       secondary: '#9d4edd',
@@ -19,19 +19,19 @@ export const PersonalityConfigs = {
       { icon: "🎨", label: "Creativity", key: "imagination" },
       { icon: "🚀", label: "Adventure", key: "openness" },
     ],
-    archiveSection: "The Dreamscape Library",
+    archiveSection: "The Dreamwork Stacks",
     mysticalElements: {
       borderGlow: '#9d4edd',
       avatarGlow: '#f72585',
     }
   },
-  
+
   Conscientiousness: {
     avatar: "⚖️",
-    gameTitle: "The Methodical Codex",
-    scholarClass: "Order Keeper",
-    journeyDesc: "Cataloging the sacred texts of self-mastery...",
-    curatorNote: "The Curator commends your dedication...",
+    gameTitle: "The Ledger of Quiet Mastery",
+    scholarClass: "Binder of Pages",
+    journeyDesc: "Numbering shelves, setting lamps, restoring what frays.",
+    curatorNote: "The Curator trusts your steady hand.",
     theme: {
       primary: '#4ee6e6',
       secondary: '#2a9d8f',
@@ -44,19 +44,19 @@ export const PersonalityConfigs = {
       { icon: "🛡️", label: "Resilience", key: "persistence" },
       { icon: "📈", label: "Progress", key: "achievement" },
     ],
-    archiveSection: "The Structured Sanctum",
+    archiveSection: "The Ledger of Quiet Mastery",
     mysticalElements: {
       borderGlow: '#2a9d8f',
       avatarGlow: '#f4a261',
     }
   },
-  
+
   Extraversion: {
     avatar: "🌟",
-    gameTitle: "Tales of the Connected Soul",
-    scholarClass: "Social Catalyst",
-    journeyDesc: "Gathering wisdom from the fellowship of minds...",
-    curatorNote: "The Curator celebrates your vibrant spirit...",
+    gameTitle: "The Resonant Assembly",
+    scholarClass: "Voice of the Hall",
+    journeyDesc: "Gathering echoes and trading light between lamps.",
+    curatorNote: "The Curator opens the doors when you arrive.",
     theme: {
       primary: '#4ee6e6',
       secondary: '#f72585',
@@ -69,19 +69,19 @@ export const PersonalityConfigs = {
       { icon: "🤝", label: "Connection", key: "social" },
       { icon: "🎭", label: "Expression", key: "communication" },
     ],
-    archiveSection: "The Grand Assembly Hall",
+    archiveSection: "The Resonant Assembly",
     mysticalElements: {
       borderGlow: '#f72585',
       avatarGlow: '#ffd60a',
     }
   },
-  
+
   Agreeableness: {
     avatar: "🕊️",
-    gameTitle: "The Harmony Archives",
+    gameTitle: "The Harmony Wing",
     scholarClass: "Peace Weaver",
-    journeyDesc: "Seeking balance in the chambers of understanding...",
-    curatorNote: "The Curator feels your gentle wisdom...",
+    journeyDesc: "Tending to soft places where stories remember to breathe.",
+    curatorNote: "The Curator notices how the rooms settle around you.",
     theme: {
       primary: '#4ee6e6',
       secondary: '#06ffa5',
@@ -94,19 +94,19 @@ export const PersonalityConfigs = {
       { icon: "☮️", label: "Harmony", key: "peace" },
       { icon: "🌱", label: "Growth", key: "healing" },
     ],
-    archiveSection: "The Healing Gardens",
+    archiveSection: "The Harmony Wing",
     mysticalElements: {
       borderGlow: '#06ffa5',
       avatarGlow: '#ffffb3',
     }
   },
-  
+
   Neuroticism: {
     avatar: "🌙",
-    gameTitle: "Depths of the Inner Sanctum",
+    gameTitle: "The Nocturne Vault",
     scholarClass: "Shadow Walker",
-    journeyDesc: "Delving deep into the shadowed alcoves of the psyche...",
-    curatorNote: "The Curator understands your profound depths...",
+    journeyDesc: "Reading the pages that tremble and turning them with care.",
+    curatorNote: "The Curator keeps a lamp lit while you descend.",
     theme: {
       primary: '#4ee6e6',
       secondary: '#7209b7',
@@ -119,7 +119,7 @@ export const PersonalityConfigs = {
       { icon: "💎", label: "Depth", key: "introspection" },
       { icon: "🌊", label: "Flow", key: "emotional_balance" },
     ],
-    archiveSection: "The Reflection Chambers",
+    archiveSection: "The Nocturne Vault",
     mysticalElements: {
       borderGlow: '#7209b7',
       avatarGlow: '#a663cc',

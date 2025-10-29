@@ -38,7 +38,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   onStoryComplete,
 }) => {
   const { theme, character } = useMasterState();
-  const { primaryTrait, isPersonalityUser } = usePersonality();
+  const { primaryTrait, isPersonalityUser, isLoading: personalityLoading } = usePersonality();
   const globalStyles = createGlobalStyles(theme.theme);
   const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(null);
   const [rewardNotification, setRewardNotification] = useState<{
@@ -107,7 +107,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           const characterId = character.backendCharacter?.id;
           const hasCharacter = characterId && characterId > 0;
           let researchCondition: "character" | "personality" = "personality";
-          
+
+          // Determine research condition based on user's onboarding choice
           if (character.userProfileData?.profile?.completion_type) {
             researchCondition = character.userProfileData.profile.completion_type === "character" ? "character" : "personality";
           } else {
@@ -120,11 +121,21 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
               // Silently handle profile fetch error
             }
           }
-          
-          if (researchCondition === "personality" && hasCharacter) {
-            researchCondition = "character";
+
+          // For personality users, wait until personality data is loaded
+          if (researchCondition === "personality" && personalityLoading) {
+            console.log('⏳ Waiting for personality data to load before initializing reward manager');
+            return; // Wait for personality data to finish loading
           }
-          
+
+          // Log the personality trait being used for reward filtering
+          if (researchCondition === "personality") {
+            console.log(`✅ Initializing StoryRewardManager with primaryTrait: ${primaryTrait}`);
+          }
+
+          // Don't override research condition based on character presence
+          // Personality users can have characters but still use personality rewards
+
           let userId = undefined;
           if (!hasCharacter) {
             try {
@@ -165,7 +176,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       
       initializeRewardManager();
     }
-  }, [visible, story?.id, chapter?.id, character.backendCharacter?.id, isInitialized]);
+  }, [visible, story?.id, chapter?.id, character.backendCharacter?.id, isInitialized, primaryTrait, personalityLoading]);
 
   useEffect(() => {
     if (rewardManager && currentPassage && isInitialized) {
@@ -205,10 +216,27 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       const questIds = passageEffects.quest_progress || passageEffects.quests;
 
       if (questIds && Array.isArray(questIds)) {
+
         const validQuests = questIds.filter((questId: string) => {
           const questInfo = getQuestInfo(questId);
           return questInfo && questInfo.personalityType === primaryTrait;
         });
+
+
+
+        if (validQuests.length > 0) {
+          passageForRewards.story_effects = {
+            ...passageForRewards.story_effects,
+            quest_progress: validQuests,
+            quests: validQuests  // Also update 'quests' field to match
+          };
+        } else {
+          // Remove both quest fields if no valid quests
+          if (passageForRewards.story_effects) {
+            delete passageForRewards.story_effects.quest_progress;
+            delete passageForRewards.story_effects.quests;
+          }
+        }
       }
       
       rewardManager.handlePassageVisit(passageForRewards);

@@ -12,7 +12,7 @@ import {
   View
 } from "react-native";
 import { equipmentIcons } from "../assets/equipment";
-import { CharacterGear, EquipmentItem, EquipmentSubtype, EquippedItems } from "../types/equipment";
+import { CharacterGear, EquipmentItem, EquippedItems, mapBackendGearToSubtype, mapBackendSlotToFrontendType, mapBackendStatsToWellnessStats } from "../types/equipment";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isMobile = screenWidth < 768;
@@ -68,36 +68,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       organization: '#ffd60a'
     };
     return colors[stat] || '#ffffff';
-  };
-
-  const mapBackendStatsToWellnessStats = (statBonuses: Record<string, number>): Record<string, number> => {
-    const wellnessStats: Record<string, number> = {
-      awareness: 0,
-      resilience: 0,
-      connection: 0,
-      balance: 0
-    };
-    
-    if (statBonuses.mindfulness) {
-      wellnessStats.awareness += statBonuses.mindfulness;
-    }
-    if (statBonuses.focus) {
-      wellnessStats.awareness += statBonuses.focus;
-    }
-    if (statBonuses.confidence) {
-      wellnessStats.resilience += statBonuses.confidence;
-    }
-    if (statBonuses.resilience) {
-      wellnessStats.resilience += statBonuses.resilience;
-    }
-    if (statBonuses.empathy) {
-      wellnessStats.connection += statBonuses.empathy;
-    }
-    if (statBonuses.organization) {
-      wellnessStats.balance += statBonuses.organization;
-    }
-    
-    return wellnessStats;
   };
 
   const getItemImage = (gear: CharacterGear) => {
@@ -178,66 +148,6 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       </Text>
     </View>
   );
-
-  const mapBackendSlotToFrontendType = (slot: 'weapon' | 'armor' | 'helmet' | 'boots'): keyof EquippedItems => {
-    switch (slot) {
-      case 'weapon': return 'focus';
-      case 'armor': return 'comfort';
-      case 'helmet': return 'shield';
-      case 'boots': return 'ground';
-      default: return 'focus';
-    }
-  };
-
-  const mapBackendGearToSubtype = (gearName: string, slot: 'weapon' | 'armor' | 'helmet' | 'boots'): EquipmentSubtype => {
-    const name = gearName.toLowerCase();
-    
-    switch (slot) {
-      case 'weapon':
-        if (name.includes('ancient scroll')) return 'meditation';
-        if (name.includes('clarity lens')) return 'meditation';
-        if (name.includes('explorer') && name.includes('notebook')) return 'journaling';
-        if (name.includes('intuition compass')) return 'meditation';
-        if (name.includes('empathy conduit')) return 'meditation';
-        if (name.includes('toolkit story')) return 'meditation';
-        if (name.includes('meditation') || name.includes('breathing')) return 'meditation';
-        if (name.includes('journal')) return 'journaling';
-        return 'meditation';
-        
-      case 'armor':
-        if (name.includes('personal style cloak')) return 'social';
-        if (name.includes('cultural wisdom wrap')) return 'social';
-        if (name.includes('adaptation shield')) return 'social';
-        if (name.includes('sanctuary shroud')) return 'social';
-        if (name.includes('social') || name.includes('friend')) return 'social';
-        if (name.includes('hobby') || name.includes('activity')) return 'hobby';
-        if (name.includes('nature') || name.includes('outdoor')) return 'nature';
-        return 'social';
-        
-      case 'helmet':
-        if (name.includes('reality filter')) return 'boundary';
-        if (name.includes('growth mindset crown')) return 'affirmation';
-        if (name.includes('authenticity guard')) return 'boundary';
-        if (name.includes('guardian ward')) return 'boundary';
-        if (name.includes('boundary') || name.includes('limit')) return 'boundary';
-        if (name.includes('affirmation') || name.includes('positive')) return 'affirmation';
-        if (name.includes('routine') || name.includes('habit')) return 'routine';
-        return 'boundary';
-        
-      case 'boots':
-        if (name.includes('personal values foundation')) return 'exercise';
-        if (name.includes('support network roots')) return 'exercise';
-        if (name.includes('self-compassion stone')) return 'exercise';
-        if (name.includes('foundation stone')) return 'exercise';
-        if (name.includes('exercise') || name.includes('movement')) return 'exercise';
-        if (name.includes('sleep') || name.includes('rest')) return 'sleep';
-        if (name.includes('nutrition') || name.includes('food')) return 'nutrition';
-        return 'exercise';
-        
-      default:
-        return 'meditation';
-    }
-  };
 
   const renderBackendGearItem = (gear: CharacterGear, isEquipped: boolean) => {
     const wellnessStats = mapBackendStatsToWellnessStats(gear.gear_type.stat_bonuses);

@@ -125,6 +125,14 @@ export type {
   UserProfile, WellnessStats
 } from './types';
 
+// ===== Equipment Utility Functions =====
+export {
+  getRarityColors,
+  mapBackendGearToSubtype,
+  mapBackendSlotToFrontendType,
+  mapBackendStatsToWellnessStats
+} from './types/equipment';
+
 // ===== Context Types =====
 export type { PersonalityTrait } from './context/PersonalityContext';
 

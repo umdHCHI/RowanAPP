@@ -29,16 +29,13 @@ export const useCharacterCreation = ({
 
   const handleCharacterCreation = useCallback(async () => {
     if (isCreatingRef.current) {
-      console.log('⚠️ Character creation already in progress');
       return;
     }
     
-    console.log('🎭 Starting character creation...');
     setIsCreating(true);
     isCreatingRef.current = true;
     
     if (!validateCharacterName(characterName)) {
-      console.log('❌ Character name validation failed');
       Alert.alert(
         CHARACTER_CREATOR_CONSTANTS.ALERTS.NAME_REQUIRED.TITLE,
         CHARACTER_CREATOR_CONSTANTS.ALERTS.NAME_REQUIRED.MESSAGE,
@@ -50,23 +47,17 @@ export const useCharacterCreation = ({
     }
     
     try {
-      console.log('🔄 Processing character creation...');
       
       if(characterId) {
-        console.log('📝 Updating existing character customization...');
         await updateCharacterCustomization();
       } else {
-        console.log('✨ Creating new character...');
         await createCharacter();
       }
       
-      console.log('✅ Character creation successful!');
       
       // Complete onboarding process
-      console.log('🎯 Completing onboarding...');
       await completeCharacter();
       
-      console.log('🚀 Navigating to character home...');
       
       // Navigate immediately after onboarding completion
       router.push(CHARACTER_CREATOR_CONSTANTS.ROUTES.CHARACTER_HOME);
@@ -74,12 +65,9 @@ export const useCharacterCreation = ({
       // Show success alert after navigation (non-blocking)
       // Use setTimeout to ensure navigation happens first
       setTimeout(() => {
-        console.log('📱 Showing success notification...');
         
         if (Platform.OS === 'web') {
           // Web fallback - simple console log or could use a toast notification
-          console.log(`🎉 ${CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.TITLE}`);
-          console.log(`📜 ${CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.MESSAGE(characterName)}`);
         } else {
           // Native platforms - show alert
           Alert.alert(
@@ -91,7 +79,6 @@ export const useCharacterCreation = ({
       }, 500);
       
     } catch (error) {
-      console.log('❌ Character creation failed:', error);
       Alert.alert(
         CHARACTER_CREATOR_CONSTANTS.ALERTS.FAILURE.TITLE,
         CHARACTER_CREATOR_CONSTANTS.ALERTS.FAILURE.MESSAGE,

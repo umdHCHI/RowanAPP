@@ -37,7 +37,7 @@ import {
   createProgressStyles,
   createTextStyles,
 } from './components';
-import { createCharacterCreatorStyles, createLoginStyles, createOnboardingStyles } from './screens';
+import { createCharacterCreatorStyles, createCharacterHomeStyles, createLoginStyles, createOnboardingStyles, createPersonalitySurveyStyles } from './screens';
 import { ThemeColors } from './theme';
 
 /**
@@ -61,6 +61,8 @@ export const createScreenStyles = (theme: ThemeColors) => ({
   login: createLoginStyles(theme),
   onboarding: createOnboardingStyles(theme),
   characterCreator: createCharacterCreatorStyles(theme),
+  characterHome: createCharacterHomeStyles(theme),
+  personalitySurvey: createPersonalitySurveyStyles(theme),
   // Add more screens as they are refactored:
   // personalityTest: createPersonalityTestStyles(theme),
   // etc.

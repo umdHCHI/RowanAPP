@@ -2,6 +2,8 @@ import { Story } from '../imports';
 import { CopingTool } from './equipment';
 import { Character, UserProfile } from './user';
 
+// ===== PERSONALITY TYPES =====
+
 // Define PersonalityKey type locally since it's not exported as a type
 export type PersonalityKey =
   | 'Agreeableness'
@@ -25,6 +27,30 @@ export function toPersonalityKey(input?: string | null): PersonalityKey | null {
   const s = String(input).trim().toLowerCase();
   return SLUG_TO_KEY[s] ?? (SLUG_TO_KEY[s.replace(/[\s-]/g, '')] ?? null);
 }
+
+// ===== PERSONALITY REWARD CONFIGURATION =====
+
+export interface PersonalityRewardConfig {
+  // Base reward multiplier for this personality type
+  baseMultiplier: number;
+
+  // Preferred stat gains (which stats get bonus for this personality)
+  preferredStats: string[];
+
+  // Preferred coping tools for this personality type
+  preferredTools: string[];
+
+  // Quest bonus multiplier for quests related to this personality
+  questBonus: number;
+
+  // Story completion messages
+  completionMessages: {
+    regular: string;
+    intro: string;
+  };
+}
+
+// ===== PERSONALITY DATA =====
 
 // 1. DAILY CURATOR MESSAGES
 export const DailyCuratorMessages = {
@@ -75,7 +101,7 @@ export const PersonalityQuests = {
   Conscientiousness: [
     { id: 'conscientiousness_1', title: "The Scribe's Ritual", description: "Maintain a daily journal entry for seven consecutive days.", reward: "🏆 Aegis of Resolve", total: 7 , wellnessProperty: "balance"},
     { id: 'conscientiousness_2', title: "Architect of the Self", description: "Complete 5 guided journal prompts to build a foundation of self-awareness.", reward: "📋 Scroll of Mastery", total: 5, wellnessProperty: "awareness" },
-    { id: 'conscientiousness_3', title: "The Unwavering Path", description: "Complete 10 story chapters without straying from your chosen objective.", reward: "⚖️ Warden's Seal", total: 10, wellnessProperty: "resilience" }
+    { id: 'conscientiousness_3', title: "The Unwavering Path", description: "Complete a story chapter without straying from your chosen objective.", reward: "⚖️ Warden's Seal", total: 2, wellnessProperty: "resilience" }
   ],
   Extraversion: [
     { id: 'extraversion_1', title: "Kindred Spirits", description: "Forge a meaningful connection with a key character in the story.", reward: "🌟 Emblem of Fellowship", total: 1, wellnessProperty: "connection" },

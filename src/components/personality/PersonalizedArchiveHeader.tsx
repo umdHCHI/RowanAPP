@@ -13,15 +13,10 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
   traitScores,
   characterData,
 }) => {
-  console.log("=== PersonalizedArchiveHeader Debug ===");
-  console.log("primaryTrait (prop):", primaryTrait);
-  console.log("characterData (prop):", characterData);
   
   // Get personality configuration from PersonalityConfigs
   const config = PersonalityConfigs[primaryTrait];
   
-  console.log("Resolved config:", config);
-  console.log("Character data:", characterData);
 
   // Safely extract character data
   const experience = characterData?.experience || 0;
@@ -30,37 +25,32 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
   const characterName = characterData?.name || characterData?.username || 'Scholar';
   const characterLevel = characterData?.level || 1;
   
-  console.log("🔍 PersonalizedArchiveHeader Experience Debug:");
-  console.log("  characterData:", characterData);
-  console.log("  characterData?.experience:", characterData?.experience);
-  console.log("  characterData?.experience_needed:", characterData?.experience_needed);
-  console.log("  characterData?.level:", characterData?.level);
-  console.log("  Final values - Experience:", experience, "Experience Needed:", experienceNeeded, "Level:", characterLevel, "Percentage:", experiencePercentage);
-  console.log("=== End PersonalizedArchiveHeader Debug ===");
   
   // Handle case where config might not exist
   if (!config) {
     console.warn('No personality config found for trait:', primaryTrait);
     return (
-      <View style={{ 
-        backgroundColor: '#0a0b0f', 
-        padding: 20, 
-        paddingTop: 30,
+      <View style={{
+        backgroundColor: '#0a0b0f',
+        padding: 12,
+        paddingTop: 16,
+        paddingBottom: 10,
         borderBottomWidth: 2,
         borderBottomColor: '#4ee6e6',
       }}>
-        <Text style={{ color: '#4ee6e6', fontSize: 24, textAlign: 'center' }}>
+        <Text style={{ color: '#4ee6e6', fontSize: 18, textAlign: 'center' }}>
           The Archive
         </Text>
       </View>
     );
   }
-  
+
   // Create personality-specific header style
   const headerStyle = {
     backgroundColor: config.theme?.background || '#0a0b0f',
-    padding: 20,
-    paddingTop: 30,
+    padding: 12,
+    paddingTop: 16,
+    paddingBottom: 10,
     borderBottomWidth: 2,
     borderBottomColor: config.theme?.primary || '#4ee6e6',
     shadowColor: config.theme?.primary || '#4ee6e6',
@@ -83,11 +73,11 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
-        opacity: 0.1,
+        opacity: 0.08,
       }}>
         {config.backgroundRunes?.map((rune: string, index: number) => (
           <Text key={index} style={{
-            fontSize: 60,
+            fontSize: 40,
             transform: [{ rotate: '15deg' }],
             color: config.theme?.primary || '#4ee6e6',
           }}>
@@ -99,76 +89,96 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
       {/* Header Content */}
       <View style={{ position: 'relative', zIndex: 1 }}>
         {/* Archive Title Section */}
-        <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <Text style={{
-            color: config.theme?.primary || '#4ee6e6',
-            fontSize: 28,
-            fontWeight: 'bold',
-            letterSpacing: 4,
-            textShadowColor: `${config.theme?.primary || '#4ee6e6'}50`,
-            textShadowOffset: { width: 0, height: 2 },
-            textShadowRadius: 8,
-            textAlign: 'center'
-          }}>
+        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+          <Text
+            style={{
+              color: config.theme?.primary || '#4ee6e6',
+              fontSize: 18,
+              fontWeight: 'bold',
+              letterSpacing: 2,
+              textShadowColor: `${config.theme?.primary || '#4ee6e6'}50`,
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 8,
+              textAlign: 'center'
+            }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {config.gameTitle || 'The Archive'}
           </Text>
-          <Text style={{
-            color: config.theme?.secondary || '#ccc',
-            fontSize: 14,
-            fontStyle: 'italic',
-            textAlign: 'center',
-            marginTop: 4
-          }}>
+          <Text
+            style={{
+              color: config.theme?.secondary || '#ccc',
+              fontSize: 11,
+              fontStyle: 'italic',
+              textAlign: 'center',
+              marginTop: 2
+            }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {config.journeyDesc || 'Your journey through the archives...'}
           </Text>
         </View>
 
         {/* Character Info Section */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <View>
-            <Text style={{ 
-              color: config.theme?.primary || '#4ee6e6', 
-              fontSize: 20, 
-              fontWeight: 'bold' 
-            }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text
+              style={{
+                color: config.theme?.primary || '#4ee6e6',
+                fontSize: 16,
+                fontWeight: 'bold'
+              }}
+              numberOfLines={1}
+            >
               {characterName}
             </Text>
-            <Text style={{ 
-              color: '#ccc', 
-              fontSize: 14,
-              fontStyle: 'italic'
-            }}>
+            <Text
+              style={{
+                color: '#ccc',
+                fontSize: 11,
+                fontStyle: 'italic'
+              }}
+              numberOfLines={1}
+            >
               {config.scholarClass || 'The Explorer'} • Level {characterLevel}
             </Text>
           </View>
-          
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ 
-              color: config.theme?.primary || '#4ee6e6', 
-              fontSize: 18,
-              fontWeight: '600'
-            }}>
+
+          <View style={{ alignItems: 'flex-end', flex: 1, paddingLeft: 8 }}>
+            <Text
+              style={{
+                color: config.theme?.primary || '#4ee6e6',
+                fontSize: 14,
+                fontWeight: '600'
+              }}
+              numberOfLines={1}
+            >
               {config.avatar || '🏛️'} {config.archiveSection || 'Archive'}
             </Text>
-            <Text style={{ 
-              color: '#ccc', 
-              fontSize: 12 
-            }}>
+            <Text
+              style={{
+                color: '#ccc',
+                fontSize: 10
+              }}
+              numberOfLines={1}
+            >
               {primaryTrait} Scholar
             </Text>
           </View>
         </View>
 
         {/* Experience Bar */}
-        <View style={{ marginTop: 8 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <Text style={{ color: '#ccc', fontSize: 12 }}>Experience</Text>
-            <Text style={{ color: '#ccc', fontSize: 12 }}>
+        <View style={{ marginTop: 4 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+            <Text style={{ color: '#ccc', fontSize: 10 }}>Experience</Text>
+            <Text style={{ color: '#ccc', fontSize: 10 }}>
               {experience} / {experienceNeeded} XP
             </Text>
           </View>
           <View style={{
-            height: 6,
+            height: 5,
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
             borderRadius: 3,
             overflow: 'hidden'
@@ -187,17 +197,20 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
           flexDirection: 'row',
           justifyContent: 'center',
           alignItems: 'center',
-          marginTop: 12,
-          paddingTop: 12,
+          marginTop: 6,
+          paddingTop: 6,
           borderTopWidth: 1,
           borderTopColor: 'rgba(255, 255, 255, 0.1)'
         }}>
-          <Text style={{
-            color: config.theme?.primary || '#4ee6e6',
-            fontSize: 14,
-            fontWeight: '600',
-            textAlign: 'center'
-          }}>
+          <Text
+            style={{
+              color: config.theme?.primary || '#4ee6e6',
+              fontSize: 12,
+              fontWeight: '600',
+              textAlign: 'center'
+            }}
+            numberOfLines={1}
+          >
             Welcome to {config.archiveSection || 'The Archive'}
           </Text>
         </View>

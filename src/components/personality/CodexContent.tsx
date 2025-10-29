@@ -102,10 +102,7 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
       <View style={{ flex: 1, padding: 20 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>📖 The Codex</Text>
-          <TouchableOpacity onPress={() => {
-            console.log('CodexContent empty state close button pressed');
-            onClose();
-          }} style={{ padding: 8 }}>
+          <TouchableOpacity onPress={onClose} style={{ padding: 8 }}>
             <Text style={{ color: '#4ee6e6', fontSize: 18 }}>✕</Text>
           </TouchableOpacity>
         </View>
@@ -125,10 +122,7 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
               backgroundColor: '#4ee6e6', 
               borderRadius: 20 
             }}
-            onPress={() => {
-              console.log('CodexContent Create First Entry button pressed');
-              onCreateEntry();
-            }}
+            onPress={onCreateEntry}
           >
             <Text style={{ color: '#0a0b0f', fontSize: 16, fontWeight: 'bold' }}>Create Your First Entry</Text>
           </TouchableOpacity>
@@ -150,17 +144,11 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
               backgroundColor: '#4ee6e6',
               borderRadius: 16
             }}
-            onPress={() => {
-              console.log('CodexContent New Entry button pressed');
-              onCreateEntry();
-            }}
+            onPress={onCreateEntry}
           >
             <Text style={{ color: '#0a0b0f', fontSize: 14, fontWeight: '600' }}>New Entry</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => {
-            console.log('CodexContent close button pressed');
-            onClose();
-          }} style={{ padding: 8 }}>
+          <TouchableOpacity onPress={onClose} style={{ padding: 8 }}>
             <Text style={{ color: '#4ee6e6', fontSize: 18 }}>✕</Text>
           </TouchableOpacity>
         </View>

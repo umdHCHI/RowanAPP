@@ -1,4 +1,5 @@
-import { characterHomeScreenStyles, getStoryStyles } from "@/src/styles/globalStyles";
+import { createCharacterHomeStyles } from "@/src/styles/screens/characterHome";
+import { getStoryStyles } from "@/src/styles/globalStyles";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Linking } from "react-native";
@@ -148,7 +149,7 @@ const ArchiveInterface: React.FC = () => {
   } = useMasterState();
 
   const router = useRouter();
-  const homeStyles = characterHomeScreenStyles(theme.characterHomeScreenTheme);
+  const homeStyles = createCharacterHomeStyles(theme.characterHomeScreenTheme);
   const homeTheme = theme.characterHomeScreenTheme;
   const [stories, setStories] = useState<any[]>([]);
   const [isLoadingStories, setIsLoadingStories] = useState(false);
@@ -757,6 +758,8 @@ const ArchiveInterface: React.FC = () => {
     archive.handleStoryComplete(completionData.storyId);
     handleCloseStory();
     
+    // ✅ REWARDS ALREADY SAVED BY StoryRewardManager
+    // Just refresh UI data to show updated stats
     try {
       if (isRefreshingData) {
         return;
@@ -764,48 +767,26 @@ const ArchiveInterface: React.FC = () => {
       
       setIsRefreshingData(true);
       
+      // Refresh data from backend to show updated values
       await wellness.loadHomeData();
       await equipment.loadBackendGear();
       
-      if (completionData && typeof completionData === 'object') {
-        if (completionData.totalStatGains && typeof completionData.totalStatGains === 'object') {
-          const statGains = completionData.totalStatGains;
-          
-          if (statGains.awareness || statGains.resilience || statGains.connection || statGains.balance) {
-            const wellnessGains: Record<string, number> = {};
-            if (statGains.awareness) wellnessGains.awareness = statGains.awareness;
-            if (statGains.resilience) wellnessGains.resilience = statGains.resilience;
-            if (statGains.connection) wellnessGains.connection = statGains.connection;
-            if (statGains.balance) wellnessGains.balance = statGains.balance;
-            
-            await character.gainWellness(wellnessGains);
-          }
-          
-          if (statGains.experience) {
-            await character.gainExperience(statGains.experience, `story_${completionData.storyId}`);
-          }
-          
-          if (statGains.resonance) {
-            await character.gainResonance(statGains.resonance, `story_${completionData.storyId}`);
-          }
-        }
-        
-        if (completionData.finalRewards && Array.isArray(completionData.finalRewards) && completionData.finalRewards.length > 0) {
-          completionData.finalRewards.forEach((reward: string) => {
-            archive.handleArtifactUnlock({
-              name: reward,
-              type: 'story_reward',
-              equipped: false,
-              resonance: 1,
-              description: `Earned from completing story ${completionData.storyId}`,
-              rarity: 'Common'
-            });
+      // Update local archive state for UI display
+      if (completionData?.finalRewards?.length > 0) {
+        completionData.finalRewards.forEach((reward: string) => {
+          archive.handleArtifactUnlock({
+            name: reward,
+            type: 'story_reward',
+            equipped: false,
+            resonance: 1,
+            description: `Earned from completing story ${completionData.storyId}`,
+            rarity: 'Common'
           });
-        }
-        
-        if (completionData.skillsLearned && Array.isArray(completionData.skillsLearned) && completionData.skillsLearned.length > 0) {
-          archive.handleSkillLearned(completionData.skillsLearned);
-        }
+        });
+      }
+      
+      if (completionData?.skillsLearned?.length > 0) {
+        archive.handleSkillLearned(completionData.skillsLearned);
       }
       
     } catch (error) {
@@ -2105,7 +2086,7 @@ const ArchiveInterface: React.FC = () => {
                             resizeMode="contain"
                           />
                           <Text style={{
-                            ...homeStyles.chronicleButtonText,
+                            ...storyStyles.chronicleButtonText,
                             color: 'rgba(78, 230, 230, 0.9)',
                             fontWeight: '600',
                           }}>
@@ -2121,17 +2102,17 @@ const ArchiveInterface: React.FC = () => {
                   </TouchableOpacity>
                 ))
               ) : (
-                <View style={homeStyles.centeredMessageContainer}>
+                <View style={storyStyles.centeredMessageContainer}>
                   <Icon
                     name="book"
                     size={40}
                     color="#A855F7"
                     style={{ marginBottom: 16 }}
                   />
-                  <Text style={homeStyles.centeredMessageTitle}>
+                  <Text style={storyStyles.centeredMessageTitle}>
                     No Stories Available
                   </Text>
-                  <Text style={homeStyles.centeredMessageText}>
+                  <Text style={storyStyles.centeredMessageText}>
                     The Archive is currently empty. Check back later for new
                     wisdom to discover.
                   </Text>
@@ -2142,7 +2123,7 @@ const ArchiveInterface: React.FC = () => {
 
           {ui.activeTab === "inscriptions" && (
             <View style={homeStyles.tabpassagesArea}>
-              <View style={[homeStyles.centeredMessageContainer, {
+              <View style={[storyStyles.centeredMessageContainer, {
                 borderColor: '#d4af37',
                 borderWidth: 2,
                 shadowColor: '#d4af37',
@@ -2161,7 +2142,7 @@ const ArchiveInterface: React.FC = () => {
                   style={StyleSheet.absoluteFillObject}
                 />
 
-                <Text style={[homeStyles.centeredMessageTitle, { 
+                <Text style={[storyStyles.centeredMessageTitle, { 
                   fontSize: 18, 
                   marginBottom: 12,
                   color: 'rgba(78, 230, 230, 0.8)',
@@ -2255,7 +2236,7 @@ const ArchiveInterface: React.FC = () => {
                 </View>
               </View>
               
-              <View style={[homeStyles.centeredMessageContainer, {
+              <View style={[storyStyles.centeredMessageContainer, {
                 borderColor: '#d4af37',
                 borderWidth: 2,
                 shadowColor: '#d4af37',
@@ -2280,7 +2261,7 @@ const ArchiveInterface: React.FC = () => {
                     color="#4ee6e6"
                     style={{ marginRight: 12 }}
                   />
-                  <Text style={[homeStyles.centeredMessageTitle, {
+                  <Text style={[storyStyles.centeredMessageTitle, {
                     color: 'rgba(78, 230, 230, 0.8)',
                     fontSize: 24,
                     fontWeight: '600',
@@ -2290,7 +2271,7 @@ const ArchiveInterface: React.FC = () => {
                     textShadowRadius: 2,
                   }]}>The Codex</Text>
                 </View>
-                <Text style={[homeStyles.centeredMessageText, {
+                <Text style={[storyStyles.centeredMessageText, {
                   color: '#d4af37',
                   textShadowColor: 'rgba(212, 175, 55, 0.3)',
                   textShadowOffset: { width: 0, height: 1 },
@@ -2334,7 +2315,7 @@ const ArchiveInterface: React.FC = () => {
           {ui.activeTab === "defender" && (
             <View style={homeStyles.tabpassagesArea}>
               <View style={[
-                homeStyles.centeredMessageContainer,
+                storyStyles.centeredMessageContainer,
                 {
                   paddingHorizontal: 16,
                   paddingVertical: 16,
@@ -2352,7 +2333,7 @@ const ArchiveInterface: React.FC = () => {
                   maxWidth: '100%'
                 }
               ]}>
-                <Text style={[homeStyles.centeredMessageTitle, {
+                <Text style={[storyStyles.centeredMessageTitle, {
                   color: '#4ee6e6',
                   fontSize: 24,
                   fontWeight: 'bold',
@@ -2363,7 +2344,7 @@ const ArchiveInterface: React.FC = () => {
                 }]}>
                   ⚡ Mind Defender
                 </Text>
-                <Text style={[homeStyles.centeredMessageText, {
+                <Text style={[storyStyles.centeredMessageText, {
                   color: '#d4af37',
                   textShadowColor: 'rgba(212, 175, 55, 0.3)',
                   textShadowOffset: { width: 0, height: 1 },
@@ -2768,17 +2749,17 @@ const ArchiveInterface: React.FC = () => {
           {ui.activeTab === "restoration" && (
             <View style={homeStyles.archiveTabpassagesArea}>
               {isLoadingStories ? (
-                <View style={homeStyles.centeredMessageContainer}>
+                <View style={storyStyles.centeredMessageContainer}>
                   <Icon
                     name="loader"
                     size={40}
                     color="#A855F7"
                     style={{ marginBottom: 16 }}
                   />
-                  <Text style={homeStyles.centeredMessageTitle}>
+                  <Text style={storyStyles.centeredMessageTitle}>
                     Loading Archive Data...
                   </Text>
-                  <Text style={homeStyles.centeredMessageText}>
+                  <Text style={storyStyles.centeredMessageText}>
                     Retrieving your journey statistics from the Archive...
                   </Text>
                 </View>

@@ -43,30 +43,29 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
   onLogout,
   currentTheme = 'dark'
 }) => {
-  const { character } = useMasterState();
   const personalityConfig = PersonalityConfigs[primaryTrait];
   const personalityQuests = (PersonalityQuests as any)[primaryTrait] || [];
   const personalityCopingTools = (CopingTools as any)[primaryTrait] || [];
-  const userUnlockedTools = character.backendCharacter?.coping_tools || [];
-  
+  const userUnlockedTools = userProfile?.coping_tools || [];
+
   // State for completed stories from apiService
   const [completedStories, setCompletedStories] = useState<Set<string>>(new Set());
   const [isLoadingCompletedStories, setIsLoadingCompletedStories] = useState(true);
+
+  // State for journal entries count
+  const [journalEntriesCount, setJournalEntriesCount] = useState(0);
   
   // Function to fetch completed stories from apiService
   const fetchCompletedStories = async () => {
     try {
       // Check if user is authenticated before making API calls
       if (!userProfile) {
-        console.log('🔒 No user profile found, skipping completed stories fetch');
         setCompletedStories(new Set());
         setIsLoadingCompletedStories(false);
         return;
       }
 
-      console.log('🔍 Fetching completed stories for Chronicles of Mastery...');
       const completed = await apiService.getCompletedStories();
-      console.log('✅ Completed stories from apiService:', completed);
       setCompletedStories(new Set(completed));
     } catch (error) {
       console.error('❌ Failed to fetch completed stories:', error);
@@ -76,9 +75,22 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
     }
   };
 
+  // Function to fetch journal entries count
+  const fetchJournalStats = async () => {
+    try {
+      if (!userProfile) return;
+      const stats = await apiService.getCodexStats();
+      setJournalEntriesCount(stats.total_entries || 0);
+    } catch (error) {
+      console.error('❌ Failed to fetch journal stats:', error);
+      setJournalEntriesCount(0);
+    }
+  };
+
   // Fetch completed stories from apiService on component mount
   useEffect(() => {
     fetchCompletedStories();
+    fetchJournalStats();
   }, []);
 
   // Refresh completed stories when stories prop changes (in case new stories are completed)
@@ -101,39 +113,17 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
       (questProgress[quest.id] || 0) >= quest.total
     ).length;
     
-    const unlockedTools = userProfile?.unlocked_tools || [];
-    const availableTools = personalityCopingTools.filter((tool: any) =>
-      unlockedTools.includes(tool.id)
-    ).length;
-    
-    const wellnessStats = userProfile?.wellness_stats || [];
-    
-    // Handle both array and object formats for wellness_stats
-    let totalWellnessValue = 0;
-    let wellnessCount = 0;
-    
-    if (Array.isArray(wellnessStats)) {
-      // Array format: [{ value: 20, label: "Awareness" }, ...]
-      totalWellnessValue = wellnessStats.reduce((sum: number, stat: any) => sum + (stat.value || 0), 0);
-      wellnessCount = wellnessStats.length;
-    } else if (wellnessStats && typeof wellnessStats === 'object') {
-      // Object format: { awareness: 20, balance: 20, connection: 15, resilience: 20 }
-      const values = Object.values(wellnessStats);
-      totalWellnessValue = values.reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0);
-      wellnessCount = values.length;
-    }
-    
-    const averageWellness = wellnessCount > 0 ? totalWellnessValue / wellnessCount : 0;
-    
+    // **FIX: Use userProfile.coping_tools (actual unlocked tools from backend)**
+    const unlockedToolsCount = userUnlockedTools.length;
+
     return {
       completedStories: actuallyCompletedStories,
       totalStories,
       completedQuests,
       totalQuests: personalityQuests.length,
-      availableTools,
-      totalTools: userUnlockedTools.length,
-      averageWellness,
-      maxWellness: wellnessCount * 10 // Assuming max value is 10 per stat
+      availableTools: unlockedToolsCount,
+      totalTools: unlockedToolsCount,
+      journalEntries: journalEntriesCount
     };
   };
 
@@ -311,10 +301,10 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
         
         <View style={{ flex: 1, minWidth: 120 }}>
           <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>
-            {Math.round(stats.averageWellness * 10) / 10}
+            {stats.journalEntries}
           </Text>
           <Text style={{ color: '#fff', fontSize: 12, opacity: 0.8 }}>
-            Avg Wellness
+            Journal Entries
           </Text>
         </View>
       </View>
@@ -330,7 +320,6 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
       unlockedTool.name === tool.name
     );
     
-    console.log(`Tool "${tool.name}" (ID: ${tool.id}) is unlocked:`, isInUnlockedList);
     return isInUnlockedList;
   };
 
@@ -657,7 +646,6 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
                 if (onThemeToggle) {
                   onThemeToggle();
                 } else {
-                  console.log('Toggle theme');
                 }
               }}
               activeOpacity={0.8}
@@ -704,7 +692,6 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
                         if (onLogout) {
                           onLogout();
                         } else {
-                          console.log('Logout');
                         }
                       }
                     }

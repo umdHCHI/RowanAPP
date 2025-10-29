@@ -581,14 +581,9 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
       setError(null);
 
       try {
-        console.log('PersonalityContext: Initializing personality data...');
-        console.log('Auth token present:', !!authToken);
-        console.log('Onboarding complete:', onboarding.isComplete);
-        console.log('Assigned path:', onboarding.assignedPath);
         
         // Check if user has completed onboarding
         if (!onboarding.isComplete) {
-          console.log('PersonalityContext: Onboarding not complete, setting user type to unknown');
           setUserType("unknown");
           setIsLoading(false);
           return;
@@ -596,7 +591,6 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
 
         // Check if user is assigned to personality path
         if (onboarding.assignedPath !== "survey") {
-          console.log('PersonalityContext: User assigned to character path, setting user type to character');
           setUserType("character");
           setIsLoading(false);
           return;
@@ -604,48 +598,112 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
 
         // Try to fetch personality profile
         if (authToken) {
-          console.log('PersonalityContext: Fetching personality profile...');
-          
+
           // Initialize API service
           await apiService.initialize();
-          
-          // Try to get survey data
-          const surveyData = await apiService.getMostRecentSurvey();
-          
-          console.log('PersonalityContext: Survey data from backend:', surveyData);
-          console.log('PersonalityContext: Survey data big_five_scores:', surveyData?.big_five_scores);
-          
-          if (surveyData && surveyData.big_five_scores) {
-            console.log('PersonalityContext: Found survey data:', surveyData);
-            setUserType("personality");
-            
-            // Map BFI-2-XS trait names to frontend trait names
-            const scores: PersonalityScores = {
-              Openness: surveyData.big_five_scores.openMindedness || 5, // BFI-2-XS openMindedness maps to frontend Openness
-              Conscientiousness: surveyData.big_five_scores.conscientiousness || 5,
-              Extraversion: surveyData.big_five_scores.extraversion || 5,
-              Agreeableness: surveyData.big_five_scores.agreeableness || 5,
-              Neuroticism: surveyData.big_five_scores.negativeEmotionality || 5, // BFI-2-XS negativeEmotionality maps to frontend Neuroticism
-            };
 
-            console.log('PersonalityContext: Setting personality scores:', scores);
-            setPersonalityScores(scores);
+          // PRIORITY 1: Try to get data from personality_profile (most up-to-date)
+          try {
+            const userProfile = await apiService.getProfile();
 
-            // Find primary trait
-            const primary = Object.entries(scores).reduce((a, b) =>
-              scores[a[0] as PersonalityTrait] > scores[b[0] as PersonalityTrait]
-                ? a
-                : b
-            )[0] as PersonalityTrait;
+            if (userProfile?.personality_profile) {
+              const profile = userProfile.personality_profile;
 
-            console.log('PersonalityContext: Setting primary trait:', primary);
-            setPrimaryTrait(primary);
-          } else {
-            console.log('PersonalityContext: No survey data found, setting user type to unknown');
+              // Use dominant_trait if available, otherwise calculate from scores
+              let dominantTraitName = profile.profile_summary?.dominant_trait;
+
+              if (!dominantTraitName && profile.openness !== undefined) {
+                // Calculate dominant trait from profile scores
+                const profileScores = {
+                  openness: profile.openness || 0,
+                  conscientiousness: profile.conscientiousness || 0,
+                  extraversion: profile.extraversion || 0,
+                  agreeableness: profile.agreeableness || 0,
+                  neuroticism: profile.neuroticism || 0
+                };
+
+                dominantTraitName = Object.keys(profileScores).reduce((a, b) =>
+                  profileScores[a as keyof typeof profileScores] > profileScores[b as keyof typeof profileScores] ? a : b
+                );
+              }
+
+              // Map to PersonalityTrait type (capitalized)
+              const traitMap: Record<string, PersonalityTrait> = {
+                'openness': 'Openness',
+                'conscientiousness': 'Conscientiousness',
+                'extraversion': 'Extraversion',
+                'agreeableness': 'Agreeableness',
+                'neuroticism': 'Neuroticism'
+              };
+
+              const mappedTrait = traitMap[dominantTraitName?.toLowerCase() || ''];
+
+              if (mappedTrait) {
+                setUserType("personality");
+
+                const scores: PersonalityScores = {
+                  Openness: profile.openness || 5,
+                  Conscientiousness: profile.conscientiousness || 5,
+                  Extraversion: profile.extraversion || 5,
+                  Agreeableness: profile.agreeableness || 5,
+                  Neuroticism: profile.neuroticism || 5,
+                };
+
+                setPersonalityScores(scores);
+                setPrimaryTrait(mappedTrait);
+
+                console.log('✅ PersonalityContext: Using personality_profile data');
+                console.log('  - Dominant trait:', dominantTraitName);
+                console.log('  - Mapped to:', mappedTrait);
+                console.log('  - Scores:', scores);
+
+                // Success - skip survey data
+                setIsLoading(false);
+                return;
+              }
+            }
+          } catch (profileError) {
+            console.warn('⚠️ PersonalityContext: Could not load personality_profile, falling back to survey...', profileError);
+          }
+
+          // PRIORITY 2: Fallback to survey data if personality_profile not available
+          try {
+            const surveyData = await apiService.getMostRecentSurvey();
+
+            if (surveyData && surveyData.big_five_scores) {
+              setUserType("personality");
+
+              // Map BFI-2-XS trait names to frontend trait names
+              const scores: PersonalityScores = {
+                Openness: surveyData.big_five_scores.openMindedness || 5, // BFI-2-XS openMindedness maps to frontend Openness
+                Conscientiousness: surveyData.big_five_scores.conscientiousness || 5,
+                Extraversion: surveyData.big_five_scores.extraversion || 5,
+                Agreeableness: surveyData.big_five_scores.agreeableness || 5,
+                Neuroticism: surveyData.big_five_scores.negativeEmotionality || 5, // BFI-2-XS negativeEmotionality maps to frontend Neuroticism
+              };
+
+              setPersonalityScores(scores);
+
+              // Find primary trait
+              const primary = Object.entries(scores).reduce((a, b) =>
+                scores[a[0] as PersonalityTrait] > scores[b[0] as PersonalityTrait]
+                  ? a
+                  : b
+              )[0] as PersonalityTrait;
+
+              setPrimaryTrait(primary);
+
+              console.log('✅ PersonalityContext: Using survey data (fallback)');
+              console.log('  - Primary trait:', primary);
+              console.log('  - Scores:', scores);
+            } else {
+              setUserType("unknown");
+            }
+          } catch (surveyError) {
+            console.warn('⚠️ PersonalityContext: Could not load survey data either', surveyError);
             setUserType("unknown");
           }
         } else {
-          console.log('PersonalityContext: No auth token, setting user type to unknown');
           setUserType("unknown");
         }
       } catch (err) {

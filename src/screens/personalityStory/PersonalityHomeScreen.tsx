@@ -19,14 +19,9 @@ import PersonalizedArchiveHeader from '../../components/personality/Personalized
 import { useMasterState } from '../../context/MasterStateContext';
 import { usePersonalityHomeData } from '../../hooks/usePersonalityHomeData';
 import { createGlobalStyles, PersonalityConfigs } from '../../imports';
-import { apiService } from '../../services/apiService';
 
 import {
-  applyPersonalityQuestBonuses,
-  applyPersonalityStatBonuses,
-  getPersonalityCompletionMessage,
-  getPersonalityRewardMultiplier,
-  isToolPreferredForPersonality
+  getPersonalityCompletionMessage
 } from '../../utils/personalityRewards';
 import ChapterScreen from '../characterStory/ChapterScreen';
 import StoryScreen from '../characterStory/StoryScreen';
@@ -42,64 +37,72 @@ export default function PersonalityHomeScreen() {
   const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
   const [hasSeenTutorial, setHasSeenTutorial] = useState(false);
 
-  const TUTORIAL_STEPS = [
-    {
-      id: 1,
-      title: "🌟 A Personalized Introduction",
-      message: "Welcome, Archivist. I've had a moment to consult the records. It seems your approach to scholarship is... unique. This Archive will arrange itself to suit your particular way of seeing the world. Let us begin your tailored orientation.",
-      highlight: "header",
-      tip: "A note from the Curator: Your specific inclinations are not a flaw; they are simply the primary lens through which you will read these halls."
-    },
-    {
-      id: 2,
-      title: "🎯 The Curator's Missive & Your Foundations",
-      message: "Each day, I will leave a short missive for you here, with guidance suited to your disposition. Below, you can track your Foundations. They will grow as you tend to the tomes that resonate most strongly with you.",
-      highlight: "wellness",
-      tip: "A note from the Curator: These attributes reflect the core narratives of the library. Pay attention to the ones that feel most familiar."
-    },
-    {
-      id: 3,
-      title: "🏆 Daily Inquiries & Achievements",
-      message: "These are your Daily Inquiries—small, suggested tasks to help maintain the order of your Archive. Completing them is a quiet act of scholarship that will be noted in your personal log of achievements.",
-      highlight: "quests",
-      tip: "A note from the Curator: These tasks are chosen for you. They are designed to be a gentle practice, not a chore."
-    },
-    {
-      id: 4,
-      title: "🛠️ The Archivist's Toolkit",
-      message: "Here you will find your collection of Restoration Implements. As you complete stories and inquiries, you will acquire new tools specialized for the kinds of narratives you find most challenging.",
-      highlight: "coping",
-      tip: "A note from the Curator: The right tool can mend a torn page or clarify a faded passage. Experiment to find what works for you."
-    },
-    {
-      id: 5,
-      title: "📚 Passages Written for You",
-      message: "The stories within these Passages will speak to you in a unique way. You may find the dialogue shifts, or that certain paths feel more intuitive. This is the Archive adapting to its reader.",
-      highlight: "stories",
-      tip: "A note from the Curator: Do not be surprised if I address you differently within a story; I am simply speaking your language."
-    },
-    {
-      id: 6,
-      title: "🧠 The Mind Defender & The Codex",
-      message: "Here you will find the 'Mind Defender,' a training ground to guard the stacks against dissonant whispers (or 'Negative Thoughts,' as they're known outside). Your Codex, as always, is here for your personal 'Inscriptions.'",
-      highlight: "tools",
-      tip: "A note from the Curator: Defending the mind is a practical skill; reflecting in the Codex is a scholarly art. Both are necessary."
-    },
-    {
-      id: 7,
-      title: "🌱 The Restoration Wing",
-      message: "This is your personal wing of the Archive, where your illuminated manuscripts are shelved. Every story you help to heal adds its light to this space, making it uniquely your own.",
-      highlight: "restoration",
-      tip: "A note from the Curator: Restoration is a quiet, steady process. It is just as important as new discovery."
-    },
-    {
-      id: 8,
-      title: "🎉 Your Path is Your Own",
-      message: "Your personalized orientation is complete. No two Archivists walk the same path through these halls. The journey ahead is yours alone to chart. Read well.",
-      highlight: "complete",
-      tip: "A note from the Curator: Remember that progress is not a straight line, but a meandering path through the stacks. Enjoy the walk."
-    }
-  ];
+const TUTORIAL_STEPS = [
+  {
+    id: 1,
+    title: "🌑 The Archive Beckons",
+    message:
+      "Welcome, Archivist. You have crossed a threshold few remember. The Archive is not built of stone or paper. It breathes within you. Shelves grow where memories settle, and corridors open where you dare to look inward. I am the Curator, the one who remembers when you cannot.",
+    highlight: "header",
+    tip:
+      "Curator’s margin note: The Archive rearranges itself according to your fears and fascinations. Do not mistake the shifting for chaos—it is translation.",
+  },
+  {
+    id: 2,
+    title: "🔥 The Echoes of the Self",
+    message:
+      "Four lights burn in these halls shaped by you. They are not virtues or vices, but the pulse of your inner geography. As you act, they waver. Brightening when you confront, dimming when you retreat. Watch them closely; they will guide you home.",
+    highlight: "wellness",
+    tip:
+      "Curator’s margin note: When Fear glows strongest, it means the Archive is speaking plainly. Few ever listen.",
+  },
+  {
+  id: 3,
+  title: "📖 The Living Pages",
+  message:
+    "In the deeper chambers of the Archive lie the Living Pages — fragments of story that breathe and bend as you read. They do not wait to be told; they respond. Every line of dialogue you choose, every silence you hold, leaves a trace upon these halls. Some tales will mirror your gentlest thoughts; others will test the limits of your resolve. Remember, the Archive does not seek endings — it seeks understanding.",
+  highlight: "stories",
+  tip:
+    "Curator’s margin note: The stories are reflections, not riddles. When a character speaks, it may only be another version of you whispering from a different shelf.",
+},
+  {
+    id: 4,
+    title: "📜 The Whispered Codex",
+    message:
+      "Each dawn, a sealed note materializes upon your desk—ink still wet. It bears a small task, a whisper meant to steady your thoughts or remind you of forgotten strength. Answer them, and the Archive quiets. Ignore them, and the shelves begin to murmur.",
+    highlight: "quests",
+    tip:
+      "Curator’s margin note: Even small restorations stave off decay. The Archive rewards the attentive.",
+  },
+  {
+    id: 5,
+    title: "🕯️ The Mind’s Defense",
+    message:
+      "Beyond the study lies the Hall of Dissonance, where stray thoughts take shape. Here, you’ll train with the Mind Defender, learning to still the echoes before they unravel you. When peace returns, record what remains in the Codex—your testament against forgetting.",
+    highlight: "tools",
+    tip:
+      "Curator’s margin note: Reflection is not retreat. It is reconnaissance.",
+  },
+  {
+    id: 6,
+    title: "🌿 The Wing of Restoration",
+    message:
+      "Every mended story rekindles a lamp in your personal wing. This is the gentler side of the Archive—your proof that light persists, even in shadowed corridors. Over time, the air will hum with what you’ve healed.",
+    highlight: "restoration",
+    tip:
+      "Curator’s margin note: The Wing reflects you. Should it darken, it only means a new story awaits repair.",
+  },
+  {
+    id: 7,
+    title: "🕰️ The Circle of Return",
+    message:
+      "The orientation ends, but the wandering begins. Within these walls you may rewrite endings, confront the echoes of yourself, and practice the alchemy of calm. Outside, you will find the same stories—but written in flesh instead of ink.",
+    highlight: "complete",
+    tip:
+      "Curator’s margin note: Return often. The Archive dreams through you, and dreams are fragile when left unattended.",
+  },
+];
+
 
   const startTutorial = () => {
     setShowTutorial(true);
@@ -195,69 +198,10 @@ export default function PersonalityHomeScreen() {
     
     if (!userProfile || !primaryTrait) return;
 
+    // ✅ REWARDS ALREADY SAVED BY StoryRewardManager
+    // Just show completion message and refresh UI
     try {
       const isIntroStory = completionData.storyId === '12';
-      const personalityMultiplier = getPersonalityRewardMultiplier(primaryTrait, completionData.storyId);
-
-      if (completionData.experienceGained > 0) {
-        const adjustedExperience = Math.floor(completionData.experienceGained * personalityMultiplier);
-      }
-
-      if (Object.keys(completionData.totalStatGains).length > 0) {
-        const adjustedStatGains = applyPersonalityStatBonuses(
-          completionData.totalStatGains, 
-          primaryTrait, 
-          personalityMultiplier
-        );
-      }
-
-      if (completionData.skillsLearned && completionData.skillsLearned.length > 0) {
-        for (const toolId of completionData.skillsLearned) {
-          try {
-            const isPreferred = isToolPreferredForPersonality(toolId, primaryTrait);
-            await apiService.acquireCopingToolByName(toolId);
-            
-            if (isPreferred) {
-              try {
-                const tool = await apiService.findCopingToolByName(toolId);
-                if (tool) {
-                  await apiService.equipTool(tool.id);
-                }
-              } catch (equipError) {
-                // Silently handle tool equip error
-              }
-            }
-          } catch (toolError) {
-            // Silently handle tool acquisition error
-          }
-        }
-      }
-
-      const questData = completionData.questProgress || {};
-      
-      if (questData && Object.keys(questData).length > 0) {
-        const adjustedQuestProgress = applyPersonalityQuestBonuses(questData, primaryTrait);
-        
-        try {
-          for (const [questId, progress] of Object.entries(adjustedQuestProgress)) {
-            await apiService.saveQuestProgress({
-              storyId: completionData.storyId,
-              questSlug: questId,
-              storyVariables: {
-                progress: progress,
-                source: 'story_completion',
-                personality_bonus: true
-              },
-              playerState: {
-                quest_progress: { [questId]: progress }
-              }
-            });
-          }
-        } catch (questError) {
-          // Silently handle quest progress save error
-        }
-      }
-
       const completionMessage = getPersonalityCompletionMessage(primaryTrait, isIntroStory);
       
       Alert.alert(
@@ -266,19 +210,21 @@ export default function PersonalityHomeScreen() {
         [{ text: "Continue Exploring", style: "default" }]
       );
 
-    } catch (e) {
-      Alert.alert("Error", "There was an issue saving your story progress.");
-    } finally {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // **FIX: Refresh quest progress specifically after story completion**
+      
+      // Wait a moment for backend to process the quest progress
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Refresh data from backend to show updated values
       await fetchHomeScreenData();
       
-      try {
-        if (wellness.loadHomeData) {
-          await wellness.loadHomeData();
-        }
-      } catch (refreshError) {
-        // Silently handle refresh error
+      if (wellness.loadHomeData) {
+        await wellness.loadHomeData();
       }
+      
+
+    } catch (e) {
+      Alert.alert("Error", "There was an issue refreshing your progress.");
     }
   };
 
@@ -361,7 +307,7 @@ export default function PersonalityHomeScreen() {
       <View style={[style, { position: 'relative' }]}>
         {children}
         {isHighlighted && (
-          <View style={[styles.highlightBorder, { opacity: pulseOpacity }]} />
+          <Animated.View style={[styles.highlightBorder, { opacity: pulseOpacity }]} />
         )}
       </View>
     );

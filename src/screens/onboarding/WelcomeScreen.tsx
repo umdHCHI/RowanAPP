@@ -10,8 +10,8 @@ import {
   View
 } from 'react-native';
 import { useMasterState } from "../../context/MasterStateContext";
-import { getOnboardingStyles } from '../../styles/globalStyles';
-
+import { apiService } from "../../services/apiService";
+import { createOnboardingStyles } from '../../styles/screens/onboarding';
 type PathType = 'character' | 'survey';
 
 interface PathData {
@@ -210,7 +210,7 @@ const ArchiveOnboardingScreen: React.FC = () => {
   const { theme, auth, onboarding } = useMasterState();
   const { authToken, isTestUser, user } = auth;
   const { assignedPath, setAssignedPath, setIsLoading, isLoading } = onboarding;
-  const onboardingStyles = getOnboardingStyles(theme.onboardingTheme);
+  const onboardingStyles = createOnboardingStyles(theme.onboardingTheme);
   const [selectedPath, setSelectedPath] = useState<PathType | null>(null);
   const [showCurator, setShowCurator] = useState<boolean>(false);
   const [animationStep, setAnimationStep] = useState<number>(0);
@@ -250,8 +250,10 @@ const ArchiveOnboardingScreen: React.FC = () => {
       await setAssignedPath(pathType);
       
       if (pathType === 'character') {
+        await apiService.completeOnboarding('character');
         router.replace('/(onboarding)/character-creator');
       } else {
+
         router.replace('/(onboarding)/personality-test');
       }
     } catch (error: any) {

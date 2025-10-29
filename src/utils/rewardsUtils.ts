@@ -1,27 +1,19 @@
 import { uiIcons } from '../assets/ui';
-import { CopingTools } from '../types/personality';
+import { CopingTools, convertEquipmentToCopingTool } from '../types/personality';
+import {
+  EquipmentUpgrade,
+  JournalReward,
+  QuestProgress,
+  StoryReward,
+  StoryRewardTracker,
+  ThoughtDefenderResult,
+  ThoughtDefenderReward
+} from '../types/rewards';
 import { Choice, Passage, SavedRewards } from '../types/story';
 
 // ===== REWARD SYSTEM - INTEGRATED WITH EXISTING TYPES =====
 // This system tracks rewards throughout the story and applies them at completion
 // Works with the existing SavedRewards interface and backend data structure
-
-export interface StoryReward {
-  type: 'passage' | 'choice';
-  source: string; // passage_id or choice_id
-  effects: Record<string, any>; // The actual effects from backend
-  timestamp: number;
-}
-
-export interface StoryRewardTracker {
-  storyId: string;
-  rewards: StoryReward[];
-  totalStatGains: Record<string, number>;
-  finalRewards: string[];
-  skillsLearned: string[];
-  journalEntries: string[];
-  questProgress: Record<string, number>; // e.g., {"neuroticism_1": 1, "openness_2": 2}
-}
 
 // Helper function to determine reward type based on research condition
 export const getRewardType = (researchCondition: "character" | "personality"): "experience" | "resonance" => {
@@ -31,6 +23,21 @@ export const getRewardType = (researchCondition: "character" | "personality"): "
 // Helper function to get the appropriate reward field name
 export const getRewardFieldName = (researchCondition: "character" | "personality"): string => {
   return getRewardType(researchCondition);
+};
+
+// Helper function to map stat names for personality users
+// Maps character-specific stats to wellness attributes
+const mapStatNameForPersonalityUser = (statName: string): string => {
+  const statMap: Record<string, string> = {
+    'exploration': 'awareness',
+    'courage': 'resilience',
+    'fear': 'balance',
+    'awareness': 'awareness',
+    'resilience': 'resilience',
+    'connection': 'connection',
+    'balance': 'balance'
+  };
+  return statMap[statName.toLowerCase()] || statName;
 };
 
 // Initialize a new reward tracker for a story
@@ -106,7 +113,8 @@ export function applyChoiceRewards(
   };
 }
 
-// Add the filtering function for personality users
+// Complete filtering function for personality users
+// Converts character gear to personality-specific coping tools
 export function filterEffectsForPersonalityUser(
   effects: Record<string, any>,
   primaryTrait: string
@@ -114,16 +122,21 @@ export function filterEffectsForPersonalityUser(
   const filteredEffects = { ...effects };
   
   // Remove resonance (personality users get experience instead)
-  if (filteredEffects.resonance) {
-    delete filteredEffects.resonance;
-  }
+  delete filteredEffects.resonance;
   
-  // Remove character items/artifacts (personality users don't get gear)
-  if (filteredEffects.rewards) {
+  // Convert character items/artifacts to coping tools
+  if (filteredEffects.rewards || filteredEffects.artifacts) {
+    const characterItems = [...(filteredEffects.rewards || []), ...(filteredEffects.artifacts || [])];
+    if (characterItems.length > 0 && primaryTrait) {
+      filteredEffects.tools = characterItems
+        .map((itemName: string) => {
+          // Use personality-aware mapping
+          const convertedTool = convertEquipmentToCopingTool(itemName, primaryTrait as any);
+          return convertedTool || itemName.toLowerCase().replace(/\s+/g, '_');
+        })
+        .filter((toolId: string | null): toolId is string => toolId !== null);
+    }
     delete filteredEffects.rewards;
-  }
-  
-  if (filteredEffects.artifacts) {
     delete filteredEffects.artifacts;
   }
   
@@ -147,35 +160,69 @@ export function filterEffectsForPersonalityUser(
   if (filteredEffects.quests && primaryTrait) {
     const originalQuests = filteredEffects.quests;
     filteredEffects.quests = originalQuests.filter((questId: string) => {
-      const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+      // STRICT VALIDATION: Quest MUST follow the pattern {trait}_{number}
+      const questTraitMatch = questId.match(/^([a-zA-Z]+)_(\d+)$/);
       if (questTraitMatch && primaryTrait) {
-        const questTrait = questTraitMatch[1];
-        return questTrait.toLowerCase() === primaryTrait.toLowerCase();
+        const [, questTrait] = questTraitMatch;
+        const normalizedQuestTrait = questTrait.toLowerCase().trim();
+        const normalizedPrimaryTrait = primaryTrait.toLowerCase().trim();
+
+        console.log(`🔍 Filtering quest: "${questId}" - Quest trait: "${normalizedQuestTrait}", Primary trait: "${normalizedPrimaryTrait}"`);
+
+        // EXACT match required - no partial matches
+        return normalizedQuestTrait === normalizedPrimaryTrait;
       }
-      return true;
+      console.log(`❌ Excluding quest: "${questId}" - invalid format or no match`);
+      return false; // Only include quests that match the personality pattern
     });
-    
+
     if (filteredEffects.quests.length === 0) {
       delete filteredEffects.quests;
     }
   }
-  
+
   // Filter quest_progress by personality trait (if quest_progress exists)
   if (filteredEffects.quest_progress && primaryTrait) {
     const originalQuestProgress = filteredEffects.quest_progress;
     filteredEffects.quest_progress = originalQuestProgress.filter((questId: string) => {
-      const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+      // STRICT VALIDATION: Quest MUST follow the pattern {trait}_{number}
+      const questTraitMatch = questId.match(/^([a-zA-Z]+)_(\d+)$/);
       if (questTraitMatch && primaryTrait) {
-        const questTrait = questTraitMatch[1];
-        return questTrait.toLowerCase() === primaryTrait.toLowerCase();
+        const [, questTrait] = questTraitMatch;
+        const normalizedQuestTrait = questTrait.toLowerCase().trim();
+        const normalizedPrimaryTrait = primaryTrait.toLowerCase().trim();
+
+        console.log(`🔍 Filtering quest_progress: "${questId}" - Quest trait: "${normalizedQuestTrait}", Primary trait: "${normalizedPrimaryTrait}"`);
+
+        // EXACT match required - no partial matches
+        return normalizedQuestTrait === normalizedPrimaryTrait;
       }
-      return true;
+      console.log(`❌ Excluding quest_progress: "${questId}" - invalid format or no match`);
+      return false; // Only include quests that match the personality pattern
     });
-    
+
     if (filteredEffects.quest_progress.length === 0) {
       delete filteredEffects.quest_progress;
     }
   }
+  
+  return filteredEffects;
+}
+
+// Filter effects for character users
+export function filterEffectsForCharacterUser(
+  effects: Record<string, any>
+): Record<string, any> {
+  const filteredEffects = { ...effects };
+  
+  // Convert experience to resonance for character users
+  if (filteredEffects.experience) {
+    filteredEffects.resonance = filteredEffects.experience;
+    delete filteredEffects.experience;
+  }
+  
+  // Remove tools (character users don't get coping tools)
+  delete filteredEffects.tools;
   
   return filteredEffects;
 }
@@ -221,34 +268,7 @@ export function calculateTotalRewards(
       if (!isNaN(numValue) && numValue > 0) {
         // Map frontend stat names to backend wellness attribute names for personality users
         if (researchCondition === "personality") {
-          let mappedStatName = key;
-          
-          switch (key.toLowerCase()) {
-            case 'awareness':
-              mappedStatName = 'awareness';
-              break;
-            case 'resilience':
-              mappedStatName = 'resilience';
-              break;
-            case 'connection':
-              mappedStatName = 'connection';
-              break;
-            case 'balance':
-              mappedStatName = 'balance';
-              break;
-            case 'exploration':
-              mappedStatName = 'awareness';
-              break;
-            case 'courage':
-              mappedStatName = 'resilience';
-              break;
-            case 'fear':
-              mappedStatName = 'balance';
-              break;
-            default:
-              mappedStatName = key;
-          }
-          
+          const mappedStatName = mapStatNameForPersonalityUser(key);
           totalStatGains[mappedStatName] = (totalStatGains[mappedStatName] || 0) + numValue;
         } else {
           totalStatGains[key] = (totalStatGains[key] || 0) + numValue;
@@ -267,34 +287,7 @@ export function calculateTotalRewards(
         const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
         if (!isNaN(numValue)) {
           if (researchCondition === "personality") {
-            let mappedStatName = stat;
-            
-            switch (stat.toLowerCase()) {
-              case 'awareness':
-                mappedStatName = 'awareness';
-                break;
-              case 'resilience':
-                mappedStatName = 'resilience';
-                break;
-              case 'connection':
-                mappedStatName = 'connection';
-                break;
-              case 'balance':
-                mappedStatName = 'balance';
-                break;
-              case 'exploration':
-                mappedStatName = 'awareness';
-                break;
-              case 'courage':
-                mappedStatName = 'resilience';
-                break;
-              case 'fear':
-                mappedStatName = 'balance';
-                break;
-              default:
-                mappedStatName = stat;
-            }
-            
+            const mappedStatName = mapStatNameForPersonalityUser(stat);
             totalStatGains[mappedStatName] = (totalStatGains[mappedStatName] || 0) + numValue;
           } else {
             totalStatGains[stat] = (totalStatGains[stat] || 0) + numValue;
@@ -328,8 +321,8 @@ export function calculateTotalRewards(
       totalStatGains[rewardFieldName] = (totalStatGains[rewardFieldName] || 0) + rewardGain;
     }
 
-    // Handle items/rewards (only for character users after filtering)
-    if (effects.rewards) {
+    // Handle items/rewards (only for character users)
+    if (effects.rewards && researchCondition === "character") {
       if (Array.isArray(effects.rewards)) {
         finalRewards.push(...effects.rewards);
       } else if (typeof effects.rewards === 'string') {
@@ -351,8 +344,8 @@ export function calculateTotalRewards(
       journalEntries.push(effects.journal_entry);
     }
 
-    // Handle artifacts (only for character users after filtering)
-    if (effects.artifacts) {
+    // Handle artifacts (only for character users)
+    if (effects.artifacts && researchCondition === "character") {
       if (Array.isArray(effects.artifacts)) {
         finalRewards.push(...effects.artifacts);
       } else if (typeof effects.artifacts === 'string') {
@@ -366,22 +359,7 @@ export function calculateTotalRewards(
         const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
         if (!isNaN(numValue)) {
           if (researchCondition === "personality") {
-            let mappedStatName = wellnessStat;
-            
-            switch (wellnessStat.toLowerCase()) {
-              case 'exploration':
-                mappedStatName = 'awareness';
-                break;
-              case 'courage':
-                mappedStatName = 'resilience';
-                break;
-              case 'fear':
-                mappedStatName = 'balance';
-                break;
-              default:
-                mappedStatName = wellnessStat;
-            }
-            
+            const mappedStatName = mapStatNameForPersonalityUser(wellnessStat);
             totalStatGains[mappedStatName] = (totalStatGains[mappedStatName] || 0) + numValue;
           } else {
             totalStatGains[`wellness_${wellnessStat}`] = (totalStatGains[`wellness_${wellnessStat}`] || 0) + numValue;
@@ -541,7 +519,8 @@ export function formatRewardsForDisplay(tracker: StoryRewardTracker): {
 // Helper function to create notification messages from effects
 export function createNotificationFromEffects(
   effects: Record<string, any>, 
-  researchCondition: "character" | "personality" = "personality"
+  researchCondition: "character" | "personality" = "personality",
+  primaryTrait?: string
 ): Array<{
   message: string;
   type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
@@ -560,9 +539,12 @@ export function createNotificationFromEffects(
   // Map stat names to frontend display names and icons
   const statDisplayNames: Record<string, string> = {
     'awareness': 'Exploration',
-    'resilience': 'Courage', 
+    'exploration': 'Exploration',
+    'resilience': 'Courage',
+    'courage': 'Courage',
     'connection': 'Connection',
-    'balance': 'Fear'
+    'balance': 'Fear',
+    'fear': 'Fear'
   };
 
   const statIcons: Record<string, string> = {
@@ -663,21 +645,19 @@ export function createNotificationFromEffects(
     });
   }
 
-  // Handle items/rewards
-  if (effects.rewards) {
+  // Handle items/rewards (only for character users)
+  if (effects.rewards && researchCondition === "character") {
     if (Array.isArray(effects.rewards)) {
       effects.rewards.forEach((reward: string) => {
-        const message = researchCondition === "personality" ? `Acquired ${reward}` : `Gained ${reward}`;
         notifications.push({
-          message,
+          message: `Gained ${reward}`,
           type: 'item',
           icon: '🎁'
         });
       });
     } else if (typeof effects.rewards === 'string') {
-      const message = researchCondition === "personality" ? `Acquired ${effects.rewards}` : `Gained ${effects.rewards}`;
       notifications.push({
-        message,
+        message: `Gained ${effects.rewards}`,
         type: 'item',
         icon: '🎁'
       });
@@ -703,30 +683,39 @@ export function createNotificationFromEffects(
     }
   }
 
-  // Handle artifacts
-  if (effects.artifacts) {
+  // Handle artifacts (only for character users)
+  if (effects.artifacts && researchCondition === "character") {
     if (Array.isArray(effects.artifacts)) {
       effects.artifacts.forEach((artifact: string) => {
-        const message = researchCondition === "personality" ? `Acquired ${artifact}` : `Found ${artifact}`;
         notifications.push({
-          message,
-          type: researchCondition === "personality" ? 'item' : 'artifact',
-          icon: researchCondition === "personality" ? '🎁' : '💎'
+          message: `Found ${artifact}`,
+          type: 'artifact',
+          icon: '💎'
         });
       });
     } else if (typeof effects.artifacts === 'string') {
-      const message = researchCondition === "personality" ? `Acquired ${effects.artifacts}` : `Found ${effects.artifacts}`;
       notifications.push({
-        message,
-        type: researchCondition === "personality" ? 'item' : 'artifact',
-        icon: researchCondition === "personality" ? '🎁' : '💎'
+        message: `Found ${effects.artifacts}`,
+        type: 'artifact',
+        icon: '💎'
       });
     }
   }
 
   // Handle quest progress - only create notifications for quests that should be processed
   if (effects.quest_progress && Array.isArray(effects.quest_progress)) {
-    effects.quest_progress.forEach(() => {
+    effects.quest_progress.forEach((questId: string) => {
+      // For personality users, only create notifications for their personality type
+      if (researchCondition === 'personality' && primaryTrait) {
+        const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+        if (questTraitMatch) {
+          const [, questTrait] = questTraitMatch;
+          if (questTrait.toLowerCase() !== primaryTrait.toLowerCase()) {
+            return; // Skip quest notifications for other personality types
+          }
+        }
+      }
+      
       notifications.push({
         message: 'Quest Progress Updated!',
         type: 'quest',
@@ -741,8 +730,18 @@ export function createNotificationFromEffects(
         if (researchCondition === 'character') {
           const questTraitMatch = questId.match(/^(\w+)_\d+$/);
           if (questTraitMatch) {
-            console.log(`🚫 Skipping quest notification for ${questId} - character user shouldn't see personality quests`);
             return; // Skip personality quest notifications for character users
+          }
+        }
+        
+        // For personality users, only create notifications for their personality type
+        if (researchCondition === 'personality' && primaryTrait) {
+          const questTraitMatch = questId.match(/^(\w+)_\d+$/);
+          if (questTraitMatch) {
+            const [, questTrait] = questTraitMatch;
+            if (questTrait.toLowerCase() !== primaryTrait.toLowerCase()) {
+              return; // Skip quest notifications for other personality types
+            }
           }
         }
         
@@ -766,8 +765,18 @@ export function createNotificationFromEffects(
       if (researchCondition === 'character') {
         const questTraitMatch = effects.quests.match(/^(\w+)_\d+$/);
         if (questTraitMatch) {
-          console.log(`🚫 Skipping quest notification for ${effects.quests} - character user shouldn't see personality quests`);
           return notifications; // Skip personality quest notifications for character users
+        }
+      }
+      
+      // For personality users, only create notifications for their personality type
+      if (researchCondition === 'personality' && primaryTrait) {
+        const questTraitMatch = effects.quests.match(/^(\w+)_\d+$/);
+        if (questTraitMatch) {
+          const [, questTrait] = questTraitMatch;
+          if (questTrait.toLowerCase() !== primaryTrait.toLowerCase()) {
+            return notifications; // Skip quest notifications for other personality types
+          }
         }
       }
       
@@ -791,123 +800,9 @@ export function createNotificationFromEffects(
   return notifications;
 }
 
-// Comprehensive list of available equipment items for rewards - expanded
-export const AVAILABLE_EQUIPMENT_ITEMS = {
-  focus: [
-    "Ancient Scroll",
-    "Lens of Gentle Seeing",
-    "Notebook of the Wanderer",
-    "Compass of Quiet Knowing",
-    "Scroll of Stillness",
-    "Magic Wand",
-    "Topaz Staff",
-    "Sapphire Staff",
-    "Torch",
-    "Meditation Focus",
-    "Breathing Tool",
-    "Journal"
-  ],
-  comfort: [
-    "Cloak of True Form",
-    "Wrap of Rooted Memory",
-    "Shield of Flexible Boundaries",
-    "Social Comfort",
-    "Hobby Protection",
-    "Nature Comfort",
-    "Comfort Layer I",
-    "Comfort Layer II",
-    "Comfort Layer III"
-  ],
-  shield: [
-    "Mask of Discernment",
-    "Crown of Becoming",
-    "Helm of the Unmasked",
-    "Boundary Shield",
-    "Affirmation Shield",
-    "Routine Shield",
-    "Wizard Hat",
-    "Basic Helm",
-    "Iron Helmet",
-    "Leather Helmet"
-  ],
-  ground: [
-    "Foundation of Inner Stone",
-    "Roots of Connection",
-    "Stone of Self-Compassion",
-    "Exercise Boots",
-    "Sleep Boots",
-    "Nutrition Boots",
-    "Iron Boots",
-    "Leather Boots"
-  ],
-  combat: [
-    "Iron Sword",
-    "Golden Sword",
-    "Iron Shield",
-    "Wooden Shield"
-  ]
-};
-
-// Helper function to get random equipment reward
-export const getRandomEquipmentReward = (category?: keyof typeof AVAILABLE_EQUIPMENT_ITEMS): string => {
-  if (category) {
-    const items = AVAILABLE_EQUIPMENT_ITEMS[category];
-    return items[Math.floor(Math.random() * items.length)];
-  }
-  
-  const categories = Object.keys(AVAILABLE_EQUIPMENT_ITEMS) as (keyof typeof AVAILABLE_EQUIPMENT_ITEMS)[];
-  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-  const items = AVAILABLE_EQUIPMENT_ITEMS[randomCategory];
-  
-  return items[Math.floor(Math.random() * items.length)];
-};
-
-// Helper function to get equipment reward by story theme
-export const getEquipmentRewardByTheme = (theme: string): string => {
-  const themeLower = theme.toLowerCase();
-  
-  if (themeLower.includes('meditation') || themeLower.includes('focus') || themeLower.includes('stillness')) {
-    return getRandomEquipmentReward('focus');
-  }
-  
-  if (themeLower.includes('social') || themeLower.includes('comfort') || themeLower.includes('protection')) {
-    return getRandomEquipmentReward('comfort');
-  }
-  
-  if (themeLower.includes('boundary') || themeLower.includes('shield') || themeLower.includes('protection')) {
-    return getRandomEquipmentReward('shield');
-  }
-  
-  if (themeLower.includes('ground') || themeLower.includes('exercise') || themeLower.includes('movement')) {
-    return getRandomEquipmentReward('ground');
-  }
-  
-  if (themeLower.includes('combat') || themeLower.includes('battle') || themeLower.includes('warrior')) {
-    return getRandomEquipmentReward('focus');
-  }
-  
-  return getRandomEquipmentReward('focus');
-};
 
 // Reward system for journal entries and activities
-export interface JournalReward {
-  experience: number;
-  wellnessStats: {
-    awareness?: number;
-    resilience?: number;
-    connection?: number;
-    balance?: number;
-  };
-  message: string;
-}
-
-export interface RewardResult {
-  success: boolean;
-  rewards: JournalReward;
-  newLevel?: number;
-  levelsGained?: number;
-  error?: string;
-}
+// Types imported from ../types/rewards
 
 // Calculate rewards based on entry type and skill category
 export const calculateJournalRewards = (
@@ -1013,38 +908,7 @@ export const formatRewardMessage = (reward: JournalReward, levelsGained: number 
 };
 
 // Mini-game reward system for ThoughtDefender
-export interface ThoughtDefenderReward {
-  experience: number;
-  wellnessStats: {
-    exploration?: number;
-    courage?: number;
-    connection?: number;
-    fear?: number;
-  };
-  foundationGains: {
-    'Sight Beyond Sight'?: number;
-    'Unbreakable Will'?: number;
-    'Heart\'s Compass'?: number;
-    'Elemental Harmony'?: number;
-  };
-  message: string;
-  difficulty: string;
-  performance: {
-    score: number;
-    level: number;
-    thoughtsCleared: number;
-    accuracy: number;
-    survivalTime: number;
-  };
-}
-
-export interface ThoughtDefenderResult {
-  success: boolean;
-  rewards: ThoughtDefenderReward;
-  newLevel?: number;
-  levelsGained?: number;
-  error?: string;
-}
+// Types imported from ../types/rewards
 
 // Calculate rewards for ThoughtDefender mini-game
 export const calculateThoughtDefenderRewards = (
@@ -1315,328 +1179,7 @@ export const createThoughtDefenderNotifications = (
 };
 
 // ===== EQUIPMENT UPGRADE SYSTEM =====
-
-export interface EquipmentUpgrade {
-  itemName: string;
-  currentLevel: number;
-  newLevel: number;
-  statBonus: number;
-  rarity: "Common" | "Rare" | "Epic" | "Legendary";
-  upgradeMessage: string;
-}
-
-export interface UpgradedEquipmentReward {
-  originalItem: string;
-  upgradedItem: string;
-  upgrade: EquipmentUpgrade;
-  isUpgrade: boolean;
-}
-
-// Equipment upgrade tiers and progression
-export const EQUIPMENT_UPGRADE_TIERS = {
-  Common: {
-    maxLevel: 3,
-    statBonusPerLevel: 1,
-    upgradeChance: 0.8,
-    nextRarity: "Rare" as const
-  },
-  Rare: {
-    maxLevel: 5,
-    statBonusPerLevel: 2,
-    upgradeChance: 0.6,
-    nextRarity: "Epic" as const
-  },
-  Epic: {
-    maxLevel: 7,
-    statBonusPerLevel: 3,
-    upgradeChance: 0.4,
-    nextRarity: "Legendary" as const
-  },
-  Legendary: {
-    maxLevel: 10,
-    statBonusPerLevel: 5,
-    upgradeChance: 0.2,
-    nextRarity: "Legendary" as const
-  }
-};
-
-// Equipment base stats and upgrade paths - expanded
-export const EQUIPMENT_BASE_STATS: Record<string, {
-  baseStats: Record<string, number>;
-  upgradePaths: string[];
-  rarity: "Common" | "Rare" | "Epic" | "Legendary";
-  backendId: number;
-}> = {
-  // Original equipment
-  "Ancient Scroll": {
-    baseStats: { mindfulness: 1, focus: 1 },
-    upgradePaths: ["Enhanced Ancient Scroll", "Master Ancient Scroll", "Transcendent Ancient Scroll"],
-    rarity: "Common",
-    backendId: 1
-  },
-  "Lens of Gentle Seeing": {
-    baseStats: { mindfulness: 2, focus: 2 },
-    upgradePaths: ["Enhanced Lens of Gentle Seeing", "Master Lens of Gentle Seeing", "Transcendent Lens of Gentle Seeing"],
-    rarity: "Rare",
-    backendId: 2
-  },
-  "Notebook of the Wanderer": {
-    baseStats: { focus: 1, resilience: 1, organization: 1 },
-    upgradePaths: ["Enhanced Notebook of the Wanderer", "Master Notebook of the Wanderer", "Transcendent Notebook of the Wanderer"],
-    rarity: "Common",
-    backendId: 3
-  },
-  "Compass of Quiet Knowing": {
-    baseStats: { mindfulness: 1, resilience: 1, empathy: 1 },
-    upgradePaths: ["Enhanced Compass of Quiet Knowing", "Master Compass of Quiet Knowing", "Transcendent Compass of Quiet Knowing"],
-    rarity: "Rare",
-    backendId: 4
-  },
-  "Cloak of True Form": {
-    baseStats: { resilience: 2, empathy: 1 },
-    upgradePaths: ["Enhanced Cloak of True Form", "Master Cloak of True Form", "Transcendent Cloak of True Form"],
-    rarity: "Rare",
-    backendId: 5
-  },
-  "Wrap of Rooted Memory": {
-    baseStats: { resilience: 1, empathy: 3 },
-    upgradePaths: ["Enhanced Wrap of Rooted Memory", "Master Wrap of Rooted Memory", "Transcendent Wrap of Rooted Memory"],
-    rarity: "Epic",
-    backendId: 6
-  },
-  "Shield of Flexible Boundaries": {
-    baseStats: { confidence: 1, resilience: 2, organization: 1 },
-    upgradePaths: ["Enhanced Shield of Flexible Boundaries", "Master Shield of Flexible Boundaries", "Transcendent Shield of Flexible Boundaries"],
-    rarity: "Rare",
-    backendId: 7
-  },
-  "Mask of Discernment": {
-    baseStats: { mindfulness: 1, confidence: 1, resilience: 1 },
-    upgradePaths: ["Enhanced Mask of Discernment", "Master Mask of Discernment", "Transcendent Mask of Discernment"],
-    rarity: "Common",
-    backendId: 8
-  },
-  "Crown of Becoming": {
-    baseStats: { confidence: 3, resilience: 1 },
-    upgradePaths: ["Enhanced Crown of Becoming", "Master Crown of Becoming", "Transcendent Crown of Becoming"],
-    rarity: "Epic",
-    backendId: 9
-  },
-  "Helm of the Unmasked": {
-    baseStats: { confidence: 2, resilience: 2 },
-    upgradePaths: ["Enhanced Helm of the Unmasked", "Master Helm of the Unmasked", "Transcendent Helm of the Unmasked"],
-    rarity: "Rare",
-    backendId: 10
-  },
-  "Foundation of Inner Stone": {
-    baseStats: { mindfulness: 2, organization: 1 },
-    upgradePaths: ["Enhanced Foundation of Inner Stone", "Master Foundation of Inner Stone", "Transcendent Foundation of Inner Stone"],
-    rarity: "Rare",
-    backendId: 11
-  },
-  "Roots of Connection": {
-    baseStats: { resilience: 1, empathy: 3 },
-    upgradePaths: ["Enhanced Roots of Connection", "Master Roots of Connection", "Transcendent Roots of Connection"],
-    rarity: "Epic",
-    backendId: 12
-  },
-  "Stone of Self-Compassion": {
-    baseStats: { mindfulness: 1, confidence: 1, resilience: 2 },
-    upgradePaths: ["Enhanced Stone of Self-Compassion", "Master Stone of Self-Compassion", "Transcendent Stone of Self-Compassion"],
-    rarity: "Rare",
-    backendId: 13
-  },
-  
-  // Focus Items
-  "Scroll of Stillness": {
-    baseStats: { mindfulness: 2, focus: 1 },
-    upgradePaths: ["Enhanced Scroll of Stillness", "Master Scroll of Stillness", "Transcendent Scroll of Stillness"],
-    rarity: "Common",
-    backendId: 14
-  },
-  "Magic Wand": {
-    baseStats: { focus: 2, awareness: 1 },
-    upgradePaths: ["Enhanced Magic Wand", "Master Magic Wand", "Transcendent Magic Wand"],
-    rarity: "Rare",
-    backendId: 15
-  },
-  "Topaz Staff": {
-    baseStats: { focus: 3, resilience: 1 },
-    upgradePaths: ["Enhanced Topaz Staff", "Master Topaz Staff", "Transcendent Topaz Staff"],
-    rarity: "Rare",
-    backendId: 16
-  },
-  "Sapphire Staff": {
-    baseStats: { focus: 3, awareness: 2 },
-    upgradePaths: ["Enhanced Sapphire Staff", "Master Sapphire Staff", "Transcendent Sapphire Staff"],
-    rarity: "Epic",
-    backendId: 17
-  },
-  "Torch": {
-    baseStats: { awareness: 2, courage: 1 },
-    upgradePaths: ["Enhanced Torch", "Master Torch", "Transcendent Torch"],
-    rarity: "Common",
-    backendId: 18
-  },
-  "Meditation Focus": {
-    baseStats: { mindfulness: 2, balance: 1 },
-    upgradePaths: ["Enhanced Meditation Focus", "Master Meditation Focus", "Transcendent Meditation Focus"],
-    rarity: "Common",
-    backendId: 19
-  },
-  "Breathing Tool": {
-    baseStats: { balance: 2, resilience: 1 },
-    upgradePaths: ["Enhanced Breathing Tool", "Master Breathing Tool", "Transcendent Breathing Tool"],
-    rarity: "Common",
-    backendId: 20
-  },
-  "Journal": {
-    baseStats: { awareness: 1, connection: 1 },
-    upgradePaths: ["Enhanced Journal", "Master Journal", "Transcendent Journal"],
-    rarity: "Common",
-    backendId: 21
-  },
-  
-  // Comfort Layers
-  "Social Comfort": {
-    baseStats: { connection: 2, empathy: 1 },
-    upgradePaths: ["Enhanced Social Comfort", "Master Social Comfort", "Transcendent Social Comfort"],
-    rarity: "Common",
-    backendId: 22
-  },
-  "Hobby Protection": {
-    baseStats: { resilience: 2, balance: 1 },
-    upgradePaths: ["Enhanced Hobby Protection", "Master Hobby Protection", "Transcendent Hobby Protection"],
-    rarity: "Common",
-    backendId: 23
-  },
-  "Nature Comfort": {
-    baseStats: { balance: 2, connection: 1 },
-    upgradePaths: ["Enhanced Nature Comfort", "Master Nature Comfort", "Transcendent Nature Comfort"],
-    rarity: "Common",
-    backendId: 24
-  },
-  "Comfort Layer I": {
-    baseStats: { connection: 1, empathy: 1 },
-    upgradePaths: ["Enhanced Comfort Layer I", "Master Comfort Layer I", "Transcendent Comfort Layer I"],
-    rarity: "Common",
-    backendId: 25
-  },
-  "Comfort Layer II": {
-    baseStats: { connection: 2, empathy: 1 },
-    upgradePaths: ["Enhanced Comfort Layer II", "Master Comfort Layer II", "Transcendent Comfort Layer II"],
-    rarity: "Rare",
-    backendId: 26
-  },
-  "Comfort Layer III": {
-    baseStats: { connection: 3, empathy: 2 },
-    upgradePaths: ["Enhanced Comfort Layer III", "Master Comfort Layer III", "Transcendent Comfort Layer III"],
-    rarity: "Epic",
-    backendId: 27
-  },
-  
-  // Mind Shields
-  "Boundary Shield": {
-    baseStats: { confidence: 2, resilience: 1 },
-    upgradePaths: ["Enhanced Boundary Shield", "Master Boundary Shield", "Transcendent Boundary Shield"],
-    rarity: "Common",
-    backendId: 28
-  },
-  "Affirmation Shield": {
-    baseStats: { confidence: 2, awareness: 1 },
-    upgradePaths: ["Enhanced Affirmation Shield", "Master Affirmation Shield", "Transcendent Affirmation Shield"],
-    rarity: "Common",
-    backendId: 29
-  },
-  "Routine Shield": {
-    baseStats: { balance: 2, resilience: 1 },
-    upgradePaths: ["Enhanced Routine Shield", "Master Routine Shield", "Transcendent Routine Shield"],
-    rarity: "Common",
-    backendId: 30
-  },
-  "Wizard Hat": {
-    baseStats: { awareness: 2, focus: 1 },
-    upgradePaths: ["Enhanced Wizard Hat", "Master Wizard Hat", "Transcendent Wizard Hat"],
-    rarity: "Rare",
-    backendId: 31
-  },
-  "Basic Helm": {
-    baseStats: { resilience: 1, confidence: 1 },
-    upgradePaths: ["Enhanced Basic Helm", "Master Basic Helm", "Transcendent Basic Helm"],
-    rarity: "Common",
-    backendId: 32
-  },
-  "Iron Helmet": {
-    baseStats: { resilience: 2, confidence: 1 },
-    upgradePaths: ["Enhanced Iron Helmet", "Master Iron Helmet", "Transcendent Iron Helmet"],
-    rarity: "Rare",
-    backendId: 33
-  },
-  "Leather Helmet": {
-    baseStats: { resilience: 1, balance: 1 },
-    upgradePaths: ["Enhanced Leather Helmet", "Master Leather Helmet", "Transcendent Leather Helmet"],
-    rarity: "Common",
-    backendId: 34
-  },
-  
-  // Ground Stones
-  "Exercise Boots": {
-    baseStats: { balance: 2, resilience: 1 },
-    upgradePaths: ["Enhanced Exercise Boots", "Master Exercise Boots", "Transcendent Exercise Boots"],
-    rarity: "Common",
-    backendId: 35
-  },
-  "Sleep Boots": {
-    baseStats: { balance: 2, mindfulness: 1 },
-    upgradePaths: ["Enhanced Sleep Boots", "Master Sleep Boots", "Transcendent Sleep Boots"],
-    rarity: "Common",
-    backendId: 36
-  },
-  "Nutrition Boots": {
-    baseStats: { balance: 1, resilience: 2 },
-    upgradePaths: ["Enhanced Nutrition Boots", "Master Nutrition Boots", "Transcendent Nutrition Boots"],
-    rarity: "Common",
-    backendId: 37
-  },
-  "Iron Boots": {
-    baseStats: { resilience: 2, balance: 1 },
-    upgradePaths: ["Enhanced Iron Boots", "Master Iron Boots", "Transcendent Iron Boots"],
-    rarity: "Rare",
-    backendId: 38
-  },
-  "Leather Boots": {
-    baseStats: { balance: 1, resilience: 1 },
-    upgradePaths: ["Enhanced Leather Boots", "Master Leather Boots", "Transcendent Leather Boots"],
-    rarity: "Common",
-    backendId: 39
-  },
-  
-  // Combat Gear
-  "Iron Sword": {
-    baseStats: { courage: 2, resilience: 1 },
-    upgradePaths: ["Enhanced Iron Sword", "Master Iron Sword", "Transcendent Iron Sword"],
-    rarity: "Rare",
-    backendId: 40
-  },
-  "Golden Sword": {
-    baseStats: { courage: 3, confidence: 1 },
-    upgradePaths: ["Enhanced Golden Sword", "Master Golden Sword", "Transcendent Golden Sword"],
-    rarity: "Epic",
-    backendId: 41
-  },
-  "Iron Shield": {
-    baseStats: { resilience: 2, confidence: 1 },
-    upgradePaths: ["Enhanced Iron Shield", "Master Iron Shield", "Transcendent Iron Shield"],
-    rarity: "Rare",
-    backendId: 42
-  },
-  "Wooden Shield": {
-    baseStats: { resilience: 1, balance: 1 },
-    upgradePaths: ["Enhanced Wooden Shield", "Master Wooden Shield", "Transcendent Wooden Shield"],
-    rarity: "Common",
-    backendId: 43
-  }
-};
+// Types imported from ../types/rewards
 
 // Backend gear type mapping - expanded to include all equipment from assets
 export const BACKEND_GEAR_MAPPING: Record<string, number> = {
@@ -1723,23 +1266,6 @@ export const getBackendGearTypeId = (itemName: string): number | null => {
   return null;
 };
 
-// Get rarity colors for upgraded items
-export const getRarityColors = (rarity: "Common" | "Rare" | "Epic" | "Legendary"): string[] => {
-  const normalizedRarity = rarity.charAt(0).toUpperCase() + rarity.slice(1).toLowerCase();
-  
-  switch (normalizedRarity) {
-    case "Common":
-      return ["#9d9d9d", "#c0c0c0"];
-    case "Rare":
-      return ["#0070dd", "#4fc3f7"];
-    case "Epic":
-      return ["#a335ee", "#e1bee7"];
-    case "Legendary":
-      return ["#ff8000", "#ffd54f"];
-    default:
-      return ["#9d9d9d", "#c0c0c0"];
-  }
-};
 
 // Create upgrade notification
 export const createUpgradeNotification = (upgrade: EquipmentUpgrade): {
@@ -1775,15 +1301,7 @@ export const createUpgradeNotification = (upgrade: EquipmentUpgrade): {
 import { PersonalityQuests } from '../types/personality';
 
 // Interface for quest progress tracking
-export interface QuestProgress {
-  questId: string;
-  currentProgress: number;
-  totalRequired: number;
-  isCompleted: boolean;
-  questTitle: string;
-  questDescription: string;
-  questReward: string;
-}
+// Type imported from ../types/rewards
 
 // Get quest information by ID
 export const getQuestInfo = (questId: string) => {

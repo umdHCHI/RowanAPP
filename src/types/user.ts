@@ -38,7 +38,7 @@ export interface UserProfile {
     email: string;
     first_name: string;
     last_name: string;
-    
+    completion_type?: string | null;
     // Character data is now directly on UserProfile (not nested under profile.character)
     // This includes level, experience, wellness_stats, equipped_gear, etc.
     
@@ -49,15 +49,21 @@ export interface UserProfile {
         email: string;
         first_name: string;
         last_name: string;
-        profile?: {
-            research_group?: any;
+        profile?: {//this is a dupe 
+            research_group?: {                
+                id: number,
+                name: string | null,
+                condition: string,
+                description: string,
+                created_at: string
+            }
             has_completed_onboarding?: boolean;
             completion_type?: string | null;
             completion_data_id?: number | null;
             created_at?: string;
             updated_at?: string;
-        };
-        personality_profile?: any;
+        }
+        
         character?: any;
         survey?: any;
     };
@@ -323,7 +329,7 @@ export interface GameData {
 
 
 
-// Character types matching backend Character model
+
 export interface Character {
     id: number;
     user: string | number; // Can be username or user ID

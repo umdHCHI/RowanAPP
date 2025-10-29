@@ -3,27 +3,9 @@
  * This module handles different reward types, multipliers, and bonuses based on user personality traits
  */
 
-// ===== PERSONALITY TRAIT CONFIGURATIONS =====
+import { PersonalityRewardConfig } from '../types/personality';
 
-interface PersonalityRewardConfig {
-  // Base reward multiplier for this personality type
-  baseMultiplier: number;
-  
-  // Preferred stat gains (which stats get bonus for this personality)
-  preferredStats: string[];
-  
-  // Preferred coping tools for this personality type
-  preferredTools: string[];
-  
-  // Quest bonus multiplier for quests related to this personality
-  questBonus: number;
-  
-  // Story completion messages
-  completionMessages: {
-    regular: string;
-    intro: string;
-  };
-}
+// ===== PERSONALITY TRAIT CONFIGURATIONS =====
 
 const PERSONALITY_REWARD_CONFIGS: Record<string, PersonalityRewardConfig> = {
   // Openness to Experience - Creative, curious, intellectually adventurous
@@ -218,27 +200,6 @@ export const applyPersonalityQuestBonuses = (
   return adjustedProgress;
 };
 
-/**
- * Check if a coping tool is preferred for a specific personality type
- * @param toolName - Name of the coping tool
- * @param personalityType - User's primary personality trait
- * @returns True if the tool is preferred for this personality type
- */
-export const isToolPreferredForPersonality = (
-  toolName: string,
-  personalityType: string
-): boolean => {
-  if (!personalityType || !toolName) return false;
-  
-  const config = PERSONALITY_REWARD_CONFIGS[personalityType.toLowerCase()];
-  if (!config) return false;
-  
-  // Check if tool name matches any preferred tools (case-insensitive, partial match)
-  return config.preferredTools.some(preferredTool => 
-    toolName.toLowerCase().includes(preferredTool.toLowerCase()) ||
-    preferredTool.toLowerCase().includes(toolName.toLowerCase())
-  );
-};
 
 /**
  * Get personality-specific story completion message
@@ -266,61 +227,12 @@ export const getPersonalityCompletionMessage = (
   return isIntroStory ? config.completionMessages.intro : config.completionMessages.regular;
 };
 
-/**
- * Get preferred coping tools for a personality type
- * @param personalityType - User's primary personality trait
- * @returns Array of preferred tool names
- */
-export const getPreferredToolsForPersonality = (personalityType: string): string[] => {
-  if (!personalityType) return [];
-  
-  const config = PERSONALITY_REWARD_CONFIGS[personalityType.toLowerCase()];
-  return config ? config.preferredTools : [];
-};
 
-/**
- * Get preferred wellness stats for a personality type
- * @param personalityType - User's primary personality trait
- * @returns Array of preferred stat names
- */
-export const getPreferredStatsForPersonality = (personalityType: string): string[] => {
-  if (!personalityType) return [];
-  
-  const config = PERSONALITY_REWARD_CONFIGS[personalityType.toLowerCase()];
-  return config ? config.preferredStats : [];
-};
 
-/**
- * Calculate total personality bonus for a reward
- * @param baseReward - Base reward amount
- * @param personalityType - User's primary personality trait
- * @param rewardType - Type of reward ('experience', 'stats', 'quest')
- * @returns Total bonus amount
- */
-export const calculatePersonalityBonus = (
-  baseReward: number,
-  personalityType: string,
-  rewardType: 'experience' | 'stats' | 'quest' = 'experience'
-): number => {
-  if (!personalityType) return 0;
-  
-  const config = PERSONALITY_REWARD_CONFIGS[personalityType.toLowerCase()];
-  if (!config) return 0;
-  
-  let multiplier = config.baseMultiplier - 1; // Convert to bonus (e.g., 1.2 becomes 0.2)
-  
-  if (rewardType === 'quest') {
-    multiplier = config.questBonus - 1;
-  }
-  
-  return Math.floor(baseReward * multiplier);
-};
 
 // ===== EXPORT PERSONALITY CONFIGS FOR EXTERNAL USE =====
 export { PERSONALITY_REWARD_CONFIGS };
 
 // Re-export personality filter utilities
-  export {
-    filterByPersonality, matchesUserPersonality, normalizePersonalitySlug
-  } from './personalityFilter';
+export { filterStoriesByPersonality } from './personalityFilter';
 
