@@ -68,102 +68,30 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
       setStoryState(null);
 
       try {
-        if (chapterId) {
-          const chapterPassages = await retryApiCall(
-            () => apiService.getChapterPassages(storyId, chapterId),
-            3,
-            Platform.OS === 'web' ? 500 : 1000
-          );
-          
-          if (!chapterPassages || chapterPassages.length === 0) {
-            throw new Error(`No passages found in chapter ${chapterId}`);
-          }
-          
-          const firstPassage = chapterPassages.sort((a: any, b: any) => a.order - b.order)[0];
-          
-          const chapters = await retryApiCall(
-            () => apiService.getChapters(storyId),
-            3,
-            Platform.OS === 'web' ? 500 : 1000
-          );
-          
-          const currentChapter = chapters.find((ch: any) => ch.id === chapterId);
-          
-          if (!currentChapter) {
-            throw new Error(`Chapter ${chapterId} not found in story ${storyId}`);
-          }
-          
-          const startPassage = {
-            story: { id: storyId, title: firstPassage.story_title },
-            chapter_title: currentChapter.title,
-            passage: firstPassage,
-            progress: { passages_visited: [firstPassage.passage_id] }
-          };
-          
-          const initialState = {
-             story: { id: storyId, title: startPassage.story?.title || startPassage.passage.story_title },
-             chapter_title: currentChapter.title,
-             chapter_number: currentChapter.chapter_number,
-             passage: startPassage.passage,
-             progress: { passages_visited: [startPassage.passage.passage_id] }
-          };
-          setStoryState(initialState);
+        // Always use restartStory to get the proper starting passage ID
+        const restartResponse = await retryApiCall(
+          () => apiService.restartStory(storyId, chapterId),
+          3,
+          Platform.OS === 'web' ? 500 : 1000
+        );
 
-        } else {
-          const chapters = await retryApiCall(
-            () => apiService.getChapters(storyId),
-            3,
-            Platform.OS === 'web' ? 500 : 1000
-          );
-          
-          if (chapters && chapters.length > 0) {
-            const firstChapter = chapters.find((ch: any) => ch.is_starting_chapter) || chapters[0];
-            
-            const chapterPassages = await retryApiCall(
-              () => apiService.getChapterPassages(storyId, firstChapter.id),
-              3,
-              Platform.OS === 'web' ? 500 : 1000
-            );
-            
-            if (!chapterPassages || chapterPassages.length === 0) {
-              throw new Error(`No passages found in first chapter ${firstChapter.id}`);
-            }
-            
-            const firstPassage = chapterPassages.sort((a: any, b: any) => a.order - b.order)[0];
-            
-            const initialState = {
-              story: { id: storyId, title: firstPassage.story_title },
-              chapter_title: firstChapter.title,
-              chapter_number: firstChapter.chapter_number,
-              passage: firstPassage,
-              progress: { passages_visited: [firstPassage.passage_id] }
-            };
-            setStoryState(initialState);
-            
-          } else {
-            const restartResponse = await retryApiCall(
-              () => apiService.restartStory(storyId),
-              3,
-              Platform.OS === 'web' ? 500 : 1000
-            );
-            
-            const startingPassageId = restartResponse.starting_passage;
-            if (!startingPassageId) {
-              throw new Error("Story restart did not provide a starting passage ID.");
-            }
-            
-            const initialState = await retryApiCall(
-              () => apiService.getPassage(Number(storyId), startingPassageId),
-              3,
-              Platform.OS === 'web' ? 500 : 1000
-            );
-            
-            if (!initialState) {
-              throw new Error("Failed to fetch the initial passage.");
-            }
-            setStoryState(initialState);
-          }
+        const startingPassageId = restartResponse.starting_passage;
+        if (!startingPassageId) {
+          throw new Error("Story restart did not provide a starting passage ID.");
         }
+
+        // Fetch the starting passage state
+        const initialState = await retryApiCall(
+          () => apiService.getPassage(Number(storyId), startingPassageId),
+          3,
+          Platform.OS === 'web' ? 500 : 1000
+        );
+
+        if (!initialState) {
+          throw new Error("Failed to fetch the initial passage.");
+        }
+
+        setStoryState(initialState);
 
       } catch (err: any) {
         let errorMessage = 'Failed to load story.';

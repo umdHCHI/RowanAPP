@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   ScrollView,
   Text,
@@ -405,11 +406,36 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 
     return (
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingVertical: 20 }}>
-        <TouchableOpacity 
-          activeOpacity={canTap ? 0.7 : 1} 
+        <TouchableOpacity
+          activeOpacity={canTap ? 0.7 : 1}
           onPress={handlePassageTap}
           style={{ padding: 20 }}
         >
+          {(currentPassage as any).speaker_image && (currentPassage as any).speaker_image !== 'undefined' && (
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <Image
+                source={{ uri: `${apiService.getBaseURL().replace('/api/', '')}${(currentPassage as any).speaker_image}` }}
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  borderWidth: 2,
+                  borderColor: '#4ee6e6',
+                  backgroundColor: '#1a1a1a'
+                }}
+                resizeMode="cover"
+              />
+              {(currentPassage as any).speaker_name && (
+                <Text style={{
+                  color: '#4ee6e6',
+                  marginTop: 8,
+                  fontWeight: 'bold'
+                }}>
+                  {(currentPassage as any).speaker_name}
+                </Text>
+              )}
+            </View>
+          )}
           <Text style={[globalStyles.StoryPassageText, {
             color: '#ffe066',
             fontSize: 16,
@@ -570,6 +596,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           icon={rewardNotification.icon}
           iconImage={rewardNotification.iconImage}
           statName={rewardNotification.statName}
+          personalityTrait={primaryTrait}
           onHide={hideRewardNotification}
         />
     </Modal>

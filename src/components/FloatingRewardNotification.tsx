@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, StyleSheet, Text, View } from 'react-native';
+import { PersonalityWellnessAttributes } from '../imports';
 
 interface FloatingRewardNotificationProps {
   visible: boolean;
@@ -8,6 +9,7 @@ interface FloatingRewardNotificationProps {
   icon?: string;
   iconImage?: any; // For PNG image assets
   statName?: string;
+  personalityTrait?: string; // For personality-specific colors
   onHide: () => void;
 }
 
@@ -18,6 +20,7 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
   icon: customIcon,
   iconImage,
   statName,
+  personalityTrait,
   onHide
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -82,9 +85,50 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
     });
   };
 
+  // Helper function to adjust color brightness for border
+  const adjustColorBrightness = (color: string, percent: number): string => {
+    const num = parseInt(color.replace("#", ""), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, (num >> 8 & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+  };
+
   const getTypeStyles = () => {
     // If it's a stat type and we have a statName, use stat-specific colors
     if (type === 'stat' && statName) {
+      // For personality users, try to get personality-specific colors
+      if (personalityTrait) {
+        const normalizedStat = statName.toLowerCase();
+        const wellnessProperty = ['awareness', 'resilience', 'connection', 'balance'].includes(normalizedStat)
+          ? normalizedStat
+          : normalizedStat === 'exploration' ? 'awareness'
+          : normalizedStat === 'courage' ? 'resilience'
+          : normalizedStat === 'fear' ? 'balance'
+          : normalizedStat;
+
+        const personalityKey = personalityTrait.charAt(0).toUpperCase() + personalityTrait.slice(1).toLowerCase();
+        const personalityAttributes = PersonalityWellnessAttributes[personalityKey as keyof typeof PersonalityWellnessAttributes];
+
+        if (personalityAttributes) {
+          const attribute = personalityAttributes.attributes.find(
+            attr => attr.wellnessProperty === wellnessProperty
+          );
+          if (attribute) {
+            // Use personality-specific color with a darker border
+            const color = attribute.color;
+            const darkerBorder = adjustColorBrightness(color, -30);
+            return {
+              backgroundColor: color,
+              borderColor: darkerBorder,
+              icon: customIcon || '✨'
+            };
+          }
+        }
+      }
+
+      // Fallback to default colors for character users or if personality color not found
       const statColors: Record<string, { backgroundColor: string; borderColor: string }> = {
         'awareness': { backgroundColor: '#4A90E2', borderColor: '#357ABD' },
         'exploration': { backgroundColor: '#4A90E2', borderColor: '#357ABD' },
@@ -94,7 +138,7 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
         'balance': { backgroundColor: '#F39C12', borderColor: '#D68910' },
         'fear': { backgroundColor: '#F39C12', borderColor: '#D68910' }
       };
-      
+
       const statColor = statColors[statName.toLowerCase()];
       if (statColor) {
         return {

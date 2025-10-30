@@ -71,7 +71,8 @@ export default ({ config }) => {
       supportsTablet: true,
       bundleIdentifier: "com.roesorcerer.thearchivethesisproject",
       infoPlist: {
-        ITSAppUsesNonExemptEncryption: false
+        ITSAppUsesNonExemptEncryption: false,
+        NSMicrophoneUsageDescription: "This app needs access to your microphone to record voice journal entries."
       }
     },
     android: {

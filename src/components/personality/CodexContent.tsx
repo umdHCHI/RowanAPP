@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, AccessibilityInfo } from 'react-native';
 import { PersonalityConfigs } from '../../constants/personality';
 import { PersonalityKey } from '../../imports';
 import { apiService } from '../../services/apiService';
 import { CodexEntry } from '../../types/journal';
+import RuneBackground from '../../ui/RuneBackground';
 
 interface CodexContentProps {
   onClose: () => void;
@@ -28,9 +29,21 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
   const [entries, setEntries] = useState<CodexEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<CodexEntry | null>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  // Get personality config for theming
+  const config = PersonalityConfigs[primaryTrait];
+  const palette = {
+    primary: config?.theme?.primary || '#4ee6e6',
+    secondary: config?.theme?.secondary || '#ccc',
+    accent: config?.theme?.accent || '#ffd43b',
+  };
 
   useEffect(() => {
     loadUserEntries();
+    AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
+      setReducedMotion(enabled);
+    });
   }, []);
 
   // Expose refresh method through ref
@@ -44,7 +57,6 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
       const userEntries = await apiService.getUserCodexEntries();
       setEntries(userEntries);
     } catch (error) {
-      console.error('Failed to load codex entries:', error);
       Alert.alert('Error', 'Failed to load your codex entries');
     } finally {
       setLoading(false);
@@ -56,9 +68,7 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric'
     });
   };
 
@@ -71,60 +81,42 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Beginner': return '#4ee6e6';
-      case 'Intermediate': return '#d4af37';
-      case 'Advanced': return '#ff6b6b';
-      default: return '#ccc';
-    }
-  };
-
-  const getSkillCategoryColor = (category: string) => {
-    const colors = ['#4ee6e6', '#d4af37', '#ff6b6b', '#51cf66', '#ffd43b', '#ae8fff'];
-    let hash = 0;
-    for (let i = 0; i < category.length; i++) {
-      hash = category.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  };
-
   if (loading) {
     return (
-      <View style={{ flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#4ee6e6', fontSize: 18 }}>Loading your codex entries...</Text>
+      <View style={styles.loadingContainer}>
+        <RuneBackground palette={palette} reducedMotion={reducedMotion} />
+        <Text style={styles.loadingIcon}>📖</Text>
+        <Text style={[styles.loadingText, { color: `${palette.primary}90` }]}>Loading your codex...</Text>
       </View>
     );
   }
 
   if (entries.length === 0) {
     return (
-      <View style={{ flex: 1, padding: 20 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>📖 The Codex</Text>
-          <TouchableOpacity onPress={onClose} style={{ padding: 8 }}>
-            <Text style={{ color: '#4ee6e6', fontSize: 18 }}>✕</Text>
-          </TouchableOpacity>
+      <View style={styles.container}>
+        <RuneBackground palette={palette} reducedMotion={reducedMotion} />
+
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: '#d0d8e0' }]}>The Codex</Text>
+          <View style={[styles.entryCountBadge, { backgroundColor: `${palette.primary}20`, borderColor: `${palette.primary}60` }]}>
+            <Text style={[styles.entryCount, { color: `${palette.primary}` }]}>0</Text>
+          </View>
         </View>
-        
-        <View style={{ flex: 1, backgroundColor: '#23242b', borderRadius: 12, padding: 20, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: '#4ee6e6', fontSize: 48, marginBottom: 16 }}>📚</Text>
-          <Text style={{ color: '#fff', fontSize: 20, marginBottom: 12, textAlign: 'center' }}>Your Codex is Empty</Text>
-          <Text style={{ color: '#ccc', fontSize: 16, textAlign: 'center', lineHeight: 24 }}>
-            You haven't completed any journal entries yet.{'\n'}
-            Navigate back to the main screen to create your first entry!
+
+        {/* Empty State */}
+        <View style={[styles.emptyCard, { borderColor: `${palette.primary}30` }]}>
+          <Text style={styles.emptyIcon}>📚</Text>
+          <Text style={styles.emptyTitle}>Your Codex Awaits</Text>
+          <Text style={styles.emptyText}>
+            The pages are blank, waiting for your first inscription.{'\n'}
+            Begin recording your journey through The Archive.
           </Text>
-          <TouchableOpacity 
-            style={{ 
-              marginTop: 24, 
-              paddingVertical: 12, 
-              paddingHorizontal: 24, 
-              backgroundColor: '#4ee6e6', 
-              borderRadius: 20 
-            }}
+          <TouchableOpacity
+            style={[styles.createButton, { backgroundColor: `${palette.primary}`, borderColor: `${palette.primary}` }]}
             onPress={onCreateEntry}
           >
-            <Text style={{ color: '#0a0b0f', fontSize: 16, fontWeight: 'bold' }}>Create Your First Entry</Text>
+            <Text style={styles.createButtonText}>Inscribe First Entry</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -132,140 +124,364 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
   }
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>📖 The Codex</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity 
-            style={{ 
-              marginRight: 12,
-              paddingVertical: 8,
-              paddingHorizontal: 16,
-              backgroundColor: '#4ee6e6',
-              borderRadius: 16
-            }}
-            onPress={onCreateEntry}
-          >
-            <Text style={{ color: '#0a0b0f', fontSize: 14, fontWeight: '600' }}>New Entry</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose} style={{ padding: 8 }}>
-            <Text style={{ color: '#4ee6e6', fontSize: 18 }}>✕</Text>
-          </TouchableOpacity>
+    <View style={styles.container}>
+      <RuneBackground palette={palette} reducedMotion={reducedMotion} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: '#d0d8e0' }]}>The Codex</Text>
+        <View style={[styles.entryCountBadge, { backgroundColor: `${palette.primary}20`, borderColor: `${palette.primary}60` }]}>
+          <Text style={[styles.entryCount, { color: `${palette.primary}` }]}>
+            {entries.length}
+          </Text>
         </View>
       </View>
-      
-      <View style={{ flex: 1, backgroundColor: '#23242b', borderRadius: 12, padding: 20 }}>
-        <Text style={{ color: '#fff', fontSize: 18, marginBottom: 16 }}>Your Completed Entries</Text>
-        <Text style={{ color: '#ccc', fontSize: 14, lineHeight: 20, marginBottom: 20 }}>
-          Explore your {PersonalityConfigs[primaryTrait]?.archiveSection || 'Archive'} journey through {entries.length} completed quests.
-        </Text>
-        
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-          {entries.map((entry) => (
+
+      {/* Subtitle */}
+      <Text style={styles.subtitle}>
+        Inscribed Chronicles
+      </Text>
+
+      {/* New Entry Button */}
+      <TouchableOpacity
+        style={[styles.newEntryButton, {
+          backgroundColor: `${palette.primary}15`,
+          borderColor: `${palette.primary}60`
+        }]}
+        onPress={onCreateEntry}
+      >
+        <Ionicons name="add-circle-outline" size={18} color={`${palette.primary}`} />
+        <Text style={[styles.newEntryText, { color: `${palette.primary}` }]}>New Entry</Text>
+      </TouchableOpacity>
+
+      {/* Entries List */}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {entries.map((entry, index) => {
+          const isExpanded = selectedEntry?.id === entry.id;
+
+          return (
             <TouchableOpacity
               key={entry.id}
-              style={{
-                backgroundColor: '#2a2d35',
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 12,
-                borderLeftWidth: 4,
-                borderLeftColor: getSkillCategoryColor(entry.skill_category || ''),
-              }}
-              onPress={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}
+              style={[
+                styles.entryCard,
+                {
+                  backgroundColor: '#0a0e14',
+                  borderColor: `${palette.primary}40`,
+                  marginBottom: index < entries.length - 1 ? 12 : 0,
+                }
+              ]}
+              onPress={() => setSelectedEntry(isExpanded ? null : entry)}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  <Text style={{ fontSize: 20, marginRight: 8 }}>{getEntryTypeIcon(entry.entry_type)}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
-                      {entry.prompt_text || 'Journal Entry'}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ color: '#4ee6e6', fontSize: 12, fontWeight: '600', marginRight: 8 }}>
-                        {entry.skill_category}
+              {/* Entry Header with Corner Ornament */}
+              <View style={styles.entryHeader}>
+                <View style={[styles.cornerOrnament, { borderColor: `${palette.primary}60` }]} />
+
+                <View style={styles.entryHeaderContent}>
+                  <View style={styles.entryTitleRow}>
+                    <View style={[styles.entryMarker, {
+                      backgroundColor: `${palette.primary}20`,
+                      borderColor: `${palette.primary}60`
+                    }]}>
+                      <Text style={styles.entryTypeIcon}>{getEntryTypeIcon(entry.entry_type)}</Text>
+                    </View>
+
+                    <View style={styles.entryTitleSection}>
+                      <Text style={styles.entryTitle} numberOfLines={isExpanded ? undefined : 2}>
+                        {entry.prompt_text || 'Journal Entry'}
                       </Text>
-                      <View style={{
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        borderRadius: 4,
-                        backgroundColor: getDifficultyColor(entry.difficulty || ''),
-                      }}>
-                        <Text style={{
-                          color: '#0a0b0f',
-                          fontSize: 10,
-                          fontWeight: '600'
-                        }}>
-                          {entry.difficulty}
+                      <View style={styles.entryMetaRow}>
+                        <Text style={[styles.entryCategory, { color: `${palette.accent}90` }]}>
+                          {entry.skill_category}
                         </Text>
+                        {entry.difficulty && (
+                          <View style={[styles.difficultyBadge, {
+                            backgroundColor: `${palette.secondary}20`,
+                            borderColor: `${palette.secondary}60`
+                          }]}>
+                            <Text style={styles.difficultyText}>{entry.difficulty}</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
+
+                    <Ionicons
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color={`${palette.primary}80`}
+                      style={styles.expandIcon}
+                    />
                   </View>
                 </View>
-                <TouchableOpacity onPress={() => setSelectedEntry(selectedEntry?.id === entry.id ? null : entry)}>
-                  <Ionicons 
-                    name={selectedEntry?.id === entry.id ? 'chevron-up' : 'chevron-down'} 
-                    size={20} 
-                    color="#4ee6e6" 
-                  />
-                </TouchableOpacity>
               </View>
-              
-              {selectedEntry?.id === entry.id && (
-                <View style={{ 
-                  borderTopWidth: 1, 
-                  borderTopColor: '#3a3d45', 
-                  paddingTop: 12, 
-                  marginTop: 8 
-                }}>
-                  <Text style={{ color: '#ccc', fontSize: 14, lineHeight: 20, marginBottom: 12 }}>
+
+              {/* Expanded Content */}
+              {isExpanded && (
+                <View style={[styles.expandedContent, { borderTopColor: `${palette.primary}20` }]}>
+                  <Text style={styles.entryContent}>
                     {entry.content}
                   </Text>
-                  
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ color: '#888', fontSize: 12, marginRight: 16 }}>
-                        📅 {formatDate(entry.created_at || '')}
-                      </Text>
-                      {entry.word_count && (
-                        <Text style={{ color: '#888', fontSize: 12, marginRight: 16 }}>
-                          📊 {entry.word_count} words
-                        </Text>
-                      )}
-                      {entry.duration_seconds && (
-                        <Text style={{ color: '#888', fontSize: 12 }}>
-                          ⏱️ {Math.round(entry.duration_seconds / 60)}m
-                        </Text>
-                      )}
+
+                  {/* Entry Stats */}
+                  <View style={styles.entryStats}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statIcon}>📅</Text>
+                      <Text style={styles.statText}>{formatDate(entry.created_at || '')}</Text>
                     </View>
-                    
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ color: '#888', fontSize: 12, marginRight: 8 }}>
-                        Updated: {formatDate(entry.updated_at || '')}
-                      </Text>
-                    </View>
+                    {entry.word_count && (
+                      <View style={styles.statItem}>
+                        <Text style={styles.statIcon}>📊</Text>
+                        <Text style={styles.statText}>{entry.word_count} words</Text>
+                      </View>
+                    )}
+                    {entry.duration_seconds && (
+                      <View style={styles.statItem}>
+                        <Text style={styles.statIcon}>⏱️</Text>
+                        <Text style={styles.statText}>{Math.round(entry.duration_seconds / 60)}m</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               )}
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-        
-        <View style={{ 
-          marginTop: 16, 
-          paddingTop: 16, 
-          borderTopWidth: 1, 
-          borderTopColor: '#3a3d45' 
-        }}>
-          <Text style={{ color: '#888', fontSize: 12, textAlign: 'center', fontStyle: 'italic' }}>
-            {entries.length} entry{entries.length !== 1 ? 's' : ''} completed • 
-            Tap any entry to expand and read your thoughts
-          </Text>
-          <Text style={{ color: '#666', fontSize: 11, textAlign: 'center', marginTop: 8 }}>
-            💡 To create new entries, go back to the main screen
-          </Text>
-        </View>
+          );
+        })}
+      </ScrollView>
+
+      {/* Footer */}
+      <View style={[styles.footer, { borderTopColor: `${palette.primary}20` }]}>
+        <Text style={styles.footerText}>
+          {entries.length} {entries.length === 1 ? 'entry' : 'entries'} preserved
+        </Text>
       </View>
     </View>
   );
+});
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    position: 'relative',
+  },
+  loadingContainer: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  loadingIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  entryCountBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  entryCount: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#8fa3b8',
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  newEntryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  newEntryText: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  entryCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    position: 'relative',
+  },
+  entryHeader: {
+    position: 'relative',
+  },
+  cornerOrnament: {
+    position: 'absolute',
+    top: -12,
+    left: -12,
+    width: 20,
+    height: 20,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: 8,
+  },
+  entryHeaderContent: {
+    paddingLeft: 4,
+  },
+  entryTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  entryMarker: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  entryTypeIcon: {
+    fontSize: 16,
+  },
+  entryTitleSection: {
+    flex: 1,
+  },
+  entryTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+    color: '#c8d0d8',
+    marginBottom: 4,
+  },
+  entryMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  entryCategory: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  difficultyBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  difficultyText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#9aa8b8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  expandIcon: {
+    marginLeft: 4,
+    marginTop: 6,
+  },
+  expandedContent: {
+    borderTopWidth: 1,
+    paddingTop: 12,
+    marginTop: 12,
+  },
+  entryContent: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#9aa8b8',
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  entryStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statIcon: {
+    fontSize: 12,
+  },
+  statText: {
+    fontSize: 11,
+    color: '#6a7a8a',
+    fontWeight: '600',
+  },
+  footer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  footerText: {
+    fontSize: 11,
+    color: '#6a7a8a',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  emptyCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    borderStyle: 'dashed',
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#050810',
+  },
+  emptyIcon: {
+    fontSize: 56,
+    marginBottom: 16,
+    opacity: 0.4,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    color: '#d0d8e0',
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 13,
+    textAlign: 'center',
+    color: '#7a8a9a',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  createButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  createButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
 });

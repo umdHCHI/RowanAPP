@@ -142,6 +142,9 @@ export type PersonalityKey = "Openness" | "Conscientiousness" | "Extraversion" |
 // ===== Personality Constants =====
 export { PersonalityConfigs } from './constants/personality';
 
+// ===== UI Assets for Personality Wellness Attributes =====
+import { sectionIcons } from './assets/ui';
+
 export const PERSONALITY_TABS: Record<PersonalityKey, Array<{ key: string; label: string; icon: string }>> = {
   Openness: [
     { key: "entrance", label: "Dreamscape", icon: "🌌" },
@@ -238,46 +241,49 @@ export const PERSONALITY_BUILDS: Record<PersonalityKey, {
 export const PersonalityWellnessAttributes = {
   Openness: {
     attributes: [
-      { icon: "🎯", label: "Focus", value: 5, color: "#9d4edd", description: "Channeling creative energy into purposeful action", wellnessProperty: "awareness" },
-      { icon: "🌱", label: "Grounding", value: 5, color: "#06ffa5", description: "Staying centered while exploring new possibilities", wellnessProperty: "resilience" },
-      { icon: "🧩", label: "Integration", value: 5, color: "#4cc9f0", description: "Connecting diverse ideas into meaningful wholes", wellnessProperty: "connection" },
-      { icon: "⚡", label: "Clarity", value: 5, color: "#f72585", description: "Seeing through complexity to find simple truths", wellnessProperty: "balance" }
+      { icon: sectionIcons.lantern, label: "Lantern of Focus", value: 5, color: "#9d4edd", description: "Turning wild ideas into a single beam that guides your steps", wellnessProperty: "awareness" },
+      { icon: sectionIcons.tether, label: "Tether of Grounding", value: 5, color: "#06ffa5", description: "Keeping a steady line to the present while you roam the stacks", wellnessProperty: "resilience" },
+      { icon: sectionIcons.knot, label: "Weaver's Knot", value: 5, color: "#4cc9f0", description: "Binding scattered notes into a page that holds together", wellnessProperty: "connection" },
+      { icon: sectionIcons.glass, label: "Glass of Clarity", value: 5, color: "#f72585", description: "Polishing the lens so the simple shape beneath the swirl appears", wellnessProperty: "balance" }
     ]
   },
+
   Conscientiousness: {
     attributes: [
-      { icon: "🌊", label: "Flexibility", value: 5, color: "#2a9d8f", description: "Adapting plans while maintaining core values", wellnessProperty: "awareness" },
-      { icon: "💝", label: "Self-Compassion", value: 5, color: "#f4a261", description: "Being kind to yourself when standards aren't met", wellnessProperty: "resilience" },
-      { icon: "⚖️", label: "Balance", value: 5, color: "#e76f51", description: "Harmonizing work, rest, and personal needs", wellnessProperty: "balance" },
-      { icon: "🔥", label: "Sustainable Drive", value: 5, color: "#264653", description: "Maintaining motivation without burning out", wellnessProperty: "connection" }
+      { icon: "🌊", label: "Flexible Spine", value: 5, color: "#2a9d8f", description: "Letting the book bend without breaking its binding", wellnessProperty: "awareness" },
+      { icon: "💝", label: "Kind Quill", value: 5, color: "#f4a261", description: "Writing a softer margin note when plans go astray", wellnessProperty: "resilience" },
+      { icon: "⚖️", label: "Balanced Scales", value: 5, color: "#e76f51", description: "Setting work, rest, and need on the same shelf", wellnessProperty: "balance" },
+      { icon: "🔥", label: "Steady Lamp", value: 5, color: "#264653", description: "Keeping a clean flame that lights the task without burning the page", wellnessProperty: "connection" }
     ]
   },
+
   Extraversion: {
     attributes: [
-      { icon: "🛡️", label: "Boundaries", value: 5, color: "#f72585", description: "Protecting your energy while staying connected", wellnessProperty: "awareness" },
-      { icon: "🎭", label: "Authenticity", value: 5, color: "#ffd60a", description: "Being true to yourself in social situations", wellnessProperty: "resilience" },
-      { icon: "🔋", label: "Energy Management", value: 5, color: "#4cc9f0", description: "Balancing social engagement with personal recharge", wellnessProperty: "balance" },
-      { icon: "🌟", label: "Confident Expression", value: 5, color: "#f77f00", description: "Sharing your thoughts and feelings with confidence", wellnessProperty: "connection" }
+      { icon: "🛡️", label: "Ward of Boundaries", value: 5, color: "#f72585", description: "Marking the threshold so your light is shared, not spent", wellnessProperty: "awareness" },
+      { icon: "🎭", label: "True Face", value: 5, color: "#ffd60a", description: "Letting the mask drop so your voice sounds like you", wellnessProperty: "resilience" },
+      { icon: "🔋", label: "Reserve Cellar", value: 5, color: "#4cc9f0", description: "Storing brightness for quiet rooms and long halls", wellnessProperty: "balance" },
+      { icon: "🌟", label: "Clear Signal", value: 5, color: "#f77f00", description: "Sending a call that finds the right listeners", wellnessProperty: "connection" }
     ]
   },
+
   Agreeableness: {
     attributes: [
-      { icon: "🦁", label: "Assertiveness", value: 5, color: "#06ffa5", description: "Standing up for yourself with kindness", wellnessProperty: "awareness" },
-      { icon: "🚪", label: "Healthy Boundaries", value: 5, color: "#ffffb3", description: "Saying no while maintaining relationships", wellnessProperty: "resilience" },
-      { icon: "💪", label: "Self-Advocacy", value: 5, color: "#4cc9f0", description: "Speaking up for your needs and values", wellnessProperty: "balance" },
-      { icon: "🌸", label: "Conflict Resolution", value: 5, color: "#f72585", description: "Navigating disagreements with grace and wisdom", wellnessProperty: "connection" }
+      { icon: "🦁", label: "Lion’s Poise", value: 5, color: "#06ffa5", description: "Standing tall without raising the claws", wellnessProperty: "awareness" },
+      { icon: "🚪", label: "Threshold Craft", value: 5, color: "#ffffb3", description: "Shaping doors that open kindly and close cleanly", wellnessProperty: "resilience" },
+      { icon: "💪", label: "Advocate’s Voice", value: 5, color: "#4cc9f0", description: "Speaking needs in words that stay heard", wellnessProperty: "balance" },
+      { icon: "🌸", label: "Peacebinding", value: 5, color: "#f72585", description: "Stitching conflict so the seam holds without hiding the truth", wellnessProperty: "connection" }
     ]
   },
+
   Neuroticism: {
     attributes: [
-      { icon: "🧘", label: "Emotional Regulation", value: 5, color: "#7209b7", description: "Managing intense emotions with skillful awareness", wellnessProperty: "awareness" },
-      { icon: "🌊", label: "Resilience", value: 5, color: "#a663cc", description: "Bouncing back from setbacks with renewed strength", wellnessProperty: "resilience" },
-      { icon: "☮️", label: "Inner Calm", value: 5, color: "#4cc9f0", description: "Finding peace within the storm of thoughts", wellnessProperty: "balance" },
-      { icon: "🔍", label: "Perspective", value: 5, color: "#06ffa5", description: "Seeing situations from multiple angles", wellnessProperty: "connection" }
+      { icon: "🧘", label: "Keeper’s Breath", value: 5, color: "#7209b7", description: "Slowing the aisles until the shelves stop shaking", wellnessProperty: "awareness" },
+      { icon: "🌊", label: "Return to Shore", value: 5, color: "#a663cc", description: "Letting the wave pass and finding your footing again", wellnessProperty: "resilience" },
+      { icon: "☮️", label: "Still Ink", value: 5, color: "#4cc9f0", description: "Letting thoughts settle so the words become legible", wellnessProperty: "balance" },
+      { icon: "🔍", label: "Wider Margin", value: 5, color: "#06ffa5", description: "Giving the story more space so a kinder reading appears", wellnessProperty: "connection" }
     ]
   }
 };
-
 // ===== Context Exports =====
 export { useAuth } from './context/AuthContext';
 export { useMasterState } from './context/MasterStateContext';

@@ -1,22 +1,57 @@
-import React from 'react';
-import { Text, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text, TouchableOpacity, View, AccessibilityInfo } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { PersonalityConfigs, PersonalityKey } from '../../imports';
+import RunicThreadBar from '../../ui/RunicThreadBar';
+import RuneBackground from '../../ui/RuneBackground';
 
 interface PersonalizedArchiveHeaderProps {
   primaryTrait: PersonalityKey;
   traitScores: Record<PersonalityKey, number>;
   characterData: any;
+  onTutorialPress?: () => void;
+  hasSeenTutorial?: boolean;
 }
 
-const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({  
+const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
   primaryTrait,
   traitScores,
   characterData,
+  onTutorialPress,
+  hasSeenTutorial = false,
 }) => {
-  
+
   // Get personality configuration from PersonalityConfigs
   const config = PersonalityConfigs[primaryTrait];
-  
+
+  // Check for reduced motion preference
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
+      setReducedMotion(enabled);
+    });
+  }, []);
+
+  // Shimmer animation for title
+  const shimmerOffset = useSharedValue(0);
+
+  useEffect(() => {
+    if (!reducedMotion) {
+      shimmerOffset.value = withRepeat(
+        withTiming(1, { duration: 3000, easing: Easing.linear }),
+        -1,
+        false
+      );
+    }
+  }, [reducedMotion]);
 
   // Safely extract character data
   const experience = characterData?.experience || 0;
@@ -28,7 +63,6 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
   
   // Handle case where config might not exist
   if (!config) {
-    console.warn('No personality config found for trait:', primaryTrait);
     return (
       <View style={{
         backgroundColor: '#0a0b0f',
@@ -49,7 +83,7 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
   const headerStyle = {
     backgroundColor: config.theme?.background || '#0a0b0f',
     padding: 12,
-    paddingTop: 16,
+    paddingTop: 48,
     paddingBottom: 10,
     borderBottomWidth: 2,
     borderBottomColor: config.theme?.primary || '#4ee6e6',
@@ -61,41 +95,50 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
     position: 'relative' as const
   };
   
+  const palette = {
+    primary: config.theme?.primary || '#4ee6e6',
+    secondary: config.theme?.secondary || '#ccc',
+    accent: config.theme?.accent || '#ffd43b',
+  };
+
   return (
     <View style={headerStyle}>
-      {/* Background Elements for Personality Type */}
-      <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        opacity: 0.08,
-      }}>
-        {config.backgroundRunes?.map((rune: string, index: number) => (
-          <Text key={index} style={{
-            fontSize: 40,
-            transform: [{ rotate: '15deg' }],
-            color: config.theme?.primary || '#4ee6e6',
-          }}>
-            {rune}
-          </Text>
-        ))}
-      </View>
+      {/* Mystical background layer */}
+      <RuneBackground palette={palette} reducedMotion={reducedMotion} />
 
       {/* Header Content */}
       <View style={{ position: 'relative', zIndex: 1 }}>
+        {/* Tutorial Button - Top Right */}
+        {onTutorialPress && (
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              zIndex: 10,
+              backgroundColor: hasSeenTutorial ? 'rgba(102, 102, 102, 0.8)' : config.theme?.primary || '#4ee6e6',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 15,
+              borderWidth: 1,
+              borderColor: config.theme?.primary || '#4ee6e6',
+            }}
+            onPress={onTutorialPress}
+          >
+            <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '600' }}>
+              {hasSeenTutorial ? '📚' : '🎮 Tutorial'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* Archive Title Section */}
-        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+        <View style={{ alignItems: 'center', marginBottom: 8, paddingHorizontal: 70 }}>
           <Text
             style={{
               color: config.theme?.primary || '#4ee6e6',
-              fontSize: 18,
+              fontSize: 15,
               fontWeight: 'bold',
-              letterSpacing: 2,
+              letterSpacing: 1.5,
               textShadowColor: `${config.theme?.primary || '#4ee6e6'}50`,
               textShadowOffset: { width: 0, height: 2 },
               textShadowRadius: 8,
@@ -109,7 +152,7 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
           <Text
             style={{
               color: config.theme?.secondary || '#ccc',
-              fontSize: 11,
+              fontSize: 10,
               fontStyle: 'italic',
               textAlign: 'center',
               marginTop: 2
@@ -169,50 +212,20 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
           </View>
         </View>
 
-        {/* Experience Bar */}
+        {/* Runic XP Thread */}
         <View style={{ marginTop: 4 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-            <Text style={{ color: '#ccc', fontSize: 10 }}>Experience</Text>
-            <Text style={{ color: '#ccc', fontSize: 10 }}>
-              {experience} / {experienceNeeded} XP
+            <Text style={{ color: '#b8a88a', fontSize: 10, fontStyle: 'italic' }}>Essence Thread XP</Text>
+            <Text style={{ color: '#b8a88a', fontSize: 10, fontStyle: 'italic' }}>
+              {experience} / {experienceNeeded}
             </Text>
           </View>
-          <View style={{
-            height: 5,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: 3,
-            overflow: 'hidden'
-          }}>
-            <View style={{
-              height: '100%',
-              width: `${Math.min(experiencePercentage, 100)}%`,
-              backgroundColor: config.theme?.primary || '#4ee6e6',
-              borderRadius: 3
-            }} />
-          </View>
-        </View>
-
-        {/* Trait Indicator */}
-        <View style={{
-          flexDirection: 'row',
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginTop: 6,
-          paddingTop: 6,
-          borderTopWidth: 1,
-          borderTopColor: 'rgba(255, 255, 255, 0.1)'
-        }}>
-          <Text
-            style={{
-              color: config.theme?.primary || '#4ee6e6',
-              fontSize: 12,
-              fontWeight: '600',
-              textAlign: 'center'
-            }}
-            numberOfLines={1}
-          >
-            Welcome to {config.archiveSection || 'The Archive'}
-          </Text>
+          <RunicThreadBar
+            value={experience}
+            max={experienceNeeded}
+            palette={palette}
+            reducedMotion={reducedMotion}
+          />
         </View>
       </View>
     </View>

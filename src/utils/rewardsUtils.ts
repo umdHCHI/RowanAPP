@@ -1,4 +1,5 @@
 import { uiIcons } from '../assets/ui';
+import { PersonalityWellnessAttributes } from '../imports';
 import { CopingTools, convertEquipmentToCopingTool } from '../types/personality';
 import {
   EquipmentUpgrade,
@@ -537,24 +538,107 @@ export function createNotificationFromEffects(
   }> = [];
 
   // Map stat names to frontend display names and icons
-  const statDisplayNames: Record<string, string> = {
-    'awareness': 'Exploration',
-    'exploration': 'Exploration',
-    'resilience': 'Courage',
-    'courage': 'Courage',
-    'connection': 'Connection',
-    'balance': 'Fear',
-    'fear': 'Fear'
+  // For PERSONALITY users: Use personality-specific wellness attribute labels (e.g., "Lantern of Focus", "Keeper's Breath")
+  // For CHARACTER users: Use generic stat names (Awareness, Resilience, Connection, Balance)
+
+  // Helper function to get personality-specific stat label
+  const getPersonalityStatLabel = (statName: string, personalityTrait?: string): string => {
+    if (!personalityTrait) return statName;
+
+    // Normalize the stat name to wellness property
+    const normalizedStat = statName.toLowerCase();
+    const wellnessProperty = ['awareness', 'resilience', 'connection', 'balance'].includes(normalizedStat)
+      ? normalizedStat
+      : normalizedStat === 'exploration' ? 'awareness'
+      : normalizedStat === 'courage' ? 'resilience'
+      : normalizedStat === 'fear' ? 'balance'
+      : normalizedStat;
+
+    // Get personality-specific attributes
+    const personalityKey = personalityTrait.charAt(0).toUpperCase() + personalityTrait.slice(1).toLowerCase();
+    const personalityAttributes = PersonalityWellnessAttributes[personalityKey as keyof typeof PersonalityWellnessAttributes];
+
+    if (personalityAttributes) {
+      const attribute = personalityAttributes.attributes.find(
+        attr => attr.wellnessProperty === wellnessProperty
+      );
+      if (attribute) {
+        return attribute.label;
+      }
+    }
+
+    // Fallback to generic names
+    return statName.charAt(0).toUpperCase() + statName.slice(1);
   };
 
-  const statIcons: Record<string, string> = {
-    'awareness': '🧘',
-    'resilience': '💚',
-    'connection': '🤝',
-    'balance': '⚖️',
-    'exploration': '🧘',
-    'courage': '💚',
-    'fear': '⚖️'
+  const characterStatDisplayNames: Record<string, string> = {
+    'awareness': 'Awareness',
+    'exploration': 'Awareness',
+    'resilience': 'Resilience',
+    'courage': 'Resilience',
+    'connection': 'Connection',
+    'balance': 'Balance',
+    'fear': 'Balance'
+  };
+
+  const getStatDisplayName = (statName: string): string => {
+    if (researchCondition === 'personality' && primaryTrait) {
+      return getPersonalityStatLabel(statName, primaryTrait);
+    }
+    return characterStatDisplayNames[statName.toLowerCase()] || statName;
+  };
+
+  // Helper function to get personality-specific icon (returns string emoji or image object)
+  const getPersonalityStatIcon = (statName: string, personalityTrait?: string): string | any => {
+    if (!personalityTrait) return '✨';
+
+    // Normalize the stat name to wellness property
+    const normalizedStat = statName.toLowerCase();
+    const wellnessProperty = ['awareness', 'resilience', 'connection', 'balance'].includes(normalizedStat)
+      ? normalizedStat
+      : normalizedStat === 'exploration' ? 'awareness'
+      : normalizedStat === 'courage' ? 'resilience'
+      : normalizedStat === 'fear' ? 'balance'
+      : normalizedStat;
+
+    // Get personality-specific attributes
+    const personalityKey = personalityTrait.charAt(0).toUpperCase() + personalityTrait.slice(1).toLowerCase();
+    const personalityAttributes = PersonalityWellnessAttributes[personalityKey as keyof typeof PersonalityWellnessAttributes];
+
+    if (personalityAttributes) {
+      const attribute = personalityAttributes.attributes.find(
+        attr => attr.wellnessProperty === wellnessProperty
+      );
+      if (attribute) {
+        return attribute.icon; // Can be string (emoji) or image object
+      }
+    }
+
+    // Fallback to generic icons
+    const defaultIcons: Record<string, string> = {
+      'awareness': '🧘',
+      'resilience': '💚',
+      'connection': '🤝',
+      'balance': '⚖️'
+    };
+    return defaultIcons[wellnessProperty] || '✨';
+  };
+
+  const getStatIcon = (statName: string): string | any => {
+    if (researchCondition === 'personality' && primaryTrait) {
+      return getPersonalityStatIcon(statName, primaryTrait);
+    }
+    // Character users get default icons
+    const defaultIcons: Record<string, string> = {
+      'awareness': '🧘',
+      'resilience': '💚',
+      'connection': '🤝',
+      'balance': '⚖️',
+      'exploration': '🧘',
+      'courage': '💚',
+      'fear': '⚖️'
+    };
+    return defaultIcons[statName.toLowerCase()] || '✨';
   };
 
   // Map stat names to image assets (for character users)
@@ -588,13 +672,21 @@ export function createNotificationFromEffects(
           icon: icon
         });
       } else {
-        const displayName = statDisplayNames[key] || key.charAt(0).toUpperCase() + key.slice(1);
-        const icon = statIcons[key] || '✨';
-        const iconImage = researchCondition === 'character' ? statImages[key] : undefined;
+        const displayName = getStatDisplayName(key);
+        const icon = getStatIcon(key);
+
+        // For personality users, icon might be an image object
+        // For character users, use iconImage from statImages
+        const isIconObject = typeof icon === 'object';
+        const iconImage = isIconObject
+          ? icon
+          : (researchCondition === 'character' ? statImages[key] : undefined);
+        const iconText = isIconObject ? undefined : icon;
+
         notifications.push({
           message: `+${numValue} ${displayName}`,
           type: 'stat',
-          icon: icon,
+          icon: iconText,
           iconImage: iconImage,
           statName: key
         });
@@ -631,13 +723,21 @@ export function createNotificationFromEffects(
       
       const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
       if (!isNaN(numValue) && numValue > 0) {
-        const displayName = statDisplayNames[stat] || stat.charAt(0).toUpperCase() + stat.slice(1);
-        const icon = statIcons[stat] || '✨';
-        const iconImage = researchCondition === 'character' ? statImages[stat] : undefined;
+        const displayName = getStatDisplayName(stat);
+        const icon = getStatIcon(stat);
+
+        // For personality users, icon might be an image object
+        // For character users, use iconImage from statImages
+        const isIconObject = typeof icon === 'object';
+        const iconImage = isIconObject
+          ? icon
+          : (researchCondition === 'character' ? statImages[stat] : undefined);
+        const iconText = isIconObject ? undefined : icon;
+
         notifications.push({
           message: `+${numValue} ${displayName}`,
           type: 'stat',
-          icon: icon,
+          icon: iconText,
           iconImage: iconImage,
           statName: stat
         });

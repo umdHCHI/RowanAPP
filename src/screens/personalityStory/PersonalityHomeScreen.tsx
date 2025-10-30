@@ -183,6 +183,7 @@ const TUTORIAL_STEPS = [
   const [selectedChapter, setSelectedChapter] = useState<any>(null);
   const [isStoryVisible, setIsStoryVisible] = useState(false);
   const [isChapterScreenVisible, setIsChapterScreenVisible] = useState(false);
+  const [sessionGains, setSessionGains] = useState<Array<{type: string, value: string}>>([]);
 
   const handleStoryComplete = async (completionData: {
     storyId: string;
@@ -327,25 +328,9 @@ const TUTORIAL_STEPS = [
           Agreeableness: userProfile?.personalityProfile?.agreeableness || 0,
           Neuroticism: userProfile?.personalityProfile?.neuroticism || 0
         }}
+        onTutorialPress={startTutorial}
+        hasSeenTutorial={hasSeenTutorial}
       />
-
-      <View style={styles.tutorialButtonContainer}>
-        {!hasSeenTutorial ? (
-          <TouchableOpacity
-            style={styles.startTutorialButton}
-            onPress={startTutorial}
-          >
-            <Text style={styles.tutorialButtonText}>🎮 Start Tutorial</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.restartTutorialButton}
-            onPress={startTutorial}
-          >
-            <Text style={styles.tutorialButtonText}>📚 Tutorial</Text>
-          </TouchableOpacity>
-        )}
-      </View>
 
       <TabNavigation
         activeTab={activeTab}
@@ -355,21 +340,45 @@ const TUTORIAL_STEPS = [
       />
 
       {activeTab === 'entrance' && (
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 }}>
+          {/* Session Gains Chip Row */}
+          {sessionGains.length > 0 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+              {sessionGains.map((gain, index) => (
+                <View
+                  key={index}
+                  style={{
+                    backgroundColor: 'rgba(78, 230, 230, 0.12)',
+                    borderWidth: 1,
+                    borderColor: '#4ee6e6',
+                    borderRadius: 999,
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: '#4ee6e6', fontWeight: '600' }}>
+                    {gain.type === 'xp' && '✨ '}{gain.type === 'stat' && '⚡ '}{gain.type === 'unlock' && '🔓 '}{gain.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Curator's Brief */}
+          <DailyCuratorMessage
+            primaryTrait={primaryTrait}
+            characterData={userProfile}
+            globalStyles={globalStyles}
+          />
+
           <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'wellness'}>
-            <DailyCuratorMessage 
-              primaryTrait={primaryTrait} 
-              characterData={userProfile}
-              globalStyles={globalStyles} 
-            />
-            
             <WellnessAttributesDisplay
               personalityType={primaryTrait}
               personalityScores={userProfile?.wellness_stats || []}
               globalStyles={globalStyles}
             />
           </TutorialHighlight>
-          
+
           <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'quests'}>
             <QuestAchievements
               primaryTrait={primaryTrait}
@@ -377,7 +386,7 @@ const TUTORIAL_STEPS = [
               globalStyles={globalStyles}
             />
           </TutorialHighlight>
-          
+
           <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'coping'}>
             <CopingToolsCollection
               primaryTrait={primaryTrait}
@@ -434,6 +443,7 @@ const TUTORIAL_STEPS = [
               onClose={() => setActiveTab('entrance')}
               onScoreUpdate={(data: any) => {}}
               onStartGame={() => setShowThoughtDefenderModal(true)}
+              primaryTrait={primaryTrait}
             />
           </TutorialHighlight>
         </ScrollView>
@@ -582,37 +592,6 @@ const TUTORIAL_STEPS = [
 }
 
 const styles = StyleSheet.create({
-  tutorialButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(26, 29, 38, 0.8)',
-  },
-  startTutorialButton: {
-    backgroundColor: '#4ee6e6',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    flex: 1,
-    marginRight: 10,
-    alignItems: 'center',
-  },
-  restartTutorialButton: {
-    backgroundColor: '#666',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    flex: 1,
-    marginRight: 10,
-    alignItems: 'center',
-  },
-  tutorialButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   tutorialOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',

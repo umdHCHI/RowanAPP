@@ -152,6 +152,10 @@ class ApiService {
         return this.isInitialized;
     }
 
+    public getBaseURL(): string {
+        return apiBaseUrl;
+    }
+
     // Generic request methods
     public async get<T>(endpoint: keyof typeof API_ENDPOINTS, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
         try {
@@ -3052,7 +3056,7 @@ class ApiService {
 
             
             const response = await this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${passageId}/` });
-
+            console.log('🔍 RAW API RESPONSE for getPassage:', JSON.stringify(response, null, 2));
             return response;
         } catch (error) {
 
@@ -3124,9 +3128,10 @@ class ApiService {
           target_passage_id: targetPassageId,
           ...additionalPayload
         };
-        
+
 
         const response = await apiClient.post('story/make_choice/', payload);
+        console.log('🔍 RAW API RESPONSE for makeChoice:', JSON.stringify(response.data, null, 2));
         return response.data;
     }
 

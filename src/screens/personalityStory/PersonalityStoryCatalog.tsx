@@ -474,28 +474,8 @@ const PersonalityStoryCatalog = ({
   return (
     <View style={globalStyles.personalityStoryCatalogContainer}>
       {/* Header with Personality Theming */}
-      <View style={globalStyles.personalityStoryCatalogHeader}>
-        <View style={globalStyles.personalityStoryHeaderContent}>
-          <Icon name="book" size={24} color={theme.primary} />
-          <Text
-            style={[
-              globalStyles.personalityStoryCatalogTitle,
-              { color: theme.primary },
-            ]}
-          >
-            {theme.modalTitle}
-          </Text>
-        </View>
-        <Text
-          style={[
-            globalStyles.personalityStoryCatalogSubtitle,
-            { color: theme.secondary },
-          ]}
-        >
-          {theme.modalSubtitle}
-        </Text>
-      </View>
 
+ 
       {/* Story Grid */}
       <ScrollView
         style={globalStyles.personalityStoryScrollView}

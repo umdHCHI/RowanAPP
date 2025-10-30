@@ -39,6 +39,7 @@ export interface Chapter {
   content: string;
   chapter_number: number;
   is_starting_chapter: boolean;
+  starting_passage_id?: string;
   variables: Record<string, any>;
   image?: string | null;
   requirements: Record<string, any>;
@@ -55,6 +56,8 @@ export interface Passage {
   content: string;
   passage_type: PassageType;
   speaker?: NPC | null;
+  speaker_name?: string;
+  speaker_image?: string;
   required_conditions: Record<string, any>;
   story_effects: Record<string, any>;
   effects?: Record<string, any>; // New field for rewards in passages

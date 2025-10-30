@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useMasterState } from '../../context/MasterStateContext';
 import { CopingTool, PersonalityConfigs, PersonalityKey, PersonalityQuests } from '../../imports';
 import { apiService } from '../../services/apiService';
@@ -44,6 +44,7 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
   currentTheme = 'dark'
 }) => {
   const personalityConfig = PersonalityConfigs[primaryTrait];
+  const palette = personalityConfig.theme;
   const personalityQuests = (PersonalityQuests as any)[primaryTrait] || [];
   const personalityCopingTools = (CopingTools as any)[primaryTrait] || [];
   const userUnlockedTools = userProfile?.coping_tools || [];
@@ -68,7 +69,6 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
       const completed = await apiService.getCompletedStories();
       setCompletedStories(new Set(completed));
     } catch (error) {
-      console.error('❌ Failed to fetch completed stories:', error);
       setCompletedStories(new Set());
     } finally {
       setIsLoadingCompletedStories(false);
@@ -82,7 +82,6 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
       const stats = await apiService.getCodexStats();
       setJournalEntriesCount(stats.total_entries || 0);
     } catch (error) {
-      console.error('❌ Failed to fetch journal stats:', error);
       setJournalEntriesCount(0);
     }
   };
@@ -129,7 +128,7 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
 
   const stats = getOverallStats();
 
-  // Component for individual achievement cards
+  // Component for individual achievement cards (Foundry-inspired)
   const AchievementCard: React.FC<{
     title: string;
     description: string;
@@ -138,174 +137,143 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
     total: number;
     isCompleted: boolean;
     reward?: string;
-  }> = ({ title, description, icon, progress, total, isCompleted, reward }) => (
-    <TouchableOpacity
-      style={[
-        globalStyles.personalityQuestCard,
-        isCompleted && globalStyles.personalityQuestCompleted,
+  }> = ({ title, description, icon, progress, total, isCompleted, reward }) => {
+    const progressPercentage = Math.round((progress / total) * 100);
+
+    return (
+      <View style={[
+        styles.achievementCard,
         {
-          marginBottom: 12,
-          borderColor: isCompleted ? personalityConfig.theme.primary : 'rgba(255, 255, 255, 0.1)',
-          shadowColor: isCompleted ? personalityConfig.theme.primary : 'transparent'
+          borderColor: isCompleted ? `${palette.accent}60` : `${palette.primary}40`,
+          backgroundColor: '#0a0e14'
         }
-      ]}
-      activeOpacity={0.8}
-    >
-      <LinearGradient
-        colors={[
-          isCompleted ? personalityConfig.theme.background : 'rgba(26, 26, 26, 0.9)',
-          isCompleted ? personalityConfig.theme.secondary + '20' : 'rgba(30, 30, 30, 0.7)'
-        ]}
-        style={{
-          borderRadius: 8,
-          padding: 16,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={{ fontSize: 24, marginRight: 12 }}>{icon}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[globalStyles.personalityQuestTitle, { 
-              color: isCompleted ? personalityConfig.theme.primary : '#fff' 
+      ]}>
+        {/* Corner ornament */}
+        <View style={[styles.cornerOrnament, {
+          borderColor: isCompleted ? `${palette.accent}60` : `${palette.primary}60`
+        }]} />
+
+        {/* Icon marker */}
+        <View style={[styles.iconMarker, {
+          backgroundColor: isCompleted ? `${palette.accent}20` : `${palette.primary}20`,
+          borderColor: isCompleted ? `${palette.accent}60` : `${palette.primary}60`
+        }]}>
+          <Text style={styles.iconEmoji}>{icon}</Text>
+        </View>
+
+        {/* Content */}
+        <View style={styles.achievementContent}>
+          <View style={styles.achievementHeader}>
+            <Text style={[styles.achievementTitle, {
+              color: isCompleted ? `${palette.accent}` : `${palette.primary}90`
             }]}>
               {title}
             </Text>
-            <Text style={[globalStyles.personalityQuestDescription, { 
-              opacity: 0.8,
-              fontSize: 12 
+            {isCompleted && (
+              <Text style={[styles.completedMark, { color: palette.accent }]}>✓</Text>
+            )}
+          </View>
+
+          <Text style={styles.achievementDescription}>{description}</Text>
+
+          {/* Progress pips */}
+          <View style={styles.progressSection}>
+            <View style={[styles.progressTrack, { borderColor: `${palette.primary}20` }]}>
+              {[...Array(total)].map((_, i) => {
+                const isFilled = i < progress;
+                return (
+                  <View key={i} style={[styles.progressPip, {
+                    backgroundColor: isFilled
+                      ? (isCompleted ? palette.accent : palette.primary)
+                      : 'rgba(26, 32, 40, 0.5)',
+                    borderColor: isFilled
+                      ? (isCompleted ? palette.accent : palette.primary)
+                      : 'rgba(42, 48, 56, 0.8)',
+                  }]} />
+                );
+              })}
+            </View>
+            <Text style={[styles.progressText, {
+              color: isCompleted ? palette.accent : `${palette.primary}90`
             }]}>
-              {description}
+              {progress}/{total} ({progressPercentage}%)
             </Text>
           </View>
-          {isCompleted && (
-            <Text style={{ fontSize: 20, color: personalityConfig.theme.primary }}>✨</Text>
+
+          {/* Reward banner */}
+          {reward && isCompleted && (
+            <View style={[styles.rewardBanner, {
+              backgroundColor: `${palette.accent}15`,
+              borderColor: `${palette.accent}60`
+            }]}>
+              <Text style={[styles.rewardText, { color: palette.accent }]}>
+                🏆 {reward}
+              </Text>
+            </View>
           )}
         </View>
-        
-        <View style={globalStyles.personalityQuestProgress}>
-          <View style={[globalStyles.personalityQuestProgressBar, {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)'
-          }]}>
-            <View
-              style={[
-                globalStyles.personalityQuestProgressFill,
-                { 
-                  width: `${(progress / total) * 100}%`,
-                  backgroundColor: isCompleted ? personalityConfig.theme.primary : personalityConfig.theme.secondary
-                }
-              ]}
-            />
-          </View>
-          <Text style={[globalStyles.personalityQuestProgressText, {
-            color: isCompleted ? personalityConfig.theme.primary : '#fff'
-          }]}>
-            {progress}/{total} {isCompleted ? "✅" : ""}
-          </Text>
-        </View>
-        
-        {reward && isCompleted && (
-          <View style={{
-            marginTop: 8,
-            padding: 8,
-            backgroundColor: personalityConfig.theme.primary + '20',
-            borderRadius: 4,
-            borderWidth: 1,
-            borderColor: personalityConfig.theme.primary + '40'
-          }}>
-            <Text style={{
-              color: personalityConfig.theme.primary,
-              fontSize: 12,
-              fontWeight: '600',
-              textAlign: 'center'
-            }}>
-              🏆 {reward}
-            </Text>
-          </View>
-        )}
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+      </View>
+    );
+  };
 
-  // Overall Progress Summary
+  // Overall Progress Summary (Foundry-inspired)
   const ProgressSummary: React.FC = () => (
-    <View style={{
-      marginBottom: 24,
-      padding: 20,
-      backgroundColor: 'rgba(26, 26, 26, 0.9)',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: personalityConfig.theme.primary + '30'
-    }}>
-      <LinearGradient
-        colors={[
-          personalityConfig.theme.background,
-          personalityConfig.theme.secondary + '20'
-        ]}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          borderRadius: 12,
-          opacity: 0.3
-        }}
-      />
-      
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-        <Text style={{ fontSize: 32, marginRight: 12 }}>{personalityConfig.avatar}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{
-            color: personalityConfig.theme.primary,
-            fontSize: 20,
-            fontWeight: 'bold'
-          }}>
+    <View style={[styles.summaryCard, {
+      borderColor: `${palette.primary}60`,
+      backgroundColor: '#0a0e14'
+    }]}>
+      {/* Corner ornaments (all 4 corners) */}
+      <View style={[styles.cornerOrnamentTL, { borderColor: `${palette.primary}60` }]} />
+      <View style={[styles.cornerOrnamentTR, { borderColor: `${palette.primary}60` }]} />
+      <View style={[styles.cornerOrnamentBL, { borderColor: `${palette.primary}60` }]} />
+      <View style={[styles.cornerOrnamentBR, { borderColor: `${palette.primary}60` }]} />
+
+      {/* Character identity */}
+      <View style={styles.identitySection}>
+        <View style={[styles.avatarBox, {
+          backgroundColor: `${palette.primary}15`,
+          borderColor: `${palette.primary}60`
+        }]}>
+          <Text style={styles.avatarIcon}>{personalityConfig.avatar}</Text>
+        </View>
+        <View style={styles.identityText}>
+          <Text style={[styles.scholarClass, { color: palette.primary }]}>
             {personalityConfig.scholarClass}
           </Text>
-          <Text style={{
-            color: '#fff',
-            fontSize: 14,
-            opacity: 0.8
-          }}>
-            Master of {personalityConfig.archiveSection}
+          <Text style={styles.archiveSection}>
+            MASTER OF {personalityConfig.archiveSection.toUpperCase()}
           </Text>
         </View>
       </View>
-      
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        <View style={{ flex: 1, minWidth: 120 }}>
-          <Text style={{ color: personalityConfig.theme.primary, fontSize: 24, fontWeight: 'bold' }}>
+
+      {/* Stats grid */}
+      <View style={styles.statsGrid}>
+        <View style={styles.statBox}>
+          <Text style={[styles.statValue, { color: palette.primary }]}>
             {stats.completedStories}
           </Text>
-          <Text style={{ color: '#fff', fontSize: 12, opacity: 0.8 }}>
-            Stories Mastered
-          </Text>
+          <Text style={styles.statLabel}>STORIES</Text>
         </View>
-        
-        <View style={{ flex: 1, minWidth: 120 }}>
-          <Text style={{ color: personalityConfig.theme.accent, fontSize: 24, fontWeight: 'bold' }}>
+
+        <View style={styles.statBox}>
+          <Text style={[styles.statValue, { color: palette.accent }]}>
             {stats.completedQuests}
           </Text>
-          <Text style={{ color: '#fff', fontSize: 12, opacity: 0.8 }}>
-            Quests Complete
-          </Text>
+          <Text style={styles.statLabel}>QUESTS</Text>
         </View>
-        
-        <View style={{ flex: 1, minWidth: 120 }}>
-          <Text style={{ color: personalityConfig.theme.secondary, fontSize: 24, fontWeight: 'bold' }}>
+
+        <View style={styles.statBox}>
+          <Text style={[styles.statValue, { color: palette.secondary }]}>
             {stats.availableTools}
           </Text>
-          <Text style={{ color: '#fff', fontSize: 12, opacity: 0.8 }}>
-            Tools Unlocked
-          </Text>
+          <Text style={styles.statLabel}>TOOLS</Text>
         </View>
-        
-        <View style={{ flex: 1, minWidth: 120 }}>
-          <Text style={{ color: '#4ee6e6', fontSize: 24, fontWeight: 'bold' }}>
+
+        <View style={styles.statBox}>
+          <Text style={[styles.statValue, { color: `${palette.primary}90` }]}>
             {stats.journalEntries}
           </Text>
-          <Text style={{ color: '#fff', fontSize: 12, opacity: 0.8 }}>
-            Journal Entries
-          </Text>
+          <Text style={styles.statLabel}>ENTRIES</Text>
         </View>
       </View>
     </View>
@@ -324,34 +292,19 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
   };
 
   return (
-    <ScrollView 
-      contentContainerStyle={{ padding: 20 }}
-      style={{ 
-        backgroundColor: personalityConfig.theme.background,
-        flex: 1 
+    <ScrollView
+      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      style={{
+        backgroundColor: '#0a0b0f',
+        flex: 1
       }}
     >
       {/* Header */}
-      <View style={{ marginBottom: 24, alignItems: 'center' }}>
-        <Text style={{
-          fontSize: 28,
-          fontWeight: 'bold',
-          color: personalityConfig.theme.primary,
-          textAlign: 'center',
-          marginBottom: 8,
-          textShadowColor: personalityConfig.theme.primary + '40',
-          textShadowOffset: { width: 0, height: 2 },
-          textShadowRadius: 4
-        }}>
-          📜 Archive of Achievements 📜
+      <View style={styles.headerSection}>
+        <Text style={[styles.mainTitle, { color: palette.primary }]}>
+          ARCHIVE OF RESTORATION
         </Text>
-        <Text style={{
-          fontSize: 16,
-          color: '#fff',
-          textAlign: 'center',
-          opacity: 0.8,
-          fontStyle: 'italic'
-        }}>
+        <Text style={styles.curatorNote}>
           {personalityConfig.curatorNote}
         </Text>
       </View>
@@ -361,14 +314,9 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
 
       {/* Story Completion Section */}
       <View style={{ marginBottom: 24 }}>
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: personalityConfig.theme.primary,
-            textAlign: 'center'
-          }}>
-            📖 Chronicle Mastery
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: palette.primary }]}>
+            📖 CHRONICLE MASTERY
           </Text>
         </View>
         
@@ -416,15 +364,11 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
 
       {/* Quest Progress Section */}
       <View style={{ marginBottom: 24 }}>
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: personalityConfig.theme.primary,
-          marginBottom: 16,
-          textAlign: 'center'
-        }}>
-          🏆 Scholar Challenges
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: palette.primary }]}>
+            🏆 SCHOLAR CHALLENGES
+          </Text>
+        </View>
         
         {personalityQuests.length > 0 ? (
           personalityQuests.map((quest: any) => {
@@ -460,15 +404,11 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
 
       {/* Coping Tools Section */}
       <View style={{ marginBottom: 24 }}>
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: personalityConfig.theme.primary,
-          marginBottom: 16,
-          textAlign: 'center'
-        }}>
-          🛠️ Wisdom Arsenal
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: palette.primary }]}>
+            🛠️ WISDOM ARSENAL
+          </Text>
+        </View>
         <CopingToolsCollection
           unlockedTools={userUnlockedTools}
           primaryTrait={primaryTrait}
@@ -477,131 +417,13 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
         />
       </View>
 
-      {/* Wellness Foundation Section */}
-      <View style={{ marginBottom: 24 }}>
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: personalityConfig.theme.primary,
-          marginBottom: 16,
-          textAlign: 'center'
-        }}>
-          🌟 Foundation of Being
-        </Text>
-        
-        {(() => {
-          const wellnessStats = userProfile?.wellness_stats || [];
-          
-          // Handle both array and object formats
-          if (Array.isArray(wellnessStats)) {
-            // Array format: [{ value: 20, label: "Awareness", icon: "🧘" }, ...]
-            return wellnessStats.map((stat: any, index: number) => (
-              <AchievementCard
-                key={index}
-                title={`${stat.icon} ${stat.label} Mastery`}
-                description={`Develop your ${stat.label.toLowerCase()} through mindful practice`}
-                icon={stat.icon}
-                progress={stat.value || 0}
-                total={10}
-                isCompleted={stat.value >= 8}
-                reward={stat.value >= 8 ? `${stat.label} Sage` : undefined}
-              />
-            ));
-          } else if (wellnessStats && typeof wellnessStats === 'object') {
-            // Object format: { awareness: 20, balance: 20, connection: 15, resilience: 20 }
-            const statLabels = {
-              awareness: { label: "Awareness", icon: "🧘" },
-              balance: { label: "Balance", icon: "⚖️" },
-              connection: { label: "Connection", icon: "🤝" },
-              resilience: { label: "Resilience", icon: "💚" }
-            };
-            
-            return Object.entries(wellnessStats).map(([key, value], index) => {
-              const statInfo = statLabels[key as keyof typeof statLabels] || { label: key, icon: "🌟" };
-              return (
-                <AchievementCard
-                  key={index}
-                  title={`${statInfo.icon} ${statInfo.label} Mastery`}
-                  description={`Develop your ${statInfo.label.toLowerCase()} through mindful practice`}
-                  icon={statInfo.icon}
-                  progress={typeof value === 'number' ? value : 0}
-                  total={10}
-                  isCompleted={typeof value === 'number' && value >= 8}
-                  reward={typeof value === 'number' && value >= 8 ? `${statInfo.label} Sage` : undefined}
-                />
-              );
-            });
-          }
-          
-          return null;
-        })()}
-      </View>
-
-      {/* Mind States Section */}
-      <View style={{ marginBottom: 32 }}>
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: personalityConfig.theme.primary,
-          marginBottom: 16,
-          textAlign: 'center'
-        }}>
-          🧠 States of Consciousness
-        </Text>
-        
-        {personalityConfig.mindStates.map((mindState: any, index: number) => {
-          // Find corresponding wellness stat - handle both array and object formats
-          let statValue = 0;
-          const wellnessStats = userProfile?.wellness_stats || [];
-          
-          if (Array.isArray(wellnessStats)) {
-            // Array format: [{ value: 20, label: "Awareness" }, ...]
-            const correspondingStat = wellnessStats.find((stat: any) => 
-              stat.label.toLowerCase().includes(mindState.label.toLowerCase())
-            );
-            statValue = correspondingStat?.value || 0;
-          } else if (wellnessStats && typeof wellnessStats === 'object') {
-            // Object format: { awareness: 20, balance: 20, connection: 15, resilience: 20 }
-            // Map mind state labels to wellness stat keys
-            const labelToKey: Record<string, string> = {
-              'awareness': 'awareness',
-              'balance': 'balance', 
-              'connection': 'connection',
-              'resilience': 'resilience'
-            };
-            
-            const key = labelToKey[mindState.label.toLowerCase()];
-            if (key && typeof wellnessStats[key] === 'number') {
-              statValue = wellnessStats[key];
-            }
-          }
-          
-          return (
-            <AchievementCard
-              key={index}
-              title={`${mindState.icon} ${mindState.label}`}
-              description={`Cultivate deeper ${mindState.label.toLowerCase()} through practice`}
-              icon={mindState.icon}
-              progress={statValue}
-              total={10}
-              isCompleted={statValue >= 7}
-              reward={statValue >= 7 ? `${mindState.label} Adept` : undefined}
-            />
-          );
-        })}
-      </View>
-
       {/* Settings Section */}
       <View style={{ marginBottom: 24 }}>
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: personalityConfig.theme.primary,
-          marginBottom: 16,
-          textAlign: 'center'
-        }}>
-          ⚙️ Archive Settings
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: palette.primary }]}>
+            ⚙️ ARCHIVE SETTINGS
+          </Text>
+        </View>
         
         <View style={{
           padding: 20,
@@ -718,15 +540,11 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
 
       {/* Mental Health Resources Section */}
       <View style={{ marginBottom: 24 }}>
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: personalityConfig.theme.primary,
-          marginBottom: 16,
-          textAlign: 'center'
-        }}>
-          💚 Mental Health Support
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: palette.primary }]}>
+            💚 MENTAL HEALTH SUPPORT
+          </Text>
+        </View>
         
         <View style={{
           padding: 20,
@@ -769,7 +587,7 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
               }}
               onPress={() => {
                 const url = 'https://health-services.d.umn.edu/counseling-services';
-                Linking.openURL(url).catch((err: any) => console.error('Error opening URL:', err));
+                Linking.openURL(url).catch(() => {});
               }}
               activeOpacity={0.8}
             >
@@ -804,7 +622,7 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
               }}
               onPress={() => {
                 const url = 'https://health-services.d.umn.edu/counseling-services/crisis-and-mental-health-emergency';
-                Linking.openURL(url).catch((err: any) => console.error('Error opening URL:', err));
+                Linking.openURL(url).catch(() => {});
               }}
               activeOpacity={0.8}
             >
@@ -839,7 +657,7 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
               }}
               onPress={() => {
                 const url = 'https://www.sph.umn.edu/current/resources/mental-health/';
-                Linking.openURL(url).catch((err: any) => console.error('Error opening URL:', err));
+                Linking.openURL(url).catch(() => {});
               }}
               activeOpacity={0.8}
             >
@@ -874,7 +692,7 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
               }}
               onPress={() => {
                 const url = 'https://mentalhealth.umn.edu/';
-                Linking.openURL(url).catch((err: any) => console.error('Error opening URL:', err));
+                Linking.openURL(url).catch(() => {});
               }}
               activeOpacity={0.8}
             >
@@ -895,38 +713,20 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
       </View>
 
       {/* Journey Summary Footer */}
-      <View style={{
-        alignItems: 'center',
-        padding: 20,
-        backgroundColor: 'rgba(26, 26, 26, 0.5)',
-        borderRadius: 12,
-        marginBottom: 20
-      }}>
-        <Text style={{
-          color: personalityConfig.theme.primary,
-          fontSize: 18,
-          fontWeight: 'bold',
-          marginBottom: 8
-        }}>
-          🌟 Journey Progress 🌟
+      <View style={[styles.footerCard, {
+        borderColor: `${palette.primary}40`,
+        backgroundColor: '#0a0e14'
+      }]}>
+        <Text style={[styles.footerTitle, { color: palette.primary }]}>
+          🌟 JOURNEY PROGRESS
         </Text>
-        <Text style={{
-          color: '#fff',
-          fontSize: 14,
-          textAlign: 'center',
-          opacity: 0.8,
-          lineHeight: 20
-        }}>
+        <Text style={styles.footerDesc}>
           {personalityConfig.journeyDesc}
         </Text>
-        
-        <View style={{
-          flexDirection: 'row',
-          marginTop: 16,
-          gap: 8
-        }}>
+
+        <View style={styles.runeRow}>
           {personalityConfig.backgroundRunes.map((rune: string, index: number) => (
-            <Text key={index} style={{ fontSize: 24, opacity: 0.6 }}>
+            <Text key={index} style={styles.rune}>
               {rune}
             </Text>
           ))}
@@ -935,3 +735,266 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
     </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  // Header styles
+  headerSection: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  mainTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  curatorNote: {
+    fontSize: 13,
+    color: 'rgba(199, 208, 224, 0.8)',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+
+  // Section header styles
+  sectionHeader: {
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textAlign: 'center',
+  },
+
+  // Summary card styles
+  summaryCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+    position: 'relative',
+  },
+  cornerOrnamentTL: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
+    width: 16,
+    height: 16,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: 8,
+  },
+  cornerOrnamentTR: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 16,
+    height: 16,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderTopRightRadius: 8,
+  },
+  cornerOrnamentBL: {
+    position: 'absolute',
+    bottom: -8,
+    left: -8,
+    width: 16,
+    height: 16,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomLeftRadius: 8,
+  },
+  cornerOrnamentBR: {
+    position: 'absolute',
+    bottom: -8,
+    right: -8,
+    width: 16,
+    height: 16,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomRightRadius: 8,
+  },
+  identitySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(78, 230, 230, 0.15)',
+  },
+  avatarBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  avatarIcon: {
+    fontSize: 32,
+  },
+  identityText: {
+    flex: 1,
+  },
+  scholarClass: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  archiveSection: {
+    fontSize: 11,
+    color: 'rgba(199, 208, 224, 0.7)',
+    letterSpacing: 0.8,
+    fontWeight: '600',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statBox: {
+    flex: 1,
+    minWidth: 70,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: 'rgba(199, 208, 224, 0.7)',
+    letterSpacing: 0.8,
+    fontWeight: '600',
+  },
+
+  // Achievement card styles
+  achievementCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    position: 'relative',
+  },
+  cornerOrnament: {
+    position: 'absolute',
+    top: -12,
+    left: -12,
+    width: 20,
+    height: 20,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: 8,
+  },
+  iconMarker: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconEmoji: {
+    fontSize: 20,
+  },
+  achievementContent: {
+    paddingRight: 50,
+  },
+  achievementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  achievementTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  completedMark: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  achievementDescription: {
+    fontSize: 12,
+    color: 'rgba(199, 208, 224, 0.7)',
+    marginBottom: 10,
+    lineHeight: 16,
+  },
+  progressSection: {
+    marginTop: 4,
+  },
+  progressTrack: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    borderWidth: 1,
+    borderRadius: 4,
+    backgroundColor: 'rgba(10, 14, 20, 0.5)',
+  },
+  progressPip: {
+    flex: 1,
+    height: 6,
+    borderRadius: 2,
+    borderWidth: 1,
+  },
+  progressText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  rewardBanner: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  rewardText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+
+  // Footer styles
+  footerCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  footerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  footerDesc: {
+    fontSize: 13,
+    color: 'rgba(199, 208, 224, 0.8)',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  runeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  rune: {
+    fontSize: 20,
+    opacity: 0.5,
+  },
+});

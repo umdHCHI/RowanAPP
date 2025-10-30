@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -142,42 +144,47 @@ export default function ArchiveLoginScreen() {
   };
 
   return (
-    <View style={loginStyles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={loginStyles.container.backgroundColor} />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
+      <View style={loginStyles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={loginStyles.container.backgroundColor} />
 
-      <View style={[loginStyles.backgroundContainer, { pointerEvents: 'none' }]}>
-        <View style={[loginStyles.floatingElements, { pointerEvents: 'none' }]}>
-          <FloatingElement delay={0} duration={4000} translateY={15}>
-            <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>📚</Text>
-          </FloatingElement>
-          <FloatingElement delay={1000} duration={5000} translateY={20}>
-            <Text style={[loginStyles.floatingIcon, { right: 40, top: 60 }]}>✨</Text>
-          </FloatingElement>
-          <FloatingElement delay={2000} duration={3500} translateY={18}>
-            <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>🕯️</Text>
-          </FloatingElement>
-          <FloatingElement delay={1500} duration={4500} translateY={22}>
-            <Text style={[loginStyles.floatingIcon, { right: 40, top: 60 }]}>📖</Text>
-          </FloatingElement>
-          <FloatingElement delay={3000} duration={3000} translateY={16}>
-            <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>🗝️</Text>
-          </FloatingElement>
+        <View style={[loginStyles.backgroundContainer, { pointerEvents: 'none' }]}>
+          <View style={[loginStyles.floatingElements, { pointerEvents: 'none' }]}>
+            <FloatingElement delay={0} duration={4000} translateY={15}>
+              <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>📚</Text>
+            </FloatingElement>
+            <FloatingElement delay={1000} duration={5000} translateY={20}>
+              <Text style={[loginStyles.floatingIcon, { right: 40, top: 60 }]}>✨</Text>
+            </FloatingElement>
+            <FloatingElement delay={2000} duration={3500} translateY={18}>
+              <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>🕯️</Text>
+            </FloatingElement>
+            <FloatingElement delay={1500} duration={4500} translateY={22}>
+              <Text style={[loginStyles.floatingIcon, { right: 40, top: 60 }]}>📖</Text>
+            </FloatingElement>
+            <FloatingElement delay={3000} duration={3000} translateY={16}>
+              <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>🗝️</Text>
+            </FloatingElement>
+          </View>
+
+          <View style={[loginStyles.gradientOverlay, { pointerEvents: 'none' }]} />
         </View>
 
-        <View style={[loginStyles.gradientOverlay, { pointerEvents: 'none' }]} />
-      </View>
-
-      <ScrollView 
-        style={{ flex: 1, zIndex: 10 }}
-        contentContainerStyle={loginStyles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        scrollEnabled={true}
-        bounces={true}
-        alwaysBounceVertical={false}
-        removeClippedSubviews={false}
-        scrollEventThrottle={16}
-      >
+        <ScrollView
+          style={{ flex: 1, zIndex: 10 }}
+          contentContainerStyle={loginStyles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          scrollEnabled={true}
+          bounces={true}
+          alwaysBounceVertical={false}
+          removeClippedSubviews={false}
+          scrollEventThrottle={16}
+        >
         <View style={loginStyles.header}>
           <View style={loginStyles.personalityAvatar}>
             <Text style={loginStyles.avatarIcon}>
@@ -308,6 +315,7 @@ export default function ArchiveLoginScreen() {
           </Text>
         </View>
       </ScrollView>
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }

@@ -86,6 +86,12 @@ export const sectionIcons: Record<string, any> = {
   balance: require('../../../assets/UI/assets/fc1308.png'),
   fear: require('../../../assets/UI/assets/fc863.png'),
 
+  // Personality-specific wellness attributes
+  lantern: require('../../../assets/UI/assets/lantern.png'),
+  tether: require('../../../assets/UI/assets/teeherofgrounding.png'),
+  knot: require('../../../assets/UI/assets/knotofgrounding.png'),
+  glass: require('../../../assets/UI/assets/glassofclarity.png'),
+
   //assets for tabs
   atrium: require('../../../assets/UI/assets/littlehouse.png'),
   passages: require('../../../assets/UI/assets/pagewithribbon.png'),

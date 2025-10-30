@@ -57,6 +57,7 @@ const CodexModal = ({
     message: '',
     type: 'stat'
   });
+  const [isDrawing, setIsDrawing] = useState(false);
 
   useEffect(() => {
     setSelectedTypeState(selectedType);
@@ -199,8 +200,7 @@ const CodexModal = ({
               difficulty: selectedPrompt.difficulty,
             });
             contentToSave = uploadResult.file_url;
-          } catch (error) {
-            console.error('Failed to save voice recording:', error);
+          } catch {
             contentToSave = passages;
           }
         }
@@ -221,8 +221,7 @@ const CodexModal = ({
             } else {
               contentToSave = uploadResult.file_url;
             }
-          } catch (error) {
-            console.error('Failed to save drawing:', error);
+          } catch {
             contentToSave = JSON.stringify(drawingPaths);
           }
         }
@@ -396,12 +395,10 @@ const CodexModal = ({
             <View style={isFullScreen ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start' } : (isMobile ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start', maxHeight: height - 40 } : globalStyles.codexModalpassages)}>
               <View style={[
                 isMobile ? { flex: 1, padding: 0 } : globalStyles.codexPixelBorder,
-                { pointerEvents: 'box-none' }
               ]}>
 
               <View style={[
                 isMobile ? { flex: 1, padding: 0 } : globalStyles.codexInnerpassages,
-                { pointerEvents: 'box-none' }
               ]}>
               <View
                 style={[
@@ -537,12 +534,13 @@ const CodexModal = ({
                 </TouchableOpacity>
               </View>
 
-              <ScrollView 
+              <ScrollView
                 style={isMobile ? { flex: 1 } : { flex: 1 }}
                 contentContainerStyle={isMobile ? { flexGrow: 1 } : {}}
                 showsVerticalScrollIndicator={true}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={true}
+                scrollEnabled={!isDrawing}
               >
                 <View style={isMobile ? { flexDirection: 'column', minHeight: 0 } : globalStyles.codexpassagesContainer}>
                   {/* Your Quest Section - Always visible on mobile */}
@@ -997,6 +995,8 @@ const CodexModal = ({
                     }}>
                       <DrawingCanvas
                         hideButtons={true}
+                        onDrawingStart={() => setIsDrawing(true)}
+                        onDrawingEnd={() => setIsDrawing(false)}
                         onStrokesChange={(paths) => {
                           try {
                             setDrawingPaths(paths);

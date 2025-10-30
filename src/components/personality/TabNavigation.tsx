@@ -17,65 +17,48 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
   globalStyles
 }) => {
   const tabs = [
-    { key: 'entrance', label: 'Entrance', icon: '🏛️' },
-            { key: 'stories', label: 'Stories', icon: '📖' },
-    { key: 'codex', label: 'Codex', icon: '📝' },
-    { key: 'defender', label: 'Defender', icon: '⚡' },
-    { key: 'restoration', label: 'Restoration', icon: '🌱' }
+    { key: 'entrance', label: 'The Archive', icon: '🌑' },
+    { key: 'stories', label: 'Living Pages', icon: '📖' },
+    { key: 'codex', label: 'Codex', icon: '📜' },
+    { key: 'defender', label: 'Mind Defender', icon: '🛡️' },
+    { key: 'restoration', label: 'Restoration', icon: '🌿' }
   ];
 
   return (
-    <View style={globalStyles.personalityTabBar || { 
-      flexDirection: 'row', 
-      backgroundColor: PersonalityConfigs[primaryTrait]?.theme?.background || '#1a1a1a', 
-      paddingHorizontal: 10,
-      paddingVertical: 10,
+    <View style={{
+      flexDirection: 'row',
+      backgroundColor: '#0a0b0f',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
       borderBottomWidth: 1,
-      borderBottomColor: PersonalityConfigs[primaryTrait]?.theme?.primary || '#4ee6e6',
-      shadowColor: PersonalityConfigs[primaryTrait]?.theme?.primary || '#4ee6e6',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 3
+      borderBottomColor: 'rgba(78, 230, 230, 0.2)',
+      gap: 8,
     }}>
       {tabs.map((tab) => (
         <TouchableOpacity
           key={tab.key}
-          style={[
-            {
-              flex: 1,
-              alignItems: 'center',
-              paddingVertical: 12,
-              paddingHorizontal: 8,
-              borderRadius: 8,
-              marginHorizontal: 2,
-            },
-            activeTab === tab.key && {
-              backgroundColor: PersonalityConfigs[primaryTrait]?.theme?.primary || '#4ee6e6',
-              shadowColor: PersonalityConfigs[primaryTrait]?.theme?.primary || '#4ee6e6',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 3
-            }
-          ]}
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            paddingVertical: 10,
+            paddingHorizontal: 4,
+            borderRadius: 12,
+            backgroundColor: activeTab === tab.key
+              ? 'rgba(78, 230, 230, 0.18)'
+              : 'rgba(255, 255, 255, 0.04)',
+            borderWidth: 1,
+            borderColor: activeTab === tab.key ? '#4ee6e6' : 'rgba(255, 255, 255, 0.08)',
+          }}
           onPress={() => onTabChange(tab.key)}
           activeOpacity={0.7}
         >
-          <Text style={{ 
-            fontSize: 16, 
-            marginBottom: 4,
-            opacity: activeTab === tab.key ? 1 : 0.7
-          }}>
-            {tab.icon}
-          </Text>
-          <Text style={{ 
-            color: activeTab === tab.key ? '#000' : '#fff',
-            fontSize: 10,
-            fontWeight: activeTab === tab.key ? 'bold' : 'normal',
+          <Text style={{
+            color: activeTab === tab.key ? '#dfffff' : '#c7d0e0',
+            fontSize: 13,
+            fontWeight: activeTab === tab.key ? '700' : '500',
             textAlign: 'center'
-          }}>
-            {tab.label}
+          }} numberOfLines={1}>
+            {tab.icon} {tab.label}
           </Text>
         </TouchableOpacity>
       ))}
