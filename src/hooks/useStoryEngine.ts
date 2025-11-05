@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import { useMasterState } from '../context/MasterStateContext';
+import { usePersonality } from '../context/PersonalityContext';
 import { apiService } from '../services/apiService';
+import { getResearchCondition } from '../utils/researchCondition';
 
 interface Passage {
   passage_id: string;
@@ -56,9 +59,32 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const masterState = useMasterState();
+  const { auth, character, wellness } = masterState;
+  const { primaryTrait, isLoading: personalityLoading } = usePersonality();
+
+  // Determine research condition using the utility function
+  // Pass the full masterState so it can find the profile data
+  const researchCondition = getResearchCondition(masterState);
+
+  console.log('🔍 useStoryEngine initialized:', {
+    storyId,
+    chapterId,
+    researchCondition,
+    primaryTrait,
+    personalityLoading,
+    hasAuth: !!auth?.user
+  });
+
   useEffect(() => {
     if (!storyId) {
       setLoading(false);
+      return;
+    }
+
+    // Wait for personality data to load if user is in personality condition
+    if (researchCondition === "personality" && personalityLoading) {
+      console.log('⏳ Waiting for personality data to load...');
       return;
     }
 
@@ -68,12 +94,63 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
       setStoryState(null);
 
       try {
+        // Check if user is allowed to access this story based on research condition
+        console.log('🔍 useStoryEngine: Checking story access', {
+          storyId,
+          researchCondition,
+          primaryTrait
+        });
+
+        let allowedStories: any[] = [];
+        try {
+          if (researchCondition === "personality" && primaryTrait) {
+            console.log('📊 Fetching stories for personality:', primaryTrait);
+            allowedStories = await apiService.getStoriesByPersonality(primaryTrait, true);
+          } else {
+            console.log('📚 Fetching all available stories for character user');
+            allowedStories = await apiService.getAvailableStories();
+          }
+
+          console.log('✅ Allowed stories fetched:', allowedStories.length, 'stories');
+          console.log('📋 Story IDs:', allowedStories.map(s => s.id));
+
+          const allowedStoryIds = allowedStories.map(s => s.id);
+          const hasAccess = allowedStoryIds.includes(Number(storyId));
+
+          console.log('🔐 Access check:', {
+            requestedStoryId: storyId,
+            hasAccess,
+            allowedStoryIds
+          });
+
+          // TEMPORARY: Disable 403 check while debugging
+          if (!hasAccess && allowedStories.length > 0) {
+            console.warn('⚠️ TEMPORARY: Access check disabled - allowing story access anyway');
+            // throw new Error("You do not have access to this story (403 Forbidden).");
+          }
+
+          // If no stories were returned at all, skip the check (might be loading issue)
+          if (allowedStories.length === 0) {
+            console.warn('⚠️ No allowed stories returned - skipping access check');
+          }
+        } catch (accessError: any) {
+          console.error('❌ Error checking story access:', accessError);
+          // Don't block story access if the access check itself fails
+          // This prevents blocking users due to API errors
+          if (accessError.message?.includes('403 Forbidden')) {
+            throw accessError; // Re-throw 403 errors
+          }
+          console.warn('⚠️ Skipping access check due to error');
+        }
+
         // Always use restartStory to get the proper starting passage ID
+        console.log('📡 Calling apiService.restartStory with:', { storyId, chapterId });
         const restartResponse = await retryApiCall(
           () => apiService.restartStory(storyId, chapterId),
           3,
           Platform.OS === 'web' ? 500 : 1000
         );
+        console.log('✅ restartStory response:', restartResponse);
 
         const startingPassageId = restartResponse.starting_passage;
         if (!startingPassageId) {
@@ -94,16 +171,30 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
         setStoryState(initialState);
 
       } catch (err: any) {
+        console.error('❌ Story loading error:', {
+          error: err,
+          status: err?.response?.status,
+          data: err?.response?.data,
+          message: err?.message,
+          storyId,
+          chapterId
+        });
+
         let errorMessage = 'Failed to load story.';
-        
-        if (err.message) {
+        if (err?.response?.status === 403) {
+          // Check if it's a "story already completed" error
+          if (err?.response?.data?.error === 'Story restart not allowed') {
+            errorMessage = err?.response?.data?.message || 'This story has already been completed and cannot be replayed.';
+          } else {
+            errorMessage = 'You do not have permission to access this story.';
+          }
+        } else if (err.message) {
           errorMessage = err.message;
         } else if (err.response) {
           errorMessage = `Network error: ${err.response.status} - ${err.response.statusText}`;
         } else if (err.request) {
           errorMessage = 'Network request failed. Please check your connection.';
         }
-        
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -111,7 +202,7 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
     };
 
     startStoryFlow();
-  }, [storyId, chapterId]);
+  }, [storyId, chapterId, auth.authToken, researchCondition, primaryTrait, personalityLoading]);
 
   const makeChoice = useCallback(async (choice: Choice) => {
     if (loading || !storyId || !choice?.target_id) {

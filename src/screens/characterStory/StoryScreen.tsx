@@ -17,6 +17,7 @@ import { apiService } from '../../services/apiService';
 import { createGlobalStyles } from '../../styles/globalStyles';
 import { Chapter, Choice, Passage, Story } from '../../types/story';
 import { getQuestInfo } from '../../utils/rewardsUtils';
+import { getResearchCondition } from '../../utils/researchCondition';
 import { StoryRewardManager } from '../../utils/storyRewardIntegration';
 interface StoryScreenProps {
   visible: boolean;
@@ -38,7 +39,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   chapter,
   onStoryComplete,
 }) => {
-  const { theme, character } = useMasterState();
+  const masterState = useMasterState();
+  const { theme, character, auth, wellness } = masterState;
   const { primaryTrait, isPersonalityUser, isLoading: personalityLoading } = usePersonality();
   const globalStyles = createGlobalStyles(theme.theme);
   const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(null);
@@ -107,21 +109,10 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
         try {
           const characterId = character.backendCharacter?.id;
           const hasCharacter = characterId && characterId > 0;
-          let researchCondition: "character" | "personality" = "personality";
 
-          // Determine research condition based on user's onboarding choice
-          if (character.userProfileData?.profile?.completion_type) {
-            researchCondition = character.userProfileData.profile.completion_type === "character" ? "character" : "personality";
-          } else {
-            try {
-              const userProfile = await apiService.getProfile();
-              if (userProfile?.profile?.completion_type) {
-                researchCondition = userProfile.profile.completion_type === "character" ? "character" : "personality";
-              }
-            } catch (error) {
-              // Silently handle profile fetch error
-            }
-          }
+          // Determine research condition using the utility function
+          // Pass the full masterState so it can find the profile data
+          const researchCondition = getResearchCondition(masterState);
 
           // For personality users, wait until personality data is loaded
           if (researchCondition === "personality" && personalityLoading) {

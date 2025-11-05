@@ -1,16 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PersonalityConfigs } from '../../constants/personality';
 import { PersonalityKey } from '../../imports';
 import { apiService } from '../../services/apiService';
 import { CodexEntry } from '../../types/journal';
 import RuneBackground from '../../ui/RuneBackground';
+import AudioPlayer from '../AudioPlayer'; // You need to create this
+import DrawingViewer from '../DrawingViewer'; // You need to create this
 
 interface CodexContentProps {
   onClose: () => void;
   onSave: (entry: any) => void;
   onCreateEntry: () => void;
+  onEditEntry?: (entry: any) => void;
   unlockedAreas: string[];
   primaryTrait: PersonalityKey;
 }
@@ -23,6 +26,7 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
   onClose,
   onSave,
   onCreateEntry,
+  onEditEntry,
   unlockedAreas,
   primaryTrait
 }, ref) => {
@@ -190,9 +194,11 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
                         {entry.prompt_text || 'Journal Entry'}
                       </Text>
                       <View style={styles.entryMetaRow}>
-                        <Text style={[styles.entryCategory, { color: `${palette.accent}90` }]}>
-                          {entry.skill_category}
-                        </Text>
+                        {entry.skill_category && (
+                          <Text style={[styles.entryCategory, { color: `${palette.accent}90` }]}>
+                            {entry.skill_category}
+                          </Text>
+                        )}
                         {entry.difficulty && (
                           <View style={[styles.difficultyBadge, {
                             backgroundColor: `${palette.secondary}20`,
@@ -217,9 +223,20 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
               {/* Expanded Content */}
               {isExpanded && (
                 <View style={[styles.expandedContent, { borderTopColor: `${palette.primary}20` }]}>
-                  <Text style={styles.entryContent}>
-                    {entry.content}
-                  </Text>
+                  {/* Render content based on entry type */}
+                  {entry.entry_type === 'draw' ? (
+                    <View style={{ marginBottom: 12 }}>
+                      <DrawingViewer drawingData={entry.content} />
+                    </View>
+                  ) : entry.entry_type === 'voice' ? (
+                    <View style={{ marginBottom: 12 }}>
+                      <AudioPlayer audioUrl={entry.content} />
+                    </View>
+                  ) : (
+                    <Text style={styles.entryContent}>
+                      {entry.content || '(No content)'}
+                    </Text>
+                  )}
 
                   {/* Entry Stats */}
                   <View style={styles.entryStats}>
@@ -227,19 +244,54 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
                       <Text style={styles.statIcon}>📅</Text>
                       <Text style={styles.statText}>{formatDate(entry.created_at || '')}</Text>
                     </View>
-                    {entry.word_count && (
+                    {entry.word_count && entry.word_count > 0 && (
                       <View style={styles.statItem}>
                         <Text style={styles.statIcon}>📊</Text>
                         <Text style={styles.statText}>{entry.word_count} words</Text>
                       </View>
                     )}
-                    {entry.duration_seconds && (
+                    {entry.duration_seconds && entry.duration_seconds > 0 && (
                       <View style={styles.statItem}>
                         <Text style={styles.statIcon}>⏱️</Text>
                         <Text style={styles.statText}>{Math.round(entry.duration_seconds / 60)}m</Text>
                       </View>
                     )}
                   </View>
+                  {/* Edit Button - Only show for journal entries for now */}
+                  {entry.entry_type === 'journal' && onEditEntry && (
+                    <TouchableOpacity
+                      style={{
+                        marginTop: 10,
+                        alignSelf: 'flex-end',
+                        backgroundColor: palette.primary,
+                        borderRadius: 6,
+                        paddingVertical: 6,
+                        paddingHorizontal: 16,
+                      }}
+                      onPress={() => {
+                        // Signal to parent to open CodexModal in edit mode
+                        onEditEntry(entry);
+                      }}
+                    >
+                      <Text style={{ color: '#0a0b0f', fontWeight: 'bold' }}>Edit Entry</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* View-only message for non-text entries */}
+                  {(entry.entry_type === 'draw' || entry.entry_type === 'voice') && (
+                    <View style={{
+                      marginTop: 10,
+                      paddingVertical: 6,
+                      paddingHorizontal: 12,
+                      backgroundColor: `${palette.secondary}20`,
+                      borderRadius: 6,
+                      alignSelf: 'flex-start',
+                    }}>
+                      <Text style={{ color: `${palette.secondary}`, fontSize: 12, fontStyle: 'italic' }}>
+                        {entry.entry_type === 'draw' ? '🎨 Drawing entries are view-only' : '🎤 Voice entries are view-only'}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
             </TouchableOpacity>

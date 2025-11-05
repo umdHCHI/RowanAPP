@@ -71,13 +71,14 @@ const DrawingCanvas = React.forwardRef<{ getStrokes: () => Stroke[] }, DrawingCa
 
     const handleOK = (signature: string) => {
       setDataURL(signature);
-      // For now, we'll store the base64 image as a single stroke
-      // This is simpler than trying to extract individual paths
+      // Store the base64 image data in a special format
+      // We'll include the signature data URL so it can be saved and displayed later
       strokesRef.current = [{
-        points: [],
+        points: [{ x: 0, y: 0 }], // Dummy point to indicate drawing exists
         color: selectedColor,
         width: selectedWidth,
-      }];
+        imageData: signature // Store the actual base64 image data
+      } as any];
       onStrokesChange?.(strokesRef.current);
     };
 

@@ -35,6 +35,7 @@ import {
 import { CodexEntry } from "../../types/journal";
 
 import { apiService } from "../../services/apiService";
+import { getResearchCondition } from "../../utils/researchCondition";
 import ChapterScreen from "./ChapterScreen";
 import StoryScreen from "./StoryScreen";
 
@@ -492,10 +493,12 @@ const ArchiveInterface: React.FC = () => {
       ];
     }
     
-    const completionType = userProfile?.completion_type || (normalizedBackendCharacter as any)?.completion_type;
+    // Determine user type based on research condition
+    // Pass profile directly since we have it in this context
+    const researchCondition = getResearchCondition({ profile: userProfile });
     const hasCompletionDataId = !!(userProfile?.completion_data_id || (normalizedBackendCharacter as any)?.completion_data_id);
-    
-    if (completionType === 'character' && hasCompletionDataId && !normalizedBackendCharacter && !backendCharacterData) {
+
+    if (researchCondition === 'character' && hasCompletionDataId && !normalizedBackendCharacter && !backendCharacterData) {
       return [
         { 
           icon: "🧘", 

@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import { apiService } from "../services/apiService"; // Fixed import for apiService
+import { getResearchCondition } from "../utils/researchCondition";
 import { useAuth } from "./AuthContext";
 import { useMasterState } from "./MasterStateContext";
 
@@ -548,7 +549,8 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
   children,
 }) => {
   const { authToken } = useAuth();
-  const { onboarding } = useMasterState();
+  const masterState = useMasterState();
+  const { auth, onboarding, character, wellness } = masterState;
 
   // Core state
   const [userType, setUserType] = useState<UserType>("unknown");
@@ -589,9 +591,13 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
           return;
         }
 
-        // Check if user is assigned to personality path
-        if (onboarding.assignedPath !== "survey") {
-          setUserType("character");
+        // Determine user type based on research condition
+        // Pass the full masterState so it can find the profile data
+        const researchCondition = getResearchCondition(masterState);
+        setUserType(researchCondition);
+
+        // If user is in character condition, no need to fetch personality data
+        if (researchCondition === "character") {
           setIsLoading(false);
           return;
         }

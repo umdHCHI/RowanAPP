@@ -98,6 +98,7 @@ import { Character, CharacterGear, CodexEntry, CopingTool, EquipmentItem, Equipm
 import { getRarityColors, mapBackendGearToSubtype, mapBackendSlotToFrontendType, mapBackendStatsToWellnessStats } from "../types/equipment";
 import { ThoughtDefenderRunDTO, ThoughtDefenderRunResponse } from "../types/thoughtDefender";
 import { CategoryConfig, createCharacterCreatorCategories, UserProfile } from "../types/user";
+import { getResearchCondition } from "../utils/researchCondition";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
 
@@ -2192,13 +2193,11 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
         }
       }
       
-      // Check if this is a character user or personality user based on completion_type AND personality profile
-      const completionType = profile?.completion_type;
-      const hasPersonalityProfile = profile?.personality_profile?.profile_summary?.dominant_trait;
-      
-      // If user has a personality profile, they should be treated as a personality user
-      // regardless of what completion_type says (backend might be wrong)
-      const isCharacterUser = completionType === 'character' && !hasPersonalityProfile;
+      // Determine user type based on research condition
+      // Use the utility function to check research_group.condition (A = character, B = personality)
+      // Pass profile directly since we have it in this context
+      const researchCondition = getResearchCondition({ profile });
+      const isCharacterUser = researchCondition === 'character';
       
       
       // Create unified HomeData structure for both user types

@@ -594,8 +594,9 @@ class ApiService {
             
             if (isNetworkError) {
                 console.warn('⚠️ Network error detected, returning mock profile for development');
-                
+
                 // Create a mock user profile for web platform
+                // Use research_group.condition logic: A for character path, B for survey path
                 const researchCondition = path === 'character' ? 'A' : 'B';
                 const mockProfile: UserProfile = {
                     id: 1,
@@ -870,11 +871,13 @@ class ApiService {
     
     /**
      * Check if user has completed the personality survey
+     * Checks research_group.condition to determine if user is in personality (B) group
      */
     async hasSurveyBeenCompleted(): Promise<boolean> {
         try {
             const profile = await this.getProfile();
-            return profile?.profile?.completion_type === 'survey';
+            // Check if user is in research condition B (personality/survey path)
+            return profile?.profile?.research_group?.condition === 'B';
         } catch (error) {
 
             return false;

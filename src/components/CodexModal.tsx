@@ -30,7 +30,8 @@ const CodexModal = ({
   onSave,
   isFullScreen = false,
   selectedType = 'journal',
-}: CodexModalProps & { isFullScreen?: boolean }) => {
+  editingEntry,
+}: CodexModalProps & { isFullScreen?: boolean; editingEntry?: any }) => {
   const { wellness, archive, theme, character, auth } = useMasterState();
   const globalStyles = createGlobalStyles(theme.theme);
 
@@ -62,6 +63,42 @@ const CodexModal = ({
   useEffect(() => {
     setSelectedTypeState(selectedType);
   }, [selectedType]);
+
+  // Load editing entry data when modal opens in edit mode
+  useEffect(() => {
+    if (visible && editingEntry) {
+      setSelectedTypeState(editingEntry.entry_type || editingEntry.type || 'journal');
+      setpassages(editingEntry.content || '');
+
+      // If there's a prompt associated, try to set it
+      if (editingEntry.prompt_text) {
+        const matchingPrompt = wellness.categoryPrompts[editingEntry.entry_type || 'journal'];
+        if (matchingPrompt) {
+          setSelectedPrompt(matchingPrompt);
+        } else {
+          // Create a temporary prompt object from the entry data
+          setSelectedPrompt({
+            id: editingEntry.prompt || 0,
+            prompt_id: editingEntry.prompt_id || '',
+            text: editingEntry.prompt_text,
+            category: editingEntry.entry_type || 'journal',
+            skill_category: editingEntry.skill_category || 'General',
+            map_area: editingEntry.mapArea || 'entrance',
+            difficulty: editingEntry.difficulty || 'Beginner',
+            is_active: false,
+            requires_story: null,
+            unlocked_after_entries: 0,
+            created_at: editingEntry.created_at || '',
+            updated_at: editingEntry.updated_at || '',
+          } as JournalPrompt);
+        }
+      }
+    } else if (visible && !editingEntry) {
+      // Reset form when opening for new entry
+      setpassages('');
+      setDrawingPaths([]);
+    }
+  }, [visible, editingEntry]);
 
   useEffect(() => {
     if (visible) {
@@ -186,6 +223,7 @@ const CodexModal = ({
   const handleSave = async () => {
     if (selectedPrompt && hasContent) {
       try {
+        const isEditing = !!editingEntry;
         let contentToSave = passages;
         let entryType = selectedTypeState;
 
@@ -227,64 +265,86 @@ const CodexModal = ({
         }
 
         try {
-          const existingEntries = await apiService.getCodexEntriesByPrompt(selectedPrompt.id);
           let saveResult;
-          
-          if (existingEntries.length > 0) {
-            saveResult = await apiService.updateCodexEntry((existingEntries[0] as any).id, {
+
+          if (isEditing && editingEntry.id) {
+            // Update existing entry
+            saveResult = await apiService.updateCodexEntry(editingEntry.id, {
               content: contentToSave,
               entry_type: selectedTypeState
             });
           } else {
-            saveResult = await wellness.quickJournalEntry(selectedPrompt.id, contentToSave, selectedTypeState);
+            // Check if entry already exists for this prompt
+            const existingEntries = await apiService.getCodexEntriesByPrompt(selectedPrompt.id);
+
+            if (existingEntries.length > 0) {
+              saveResult = await apiService.updateCodexEntry((existingEntries[0] as any).id, {
+                content: contentToSave,
+                entry_type: selectedTypeState
+              });
+            } else {
+              saveResult = await wellness.quickJournalEntry(selectedPrompt.id, contentToSave, selectedTypeState);
+            }
           }
-          
+
           try {
-            const journalReward = calculateJournalRewards(
-              selectedTypeState,
-              selectedPrompt.skill_category,
-              selectedPrompt.difficulty
-            );
-            
-            if (journalReward.experience > 0) {
-              await character.gainExperience(journalReward.experience, `journal_${selectedTypeState}`);
-            }
-            
-            if (Object.keys(journalReward.wellnessStats).length > 0) {
-              const idFromContext = character.backendCharacter?.id ?? character.userProfileData?.character?.id;
-              if (!idFromContext) throw new Error('No character id to award wellness');
-              
-              await apiService.gainWellness(idFromContext, journalReward.wellnessStats);
-              
-              try {
-                await wellness.loadHomeData?.();
-              } catch {
+            // Only give rewards for new entries, not edits
+            if (!isEditing) {
+              const journalReward = calculateJournalRewards(
+                selectedTypeState,
+                selectedPrompt.skill_category,
+                selectedPrompt.difficulty
+              );
+
+              if (journalReward.experience > 0) {
+                await character.gainExperience(journalReward.experience, `journal_${selectedTypeState}`);
               }
+
+              if (Object.keys(journalReward.wellnessStats).length > 0) {
+                const idFromContext = character.backendCharacter?.id ?? character.userProfileData?.character?.id;
+                if (!idFromContext) throw new Error('No character id to award wellness');
+
+                await apiService.gainWellness(idFromContext, journalReward.wellnessStats);
+
+                try {
+                  await wellness.loadHomeData?.();
+                } catch {
+                }
+              }
+
+              let rewardMessage = journalReward.message;
+              if (journalReward.experience > 0) {
+                rewardMessage += ` +${journalReward.experience} XP`;
+              }
+
+              const wellnessGainText = Object.entries(journalReward.wellnessStats)
+                .map(([stat, value]) => `${stat.charAt(0).toUpperCase() + stat.slice(1)} +${value}`)
+                .join(', ');
+
+              if (wellnessGainText) {
+                rewardMessage += ` | ${wellnessGainText}`;
+              }
+
+              setRewardNotification({
+                visible: true,
+                message: rewardMessage,
+                type: 'experience',
+                icon: '⭐'
+              });
+            } else {
+              // For edits, just show a success message
+              Alert.alert(
+                "Entry Updated",
+                "Your journal entry has been successfully updated.",
+                [{ text: "OK" }]
+              );
             }
-            
-            let rewardMessage = journalReward.message;
-            if (journalReward.experience > 0) {
-              rewardMessage += ` +${journalReward.experience} XP`;
-            }
-            
-            const wellnessGainText = Object.entries(journalReward.wellnessStats)
-              .map(([stat, value]) => `${stat.charAt(0).toUpperCase() + stat.slice(1)} +${value}`)
-              .join(', ');
-            
-            if (wellnessGainText) {
-              rewardMessage += ` | ${wellnessGainText}`;
-            }
-            
-            setRewardNotification({
-              visible: true,
-              message: rewardMessage,
-              type: 'experience',
-              icon: '⭐'
-            });
           } catch {
             Alert.alert(
-              "Entry Saved",
-              "Your journal entry has been saved, but there was an issue applying rewards.",
+              isEditing ? "Entry Updated" : "Entry Saved",
+              isEditing
+                ? "Your journal entry has been updated."
+                : "Your journal entry has been saved, but there was an issue applying rewards.",
               [{ text: "OK" }]
             );
           }
@@ -321,7 +381,8 @@ const CodexModal = ({
         }
 
         try {
-          if (selectedPrompt?.id) {
+          // Only mark prompt as inactive for new entries, not edits
+          if (!isEditing && selectedPrompt?.id) {
             await wellness.markPromptInactive(selectedPrompt.id);
           }
         } catch {

@@ -173,6 +173,7 @@ const TUTORIAL_STEPS = [
   const [activeTab, setActiveTab] = useState("entrance");
   const [showCodexModal, setShowCodexModal] = useState(false);
   const [showThoughtDefenderModal, setShowThoughtDefenderModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any>(null);
   const codexContentRef = useRef<CodexContentRef>(null);
   
   const handleTabChange = (tab: string) => {
@@ -428,7 +429,14 @@ const TUTORIAL_STEPS = [
                 setActiveTab('entrance');
               }}
               onSave={(entry: any) => {}}
-              onCreateEntry={() => setShowCodexModal(true)}
+              onCreateEntry={() => {
+                setEditingEntry(null);
+                setShowCodexModal(true);
+              }}
+              onEditEntry={(entry: any) => {
+                setEditingEntry(entry);
+                setShowCodexModal(true);
+              }}
               unlockedAreas={['journal', 'draw', 'voice']}
               primaryTrait={primaryTrait}
             />
@@ -567,9 +575,11 @@ const TUTORIAL_STEPS = [
         visible={showCodexModal}
         onClose={() => {
           setShowCodexModal(false);
+          setEditingEntry(null);
         }}
         onSave={async (entry: any) => {
           setShowCodexModal(false);
+          setEditingEntry(null);
           if (codexContentRef.current) {
             try {
               await codexContentRef.current.refreshEntries();
@@ -578,7 +588,8 @@ const TUTORIAL_STEPS = [
             }
           }
         }}
-        selectedType="journal"
+        selectedType={editingEntry?.entry_type || "journal"}
+        editingEntry={editingEntry}
       />
 
       <ThoughtDefenderModal
