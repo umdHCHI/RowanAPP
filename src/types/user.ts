@@ -1,4 +1,6 @@
 import { PersonalityTrait } from '../imports';
+import { GearType } from './equipment';
+import { StoryProgress } from './story';
 export interface LoginResponse {
     token: string;
     user: {
@@ -98,7 +100,7 @@ export interface UserProfile {
         selected_background_color: number;
         personality_traits: any[];
         coping_tools: any[];
-        equipped_gear: any[];
+        equipped_gear: EquippedGear[];
         wellness_stats: Array<{
             icon: string;
             label: string;
@@ -151,15 +153,16 @@ export interface UserProfile {
         selected_background_color: number;
     };
     
-    equipped_gear?: any[];
-    recent_reflections?: any[];
+    equipped_gear?: EquippedGear[];
+    recent_reflections?: RecentReflection[];
     archive_metrics?: Array<{
         icon: string;
         label: string;
         value: string;
         progress: number;
     }>;
-    
+    quest_progress?: QuestProgress[];
+
     profile: {
         research_group?: {
             id: number;
@@ -226,25 +229,40 @@ export interface UserProfile {
     story_progress?: StoryProgress[];
 }
 
-export interface StoryProgress {
+export interface EquippedGear {
     id: number;
-    user: number;
-    user_username: string;
-    story: number;
-    story_title: string;
-    story_category: string;
-    current_passage_id: string;
-    passages_visited: string[];
-    passages_visited_count: number;
-    choices_made: any[];
-    choices_made_count: number;
-    story_variables: Record<string, any>;
+    character: number;
+    gear_type: GearType;
+    is_equipped: boolean;
+    acquired_at: string;
+}
+
+export interface RecentReflection {
+    id: number;
+    character: string;
+    entry_type: string;
+    title: string;
+    content: string;
+    prompt: string;
+    skill_category: string;
+    map_area: string;
+    difficulty: string;
+    wellness_gains: Record<string, any>;
+    tools_unlocked: any[];
+    created_at: string;
+}
+
+export interface QuestProgress {
+    id: number;
+    quest: {
+        quest_id: string;
+        title: string;
+        description: string;
+        total_steps: number;
+        personality_focus: string;
+    };
+    progress: number;
     is_completed: boolean;
-    completion_type: string;
-    started_at: string;
-    last_played: string;
-    completed_at: string | null;
-    progress_percentage: number;
 }
 
 export interface ResearchGroup {
@@ -325,6 +343,20 @@ export interface GameData {
     wellness_stats: Record<string, any>;
     acquired_gear: any[];
     coping_tools: any[];
+    thought_defender_stats?: {
+        total_games: number;
+        total_wins: number;
+        total_losses: number;
+        highest_score: number;
+        highest_level: number;
+        total_waves_cleared: number;
+        average_accuracy: number;
+        total_shots_fired: number;
+        total_hits: number;
+        total_survival_time_ms: number;
+        difficulties_played: string[];
+        last_played?: string;
+    };
 }
 
 
@@ -363,7 +395,7 @@ export interface Character {
     selected_background_color?: number; // color index for background
     personality_traits?: any[]; // Array from API response
     coping_tools?: any[]; // Array from API response
-    equipped_gear?: any[]; // Array from API response
+    equipped_gear?: EquippedGear[]; // Array from API response
     wellness_average?: number; // Computed field from API
     memory_progress?: string; // String format like "0/5" from API
     wellness_stats?: Array<{

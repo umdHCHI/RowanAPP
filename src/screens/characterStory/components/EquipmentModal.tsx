@@ -11,8 +11,65 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { equipmentIcons } from "../assets/equipment";
-import { CharacterGear, EquipmentItem, EquippedItems, mapBackendGearToSubtype, mapBackendSlotToFrontendType, mapBackendStatsToWellnessStats } from "../types/equipment";
+import { equipmentIcons } from "../../../assets/equipment";
+import { CharacterGear, EquipmentItem, EquipmentType, EquippedItems } from '../../../types/index';
+
+
+
+
+
+// Helper functions (if they don't exist in the types file)
+export const mapBackendSlotToFrontendType = (slot: string): EquipmentType => {
+  const mapping: Record<string, EquipmentType> = {
+    weapon: 'focus',
+    armor: 'comfort',
+    helmet: 'shield',
+    boots: 'ground',
+  };
+  return mapping[slot] || 'focus';
+};
+
+export const mapBackendStatsToWellnessStats = (statBonuses: Record<string, number>): { awareness?: number; resilience?: number; connection?: number; balance?: number; } => {
+  return Object.entries(statBonuses).reduce((acc, [key, value]) => {
+    if (['awareness', 'resilience', 'connection', 'balance'].includes(key)) {
+      (acc as any)[key] = value;
+    }
+    return acc;
+  }, {} as { awareness?: number; resilience?: number; connection?: number; balance?: number; });
+};
+
+export const mapBackendGearToSubtype = (name: string, slot: string): string => {
+  const nameLower = name.toLowerCase();
+  
+  switch (slot) {
+    case 'weapon':
+      if (nameLower.includes('scroll') || nameLower.includes('stillness')) return 'scroll';
+      if (nameLower.includes('breathing') || nameLower.includes('breath')) return 'breathing';
+      if (nameLower.includes('journal') || nameLower.includes('notebook')) return 'journaling';
+      return 'meditation';
+      
+    case 'armor':
+      if (nameLower.includes('social') || nameLower.includes('friend') || nameLower.includes('style')) return 'social';
+      if (nameLower.includes('hobby') || nameLower.includes('activity')) return 'hobby';
+      if (nameLower.includes('nature') || nameLower.includes('outdoor')) return 'nature';
+      return 'social';
+      
+    case 'helmet':
+      if (nameLower.includes('boundary') || nameLower.includes('limit')) return 'boundary';
+      if (nameLower.includes('affirmation') || nameLower.includes('positive')) return 'affirmation';
+      if (nameLower.includes('routine') || nameLower.includes('habit')) return 'routine';
+      return 'boundary';
+      
+    case 'boots':
+      if (nameLower.includes('exercise') || nameLower.includes('movement')) return 'exercise';
+      if (nameLower.includes('sleep') || nameLower.includes('rest')) return 'sleep';
+      if (nameLower.includes('nutrition') || nameLower.includes('food')) return 'nutrition';
+      return 'exercise';
+      
+    default:
+      return 'meditation';
+  }
+};
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isMobile = screenWidth < 768;
@@ -155,11 +212,11 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       id: gear.id.toString(),
       name: gear.gear_type.name,
       type: mapBackendSlotToFrontendType(gear.gear_type.slot),
-      subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot),
+      subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot) as any,
       description: gear.gear_type.description,
       unlockCondition: 'Unlocked through story completion',
       wellnessStats: wellnessStats,
-      effect: `Provides ${Object.entries(wellnessStats).map(([stat, value]) => value > 0 ? `${stat} +${value}` : '').filter(Boolean).join(', ')}`,
+      effect: `Provides ${Object.entries(wellnessStats).map(([stat, value]) => (value as number) > 0 ? `${stat} +${value}` : '').filter(Boolean).join(', ')}`,
       rarity: 'common',
       level: 1
     };
@@ -215,7 +272,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
             <View style={styles.statsContainer}>
               <Text style={styles.statsTitle}>Bonuses:</Text>
               {Object.entries(item.wellnessStats).map(([stat, value]) =>
-                value ? <View key={stat}>{renderStat(stat, value)}</View> : null
+                value ? <View key={stat}>{renderStat(stat, value as number)}</View> : null
               )}
             </View>
           )}
@@ -264,14 +321,14 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
     </View>
   );
 
-  const gearBySlot = backendGear.reduce((acc, gear) => {
+  const gearBySlot = backendGear.reduce<Record<string, CharacterGear[]>>((acc, gear) => {
     const slot = gear.gear_type.slot;
     if (!acc[slot]) {
       acc[slot] = [];
     }
     acc[slot].push(gear);
     return acc;
-  }, {} as Record<string, CharacterGear[]>);
+  }, {});
 
   const getSlotTitle = (slot: string) => {
     switch (slot) {

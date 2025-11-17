@@ -447,6 +447,10 @@ class ApiService {
                 completion_data_id: full?.profile?.completion_data_id,
                 has_completed_onboarding: full?.profile?.has_completed_onboarding,
 
+                // IMPORTANT: Include the full profile object with research_group
+                // This is needed for research condition determination
+                profile: full?.profile ?? null,
+
                 // ensure .character is populated (UI checks userProfile.character)
                 character: character ?? null,
 
@@ -458,12 +462,10 @@ class ApiService {
 
                 // pass through anything else you need (personality, etc.)
                 personality_profile: user?.personality_profile ?? null,
-                
+
                 // Include quest progress for personality users
                 quest_progress: full?.quest_progress ?? [],
             };
-
-
 
             return normalized;
 
@@ -712,75 +714,6 @@ class ApiService {
   //      return sorted[0][0];
    // }
 
-    /**
-     * Complete the character creator onboarding flow (Research Condition A)
-     * This combines character creation + onboarding completion
-     */
-    async completeCharacterOnboarding(characterData: Character): Promise<{
-        characterResult: Character;
-        onboardingResult: UserProfile;
-    }> {
-        try {
-            
-            
-            // Validate that character data includes the name
-            if (!characterData.name || characterData.name.trim() === '') {
-                throw new Error('Character name is required for character creation');
-            }
-            
-            // Ensure we have all necessary character customization data
-            const completeCharacterData: Character = {
-                id: characterData.id || 0, // Use 0 for new characters
-                experience_needed: characterData.experience_needed || 100, // Default experience needed
-
-                name: characterData.name,
-                // Visual customization data
-                selected_base_model: characterData.selected_base_model || 1,
-                selected_skin_color: characterData.selected_skin_color || 1,
-                selected_hair_style: characterData.selected_hair_style || 1,
-                selected_hair_color: characterData.selected_hair_color || 1,
-                selected_eye_type: characterData.selected_eye_type || 1,
-                selected_eye_color: characterData.selected_eye_color || 1,
-                selected_eyebrow_style: characterData.selected_eyebrow_style || 1,
-                selected_eyebrow_color: characterData.selected_eyebrow_color || 1,
-                selected_mouth_type: characterData.selected_mouth_type || 1,
-                selected_shirt_type: characterData.selected_shirt_type || 1,
-                selected_background_type: characterData.selected_background_type || 1,
-                user: 0,
-                level: 0,
-                experience: 0,
-                awareness: 0,
-                resilience: 0,
-                connection: 0,
-                balance: 0,
-                coins: 0,
-                crystals: 0,
-                memories_explored: 0,
-                coping_skills_learned: 0,
-                insights_discovered: 0,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-            
-    
-            
-            // First create the character
-            const characterResult = await this.createCharacter(completeCharacterData);
-    
-            
-            // Then complete the onboarding
-            const onboardingResult = await this.completeOnboarding('character');
-
-            
-            return {
-                characterResult,
-                onboardingResult
-            };
-        } catch (error: any) {
-
-            throw error;
-        }
-    }
 
     // ===== ONBOARDING VERIFICATION METHODS =====
     
@@ -3033,6 +2966,36 @@ class ApiService {
     }
 
     /**
+     * Fetch a specific chapter's details
+     */
+    async getChapterDetails(storyId: number | string, chapterId: number): Promise<any> {
+        try {
+            const chapter = await this.get<any>('storyChapters', { 
+                urlSuffix: `${storyId}/chapters/${chapterId}/` 
+            });
+            return chapter;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Restart a specific chapter
+     */
+    async restartChapter(storyId: number | string, chapterId: number): Promise<any> {
+        try {
+            const response = await this.post<any>('storyChapters', {}, { 
+                urlSuffix: `${storyId}/chapters/${chapterId}/restart/` 
+            });
+            return response;
+        } catch (error) {
+            // Fallback: if chapter-specific restart doesn't exist, 
+            // try the story restart with chapter_id parameter
+            return this.restartStory(storyId, chapterId);
+        }
+    }
+
+    /**
      * Fetch a specific passage by ID
      * Returns the new API response structure:
      * {
@@ -3044,18 +3007,9 @@ class ApiService {
      */
     async getPassage(storyId: number, passageId: string): Promise<any> {
         try {
-
-
-
-
-
-
-            
             const response = await this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${passageId}/` });
-
             return response;
         } catch (error) {
-
             throw error;
         }
     }

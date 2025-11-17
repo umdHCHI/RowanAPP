@@ -20,6 +20,7 @@ export {
 export {
   createContext, useCallback, useContext,
   useEffect,
+  useMemo,
   useState
 } from 'react';
 export type { ReactNode } from 'react';
@@ -47,15 +48,15 @@ export {
 
 
 // ===== Components =====
-export { default as AssetLabel } from './components/AssetLabel';
+
 export { default as CharacterFrame } from './components/CharacterCreator/CharacterFrame';
 export { default as CharacterPreview } from './components/CharacterCreator/CharacterPreview';
-export { default as CodexModal } from './components/CodexModal';
-export { default as DrawingCanvas } from './components/DrawingCanvas';
-export { default as EquipmentModal } from './components/EquipmentModal';
-export { default as FloatingIcon } from './components/FloatingIcon';
 export { default as PersonalizedArchiveHeader } from './components/personality/PersonalizedArchiveHeader';
-export { default as ThoughtDefenderModal } from './components/ThoughtDefenderModal';
+export { default as FloatingIcon } from './components/rewards/FloatingIcon';
+export { default as CodexModal } from './components/shared/CodexModal';
+export { default as DrawingCanvas } from './components/shared/DrawingCanvas';
+export { default as ThoughtDefenderModal } from './components/shared/ThoughtDefenderModal';
+export { default as EquipmentModal } from './screens/characterStory/components/EquipmentModal';
 
 // ===== Character Creator Components =====
 export { CategorySelector } from './components/CharacterCreator/CategorySelector';
@@ -63,7 +64,7 @@ export { CharacterNameInput } from './components/CharacterCreator/CharacterNameI
 export { CharacterPreviewSection } from './components/CharacterCreator/CharacterPreviewSection';
 export { ColorOptionControls } from './components/CharacterCreator/ColorOptionControls';
 export { StyleControls } from './components/CharacterCreator/StyleControls';
-export { default as FloatingElement } from './components/FloatingElement';
+export { default as FloatingElement } from './components/rewards/FloatingElement';
 export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Assets =====
@@ -82,7 +83,6 @@ export {
 } from './assets';
 
 // ===== Data =====
-export { sampleInventory } from './data/sampleEquipment';
 export { PersonalityQuests } from './types/personality';
 
 // ===== Constants =====

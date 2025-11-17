@@ -536,36 +536,54 @@ export function createNotificationFromEffects(
     statName?: string;
   }> = [];
 
-  // Map stat names to frontend display names and icons
-  const statDisplayNames: Record<string, string> = {
-    'awareness': 'Exploration',
-    'exploration': 'Exploration',
-    'resilience': 'Courage',
-    'courage': 'Courage',
-    'connection': 'Connection',
-    'balance': 'Fear',
-    'fear': 'Fear'
-  };
+  console.log('📊 [createNotificationFromEffects] Called with researchCondition:', researchCondition);
+  console.log('📊 [createNotificationFromEffects] Effects:', effects);
+
+  // Map stat names to frontend display names based on research condition
+  // Character users: awareness->Exploration, resilience->Courage, balance->Fear (reverse mapping)
+  // Personality users: exploration->Awareness, courage->Resilience, fear->Balance
+  const statDisplayNames: Record<string, string> = researchCondition === 'personality'
+    ? {
+        // Personality users see mapped names
+        'exploration': 'Awareness',
+        'courage': 'Resilience',
+        'fear': 'Balance',
+        'awareness': 'Awareness',
+        'resilience': 'Resilience',
+        'connection': 'Connection',
+        'balance': 'Balance'
+      }
+    : {
+        // Character users see reverse mapping (backend sends personality names)
+        'exploration': 'Exploration',
+        'courage': 'Courage',
+        'fear': 'Fear',
+        'awareness': 'Exploration',  // Backend sends awareness -> show Exploration
+        'resilience': 'Courage',     // Backend sends resilience -> show Courage
+        'connection': 'Connection',
+        'balance': 'Fear'            // Backend sends balance -> show Fear
+      };
 
   const statIcons: Record<string, string> = {
     'awareness': '🧘',
-    'resilience': '💚',
+    'resilience': '💪',
     'connection': '🤝',
     'balance': '⚖️',
     'exploration': '🧘',
-    'courage': '💚',
+    'courage': '💪',
     'fear': '⚖️'
   };
 
-  // Map stat names to image assets (for character users)
+  // Map stat names to image assets (for character users only)
+  // Backend sends personality stat names, so we map them to character images
   const statImages: Record<string, any> = {
-    'awareness': uiIcons.sectionIcons.exploration,
-    'resilience': uiIcons.sectionIcons.courage,
-    'connection': uiIcons.sectionIcons.balance,
-    'balance': uiIcons.sectionIcons.fear,
     'exploration': uiIcons.sectionIcons.exploration,
     'courage': uiIcons.sectionIcons.courage,
-    'fear': uiIcons.sectionIcons.fear
+    'fear': uiIcons.sectionIcons.fear,
+    'awareness': uiIcons.sectionIcons.exploration,   // Backend sends awareness -> use exploration image
+    'resilience': uiIcons.sectionIcons.courage,      // Backend sends resilience -> use courage image
+    'connection': uiIcons.sectionIcons.connection,   // Connection uses its own image
+    'balance': uiIcons.sectionIcons.fear             // Backend sends balance -> use fear image
   };
 
   const rewardType = getRewardType(researchCondition);
@@ -578,21 +596,24 @@ export function createNotificationFromEffects(
     }
     
     const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
-    if (!isNaN(numValue) && numValue > 0) {
+    if (!isNaN(numValue) && numValue !== 0) {  // Changed from numValue > 0 to support negative values
       if (key === 'experience' || key === 'resonance') {
-        const rewardLabel = key === 'experience' ? 'Experience' : 'Resonance';
+        const rewardLabel = key === 'experience' ? 'Lumens' : 'Resonance';
         const icon = key === 'experience' ? '⭐' : '🌟';
+        const sign = numValue > 0 ? '+' : '';  // Add sign prefix
         notifications.push({
-          message: `+${numValue} ${rewardLabel}`,
+          message: `${sign}${numValue} ${rewardLabel}`,
           type: key as 'experience' | 'resonance',
           icon: icon
         });
       } else {
         const displayName = statDisplayNames[key] || key.charAt(0).toUpperCase() + key.slice(1);
         const icon = statIcons[key] || '✨';
-        const iconImage = researchCondition === 'character' ? statImages[key] : undefined;
+        // Character users should always see image icons, regardless of stat name sent by backend
+        const iconImage = researchCondition === 'character' && statImages[key] ? statImages[key] : undefined;
+        const sign = numValue > 0 ? '+' : '';  // Add sign prefix
         notifications.push({
-          message: `+${numValue} ${displayName}`,
+          message: `${sign}${numValue} ${displayName}`,
           type: 'stat',
           icon: icon,
           iconImage: iconImage,
@@ -615,7 +636,7 @@ export function createNotificationFromEffects(
   }
   
   if (rewardGain > 0 && !notifications.some(n => n.type === rewardType)) {
-    const rewardLabel = rewardType === 'experience' ? 'Experience' : 'Resonance';
+    const rewardLabel = rewardType === 'experience' ? 'Lumens' : 'Resonance';
     const icon = rewardType === 'experience' ? '⭐' : '🌟';
     notifications.push({
       message: `+${rewardGain} ${rewardLabel}`,
@@ -628,14 +649,16 @@ export function createNotificationFromEffects(
   if (effects.stats) {
     Object.entries(effects.stats).forEach(([stat, value]) => {
       if (stat === 'experience') return;
-      
+
       const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
-      if (!isNaN(numValue) && numValue > 0) {
+      if (!isNaN(numValue) && numValue !== 0) {  // Changed from numValue > 0 to support negative values
         const displayName = statDisplayNames[stat] || stat.charAt(0).toUpperCase() + stat.slice(1);
         const icon = statIcons[stat] || '✨';
-        const iconImage = researchCondition === 'character' ? statImages[stat] : undefined;
+        // Character users should always see image icons, regardless of stat name sent by backend
+        const iconImage = researchCondition === 'character' && statImages[stat] ? statImages[stat] : undefined;
+        const sign = numValue > 0 ? '+' : '';  // Add sign prefix
         notifications.push({
-          message: `+${numValue} ${displayName}`,
+          message: `${sign}${numValue} ${displayName}`,
           type: 'stat',
           icon: icon,
           iconImage: iconImage,
@@ -885,9 +908,9 @@ export const calculateLevelProgress = (
 // Format reward message for display
 export const formatRewardMessage = (reward: JournalReward, levelsGained: number = 0): string => {
   let message = reward.message;
-  
+
   if (reward.experience > 0) {
-    message += `\n\n✨ +${reward.experience} Experience`;
+    message += `\n\n✨ +${reward.experience} Lumens`;
   }
   
   if (levelsGained > 0) {
@@ -1022,13 +1045,13 @@ export const calculateMiniGameLevelProgress = (
 
 // Format ThoughtDefender reward message for display
 export const formatThoughtDefenderRewardMessage = (
-  reward: ThoughtDefenderReward, 
+  reward: ThoughtDefenderReward,
   levelsGained: number = 0
 ): string => {
   let message = reward.message;
-  
+
   if (reward.experience > 0) {
-    message += `\n\n✨ +${reward.experience} Experience`;
+    message += `\n\n✨ +${reward.experience} Lumens`;
   }
   
   if (levelsGained > 0) {
@@ -1144,7 +1167,7 @@ export const createThoughtDefenderNotifications = (
   
   if (reward.experience > 0) {
     notifications.push({
-      message: `+${reward.experience} Experience`,
+      message: `+${reward.experience} Lumens`,
       type: 'experience'
     });
   }

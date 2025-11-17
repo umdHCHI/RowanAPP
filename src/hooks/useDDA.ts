@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AsyncStorage } from '../imports';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   BaselinePerformance,
   DDAConfig,

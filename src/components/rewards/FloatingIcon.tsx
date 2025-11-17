@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image } from 'react-native';
-import { uiIcons } from '../assets';
+import { uiIcons } from '../../assets';
 
 interface FloatingIconProps {
   assetType?: keyof typeof uiIcons;

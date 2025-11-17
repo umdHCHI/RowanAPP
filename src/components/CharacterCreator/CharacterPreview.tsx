@@ -45,8 +45,8 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
   return (
     <View style={[styles.previewContainer, { width: sizes.PREVIEW_WIDTH, height: sizes.PREVIEW_HEIGHT }]}> 
       {/* Background layer */}
-      <Image 
-        source={background} 
+      <Image
+        source={background}
         style={[
           styles.baseLayer,
           {
@@ -54,9 +54,8 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
             height: sizes.BACKGROUND_HEIGHT,
             top: OFFSET,
             left: OFFSET,
-            resizeMode: "cover", 
           }
-        ]} 
+        ]}
       />
       <Image 
         source={baseAsset} 
@@ -72,7 +71,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
       />
       {/* Clothes layer */}
       {clothesSheet && (
-        <Image 
+        <Image
           source={clothesSheet}
           style={[
             styles.clothesLayer,
@@ -81,7 +80,6 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
               height: sizes.CLOTHES_HEIGHT,
               top: OFFSET,
               left: OFFSET,
-              resizeMode: "contain",
             }
           ]}
         />

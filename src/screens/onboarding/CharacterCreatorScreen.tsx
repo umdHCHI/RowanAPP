@@ -1,5 +1,5 @@
 import { createCharacterCreatorStyles } from "@/src/styles/screens/characterCreator";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -8,9 +8,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import FloatingElement from "../../components/FloatingElement";
+import FloatingElement from "../../components/rewards/FloatingElement";
 import {
-  AssetLabel,
   CHARACTER_CREATOR_CONSTANTS,
   CharacterNameInput,
   CharacterPreviewSection,
@@ -21,6 +20,8 @@ import {
   useMasterState
 } from "../../imports";
 
+import { AssetLabel } from "../../context/modules/index";
+
 const { width, height } = Dimensions.get('window');
 
 export default function ArchiveCharacterCreatorScreen() {
@@ -30,12 +31,24 @@ export default function ArchiveCharacterCreatorScreen() {
 
   const { styleCategories, colorCategories } = character;
 
+  // Load existing character data on mount
+  useEffect(() => {
+    const loadExistingCharacter = async () => {
+
+      if (!character.backendCharacter) {
+        await character.loadCharacter(true);
+      }
+    };
+
+    loadExistingCharacter();
+  }, []); // Only run on mount
+
   const { handleCharacterCreation, isCreating } = useCharacterCreation({
     characterName: character.characterName,
     createCharacter: character.createCharacter,
     characterId: character.backendCharacter?.id,
-    customizationData: character.updateCharacter, 
-    updateCharacterCustomization: character.updateCharacter, 
+    customizationData: character.updateCharacter,
+    updateCharacterCustomization: character.updateCharacter,
     completeCharacter: onboarding.completeCharacter,
   });
 

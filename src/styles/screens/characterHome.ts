@@ -17,7 +17,7 @@
  */
 
 import { TextStyle, ViewStyle } from 'react-native';
-import { BORDER_RADIUS, SPACING, SCREEN_DIMENSIONS, FONT_FAMILIES, engravedText } from '../foundation';
+import { BORDER_RADIUS, FONT_FAMILIES, SCREEN_DIMENSIONS, SPACING, engravedText } from '../foundation';
 import { ThemeColors, characterHomeScreenTheme } from '../theme';
 
 const { width, height } = SCREEN_DIMENSIONS;
@@ -53,7 +53,9 @@ export const createCharacterHomeStyles = (theme: ThemeColors = characterHomeScre
   } as ViewStyle,
 
   archiveTabpassagesArea: {
+    flex: 1,
     paddingBottom: SPACING.lg,
+    backgroundColor: 'transparent', // Ensure transparency
   } as ViewStyle,
 
   atmosphericOverlay: {
@@ -638,13 +640,13 @@ export const createCharacterHomeStyles = (theme: ThemeColors = characterHomeScre
   // ==========================================
 
   foundationsSection: {
-    marginTop: 20,
+    marginTop: 10,
     borderRadius: 16,
     overflow: 'hidden',
   } as ViewStyle,
 
   foundationsSectionGradient: {
-    padding: 20,
+    padding: 10,
     borderWidth: 2,
     borderColor: '#d4af37',
   } as ViewStyle,

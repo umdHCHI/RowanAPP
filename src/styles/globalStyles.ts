@@ -1501,6 +1501,7 @@ export const characterHomeScreenStyles = (characterHomeScreenTheme: ThemeColors)
     },
 
     archiveTabpassagesArea: {
+      flex: 1,
       paddingBottom: 16,
     },
   archiveTabContainer: {
@@ -1969,7 +1970,7 @@ export const characterHomeScreenStyles = (characterHomeScreenTheme: ThemeColors)
     
     // Foundation Styles
     foundationsSection: {
-      marginTop: 20,
+      marginTop: 2,
       borderRadius: 16,
       overflow: 'hidden',
     },
@@ -3500,6 +3501,7 @@ export const getArchiveStyles = (theme: ThemeColors): {[key: string]: any} => {
       paddingHorizontal: 16,
     },
     archiveTabpassagesArea: {
+      flex: 1,
       paddingBottom: 16,
     },
 
@@ -6831,7 +6833,7 @@ characterCreatorNameInput: {
     // ===== PERSONALITY RESTORATION STYLES =====
     personalityRestorationContainer: {
       flex: 1,
-      padding: 20,
+      padding: 0,
     },
     personalityRestorationTitle: {
       color: '#4ee6e6',

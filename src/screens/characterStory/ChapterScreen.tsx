@@ -301,7 +301,6 @@ const ChapterScreen = ({
                   <TouchableOpacity
                     style={{
                       backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                      padding: 8,
                       borderRadius: 20,
                       borderWidth: 2,
                       borderColor: '#ef4444',
@@ -317,7 +316,14 @@ const ChapterScreen = ({
                     }}
                     onPress={onClose}
                   >
-                    <Image source={sectionIcons.bookOpen} style={{ width: 20, height: 20 }} />
+                    <Text style={{
+                      color: '#ef4444',
+                      fontSize: 24,
+                      fontWeight: 'bold',
+                      lineHeight: 24,
+                      textAlign: 'center',
+                      marginTop: -2,
+                    }}>×</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { uiIcons } from '../assets';
+import { uiIcons } from '../../assets/ui';
+
+export { getUIAsset, uiAssetLabels, uiIcons } from '../../assets/ui';
 
 interface AssetLabelProps {
   assetType?: keyof typeof uiIcons;
@@ -19,7 +21,7 @@ export const AssetLabel: React.FC<AssetLabelProps> = ({
   iconStyle,
   textStyle,
 }) => {
-  const asset = uiIcons[assetType][assetName] || uiIcons.labels.nameTag;
+  const asset = uiIcons[assetType]?.[assetName] || uiIcons.labels?.nameTag;
 
   return (
     <View style={[styles.container, style]}>

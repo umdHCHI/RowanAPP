@@ -2,8 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import CodexModal from '../../components/CodexModal';
-import ThoughtDefenderModal from '../../components/ThoughtDefenderModal';
 import type { CodexContentRef } from '../../components/personality';
 import {
   CodexContent,
@@ -16,6 +14,8 @@ import {
   WellnessAttributesDisplay
 } from '../../components/personality';
 import PersonalizedArchiveHeader from '../../components/personality/PersonalizedArchiveHeader';
+import CodexModal from '../../components/shared/CodexModal';
+import ThoughtDefenderModal from '../../components/shared/ThoughtDefenderModal';
 import { useMasterState } from '../../context/MasterStateContext';
 import { usePersonalityHomeData } from '../../hooks/usePersonalityHomeData';
 import { createGlobalStyles, PersonalityConfigs } from '../../imports';

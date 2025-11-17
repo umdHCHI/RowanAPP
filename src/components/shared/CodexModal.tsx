@@ -13,14 +13,14 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { useMasterState } from "../context/MasterStateContext";
-import { apiService } from '../services/apiService';
-import fileUploadService from '../services/fileUploadService';
-import { createGlobalStyles } from "../styles/globalStyles";
-import { CodexModalProps, JournalPrompt } from "../types";
-import { calculateJournalRewards } from '../utils/rewardsUtils';
+import { useMasterState } from "../../context/MasterStateContext";
+import { apiService } from '../../services/apiService';
+import fileUploadService from '../../services/fileUploadService';
+import { createGlobalStyles } from "../../styles/globalStyles";
+import { CodexModalProps, JournalPrompt } from "../../types";
+import { calculateJournalRewards } from '../../utils/rewardsUtils';
+import FloatingRewardNotification from './../rewards/FloatingRewardNotification';
 import DrawingCanvas from "./DrawingCanvas";
-import FloatingRewardNotification from './FloatingRewardNotification';
 import VoiceMemoRecorder from './VoiceMemoRecorder';
 const { width, height } = Dimensions.get("window");
 const isMobile = width < 600;
@@ -38,13 +38,15 @@ const CodexModal = ({
     "journal" | "draw" | "voice"
   >(selectedType);
   const [selectedPrompt, setSelectedPrompt] = useState<JournalPrompt | null>(null);
-  const [passages, setpassages] = useState("");
+  const [journalText, setJournalText] = useState("");
   const [drawingPaths, setDrawingPaths] = useState<any[]>([]);
+  const [voiceUri, setVoiceUri] = useState("");
   const [loading, setLoading] = useState(false);
   const [completedPrompts, setCompletedPrompts] = useState<string[]>([]);
   const [showCompletedEntries, setShowCompletedEntries] = useState(false);
   const [completedEntries, setCompletedEntries] = useState<any[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
   const [rewardNotification, setRewardNotification] = useState<{
     visible: boolean;
     message: string;
@@ -65,52 +67,44 @@ const CodexModal = ({
   useEffect(() => {
     if (visible) {
       setLoading(true);
-      
+
       const loadPrompts = async () => {
         try {
           const areas: string[] = [];
           const completed = Array.from(archive.completedStories ?? []);
           await wellness.loadCategoryPrompts(areas, completed);
-        } catch {
+        } catch (error) {
+          console.error('Error loading prompts:', error);
         } finally {
           setLoading(false);
         }
       };
-      
+
       loadPrompts();
     }
   }, [visible]);
 
-  useEffect(() => {
-    if (visible) {
-      wellness.refreshPrompts?.();
-    }
-  }, [visible, wellness.refreshPrompts]);
+  // Removed this useEffect as it causes infinite re-renders
+  // wellness.refreshPrompts is called in the loadPrompts useEffect above
 
   const refreshAfterSave = async () => {
-    try {
-      const loadPrompts = async () => {
-        try {
-          const characterId = character.backendCharacter?.id;
-          
-          try {
-            const availablePrompts = await apiService.getAvailableJournalPrompts(characterId);
-          } catch {
-            const areas: string[] = [];
-            const completed = Array.from(archive.completedStories ?? []);
-            await wellness.loadCategoryPrompts(areas, completed);
-          }
-        } catch {
-        }
-      };
-      
-      await loadCompletedEntries();
-      await loadPrompts();
-      
-      if (wellness.loadHomeData) {
-        await wellness.loadHomeData();
+    const loadPrompts = async () => {
+      const characterId = character.backendCharacter?.id;
+
+      try {
+        await apiService.getAvailableJournalPrompts(characterId);
+      } catch {
+        const areas: string[] = [];
+        const completed = Array.from(archive.completedStories ?? []);
+        await wellness.loadCategoryPrompts(areas, completed);
       }
-    } catch {
+    };
+
+    await loadCompletedEntries();
+    await loadPrompts();
+
+    if (wellness.loadHomeData) {
+      await wellness.loadHomeData();
     }
   };
 
@@ -119,7 +113,8 @@ const CodexModal = ({
       setEntriesLoading(true);
       const userEntries = await apiService.getUserCodexEntries();
       setCompletedEntries(userEntries);
-    } catch {
+    } catch (error) {
+      console.error('Error loading completed entries:', error);
     } finally {
       setEntriesLoading(false);
     }
@@ -134,16 +129,13 @@ const CodexModal = ({
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown date';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return 'Invalid date';
-    }
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   const getEntryTypeIcon = (entryType: string) => {
@@ -174,24 +166,23 @@ const CodexModal = ({
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const hasContent = selectedTypeState === 'journal' 
-    ? passages && passages.trim().length > 0
+  const hasContent = selectedTypeState === 'journal'
+    ? journalText && journalText.trim().length > 0
     : selectedTypeState === 'draw'
     ? drawingPaths && drawingPaths.length > 0
     : selectedTypeState === 'voice'
-    ? passages && passages.length > 0
+    ? voiceUri && voiceUri.length > 0
     : false;
 
   const handleSave = async () => {
     if (selectedPrompt && hasContent) {
       try {
-        let contentToSave = passages;
-        let entryType = selectedTypeState;
+        let contentToSave = selectedTypeState === 'journal' ? journalText : selectedTypeState === 'voice' ? voiceUri : '';
 
         // Handle voice recording upload
-        if (selectedTypeState === 'voice' && passages) {
+        if (selectedTypeState === 'voice' && voiceUri) {
           try {
-            const uploadResult = await fileUploadService.uploadAudioFile(passages, {
+            const uploadResult = await fileUploadService.uploadAudioFile(voiceUri, {
               prompt: selectedPrompt.text,
               entry_type: selectedTypeState,
               skill_category: selectedPrompt.skill_category,
@@ -201,7 +192,7 @@ const CodexModal = ({
             contentToSave = uploadResult.file_url;
           } catch (error) {
             console.error('Failed to save voice recording:', error);
-            contentToSave = passages;
+            contentToSave = voiceUri;
           }
         }
         
@@ -256,11 +247,8 @@ const CodexModal = ({
               if (!idFromContext) throw new Error('No character id to award wellness');
               
               await apiService.gainWellness(idFromContext, journalReward.wellnessStats);
-              
-              try {
-                await wellness.loadHomeData?.();
-              } catch {
-              }
+
+              await wellness.loadHomeData?.();
             }
             
             let rewardMessage = journalReward.message;
@@ -321,35 +309,28 @@ const CodexModal = ({
           }
         }
 
-        try {
-          if (selectedPrompt?.id) {
-            await wellness.markPromptInactive(selectedPrompt.id);
-          }
-        } catch {
+        if (selectedPrompt?.id) {
+          await wellness.markPromptInactive(selectedPrompt.id);
         }
 
         onSave({
           type: selectedTypeState,
-          passages,
+          passages: contentToSave,
           prompt: selectedPrompt.text,
           skillCategory: selectedPrompt.skill_category,
           mapArea: selectedPrompt.map_area,
           difficulty: selectedPrompt.difficulty,
         });
 
-        try {
-          const completedStoriesArray = Array.from(archive.completedStories);
-          const areas: string[] = [];
-          await wellness.loadCategoryPrompts(areas, completedStoriesArray);
-        } catch {
-        }
+        const completedStoriesArray = Array.from(archive.completedStories);
+        const areas: string[] = [];
+        await wellness.loadCategoryPrompts(areas, completedStoriesArray);
 
-        try {
-          await loadCompletedEntries();
-        } catch {
-        }
+        await loadCompletedEntries();
 
-        setpassages("");
+        setJournalText("");
+        setDrawingPaths([]);
+        setVoiceUri("");
         setSelectedPrompt(null);
         setCompletedPrompts((prev) => [...prev, selectedPrompt.prompt_id]);
         onClose();
@@ -362,22 +343,14 @@ const CodexModal = ({
       }
     }
   };
+
   const currentPrompt = wellness.categoryPrompts[selectedTypeState];
   const hasPromptForCategory = currentPrompt !== null;
 
+  // Only update selectedPrompt when selectedTypeState changes or when modal opens
   useEffect(() => {
-    if (hasPromptForCategory) {
-      setSelectedPrompt(currentPrompt);
-    } else {
-      setSelectedPrompt(null);
-    }
-  }, [selectedTypeState, hasPromptForCategory, wellness.categoryPrompts]);
-
-  useEffect(() => {
-    if (visible && !selectedPrompt && hasPromptForCategory) {
-      setSelectedPrompt(currentPrompt);
-    }
-  }, [visible, selectedPrompt, hasPromptForCategory, currentPrompt, selectedTypeState]);
+    setSelectedPrompt(wellness.categoryPrompts[selectedTypeState]);
+  }, [selectedTypeState, visible, wellness.categoryPrompts]);
 
   return (
     <>
@@ -537,12 +510,13 @@ const CodexModal = ({
                 </TouchableOpacity>
               </View>
 
-              <ScrollView 
+              <ScrollView
                 style={isMobile ? { flex: 1 } : { flex: 1 }}
                 contentContainerStyle={isMobile ? { flexGrow: 1 } : {}}
                 showsVerticalScrollIndicator={true}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={true}
+                scrollEnabled={!isDrawing}
               >
                 <View style={isMobile ? { flexDirection: 'column', minHeight: 0 } : globalStyles.codexpassagesContainer}>
                   {/* Your Quest Section - Always visible on mobile */}
@@ -727,7 +701,8 @@ const CodexModal = ({
                                   const areas: string[] = [];
                                   const completed = Array.from(archive.completedStories ?? []);
                                   await wellness.loadCategoryPrompts(areas, completed);
-                                } catch {
+                                } catch (error) {
+                                  console.error('Error retrying prompt load:', error);
                                 } finally {
                                   setLoading(false);
                                 }
@@ -968,8 +943,8 @@ const CodexModal = ({
                         multiline
                         placeholder="Write your thoughts here..."
                         placeholderTextColor="#5d4037"
-                        value={passages}
-                        onChangeText={setpassages}
+                        value={journalText}
+                        onChangeText={setJournalText}
                         autoFocus={false}
                         scrollEnabled={true}
                         returnKeyType="done"
@@ -1000,7 +975,6 @@ const CodexModal = ({
                         onStrokesChange={(paths) => {
                           try {
                             setDrawingPaths(paths);
-                            setpassages(JSON.stringify(paths));
                           } catch {
                             Alert.alert('Error', 'Failed to save drawing. Please try again.');
                           }
@@ -1010,6 +984,12 @@ const CodexModal = ({
                         }}
                         onCancel={() => {
                           // Not used when hideButtons is true
+                        }}
+                        onDrawingStart={() => {
+                          setIsDrawing(true);
+                        }}
+                        onDrawingEnd={() => {
+                          setIsDrawing(false);
                         }}
                       />
                     </View>
@@ -1035,7 +1015,7 @@ const CodexModal = ({
                     }}>
                       <VoiceMemoRecorder
                         onSave={(audioUri) => {
-                          setpassages(audioUri);
+                          setVoiceUri(audioUri);
                         }}
                         theme={theme.theme}
                       />

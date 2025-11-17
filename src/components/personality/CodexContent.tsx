@@ -44,7 +44,6 @@ export const CodexContent = forwardRef<CodexContentRef, CodexContentProps>(({
       const userEntries = await apiService.getUserCodexEntries();
       setEntries(userEntries);
     } catch (error) {
-      console.error('Failed to load codex entries:', error);
       Alert.alert('Error', 'Failed to load your codex entries');
     } finally {
       setLoading(false);

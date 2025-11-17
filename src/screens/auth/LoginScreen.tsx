@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -167,17 +169,22 @@ export default function ArchiveLoginScreen() {
         <View style={[loginStyles.gradientOverlay, { pointerEvents: 'none' }]} />
       </View>
 
-      <ScrollView 
-        style={{ flex: 1, zIndex: 10 }}
-        contentContainerStyle={loginStyles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        scrollEnabled={true}
-        bounces={true}
-        alwaysBounceVertical={false}
-        removeClippedSubviews={false}
-        scrollEventThrottle={16}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView 
+          style={{ flex: 1, zIndex: 10 }}
+          contentContainerStyle={loginStyles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          scrollEnabled={true}
+          bounces={true}
+          alwaysBounceVertical={false}
+          removeClippedSubviews={false}
+          scrollEventThrottle={16}
+        >
         <View style={loginStyles.header}>
           <View style={loginStyles.personalityAvatar}>
             <Text style={loginStyles.avatarIcon}>
@@ -308,6 +315,7 @@ export default function ArchiveLoginScreen() {
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

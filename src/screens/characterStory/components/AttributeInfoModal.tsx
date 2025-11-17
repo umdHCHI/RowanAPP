@@ -1,17 +1,59 @@
 import React from 'react';
 import {
-    Dimensions,
-    Icon,
-    LinearGradient,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from '../imports';
+  Dimensions,
+  Icon,
+  Image,
+  LinearGradient,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from '../../../imports';
 
 const { width, height } = Dimensions.get('window');
+
+// Import attribute images
+const explorationImages = {
+  1: require('../../../../assets/attributes/exploration/explorationLv1.png'),
+  2: require('../../../../assets/attributes/exploration/explorationLv2.png'),
+  3: require('../../../../assets/attributes/exploration/explorationLv3.png'),
+  4: require('../../../../assets/attributes/exploration/explorationLv4.png'),
+  5: require('../../../../assets/attributes/exploration/explorationLv5.png'),
+};
+
+const courageImages = {
+  1: require('../../../../assets/attributes/courage/courageLv1.png'),
+  2: require('../../../../assets/attributes/courage/courageLv2.png'),
+  3: require('../../../../assets/attributes/courage/courageLv3.png'),
+  4: require('../../../../assets/attributes/courage/courageLv4.png'),
+  5: require('../../../../assets/attributes/courage/courageLv5.png'),
+};
+
+const fearImages = {
+  1: require('../../../../assets/attributes/fear/fear1.png'),
+  2: require('../../../../assets/attributes/fear/fearLv2.png'),
+  3: require('../../../../assets/attributes/fear/fearLv3.png'),
+  4: require('../../../../assets/attributes/fear/fearLv4.png'),
+  5: require('../../../../assets/attributes/fear/fearLv5.png'),
+};
+
+const connectionImages = {
+  1: require('../../../../assets/attributes/connection/connectionLv1.png'),
+  2: require('../../../../assets/attributes/connection/connectionLv2.png'),
+  3: require('../../../../assets/attributes/connection/connectionLv3.png'),
+  4: require('../../../../assets/attributes/connection/connectionLv4.png'),
+  5: require('../../../../assets/attributes/connection/connectionLv5.png'),
+};
+
+// Map attribute keys to their image sets
+const attributeImages: Record<string, Record<number, any>> = {
+  exploration: explorationImages,
+  courage: courageImages,
+  fear: fearImages,
+  connection: connectionImages,
+};
 
 interface AttributeInfoModalProps {
   visible: boolean;
@@ -183,7 +225,7 @@ const attributeInfo = {
   }
 };
 
-const AttributeInfoModal: React.FC<AttributeInfoModalProps> = ({
+export const AttributeInfoModal: React.FC<AttributeInfoModalProps> = ({
   visible,
   onClose,
   attribute,
@@ -198,6 +240,11 @@ const AttributeInfoModal: React.FC<AttributeInfoModalProps> = ({
   const currentLevel = Math.floor((attribute.value || 0) / 5) + 1;
   const maxValue = attribute.maxValue || 20;
   const progressPercent = ((attribute.value || 0) / maxValue) * 100;
+
+  // Get the appropriate image for this attribute and level
+  const levelImageSet = attributeImages[attributeKey];
+  const clampedLevel = Math.max(1, Math.min(5, currentLevel)) as 1 | 2 | 3 | 4 | 5;
+  const attributeImage = levelImageSet?.[clampedLevel];
 
   return (
     <Modal
@@ -214,7 +261,11 @@ const AttributeInfoModal: React.FC<AttributeInfoModalProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text style={styles.attributeIcon}>{info.icon}</Text>
+              {attributeImage ? (
+                <Image source={attributeImage} style={styles.attributeImage} />
+              ) : (
+                <Text style={styles.attributeIcon}>{info.icon}</Text>
+              )}
               <View>
                 <Text style={styles.headerTitle}>{info.title}</Text>
                 <Text style={styles.headerSubtitle}>
@@ -332,6 +383,12 @@ const styles = StyleSheet.create({
   attributeIcon: {
     fontSize: 32,
     marginRight: 12,
+  },
+  attributeImage: {
+    width: 64,
+    height: 64,
+    marginRight: 12,
+    resizeMode: 'contain',
   },
   headerTitle: {
     fontSize: 24,

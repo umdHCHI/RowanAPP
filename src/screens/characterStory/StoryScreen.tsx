@@ -8,14 +8,13 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import FloatingRewardNotification from '../../components/FloatingRewardNotification';
+import FloatingRewardNotification from '../../components/rewards/FloatingRewardNotification';
 import { useMasterState } from '../../context/MasterStateContext';
 import { usePersonality } from '../../context/PersonalityContext';
-import { useStoryEngine } from '../../hooks/useStoryEngine'; // Make sure this path is correct
+import { useStoryEngine } from '../../hooks/useStoryEngine';
 import { apiService } from '../../services/apiService';
 import { createGlobalStyles } from '../../styles/globalStyles';
 import { Chapter, Choice, Passage, Story } from '../../types/story';
-import { getQuestInfo } from '../../utils/rewardsUtils';
 import { StoryRewardManager } from '../../utils/storyRewardIntegration';
 interface StoryScreenProps {
   visible: boolean;
@@ -37,9 +36,26 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   chapter,
   onStoryComplete,
 }) => {
-  const { theme, character } = useMasterState();
+    const {
+      theme,
+      auth,
+      onboarding,
+      character,
+      equipment,
+      archive,
+      ui,
+      wellness,
+    } = useMasterState();
   const { primaryTrait, isPersonalityUser, isLoading: personalityLoading } = usePersonality();
   const globalStyles = createGlobalStyles(theme.theme);
+ 
+const selectProfileAndCharacter = (homeData?: any) => {
+  const hd = homeData ?? null;
+  const profile = hd?.userProfile ?? hd ?? null;
+  const backendCharacter = hd?.character ?? profile?.character ?? null;
+  return { profile, backendCharacter };
+};
+
   const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(null);
   const [rewardNotification, setRewardNotification] = useState<{
     visible: boolean;
@@ -103,83 +119,85 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   useEffect(() => {
     if (visible && story?.id && isInitialized) {
       const initializeRewardManager = async () => {
-        try {
-          const characterId = character.backendCharacter?.id;
-          const hasCharacter = characterId && characterId > 0;
-          let researchCondition: "character" | "personality" = "personality";
+        const homeData = wellness.homeData as any; // Type assertion for flexible backend structure
 
-          // Determine research condition based on user's onboarding choice
-          if (character.userProfileData?.profile?.completion_type) {
-            researchCondition = character.userProfileData.profile.completion_type === "character" ? "character" : "personality";
-          } else {
-            try {
-              const userProfile = await apiService.getProfile();
-              if (userProfile?.profile?.completion_type) {
-                researchCondition = userProfile.profile.completion_type === "character" ? "character" : "personality";
-              }
-            } catch (error) {
-              // Silently handle profile fetch error
-            }
-          }
-
-          // For personality users, wait until personality data is loaded
-          if (researchCondition === "personality" && personalityLoading) {
-            console.log('⏳ Waiting for personality data to load before initializing reward manager');
-            return; // Wait for personality data to finish loading
-          }
-
-          // Log the personality trait being used for reward filtering
-          if (researchCondition === "personality") {
-            console.log(`✅ Initializing StoryRewardManager with primaryTrait: ${primaryTrait}`);
-          }
-
-          // Don't override research condition based on character presence
-          // Personality users can have characters but still use personality rewards
-
-          let userId = undefined;
-          if (!hasCharacter) {
-            try {
-              const userProfile = await apiService.getProfile();
-              userId = userProfile?.id;
-            } catch (error) {
-              // Silently handle user ID fetch error
-            }
-          }
-          
-          const manager = new StoryRewardManager(
-            story.id.toString(),
-            showRewardNotification,
-            handleStoryCompletionWithRewards,
-            apiService,
-            characterId || 0,
-            [],
-            0,
-            researchCondition,
-            userId,
-            primaryTrait
-          );
-          setRewardManager(manager);
-          
-          try {
-            const storyProgress = await apiService.getOrCreateStoryProgress(story.id, {
-              current_passage_id: currentPassage?.passage_id || '',
-              story_variables: {}
-            });
-          } catch (progressError) {
-            // Silently handle story progress error
-          }
-          
-        } catch (error) {
-          // Silently handle reward manager initialization error
+        // Wait for homeData to load before initializing
+        if (!homeData) {
+          return;
         }
+
+        // Skip if RewardManager already exists (prevents duplicate initialization)
+        if (rewardManager) {
+          return;
+        }
+
+        let researchCondition: "character" | "personality" = "personality";
+
+        // Determine research condition: Group A = Character, Group B = Personality
+        // homeData structure: wellness.homeData.userProfile.profile.research_group.condition
+
+        if (homeData?.userProfile?.profile?.research_group?.condition) {
+          researchCondition = homeData.userProfile.profile.research_group.condition === "A" ? "character" : "personality";
+        } else {
+          // Fallback: check completion_type
+          const completionType = homeData?.userProfile?.completion_type;
+          if (completionType) {
+            researchCondition = completionType === "character" ? "character" : "personality";
+          } else {
+          }
+        }
+
+
+        // For personality users, wait until personality data is loaded
+        if (researchCondition === "personality" && personalityLoading) {
+          return;
+        }
+
+        // Get userId for personality users (needed for coping tool acquisition)
+        let userId = undefined;
+        if (researchCondition === "personality") {
+          userId = homeData?.userProfile?.id;
+        }
+
+        // Character ID: for character users (Group A)
+        const characterId = researchCondition === "character" ? (homeData?.userProfile?.character?.id || homeData?.character?.id || 0) : 0;
+
+
+        // Equipment array: only for character users
+        const equippedGear = researchCondition === "character" ? (homeData?.userProfile?.character?.equipped_gear || homeData?.character?.equipped_gear || []) : [];
+        
+        const manager = new StoryRewardManager(
+          story.id.toString(),
+          showRewardNotification,
+          handleStoryCompletionWithRewards,
+          apiService,
+          characterId,       // Character users get their character ID, personality users get 0
+          equippedGear,      // Character users get their equipment array, personality users get []
+          0,                 // storyReplayCount
+          researchCondition, // "character" | "personality" - NOW in correct position
+          userId,            // Personality users get their user ID, character users get undefined
+          primaryTrait       // User's primary personality trait
+        );
+        setRewardManager(manager);
+        
+        const storyProgress = await apiService.getOrCreateStoryProgress(story.id, {
+          current_passage_id: currentPassage?.passage_id || '',
+          story_variables: {}
+        });
       };
       
       initializeRewardManager();
     }
-  }, [visible, story?.id, chapter?.id, character.backendCharacter?.id, isInitialized, primaryTrait, personalityLoading]);
+  }, [visible, story?.id, chapter?.id, isInitialized, primaryTrait, personalityLoading, wellness.homeData]);
+
+  // Monitor reward notification state changes
+  useEffect(() => {
+  }, [rewardNotification]);
 
   useEffect(() => {
     if (rewardManager && currentPassage && isInitialized) {
+      // Build passage object for reward processing
+      // Note: Quest filtering is handled by StoryRewardManager based on research condition
       const passageForRewards: Passage = {
         id: (currentPassage as any).id || 0,
         chapter: (currentPassage as any).chapter || null,
@@ -211,66 +229,58 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           order: choice.order || 0
         }))
       };
-      
-      const passageEffects = (currentPassage as any).story_effects || {};
-      const questIds = passageEffects.quest_progress || passageEffects.quests;
 
-      if (questIds && Array.isArray(questIds)) {
-
-        const validQuests = questIds.filter((questId: string) => {
-          const questInfo = getQuestInfo(questId);
-          return questInfo && questInfo.personalityType === primaryTrait;
-        });
-
-
-
-        if (validQuests.length > 0) {
-          passageForRewards.story_effects = {
-            ...passageForRewards.story_effects,
-            quest_progress: validQuests,
-            quests: validQuests  // Also update 'quests' field to match
-          };
-        } else {
-          // Remove both quest fields if no valid quests
-          if (passageForRewards.story_effects) {
-            delete passageForRewards.story_effects.quest_progress;
-            delete passageForRewards.story_effects.quests;
-          }
-        }
-      }
-      
+      // Let StoryRewardManager handle all quest filtering based on research condition
       rewardManager.handlePassageVisit(passageForRewards);
     }
-  }, [currentPassage?.passage_id, rewardManager, isInitialized, primaryTrait]);
+  }, [currentPassage?.passage_id, rewardManager, isInitialized]);
 
   const showRewardNotification = (
-    message: string, 
+    message: string,
     type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest',
     icon?: string,
     iconImage?: any,
     statName?: string
   ) => {
-    setNotificationQueue(prev => [...prev, { message, type, icon, iconImage, statName }]);
-    
+
+    // Add to queue and update ref immediately
+    const newNotification = { message, type, icon, iconImage, statName };
+    setNotificationQueue(prev => {
+      const newQueue = [...prev, newNotification];
+      // Update ref immediately to avoid race condition
+      notificationQueueRef.current = newQueue;
+      return newQueue;
+    });
+
     if (!isShowingNotificationRef.current) {
       setTimeout(() => {
         processNotificationQueue();
       }, 100);
+    } else {
     }
   };
 
   const processNotificationQueue = () => {
+
     if (isShowingNotificationRef.current) {
       return;
     }
-    
+
     if (notificationQueueRef.current.length === 0) {
+      isShowingNotificationRef.current = false;
       setIsShowingNotification(false);
       return;
     }
-    
+
+    // Set flag immediately to prevent concurrent execution
+    isShowingNotificationRef.current = true;
+    setIsShowingNotification(true);
+
     const nextNotification = notificationQueueRef.current[0];
-    
+
+    // Remove from ref immediately to prevent duplicate processing
+    notificationQueueRef.current = notificationQueueRef.current.slice(1);
+
     setRewardNotification({
       visible: true,
       message: nextNotification.message,
@@ -279,18 +289,22 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       iconImage: nextNotification.iconImage,
       statName: nextNotification.statName
     });
-    
-    setIsShowingNotification(true);
-    setNotificationQueue(prev => prev.slice(1));
+
+    // Update state to match ref
+    setNotificationQueue(prev => {
+      const newQueue = prev.slice(1);
+      return newQueue;
+    });
   };
 
   const hideRewardNotification = () => {
     setRewardNotification(prev => ({ ...prev, visible: false }));
     setIsShowingNotification(false);
-    
+
+    // Wait for hide animation (300ms) before processing next notification
     setTimeout(() => {
       processNotificationQueue();
-    }, 1000);
+    }, 400); // Wait 400ms for hide animation to complete
   };
 
   const handleStoryCompletionWithRewards = async (completionData: any) => {
@@ -302,10 +316,12 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 
     if (isEnding) {
       if (rewardManager) {
+        const homeData = wellness.homeData as any; // Type assertion
+        
         const currentSavedRewards = {
-          characterStats: character.backendCharacter ? [character.backendCharacter] : [],
-          totalExperience: character.backendCharacter?.experience || 0,
-          wellnessStats: character.backendCharacter?.wellness_stats || {},
+          characterStats: homeData?.character ? [homeData.character] : [],
+          totalExperience: homeData?.character?.experience || 0,
+          wellnessStats: homeData?.character?.wellness_stats || {},
           storiesCompleted: 0
         };
         
@@ -562,16 +578,17 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
                     {renderContent()}
                 </View>
             </View>
+            {/* Reward notification overlay - positioned at Modal level for proper z-index */}
+            <FloatingRewardNotification
+              visible={rewardNotification.visible}
+              message={rewardNotification.message}
+              type={rewardNotification.type}
+              icon={rewardNotification.icon}
+              iconImage={rewardNotification.iconImage}
+              statName={rewardNotification.statName}
+              onHide={hideRewardNotification}
+            />
         </View>
-        <FloatingRewardNotification
-          visible={rewardNotification.visible}
-          message={rewardNotification.message}
-          type={rewardNotification.type}
-          icon={rewardNotification.icon}
-          iconImage={rewardNotification.iconImage}
-          statName={rewardNotification.statName}
-          onHide={hideRewardNotification}
-        />
     </Modal>
   );
 };

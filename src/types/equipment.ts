@@ -93,6 +93,28 @@ export interface CopingTool {
     created_at: string;
 }
 
+export interface GearType {
+  id: number;
+  name: string;
+  slot: string;
+  description: string;
+  emoji_icon: string;
+  mindfulness_bonus: number;
+  focus_bonus: number;
+  confidence_bonus: number;
+  resilience_bonus: number;
+  empathy_bonus: number;
+  organization_bonus: number;
+  stat_bonuses: {
+    mindfulness: number;
+    focus: number;
+    confidence: number;
+    resilience: number;
+    empathy: number;
+    organization: number;
+  };
+  created_at: string;
+}
 // ===== SHARED EQUIPMENT UTILITY FUNCTIONS =====
 
 /**

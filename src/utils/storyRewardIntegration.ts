@@ -121,24 +121,28 @@ export class StoryRewardManager {
   // ===== NOTIFICATION FILTERING =====
 
   private filterNotifications(notifications: NotificationData[]): NotificationData[] {
+
     return notifications.filter(notification => {
       const notificationKey = `${notification.message}_${notification.type}`;
-      
+
       if (this.sentNotifications.has(notificationKey)) {
         return false;
       }
-      
-      return this.researchCondition === "personality"
+
+      const isValid = this.researchCondition === "personality"
         ? this.isValidPersonalityNotification(notification)
         : this.isValidCharacterNotification(notification);
+
+      return isValid;
     });
   }
 
   private isValidPersonalityNotification(notification: NotificationData): boolean {
+
     if (notification.type === 'resonance' || notification.type === 'item' || notification.type === 'artifact') {
       return false;
     }
-    
+
     if (notification.type === 'quest' && this.primaryTrait) {
       const questIdMatch = notification.message.match(/quest_id:\s*(\w+_\d+)/);
       if (questIdMatch) {
@@ -146,37 +150,37 @@ export class StoryRewardManager {
         const questTraitMatch = questId.match(/^(\w+)_\d+$/);
         if (questTraitMatch) {
           const [, questTrait] = questTraitMatch;
-          return questTrait.toLowerCase() === this.primaryTrait.toLowerCase();
+          const isValid = questTrait.toLowerCase() === this.primaryTrait.toLowerCase();
+          return isValid;
         }
       }
       return false; // Only show quest notifications for matching personality traits
     }
-    
-    return ['experience', 'stat', 'skill'].includes(notification.type);
+
+    const isValid = ['experience', 'stat', 'skill'].includes(notification.type);
+    return isValid;
   }
 
   private isValidCharacterNotification(notification: NotificationData): boolean {
-          if (notification.type === 'experience') {
-            return false;
-          }
-
-          // Allow all item notifications through - they're already controlled at the source
-          // (acquireCharacterGear only shows notifications when appropriate)
-
-          return ['resonance', 'stat', 'item', 'artifact', 'quest'].includes(notification.type);
-        }
+  if (notification.type === 'resonance') {
+    return false;  // Block resonance for character users
+  }
+  
+  return ['experience', 'stat', 'item', 'artifact', 'quest'].includes(notification.type);
+}
 
   private displayNotifications(notifications: NotificationData[]): void {
+
     const validNotifications = this.filterNotifications(notifications);
-    
+
     validNotifications.forEach(notification => {
         const notificationKey = `${notification.message}_${notification.type}`;
         this.sentNotifications.add(notificationKey);
       this.showNotification(
-        notification.message, 
-        notification.type, 
-        notification.icon, 
-        notification.iconImage, 
+        notification.message,
+        notification.type,
+        notification.icon,
+        notification.iconImage,
         notification.statName
       );
     });
@@ -190,25 +194,25 @@ export class StoryRewardManager {
     matchingGearType?: any;
   }> {
     const cache = await this.getCachedGearData();
-    
+
     if (!cache.availableGearTypes) {
       return { alreadyOwns: false, alreadyEquipped: false };
     }
 
-    const matchingGearType = cache.availableGearTypes.find((gearType: any) => 
+    const matchingGearType = cache.availableGearTypes.find((gearType: any) =>
       gearType.name?.toLowerCase() === itemName.toLowerCase()
     );
-    
+
     if (!matchingGearType) {
       return { alreadyOwns: false, alreadyEquipped: false };
     }
 
-    const alreadyEquipped = cache.characterWithGear?.equipped_gear?.some((gear: any) => 
+    const alreadyEquipped = cache.characterWithGear?.equipped_gear?.some((gear: any) =>
       gear?.name?.toLowerCase() === itemName.toLowerCase() ||
       gear?.id === matchingGearType.id
     ) || false;
 
-    const alreadyOwns = cache.myGear?.some((gear: any) => 
+    const alreadyOwns = cache.myGear?.some((gear: any) =>
       gear?.gear_type?.name?.toLowerCase() === itemName.toLowerCase() ||
       gear?.gear_type?.id === matchingGearType.id
     ) || false;
@@ -216,58 +220,116 @@ export class StoryRewardManager {
     return { alreadyOwns, alreadyEquipped, matchingGearType };
   }
 
+  private async filterOwnedItemsFromEffects(effects: Record<string, any>): Promise<Record<string, any>> {
+    const filteredEffects = { ...effects };
+
+    // For character users, filter out owned gear from rewards and artifacts
+    if (this.researchCondition === 'character') {
+      if (filteredEffects.rewards && Array.isArray(filteredEffects.rewards)) {
+        const filteredRewards = [];
+        for (const itemName of filteredEffects.rewards) {
+          const { alreadyOwns } = await this.checkGearOwnership(itemName);
+          const canUpgrade = alreadyOwns && this.storyReplayCount > 0;
+
+          // Include item if: player doesn't own it OR it can be upgraded
+          if (!alreadyOwns || canUpgrade) {
+            filteredRewards.push(itemName);
+          }
+        }
+        filteredEffects.rewards = filteredRewards;
+      }
+
+      if (filteredEffects.artifacts && Array.isArray(filteredEffects.artifacts)) {
+        const filteredArtifacts = [];
+        for (const itemName of filteredEffects.artifacts) {
+          const { alreadyOwns } = await this.checkGearOwnership(itemName);
+          const canUpgrade = alreadyOwns && this.storyReplayCount > 0;
+
+          // Include item if: player doesn't own it OR it can be upgraded
+          if (!alreadyOwns || canUpgrade) {
+            filteredArtifacts.push(itemName);
+          }
+        }
+        filteredEffects.artifacts = filteredArtifacts;
+      }
+    }
+
+    // For personality users, filter out owned coping tools
+    if (this.researchCondition === 'personality') {
+      if (filteredEffects.tools && Array.isArray(filteredEffects.tools)) {
+        const myTools = await this.apiService.getMyTools();
+        const filteredTools = filteredEffects.tools.filter((toolName: string) => {
+          const alreadyOwnsTool = myTools?.some((tool: any) =>
+            tool?.name?.toLowerCase() === toolName.toLowerCase()
+          );
+          return !alreadyOwnsTool;
+        });
+        filteredEffects.tools = filteredTools;
+      }
+    }
+
+    return filteredEffects;
+  }
+
   // ===== PASSAGE & CHOICE HANDLERS =====
 
   async handlePassageVisit(passage: Passage): Promise<void> {
+
     if (this.processedPassages.has(passage.passage_id)) {
       return;
     }
-    
+
+
     if (hasPassageRewards(passage)) {
       const originalEffects = passage.story_effects || passage.effects;
-      console.log('🔍 handlePassageVisit - Original effects:', originalEffects);
-      
+
       const filteredEffects = this.filterEffectsByUserType(originalEffects);
-      console.log('🔍 handlePassageVisit - Filtered effects:', filteredEffects);
-      
+
       this.rewardTracker = applyPassageRewards(this.rewardTracker, passage);
-      
+
       await this.processEffects(filteredEffects, 'passage', passage.passage_id);
-      
-      const notifications = createNotificationFromEffects(filteredEffects, this.researchCondition, this.primaryTrait);
+
+      // Filter out already-owned items before creating notifications
+      const effectsForNotification = await this.filterOwnedItemsFromEffects(filteredEffects);
+      const notifications = createNotificationFromEffects(effectsForNotification, this.researchCondition, this.primaryTrait);
       this.displayNotifications(notifications);
+    } else {
     }
-    
+
     this.processedPassages.add(passage.passage_id);
   }
 
   async handleChoiceMade(choice: Choice, passageId: string): Promise<void> {
+
     const choiceKey = `${passageId}_choice_${choice.id}`;
+
     if (this.processedChoices.has(choiceKey)) {
       return;
     }
-    
-    if (hasChoiceRewards(choice)) {
+
+    const hasRewards = hasChoiceRewards(choice);
+
+    if (hasRewards) {
       const filteredEffects = this.filterEffectsByUserType(choice.effects);
-      
+
       this.rewardTracker = applyChoiceRewards(this.rewardTracker, choice, passageId);
-      
+
       await this.processEffects(filteredEffects, 'choice', passageId);
-      
-      const notifications = createNotificationFromEffects(filteredEffects, this.researchCondition, this.primaryTrait);
+
+      // Filter out already-owned items before creating notifications
+      const effectsForNotification = await this.filterOwnedItemsFromEffects(filteredEffects);
+      const notifications = createNotificationFromEffects(effectsForNotification, this.researchCondition, this.primaryTrait);
       this.displayNotifications(notifications);
+    } else {
     }
-    
+
     this.processedChoices.add(choiceKey);
   }
 
   // ===== REWARD PROCESSING =====
 
   private async processEffects(effects: Record<string, any>, source: 'passage' | 'choice', passageId: string): Promise<void> {
-      console.log('🔍 processEffects called with:', effects);
-      console.log('🔍 Source:', source, 'PassageId:', passageId);
-      
-      if (effects.rewards || effects.artifacts || effects.tools) {
+    if (effects.rewards || effects.artifacts || effects.tools) {
       await this.processItemRewards(effects);
     }
     
@@ -276,10 +338,7 @@ export class StoryRewardManager {
     }
 
     if (effects.quests || effects.quest_progress) {
-      console.log('🔍 processEffects - Found quest progress, calling saveQuestProgress');
       await this.saveQuestProgress(effects, passageId);
-    } else {
-      console.log('🔍 processEffects - No quest progress found');
     }
   }
 
@@ -315,23 +374,22 @@ export class StoryRewardManager {
 
   private async acquireCharacterGear(itemName: string): Promise<void> {
     const { alreadyOwns, matchingGearType } = await this.checkGearOwnership(itemName);
-    
+
     if (!matchingGearType) return;
-    
+
     if (alreadyOwns) {
       const upgradeResult = checkItemOwnershipAndUpgrade(itemName, this.playerInventory, this.storyReplayCount);
-        
+
         if (upgradeResult && (upgradeResult.isUpgrade || upgradeResult.upgrade.statBonus > 0)) {
           const upgradeNotification = createUpgradeNotification(upgradeResult.upgrade);
         this.showNotification(upgradeNotification.message, upgradeNotification.type);
         await this.saveUpgradedGear(upgradeResult);
           this.updateLocalInventory(upgradeResult);
-        } else {
-        this.showNotification(`You already own ${itemName}. Reward skipped.`, 'item');
         }
+        // Don't show "already own" notification - item was either upgraded or silently skipped
         return;
       }
-      
+
       try {
       await this.apiService.acquireGear(matchingGearType.id);
         this.newlyAcquiredGear.add(itemName);
@@ -340,7 +398,8 @@ export class StoryRewardManager {
     } catch (error: any) {
       // Check if it's a duplicate key error (already owns the item)
       if (error.response?.status === 500 && error.response?.data?.includes('duplicate key')) {
-        this.showNotification(`You already own ${itemName}. Reward skipped.`, 'item');
+        // Silently skip - don't show notification for duplicate items
+        return;
       } else {
         this.showNotification(`Failed to acquire ${itemName}`, 'item');
       }
@@ -446,34 +505,16 @@ export class StoryRewardManager {
     // Their data will be updated via profile refresh instead
     if (totalRewardAmount > 0 && this.characterId > 0) {
       if (rewardType === 'experience') {
-        try {
-          await this.apiService.gainExperience(this.characterId, totalRewardAmount, `story_${source}`);
-        } catch (error: any) {
-          console.warn('⚠️ Failed to save experience to character endpoint:', error?.message);
-          console.log('💡 For personality users, experience is tracked via profile refresh');
-        }
+        await this.apiService.gainExperience(this.characterId, totalRewardAmount, `story_${source}`);
       } else {
-        try {
-          await this.apiService.gainResonance(this.characterId, totalRewardAmount, `story_${source}`);
-        } catch (error: any) {
-          console.warn('⚠️ Failed to save resonance to character endpoint:', error?.message);
-        }
+        await this.apiService.gainResonance(this.characterId, totalRewardAmount, `story_${source}`);
       }
-    } else if (totalRewardAmount > 0 && this.researchCondition === 'personality') {
-      console.log('💡 Personality user - experience tracked locally, will sync on profile refresh');
     }
 
     const wellnessStats = this.extractWellnessStats(effects);
 
     if (Object.keys(wellnessStats).length > 0 && this.characterId > 0) {
-      try {
-        await this.apiService.gainWellness(this.characterId, wellnessStats);
-      } catch (error: any) {
-        console.warn('⚠️ Failed to save wellness stats to character endpoint:', error?.message);
-        console.log('💡 For personality users, wellness stats are tracked via profile refresh');
-      }
-    } else if (Object.keys(wellnessStats).length > 0 && this.researchCondition === 'personality') {
-      console.log('💡 Personality user - wellness stats tracked locally, will sync on profile refresh');
+      await this.apiService.gainWellness(this.characterId, wellnessStats);
     }
   }
 
@@ -508,69 +549,53 @@ export class StoryRewardManager {
   }
 
   private async saveQuestProgress(effects: Record<string, any>, passageId: string): Promise<void> {
-      const questProgress: Record<string, number> = {};
-      
-      console.log('🔍 saveQuestProgress called with effects:', effects);
-      console.log('🔍 Research condition:', this.researchCondition);
-      console.log('🔍 Primary trait:', this.primaryTrait);
-      
-      if (effects.quest_progress && Array.isArray(effects.quest_progress)) {
-        effects.quest_progress.forEach((questId: string) => {
-          questProgress[questId] = (questProgress[questId] || 0) + 1;
-        });
-      }
-      
-      if (effects.quests) {
-      const questsArray = Array.isArray(effects.quests) ? effects.quests : [effects.quests];
-      questsArray.forEach((questId: string) => {
-            questProgress[questId] = (questProgress[questId] || 0) + 1;
+    const questProgress: Record<string, number> = {};
+    
+    if (effects.quest_progress && Array.isArray(effects.quest_progress)) {
+      effects.quest_progress.forEach((questId: string) => {
+        questProgress[questId] = (questProgress[questId] || 0) + 1;
       });
     }
     
-    console.log('🔍 Quest progress before filtering:', questProgress);
+    if (effects.quests) {
+      const questsArray = Array.isArray(effects.quests) ? effects.quests : [effects.quests];
+      questsArray.forEach((questId: string) => {
+        questProgress[questId] = (questProgress[questId] || 0) + 1;
+      });
+    }
     
     const filteredQuestProgress = this.filterQuestProgressByUserType(questProgress);
     
-    console.log('🔍 Quest progress after filtering:', filteredQuestProgress);
-    
     if (Object.keys(filteredQuestProgress).length === 0) {
-      console.log('⚠️ No quest progress to save after filtering');
       return;
     }
     
-          for (const [questId, progress] of Object.entries(filteredQuestProgress)) {
-            await this.apiService.saveQuestProgress({
-              storyId: this.storyId,
-              questSlug: questId,
-              storyVariables: {
-                progress: progress,
-                source: 'story_passage'
-              },
-              playerState: {
-                quest_progress: { [questId]: progress }
-              }
-            });
-          
-            const questInfo = getQuestInfo(questId);
-            const questTitle = questInfo?.title || questId;
-            this.showNotification(`🎯 Quest Progress: ${questTitle}`, 'quest');
+    for (const [questId, progress] of Object.entries(filteredQuestProgress)) {
+      await this.apiService.saveQuestProgress({
+        storyId: this.storyId,
+        questSlug: questId,
+        storyVariables: {
+          progress: progress,
+          source: 'story_passage'
+        },
+        playerState: {
+          quest_progress: { [questId]: progress }
+        }
+      });
+    
+      const questInfo = getQuestInfo(questId);
+      const questTitle = questInfo?.title || questId;
+      this.showNotification(`🎯 Quest Progress: ${questTitle}`, 'quest');
     }
   }
 
   private filterQuestProgressByUserType(questProgress: Record<string, number>): Record<string, number> {
     const filteredProgress: Record<string, number> = {};
 
-    console.log('🔍 filterQuestProgressByUserType called with:', questProgress);
-    console.log('🔍 Research condition:', this.researchCondition);
-    console.log('🔍 Primary trait:', this.primaryTrait);
-
     for (const [questId, progress] of Object.entries(questProgress)) {
-      console.log(`🔍 Processing quest: ${questId} with progress: ${progress}`);
-
       if (this.researchCondition === 'character') {
         // Character users can complete ALL quests regardless of personality type
         filteredProgress[questId] = progress;
-        console.log(`✅ Character user: Including quest ${questId} (all quests allowed)`);
       } else if (this.researchCondition === 'personality') {
         // Personality users can ONLY complete quests that match their primary trait
         // STRICT VALIDATION: Quest MUST follow the pattern {trait}_{number}
@@ -580,28 +605,14 @@ export class StoryRewardManager {
           const normalizedQuestTrait = questTrait.toLowerCase().trim();
           const normalizedPrimaryTrait = this.primaryTrait.toLowerCase().trim();
 
-          console.log(`🔍 Quest trait: "${normalizedQuestTrait}", Primary trait: "${normalizedPrimaryTrait}"`);
-
           // EXACT match required - no partial matches
           if (normalizedQuestTrait === normalizedPrimaryTrait) {
             filteredProgress[questId] = progress;
-            console.log(`✅ Personality user: Including quest ${questId} (matches trait)`);
-          } else {
-            console.log(`❌ Personality user: Excluding quest ${questId} (trait mismatch: "${normalizedQuestTrait}" !== "${normalizedPrimaryTrait}")`);
           }
-        } else if (!questTraitMatch) {
-          // Quest doesn't follow trait pattern - exclude for personality users
-          console.log(`❌ Personality user: Excluding quest ${questId} (invalid quest ID format - must be {trait}_{number})`);
-        } else {
-          console.log(`❌ Personality user: Excluding quest ${questId} (no primary trait defined)`);
         }
-      } else {
-        // Unknown research condition - be conservative and exclude
-        console.log(`❌ Unknown research condition: ${this.researchCondition}, excluding quest ${questId}`);
       }
     }
 
-    console.log('🔍 Final filtered progress:', filteredProgress);
     return filteredProgress;
   }
 
@@ -615,48 +626,38 @@ export class StoryRewardManager {
       currentSavedRewards
     );
     
-    // **FIX: Add automatic quest progress tracking for story-based quests**
-    try {
-      if (this.researchCondition === 'personality' && this.primaryTrait) {
-        const normalizedTrait = this.primaryTrait.toLowerCase();
-        
-        // Define story-based quests for each personality type
-        const storyQuests = {
-          conscientiousness: ['conscientiousness_3'], // Complete stories with focused determination
-          openness: ['openness_1', 'openness_3'], // Delve into story chapters, explore divergent paths
-          extraversion: ['extraversion_2'], // Choose dialogue options that build relationships
-          agreeableness: ['agreeableness_1', 'agreeableness_2'], // De-escalate conflicts, make compassionate choices
-          neuroticism: ['neuroticism_2'] // Clear challenging waves in Thought Invaders
-        };
-        
-        const questsToTrack = storyQuests[normalizedTrait as keyof typeof storyQuests] || [];
-        
-        if (questsToTrack.length > 0) {
-          // Save quest progress for each story-based quest
-          for (const questId of questsToTrack) {
-            try {
-              await this.apiService.saveQuestProgress({
-                storyId: this.storyId,
-                questSlug: questId,
-                storyVariables: {
-                  progress: 1,
-                  source: 'story_completion',
-                  story_id: this.storyId
-                },
-                playerState: {
-                  quest_progress: { [questId]: 1 }
-                }
-              });
-              
-              console.log(`✅ Quest progress saved for ${questId} from story completion`);
-            } catch (questError) {
-              console.warn(`⚠️ Failed to save quest progress for ${questId}:`, questError);
+    // Add automatic quest progress tracking for story-based quests
+    if (this.researchCondition === 'personality' && this.primaryTrait) {
+      const normalizedTrait = this.primaryTrait.toLowerCase();
+      
+      // Define story-based quests for each personality type
+      const storyQuests = {
+        conscientiousness: ['conscientiousness_3'], // Complete stories with focused determination
+        openness: ['openness_1', 'openness_3'], // Delve into story chapters, explore divergent paths
+        extraversion: ['extraversion_2'], // Choose dialogue options that build relationships
+        agreeableness: ['agreeableness_1', 'agreeableness_2'], // De-escalate conflicts, make compassionate choices
+        neuroticism: ['neuroticism_2'] // Clear challenging waves in Thought Invaders
+      };
+      
+      const questsToTrack = storyQuests[normalizedTrait as keyof typeof storyQuests] || [];
+      
+      if (questsToTrack.length > 0) {
+        // Save quest progress for each story-based quest
+        for (const questId of questsToTrack) {
+          await this.apiService.saveQuestProgress({
+            storyId: this.storyId,
+            questSlug: questId,
+            storyVariables: {
+              progress: 1,
+              source: 'story_completion',
+              story_id: this.storyId
+            },
+            playerState: {
+              quest_progress: { [questId]: 1 }
             }
-          }
+          });
         }
       }
-    } catch (questTrackingError) {
-      console.warn('⚠️ Failed to track quest progress for story completion:', questTrackingError);
     }
     
     // Save all accumulated rewards to backend (experience, wellness, gear, etc.)
@@ -751,11 +752,15 @@ export class StoryRewardManager {
 // ===== EXPORTED UTILITY FUNCTIONS =====
 
 export function checkItemOwnershipAndUpgrade(
-  itemName: string, 
-  playerInventory: string[], 
+  itemName: string,
+  playerInventory: string[],
   storyReplayCount: number
 ): UpgradedEquipmentReward | undefined {
-  const alreadyOwned = playerInventory.some(item => item.toLowerCase() === itemName.toLowerCase());
+  const alreadyOwned = playerInventory.some(item => {
+    // Ensure item is a string before calling toLowerCase
+    if (typeof item !== 'string') return false;
+    return item.toLowerCase() === itemName.toLowerCase();
+  });
   const isUpgrade = alreadyOwned && storyReplayCount > 0;
   
   if (isUpgrade) {

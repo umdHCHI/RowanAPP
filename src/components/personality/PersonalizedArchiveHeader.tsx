@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, Image } from 'react-native';
 import { PersonalityConfigs, PersonalityKey } from '../../imports';
 
 interface PersonalizedArchiveHeaderProps {
@@ -147,16 +147,38 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
           </View>
 
           <View style={{ alignItems: 'flex-end', flex: 1, paddingLeft: 8 }}>
-            <Text
-              style={{
-                color: config.theme?.primary || '#4ee6e6',
-                fontSize: 14,
-                fontWeight: '600'
-              }}
-              numberOfLines={1}
-            >
-              {config.avatar || '🏛️'} {config.archiveSection || 'Archive'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {typeof config.avatar === 'string' ? (
+                <Text
+                  style={{
+                    color: config.theme?.primary || '#4ee6e6',
+                    fontSize: 14,
+                    fontWeight: '600'
+                  }}
+                >
+                  {config.avatar || '🏛️'}
+                </Text>
+              ) : (
+                <Image
+                  source={config.avatar}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    resizeMode: 'contain'
+                  }}
+                />
+              )}
+              <Text
+                style={{
+                  color: config.theme?.primary || '#4ee6e6',
+                  fontSize: 14,
+                  fontWeight: '600'
+                }}
+                numberOfLines={1}
+              >
+                {config.archiveSection || 'Archive'}
+              </Text>
+            </View>
             <Text
               style={{
                 color: '#ccc',

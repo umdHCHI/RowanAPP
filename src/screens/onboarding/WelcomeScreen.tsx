@@ -247,18 +247,19 @@ const ArchiveOnboardingScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await setAssignedPath(pathType);
-      
+      // Set the assigned path (synchronous)
+      setAssignedPath(pathType);
+
+      // Navigate to the appropriate screen
+      // Onboarding will be completed when user finishes character creation or personality test
       if (pathType === 'character') {
-        await apiService.completeOnboarding('character');
         router.replace('/(onboarding)/character-creator');
       } else {
-
         router.replace('/(onboarding)/personality-test');
       }
     } catch (error: any) {
       Alert.alert(
-        'Navigation Error', 
+        'Navigation Error',
         `Failed to navigate to ${pathType} creation screen: ${error.message || 'Unknown error'}. Please try again.`
       );
     } finally {

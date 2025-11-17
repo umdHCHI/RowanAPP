@@ -14,6 +14,8 @@ export interface ThoughtDefenderRunDTO {
   result: TDResult;
   perksUsed?: string[];
   powerupsCollected?: number;
+  missedShots?: number; //accuracy penalty
+  dynamicDifficultyMultiplier?: number; // Track if game ramped up difficulty
   startedAt: string;        // ISO
   finishedAt: string;       // ISO
   clientVersion?: string;

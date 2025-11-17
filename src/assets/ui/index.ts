@@ -85,6 +85,9 @@ export const sectionIcons: Record<string, any> = {
   courage: require('../../../assets/UI/assets/fc1080.png'),
   balance: require('../../../assets/UI/assets/fc1308.png'),
   fear: require('../../../assets/UI/assets/fc863.png'),
+  awareness: require('../../../assets/UI/assets/bluejewel.png'), // Awareness attribute icon
+  resilience: require('../../../assets/UI/assets/fc1571.png'), // Resilience attribute icon (staffwithgreengem)
+  connection: require('../../../assets/UI/assets/bluegloveofthanos.png'), // Connection attribute icon
 
   //assets for tabs
   atrium: require('../../../assets/UI/assets/littlehouse.png'),
