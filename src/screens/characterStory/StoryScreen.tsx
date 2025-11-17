@@ -11,10 +11,11 @@ import {
 import FloatingRewardNotification from '../../components/rewards/FloatingRewardNotification';
 import { useMasterState } from '../../context/MasterStateContext';
 import { usePersonality } from '../../context/PersonalityContext';
-import { useStoryEngine } from '../../hooks/useStoryEngine';
+import { useStoryEngine } from '../../hooks/useStoryEngine'; // Make sure this path is correct
 import { apiService } from '../../services/apiService';
 import { createGlobalStyles } from '../../styles/globalStyles';
 import { Chapter, Choice, Passage, Story } from '../../types/story';
+import { getQuestInfo } from '../../utils/rewardsUtils';
 import { StoryRewardManager } from '../../utils/storyRewardIntegration';
 interface StoryScreenProps {
   visible: boolean;
@@ -49,12 +50,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   const { primaryTrait, isPersonalityUser, isLoading: personalityLoading } = usePersonality();
   const globalStyles = createGlobalStyles(theme.theme);
  
-const selectProfileAndCharacter = (homeData?: any) => {
-  const hd = homeData ?? null;
-  const profile = hd?.userProfile ?? hd ?? null;
-  const backendCharacter = hd?.character ?? profile?.character ?? null;
-  return { profile, backendCharacter };
-};
+
 
   const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(null);
   const [rewardNotification, setRewardNotification] = useState<{
@@ -196,8 +192,7 @@ const selectProfileAndCharacter = (homeData?: any) => {
 
   useEffect(() => {
     if (rewardManager && currentPassage && isInitialized) {
-      // Build passage object for reward processing
-      // Note: Quest filtering is handled by StoryRewardManager based on research condition
+
       const passageForRewards: Passage = {
         id: (currentPassage as any).id || 0,
         chapter: (currentPassage as any).chapter || null,
@@ -230,10 +225,37 @@ const selectProfileAndCharacter = (homeData?: any) => {
         }))
       };
 
-      // Let StoryRewardManager handle all quest filtering based on research condition
+
+      const passageEffects = (currentPassage as any).story_effects || {};
+      const questIds = passageEffects.quest_progress || passageEffects.quests;
+
+      if (questIds && Array.isArray(questIds)) {
+
+        const validQuests = questIds.filter((questId: string) => {
+          const questInfo = getQuestInfo(questId);
+          return questInfo && questInfo.personalityType === primaryTrait;
+        });
+
+
+
+        if (validQuests.length > 0) {
+          passageForRewards.story_effects = {
+            ...passageForRewards.story_effects,
+            quest_progress: validQuests,
+            quests: validQuests  // Also update 'quests' field to match
+          };
+        } else {
+          // Remove both quest fields if no valid quests
+          if (passageForRewards.story_effects) {
+            delete passageForRewards.story_effects.quest_progress;
+            delete passageForRewards.story_effects.quests;
+          }
+        }
+      }
+      
       rewardManager.handlePassageVisit(passageForRewards);
     }
-  }, [currentPassage?.passage_id, rewardManager, isInitialized]);
+  }, [currentPassage?.passage_id, rewardManager, isInitialized, primaryTrait]);
 
   const showRewardNotification = (
     message: string,
