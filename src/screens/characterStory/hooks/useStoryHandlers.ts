@@ -7,13 +7,15 @@ interface UseStoryHandlersProps {
   archive: any;
   wellness: any;
   equipment: any;
+  loadStories: () => Promise<void>;
 }
 
 export const useStoryHandlers = ({
   ui,
   archive,
   wellness,
-  equipment
+  equipment,
+  loadStories
 }: UseStoryHandlersProps) => {
   const [selectedStory, setSelectedStory] = useState<any>(null);
   const [isChapterScreenVisible, setIsChapterScreenVisible] = useState(false);
@@ -58,20 +60,32 @@ export const useStoryHandlers = ({
   const handleStoryCompleteLocal = async (completionData: any) => {
     archive.handleStoryComplete(completionData.storyId);
     handleCloseStory();
-    
-    
+
+
     // Just refresh UI data to show updated stats
     if (isRefreshingData) {
       return;
     }
-    
+
     setIsRefreshingData(true);
-    
+
     try {
       // Refresh data from backend to show updated values
       await wellness.loadHomeData();
-      await equipment.loadBackendGear();
-      
+
+      // Only load backend gear for character mode users
+      // Personality mode users don't have character-gear endpoints
+      const currentHomeData = wellness.homeData;
+      const isCharacterMode = currentHomeData?.userProfile?.completion_type === 'character' &&
+                              !currentHomeData?.userProfile?.personality_profile?.profile_summary?.dominant_trait;
+
+      if (isCharacterMode) {
+        await equipment.loadBackendGear();
+      }
+
+      // IMPORTANT: Reload stories to update completion status and progress in the UI
+      await loadStories();
+
       // Update local archive state for UI display
       if (completionData?.finalRewards?.length > 0) {
         completionData.finalRewards.forEach((reward: string) => {
@@ -79,19 +93,19 @@ export const useStoryHandlers = ({
             name: reward,
             type: 'story_reward',
             equipped: false,
-            resonance: 1,
+            lumens: 1,
             description: `Earned from completing story ${completionData.storyId}`,
             rarity: 'Common'
           });
         });
       }
-      
+
       if (completionData?.skillsLearned?.length > 0) {
         archive.handleSkillLearned(completionData.skillsLearned);
       }
-      
+
       Alert.alert(
-        "🎉 Story Completed!", 
+        "🎉 Story Completed!",
         "You have successfully completed this story and earned rewards!"
       );
     } finally {

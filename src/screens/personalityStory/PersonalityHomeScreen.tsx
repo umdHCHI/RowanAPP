@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { CodexContentRef } from '../../components/personality';
 import {
   CodexContent,
@@ -314,286 +314,317 @@ const TUTORIAL_STEPS = [
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#181A20" }}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#181A20" />
+      <View style={styles.container}>
+        <PersonalizedArchiveHeader
+          primaryTrait={primaryTrait}
+          characterData={userProfile}
+          traitScores={{
+            Openness: userProfile?.personalityProfile?.openness || 0,
+            Conscientiousness: userProfile?.personalityProfile?.conscientiousness || 0,
+            Extraversion: userProfile?.personalityProfile?.extraversion || 0,
+            Agreeableness: userProfile?.personalityProfile?.agreeableness || 0,
+            Neuroticism: userProfile?.personalityProfile?.neuroticism || 0
+          }}
+        />
 
-      <PersonalizedArchiveHeader
-        primaryTrait={primaryTrait}
-        characterData={userProfile}
-        traitScores={{
-          Openness: userProfile?.personalityProfile?.openness || 0,
-          Conscientiousness: userProfile?.personalityProfile?.conscientiousness || 0,
-          Extraversion: userProfile?.personalityProfile?.extraversion || 0,
-          Agreeableness: userProfile?.personalityProfile?.agreeableness || 0,
-          Neuroticism: userProfile?.personalityProfile?.neuroticism || 0
-        }}
-      />
-
-      <View style={styles.tutorialButtonContainer}>
-        {!hasSeenTutorial ? (
-          <TouchableOpacity
-            style={styles.startTutorialButton}
-            onPress={startTutorial}
-          >
-            <Text style={styles.tutorialButtonText}>🎮 Start Tutorial</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.restartTutorialButton}
-            onPress={startTutorial}
-          >
-            <Text style={styles.tutorialButtonText}>📚 Tutorial</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <TabNavigation
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        primaryTrait={primaryTrait}
-        globalStyles={globalStyles}
-      />
-
-      {activeTab === 'entrance' && (
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'wellness'}>
-            <DailyCuratorMessage 
-              primaryTrait={primaryTrait} 
-              characterData={userProfile}
-              globalStyles={globalStyles} 
-            />
-            
-            <WellnessAttributesDisplay
-              personalityType={primaryTrait}
-              personalityScores={userProfile?.wellness_stats || []}
-              globalStyles={globalStyles}
-            />
-          </TutorialHighlight>
-          
-          <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'quests'}>
-            <QuestAchievements
-              primaryTrait={primaryTrait}
-              questProgress={userProfile?.quest_progress || {}}
-              globalStyles={globalStyles}
-            />
-          </TutorialHighlight>
-          
-          <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'coping'}>
-            <CopingToolsCollection
-              primaryTrait={primaryTrait}
-              unlockedTools={userProfile?.unlocked_tools || []}
-              authToken={authToken}
-              globalStyles={globalStyles}
-            />
-          </TutorialHighlight>
-        </ScrollView>
-      )}
-
-      {activeTab === 'stories' && (
-        <View style={{ flex: 1 }}>
-          <TutorialHighlight 
-            isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'stories'}
-            style={{ flex: 1 }}
-          >
-            <PersonalityStoryCatalog 
-              primaryTrait={primaryTrait}
-              onStorySelect={handleOpenStory}
-              globalStyles={globalStyles} 
-              stories={stories} 
-              isLoading={isLoadingStories} 
-              setStories={() => {}}
-              setIsLoading={() => {}}
-              personalityStyles={primaryTrait ? PersonalityConfigs[primaryTrait]?.theme : undefined}
-              userPersonalityTrait={primaryTrait}
-            />
-          </TutorialHighlight>
+        <View style={styles.tutorialButtonContainer}>
+          {!hasSeenTutorial ? (
+            <TouchableOpacity
+              style={styles.startTutorialButton}
+              onPress={startTutorial}
+            >
+              <Text style={styles.tutorialButtonText}>🎮 Start Tutorial</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.restartTutorialButton}
+              onPress={startTutorial}
+            >
+              <Text style={styles.tutorialButtonText}>📚 Tutorial</Text>
+            </TouchableOpacity>
+          )}
         </View>
-      )}
 
-      {activeTab === 'codex' && (
-        <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
-          <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'tools'}>
-            <CodexContent
-              ref={codexContentRef}
-              onClose={() => {
-                setActiveTab('entrance');
-              }}
-              onSave={(entry: any) => {}}
-              onCreateEntry={() => setShowCodexModal(true)}
-              unlockedAreas={['journal', 'draw', 'voice']}
-              primaryTrait={primaryTrait}
-            />
-          </TutorialHighlight>
-        </ScrollView>
-      )}
+        <TabNavigation
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          primaryTrait={primaryTrait}
+          globalStyles={globalStyles}
+        />
 
-      {activeTab === 'defender' && (
-        <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
-          <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'tools'}>
-            <ThoughtDefenderContent
-              onClose={() => setActiveTab('entrance')}
-              onScoreUpdate={(data: any) => {}}
-              onStartGame={() => setShowThoughtDefenderModal(true)}
-            />
-          </TutorialHighlight>
-        </ScrollView>
-      )}
+        {activeTab === 'entrance' && (
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'wellness'}>
+              <DailyCuratorMessage
+                primaryTrait={primaryTrait}
+                characterData={userProfile}
+                globalStyles={globalStyles}
+              />
 
-      {activeTab === 'restoration' && (
-        <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
-          <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'restoration'}>
-            <PersonalityRestoration
-              primaryTrait={primaryTrait}
-              userProfile={userProfile}
-              stories={stories}
-              globalStyles={globalStyles}
-              onThemeToggle={() => theme.toggleTheme()}
-              onLogout={() => {
-                if (auth && auth.logout) {
-                  try {
-                    auth.logout();
-                  } catch (error) {
-                    Alert.alert('Logout Error', `Failed to logout: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              <WellnessAttributesDisplay
+                personalityType={primaryTrait}
+                personalityScores={userProfile?.wellness_stats || []}
+                globalStyles={globalStyles}
+              />
+            </TutorialHighlight>
+
+            <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'quests'}>
+              <QuestAchievements
+                primaryTrait={primaryTrait}
+                questProgress={userProfile?.quest_progress || {}}
+                globalStyles={globalStyles}
+              />
+            </TutorialHighlight>
+
+            <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'coping'}>
+              <CopingToolsCollection
+                primaryTrait={primaryTrait}
+                unlockedTools={userProfile?.unlocked_tools || []}
+                userUnlockedTools={userProfile?.coping_tools || []}
+                availableTools={userProfile?.available_tools || []}
+                authToken={authToken}
+                globalStyles={globalStyles}
+              />
+            </TutorialHighlight>
+          </ScrollView>
+        )}
+
+        {activeTab === 'stories' && (
+          <View style={{ flex: 1 }}>
+            <TutorialHighlight
+              isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'stories'}
+              style={{ flex: 1 }}
+            >
+              <PersonalityStoryCatalog
+                primaryTrait={primaryTrait}
+                onStorySelect={handleOpenStory}
+                globalStyles={globalStyles}
+                stories={stories}
+                isLoading={isLoadingStories}
+                setStories={() => {}}
+                setIsLoading={() => {}}
+                personalityStyles={primaryTrait ? PersonalityConfigs[primaryTrait]?.theme : undefined}
+                userPersonalityTrait={primaryTrait}
+              />
+            </TutorialHighlight>
+          </View>
+        )}
+
+        {activeTab === 'codex' && (
+          <ScrollView style={styles.tabContent} contentContainerStyle={{ flexGrow: 1 }}>
+            <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'tools'}>
+              <CodexContent
+                ref={codexContentRef}
+                onClose={() => {
+                  setActiveTab('entrance');
+                }}
+                onSave={(entry: any) => {}}
+                onCreateEntry={() => setShowCodexModal(true)}
+                unlockedAreas={['journal', 'draw', 'voice']}
+                primaryTrait={primaryTrait}
+              />
+            </TutorialHighlight>
+          </ScrollView>
+        )}
+
+        {activeTab === 'defender' && (
+          <ScrollView style={styles.tabContent} contentContainerStyle={{ flexGrow: 1 }}>
+            <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'tools'}>
+              <ThoughtDefenderContent
+                onClose={() => setActiveTab('entrance')}
+                onScoreUpdate={(data: any) => {}}
+                onStartGame={() => setShowThoughtDefenderModal(true)}
+              />
+            </TutorialHighlight>
+          </ScrollView>
+        )}
+
+        {activeTab === 'restoration' && (
+          <ScrollView style={styles.tabContent} contentContainerStyle={{ flexGrow: 1 }}>
+            <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'restoration'}>
+              <PersonalityRestoration
+                primaryTrait={primaryTrait}
+                userProfile={userProfile}
+                stories={stories}
+                globalStyles={globalStyles}
+                onThemeToggle={() => theme.toggleTheme()}
+                onLogout={() => {
+                  if (auth && auth.logout) {
+                    try {
+                      auth.logout();
+                    } catch (error) {
+                      Alert.alert('Logout Error', `Failed to logout: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    }
+                  } else {
+                    Alert.alert('Error', 'Logout function not available');
                   }
-                } else {
-                  Alert.alert('Error', 'Logout function not available');
-                }
-              }}
-              currentTheme={theme.themeMode}
-            />
-          </TutorialHighlight>
-        </ScrollView>
-      )}
+                }}
+                currentTheme={theme.themeMode}
+              />
+            </TutorialHighlight>
+          </ScrollView>
+        )}
 
-      {selectedStory && isStoryVisible && (
-        <StoryScreen
-          visible={isStoryVisible}
-          onClose={handleCloseStory}
-          story={selectedStory}
-          chapter={selectedChapter || { id: 1, title: 'Chapter 1', passages: [] }}
-          passage={{ id: 'start', text: 'The story begins...' } as any}
-          choices={[]}
-          onStoryComplete={handleStoryComplete as any}
-          onStatGain={() => {}}
-          onArtifactUnlock={() => {}}
-          onSkillLearned={() => {}}
-        />
-      )}
+        {selectedStory && isStoryVisible && (
+          <StoryScreen
+            visible={isStoryVisible}
+            onClose={handleCloseStory}
+            story={selectedStory}
+            chapter={selectedChapter || { id: 1, title: 'Chapter 1', passages: [] }}
+            passage={{ id: 'start', text: 'The story begins...' } as any}
+            choices={[]}
+            onStoryComplete={handleStoryComplete as any}
+            onStatGain={() => {}}
+            onArtifactUnlock={() => {}}
+            onSkillLearned={() => {}}
+          />
+        )}
 
-      {selectedStory && isChapterScreenVisible && (
-        <ChapterScreen
-          visible={isChapterScreenVisible}
-          onClose={() => setIsChapterScreenVisible(false)}
-          storyId={String(selectedStory.id)}
-          storyTitle={selectedStory.title}
-          onChapterSelect={handleChapterSelect}
-        />
-      )}
+        {selectedStory && isChapterScreenVisible && (
+          <ChapterScreen
+            visible={isChapterScreenVisible}
+            onClose={() => setIsChapterScreenVisible(false)}
+            storyId={String(selectedStory.id)}
+            storyTitle={selectedStory.title}
+            onChapterSelect={handleChapterSelect}
+          />
+        )}
 
-      {showTutorial && (
-        <Modal
-          visible={showTutorial}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={skipTutorial}
-        >
-          <View style={styles.tutorialOverlay}>
-            <View style={styles.tutorialContent}>
-              <View style={styles.tutorialHeader}>
-                <Text style={styles.tutorialTitle}>{TUTORIAL_STEPS[currentTutorialStep].title}</Text>
-                <Text style={styles.tutorialMessage}>{TUTORIAL_STEPS[currentTutorialStep].message}</Text>
-                {TUTORIAL_STEPS[currentTutorialStep].tip && (
-                  <View style={styles.tipContainer}>
-                    <Text style={styles.tipText}>💡 Pro Tip: {TUTORIAL_STEPS[currentTutorialStep].tip}</Text>
-                  </View>
-                )}
-              </View>
+        {showTutorial && (
+          <Modal
+            visible={showTutorial}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={skipTutorial}
+          >
+            <View style={styles.tutorialOverlay}>
+              <View style={styles.tutorialContent}>
+                <View style={styles.tutorialHeader}>
+                  <Text style={styles.tutorialTitle}>{TUTORIAL_STEPS[currentTutorialStep].title}</Text>
+                  <Text style={styles.tutorialMessage}>{TUTORIAL_STEPS[currentTutorialStep].message}</Text>
+                  {TUTORIAL_STEPS[currentTutorialStep].tip && (
+                    <View style={styles.tipContainer}>
+                      <Text style={styles.tipText}>💡 Pro Tip: {TUTORIAL_STEPS[currentTutorialStep].tip}</Text>
+                    </View>
+                  )}
+                </View>
 
-              <View style={styles.progressContainer}>
-                {TUTORIAL_STEPS.map((_, index: number) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.progressDot,
-                      index === currentTutorialStep && styles.progressDotActive,
-                      index < currentTutorialStep && styles.progressDotCompleted
-                    ]}
-                  />
-                ))}
-              </View>
+                <View style={styles.progressContainer}>
+                  {TUTORIAL_STEPS.map((_, index: number) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.progressDot,
+                        index === currentTutorialStep && styles.progressDotActive,
+                        index < currentTutorialStep && styles.progressDotCompleted
+                      ]}
+                    />
+                  ))}
+                </View>
 
-              <View style={styles.buttonContainer}>
-                {currentTutorialStep > 0 && (
+                <View style={styles.buttonContainer}>
+                  {currentTutorialStep > 0 && (
+                    <TouchableOpacity
+                      style={[styles.tutorialButton, styles.previousButton]}
+                      onPress={previousTutorialStep}
+                    >
+                      <Text style={styles.buttonText}>← Previous</Text>
+                    </TouchableOpacity>
+                  )}
+
                   <TouchableOpacity
-                    style={[styles.tutorialButton, styles.previousButton]}
-                    onPress={previousTutorialStep}
+                    style={[styles.tutorialButton, styles.skipButton]}
+                    onPress={skipTutorial}
                   >
-                    <Text style={styles.buttonText}>← Previous</Text>
+                    <Text style={styles.buttonText}>Skip</Text>
                   </TouchableOpacity>
-                )}
-                
-                <TouchableOpacity
-                  style={[styles.tutorialButton, styles.skipButton]}
-                  onPress={skipTutorial}
-                >
-                  <Text style={styles.buttonText}>Skip</Text>
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.tutorialButton, styles.nextButton]}
-                  onPress={nextTutorialStep}
-                >
-                  <Text style={styles.buttonText}>
-                    {currentTutorialStep === TUTORIAL_STEPS.length - 1 ? 'Get Started!' : 'Next →'}
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.tutorialButton, styles.nextButton]}
+                    onPress={nextTutorialStep}
+                  >
+                    <Text style={styles.buttonText}>
+                      {currentTutorialStep === TUTORIAL_STEPS.length - 1 ? 'Get Started!' : 'Next →'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
-      )}
+          </Modal>
+        )}
 
-      <CodexModal
-        visible={showCodexModal}
-        onClose={() => {
-          setShowCodexModal(false);
-        }}
-        onSave={async (entry: any) => {
-          setShowCodexModal(false);
-          if (codexContentRef.current) {
-            try {
-              await codexContentRef.current.refreshEntries();
-            } catch (error) {
-              // Silently handle refresh error
+        <CodexModal
+          visible={showCodexModal}
+          onClose={() => {
+            setShowCodexModal(false);
+          }}
+          onSave={async (entry: any) => {
+            setShowCodexModal(false);
+
+            // Refresh codex entries
+            if (codexContentRef.current) {
+              try {
+                await codexContentRef.current.refreshEntries();
+              } catch (error) {
+                // Silently handle refresh error
+              }
             }
-          }
-        }}
-        selectedType="journal"
-      />
 
-      <ThoughtDefenderModal
-        visible={showThoughtDefenderModal}
-        onClose={() => setShowThoughtDefenderModal(false)}
-        onScoreUpdate={(data: any) => {}}
-        primaryTrait={primaryTrait}
-      />
+            // Refresh home screen data to update unlocked tools, wellness stats, etc.
+            try {
+              await fetchHomeScreenData();
+              if (wellness.loadHomeData) {
+                await wellness.loadHomeData();
+              }
+            } catch (error) {
+              console.error('Failed to refresh home screen data after journal save:', error);
+            }
+          }}
+          selectedType="journal"
+        />
+
+        <ThoughtDefenderModal
+          visible={showThoughtDefenderModal}
+          onClose={() => setShowThoughtDefenderModal(false)}
+          onScoreUpdate={(data: any) => {}}
+          primaryTrait={primaryTrait}
+        />
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#181A20',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 24,
+  },
+  tabContent: {
+    flex: 1,
+    backgroundColor: '#0a0b0f',
+  },
   tutorialButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     backgroundColor: 'rgba(26, 29, 38, 0.8)',
   },
   startTutorialButton: {
     backgroundColor: '#4ee6e6',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     flex: 1,
     marginRight: 10,
@@ -601,8 +632,8 @@ const styles = StyleSheet.create({
   },
   restartTutorialButton: {
     backgroundColor: '#666',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     flex: 1,
     marginRight: 10,
@@ -610,7 +641,7 @@ const styles = StyleSheet.create({
   },
   tutorialButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   tutorialOverlay: {

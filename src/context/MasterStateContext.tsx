@@ -142,7 +142,7 @@ export const useMasterState = () => {
       updateCharacter: character.updateCharacter,
       loadCharacter: character.loadCharacter,
       gainExperience: character.gainExperience,
-      gainResonance: character.gainResonance,
+      gainLumens: character.gainLumens,
       gainWellness: character.gainWellness,
     },
     wellness: {
@@ -408,7 +408,7 @@ const DeepProviders: React.FC<{
         memoryStories={ui.memoryStories}
         researchCondition={ui.researchCondition}
         onGainExperience={character.gainExperience}
-        onGainResonance={character.gainResonance}
+        onGainLumens={character.gainLumens}
         onGainWellness={character.gainWellness}
         onLoadHomeData={wellness.loadHomeData}
       >

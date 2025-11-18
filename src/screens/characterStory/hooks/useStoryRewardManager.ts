@@ -13,7 +13,7 @@ interface UseStoryRewardManagerProps {
   wellnessHomeData: any;
   showRewardNotification: (
     message: string,
-    type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest',
+    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest',
     icon?: string,
     iconImage?: any,
     statName?: string
@@ -41,17 +41,30 @@ export const useStoryRewardManager = ({
 
   // Initialize RewardManager when story opens
   useEffect(() => {
+    console.log(`🔍 [useStoryRewardManager] Checking initialization conditions:`, {
+      visible,
+      storyId,
+      isInitialized,
+      hasWellnessHomeData: !!wellnessHomeData,
+      personalityLoading,
+      hasRewardManager: !!rewardManager
+    });
+
     if (visible && storyId && isInitialized) {
+      console.log(`✅ [useStoryRewardManager] Conditions met - initializing...`);
+
       const initializeRewardManager = async () => {
         const homeData = wellnessHomeData as any;
 
         // Wait for homeData to load before initializing
         if (!homeData) {
+          console.log(`⚠️ [useStoryRewardManager] No homeData - waiting...`);
           return;
         }
 
         // Skip if RewardManager already exists (prevents duplicate initialization)
         if (rewardManager) {
+          console.log(`⏭️ [useStoryRewardManager] RewardManager already exists - skipping`);
           return;
         }
 
@@ -69,8 +82,11 @@ export const useStoryRewardManager = ({
           }
         }
 
+        console.log(`📊 [useStoryRewardManager] Research condition: ${researchCondition}`);
+
         // For personality users, wait until personality data is loaded
         if (researchCondition === "personality" && personalityLoading) {
+          console.log(`⏳ [useStoryRewardManager] Personality data still loading - waiting...`);
           return;
         }
 
@@ -80,15 +96,23 @@ export const useStoryRewardManager = ({
           userId = homeData?.userProfile?.id;
         }
 
-        // Character ID: for character users (Group A)
-        const characterId = researchCondition === "character"
-          ? (homeData?.userProfile?.character?.id || homeData?.character?.id || 0)
-          : 0;
+        // Character ID: Both user types need this for wellness stats
+        // Character users: full character functionality
+        // Personality users: need character ID for wellness stat storage
+        const characterId = homeData?.userProfile?.character?.id || homeData?.character?.id || 0;
 
         // Equipment array: only for character users
         const equippedGear = researchCondition === "character"
           ? (homeData?.userProfile?.character?.equipped_gear || homeData?.character?.equipped_gear || [])
           : [];
+
+        console.log(`🎯 [useStoryRewardManager] Creating StoryRewardManager:`, {
+          researchCondition,
+          characterId,
+          userId,
+          primaryTrait,
+          hasEquippedGear: equippedGear.length > 0
+        });
 
         // Initialize StoryRewardManager with dual-path support
         const manager = new StoryRewardManager(
@@ -96,14 +120,15 @@ export const useStoryRewardManager = ({
           showRewardNotification,
           handleStoryCompletionWithRewards,
           apiService,
-          characterId,       // Character users: character ID, Personality users: 0
+          characterId,       // Both user types: character ID for wellness stat storage
           equippedGear,      // Character users: equipment array, Personality users: []
           0,                 // storyReplayCount (future feature)
           researchCondition, // "character" | "personality"
-          userId,            // Personality users: user ID, Character users: undefined
+          userId,            // Personality users: user ID for coping tool acquisition
           primaryTrait       // User's primary personality trait (for quest filtering)
         );
 
+        console.log(`✅ [useStoryRewardManager] StoryRewardManager created successfully`);
         setRewardManager(manager);
 
         // Create or get story progress record
@@ -114,6 +139,8 @@ export const useStoryRewardManager = ({
       };
 
       initializeRewardManager();
+    } else {
+      console.log(`⚠️ [useStoryRewardManager] Conditions not met for initialization`);
     }
   }, [visible, storyId, chapterId, isInitialized, primaryTrait, personalityLoading, wellnessHomeData]);
 

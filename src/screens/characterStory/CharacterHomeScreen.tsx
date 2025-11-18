@@ -99,7 +99,8 @@ const ArchiveInterface: React.FC = () => {
     ui,
     archive,
     wellness,
-    equipment
+    equipment,
+    loadStories
   });
     const {
     thoughtDefenderStats,

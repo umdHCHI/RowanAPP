@@ -177,7 +177,7 @@ export interface ArchiveProgress {
     name: string;
     type: string;
     equipped: boolean;
-    resonance: number;
+    lumens: number;
     description: string;
     rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
   }>;
@@ -185,7 +185,7 @@ export interface ArchiveProgress {
     name: string;
     type: string;
     equipped: boolean;
-    resonance: number;
+    lumens: number;
     description: string;
     rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
   }>;

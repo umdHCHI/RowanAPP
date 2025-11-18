@@ -131,7 +131,7 @@ export interface GearCache {
 
 export interface NotificationData {
   message: string;
-  type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+  type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
   icon?: string;
   iconImage?: any;
   statName?: string;

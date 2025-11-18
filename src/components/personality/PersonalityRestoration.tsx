@@ -470,7 +470,9 @@ export const PersonalityRestoration: React.FC<PersonalityRestorationProps> = ({
           🛠️ Wisdom Arsenal
         </Text>
         <CopingToolsCollection
-          unlockedTools={userUnlockedTools}
+          unlockedTools={userUnlockedTools.map((tool: CopingTool) => tool.tool_id || tool.id)}
+          userUnlockedTools={userUnlockedTools}
+          availableTools={userProfile?.available_tools || []}
           primaryTrait={primaryTrait}
           authToken={userProfile?.authToken}
           globalStyles={globalStyles}

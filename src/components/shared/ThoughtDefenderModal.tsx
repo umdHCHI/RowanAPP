@@ -1170,7 +1170,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         
         if (rewardResult.success) {
           if (ui.researchCondition === "character") {
-            character.gainResonance(rewardResult.rewards.experience, 'ThoughtDefender');
+            character.gainLumens(rewardResult.rewards.experience, 'ThoughtDefender');
           } else {
             character.gainExperience(rewardResult.rewards.experience, 'ThoughtDefender');
           }
@@ -1336,7 +1336,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     
     if (rewardResult.success) {
       if (ui.researchCondition === "character") {
-        character.gainResonance(rewardResult.rewards.experience, 'ThoughtDefender');
+        character.gainLumens(rewardResult.rewards.experience, 'ThoughtDefender');
       } else {
         character.gainExperience(rewardResult.rewards.experience, 'ThoughtDefender');
       }

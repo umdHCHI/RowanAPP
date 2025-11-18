@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View, Image } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { PersonalityConfigs, PersonalityKey } from '../../imports';
 
 interface PersonalizedArchiveHeaderProps {
@@ -32,13 +32,13 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
     return (
       <View style={{
         backgroundColor: '#0a0b0f',
-        padding: 12,
-        paddingTop: 16,
-        paddingBottom: 10,
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        paddingBottom: 8,
         borderBottomWidth: 2,
         borderBottomColor: '#4ee6e6',
       }}>
-        <Text style={{ color: '#4ee6e6', fontSize: 18, textAlign: 'center' }}>
+        <Text style={{ color: '#4ee6e6', fontSize: 16, textAlign: 'center' }}>
           The Archive
         </Text>
       </View>
@@ -48,9 +48,9 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
   // Create personality-specific header style
   const headerStyle = {
     backgroundColor: config.theme?.background || '#0a0b0f',
-    padding: 12,
-    paddingTop: 16,
-    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
     borderBottomWidth: 2,
     borderBottomColor: config.theme?.primary || '#4ee6e6',
     shadowColor: config.theme?.primary || '#4ee6e6',
@@ -89,13 +89,13 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
       {/* Header Content */}
       <View style={{ position: 'relative', zIndex: 1 }}>
         {/* Archive Title Section */}
-        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+        <View style={{ alignItems: 'center', marginBottom: 6 }}>
           <Text
             style={{
               color: config.theme?.primary || '#4ee6e6',
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: 'bold',
-              letterSpacing: 2,
+              letterSpacing: 1.5,
               textShadowColor: `${config.theme?.primary || '#4ee6e6'}50`,
               textShadowOffset: { width: 0, height: 2 },
               textShadowRadius: 8,
@@ -109,10 +109,10 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
           <Text
             style={{
               color: config.theme?.secondary || '#ccc',
-              fontSize: 11,
+              fontSize: 10,
               fontStyle: 'italic',
               textAlign: 'center',
-              marginTop: 2
+              marginTop: 1
             }}
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -122,12 +122,12 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
         </View>
 
         {/* Character Info Section */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <View style={{ flex: 1, paddingRight: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <View style={{ flex: 1, paddingRight: 6 }}>
             <Text
               style={{
                 color: config.theme?.primary || '#4ee6e6',
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: 'bold'
               }}
               numberOfLines={1}
@@ -137,22 +137,22 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
             <Text
               style={{
                 color: '#ccc',
-                fontSize: 11,
+                fontSize: 10,
                 fontStyle: 'italic'
               }}
               numberOfLines={1}
             >
-              {config.scholarClass || 'The Explorer'} • Level {characterLevel}
+              {config.scholarClass || 'The Explorer'} • Lvl {characterLevel}
             </Text>
           </View>
 
-          <View style={{ alignItems: 'flex-end', flex: 1, paddingLeft: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ alignItems: 'flex-end', flex: 1, paddingLeft: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               {typeof config.avatar === 'string' ? (
                 <Text
                   style={{
                     color: config.theme?.primary || '#4ee6e6',
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: '600'
                   }}
                 >
@@ -162,8 +162,8 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
                 <Image
                   source={config.avatar}
                   style={{
-                    width: 20,
-                    height: 20,
+                    width: 16,
+                    height: 16,
                     resizeMode: 'contain'
                   }}
                 />
@@ -171,7 +171,7 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
               <Text
                 style={{
                   color: config.theme?.primary || '#4ee6e6',
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: '600'
                 }}
                 numberOfLines={1}
@@ -182,7 +182,7 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
             <Text
               style={{
                 color: '#ccc',
-                fontSize: 10
+                fontSize: 9
               }}
               numberOfLines={1}
             >
@@ -192,24 +192,24 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
         </View>
 
         {/* Experience Bar */}
-        <View style={{ marginTop: 4 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-            <Text style={{ color: '#ccc', fontSize: 10 }}>Experience</Text>
-            <Text style={{ color: '#ccc', fontSize: 10 }}>
-              {experience} / {experienceNeeded} XP
+        <View style={{ marginTop: 3 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+            <Text style={{ color: '#ccc', fontSize: 9 }}>Lumens To Light Your Way</Text>
+            <Text style={{ color: '#ccc', fontSize: 9 }}>
+              {experience} / {experienceNeeded} 🌙
             </Text>
           </View>
           <View style={{
-            height: 5,
+            height: 4,
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: 3,
+            borderRadius: 2,
             overflow: 'hidden'
           }}>
             <View style={{
               height: '100%',
               width: `${Math.min(experiencePercentage, 100)}%`,
               backgroundColor: config.theme?.primary || '#4ee6e6',
-              borderRadius: 3
+              borderRadius: 2
             }} />
           </View>
         </View>
@@ -219,15 +219,15 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
           flexDirection: 'row',
           justifyContent: 'center',
           alignItems: 'center',
-          marginTop: 6,
-          paddingTop: 6,
+          marginTop: 4,
+          paddingTop: 4,
           borderTopWidth: 1,
           borderTopColor: 'rgba(255, 255, 255, 0.1)'
         }}>
           <Text
             style={{
               color: config.theme?.primary || '#4ee6e6',
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: '600',
               textAlign: 'center'
             }}

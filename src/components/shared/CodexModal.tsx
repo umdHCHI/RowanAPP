@@ -31,7 +31,7 @@ const CodexModal = ({
   isFullScreen = false,
   selectedType = 'journal',
 }: CodexModalProps & { isFullScreen?: boolean }) => {
-  const { wellness, archive, theme, character, auth } = useMasterState();
+  const { wellness, archive, theme, character } = useMasterState();
   const globalStyles = createGlobalStyles(theme.theme);
 
   const [selectedTypeState, setSelectedTypeState] = useState<
@@ -243,12 +243,29 @@ const CodexModal = ({
             }
             
             if (Object.keys(journalReward.wellnessStats).length > 0) {
-              const idFromContext = character.backendCharacter?.id ?? character.userProfileData?.character?.id;
-              if (!idFromContext) throw new Error('No character id to award wellness');
-              
-              await apiService.gainWellness(idFromContext, journalReward.wellnessStats);
+              console.log('💪 [CodexModal] Applying wellness gains:', journalReward.wellnessStats);
 
-              await wellness.loadHomeData?.();
+              // Apply wellness gains silently (similar to ThoughtDefenderModal)
+              try {
+                const characterId = character.backendCharacter?.id ?? character.userProfileData?.character?.id;
+                if (characterId) {
+                  // Filter to only positive values
+                  const payload = Object.fromEntries(
+                    Object.entries(journalReward.wellnessStats).filter(([, v]) => typeof v === 'number' && v > 0)
+                  );
+
+                  if (Object.keys(payload).length > 0) {
+                    await apiService.gainWellness(Number(characterId), payload);
+                    await wellness.loadHomeData?.();
+                  }
+                } else {
+                  console.warn('⚠️ [CodexModal] No character ID available for wellness gains');
+                }
+              } catch (wellnessError: any) {
+                console.warn('⚠️ [CodexModal] Failed to apply wellness gains (non-critical):', wellnessError?.message || wellnessError);
+                // Don't throw - wellness gains are optional rewards
+                // The journal entry was already saved successfully
+              }
             }
             
             let rewardMessage = journalReward.message;
@@ -270,10 +287,11 @@ const CodexModal = ({
               type: 'experience',
               icon: '⭐'
             });
-          } catch {
+          } catch (rewardError: any) {
+            console.error('❌ [CodexModal] Error applying rewards:', rewardError);
             Alert.alert(
               "Entry Saved",
-              "Your journal entry has been saved, but there was an issue applying rewards.",
+              `Your journal entry has been saved, but there was an issue applying rewards: ${rewardError?.message || 'Unknown error'}`,
               [{ text: "OK" }]
             );
           }

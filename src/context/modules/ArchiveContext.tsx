@@ -48,7 +48,7 @@ interface ArchiveProviderProps {
   researchCondition: 'character' | 'survey' | 'unknown';
   authToken?: string | null;
   onGainExperience?: (amount: number, source?: string) => Promise<void>;
-  onGainResonance?: (amount: number, source?: string) => Promise<void>;
+  onGainLumens?: (amount: number, source?: string) => Promise<void>;
   onGainWellness?: (gains: Record<string, number>) => Promise<void>;
   onLoadHomeData?: () => Promise<void>;
 }
@@ -59,7 +59,7 @@ export const ArchiveProvider: React.FC<ArchiveProviderProps> = ({
   researchCondition,
   authToken,
   onGainExperience,
-  onGainResonance,
+  onGainLumens,
   onGainWellness,
   onLoadHomeData,
 }) => {
@@ -399,8 +399,8 @@ export const ArchiveProvider: React.FC<ArchiveProviderProps> = ({
       Object.entries(rewardTracker.totalStatGains).forEach(([stat, value]) => {
         if (typeof value === 'number' && value > 0) {
           if (researchCondition === 'character') {
-            if (stat === 'resonance' && onGainResonance) {
-              onGainResonance(value, `story_${rewardTracker.storyId}`);
+            if (stat === 'lumens' && onGainLumens) {
+              onGainLumens(value, `story_${rewardTracker.storyId}`);
             } else if (stat === 'experience' && onGainExperience) {
               onGainExperience(value, `story_${rewardTracker.storyId}`);
             } else if (onGainWellness) {
@@ -409,13 +409,13 @@ export const ArchiveProvider: React.FC<ArchiveProviderProps> = ({
           } else if (researchCondition === 'survey') {
             if (stat === 'experience' && onGainExperience) {
               onGainExperience(value, `story_${rewardTracker.storyId}`);
-            } else if (stat === 'resonance' && onGainResonance) {
-              onGainResonance(value, `story_${rewardTracker.storyId}`);
+            } else if (stat === 'lumens' && onGainLumens) {
+              onGainLumens(value, `story_${rewardTracker.storyId}`);
             } else if (onGainWellness) {
               onGainWellness({ [stat]: value });
             }
           } else {
-            if (stat !== 'experience' && stat !== 'resonance' && onGainWellness) {
+            if (stat !== 'experience' && stat !== 'lumens' && onGainWellness) {
               onGainWellness({ [stat]: value });
             }
           }
@@ -430,7 +430,7 @@ export const ArchiveProvider: React.FC<ArchiveProviderProps> = ({
             name: reward,
             type: 'gear_reward',
             equipped: false,
-            resonance: 1,
+            lumens: 1,
             description: `Equipment earned from story completion`,
             rarity: 'Common' as any,
           });
@@ -439,7 +439,7 @@ export const ArchiveProvider: React.FC<ArchiveProviderProps> = ({
             name: reward,
             type: 'coping_tool',
             equipped: false,
-            resonance: 1,
+            lumens: 1,
             description: `Coping strategy learned from story completion`,
             rarity: 'Common' as any,
           });

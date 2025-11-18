@@ -119,11 +119,8 @@ export const StoryProvider: React.FC<StoryProviderProps> = ({
 
     // Check if this is an ending choice
     if (isEnding || (!next && (finalRewards || wisdomGained))) {
-      Alert.alert(
-        '📚You Have Finished a Tale. The Archive Watches.',
-        `Your journey has transformed your understanding.`,
-        [{ text: 'Continue Exploring', style: 'default' }]
-      );
+      // Don't show alert here - let the screen handler show the completion message
+      // This prevents duplicate alerts (StoryContext + PersonalityHomeScreen)
       if (onStoryClose) {
         onStoryClose();
       }

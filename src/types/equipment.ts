@@ -66,7 +66,9 @@ export const RARITY_COLORS = {
 
 
 export interface CopingToolsCollectionProps {
-  unlockedTools: string[];
+  unlockedTools: string[]; // Array of tool IDs that are unlocked (kept for backward compatibility)
+  userUnlockedTools?: CopingTool[]; // Full coping tool objects from backend (tools user has collected)
+  availableTools?: CopingTool[]; // All available tools from backend (to show locked/unlocked state)
   primaryTrait: PersonalityKey;
   authToken: string | null;
   globalStyles: any;

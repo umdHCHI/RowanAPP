@@ -16,7 +16,7 @@ export interface MentalArtifact {
   name: string;
   type: string;
   equipped: boolean;
-  resonance: number;
+  lumens: number;
   description: string;
   rarity: "Common" | "Rare" | "Epic" | "Legendary";
 }

@@ -49,14 +49,17 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     } = useMasterState();
   const { primaryTrait, isPersonalityUser, isLoading: personalityLoading } = usePersonality();
   const globalStyles = createGlobalStyles(theme.theme);
+
+  // Personality trait is loaded from PersonalityContext
  
 
 
   const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(null);
+  const [lastUsedPrimaryTrait, setLastUsedPrimaryTrait] = useState<string | null>(null);
   const [rewardNotification, setRewardNotification] = useState<{
     visible: boolean;
     message: string;
-    type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
     icon?: string;
     iconImage?: any;
     statName?: string;
@@ -68,7 +71,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 
   const [notificationQueue, setNotificationQueue] = useState<Array<{
     message: string;
-    type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
     icon?: string;
     iconImage?: any;
     statName?: string;
@@ -79,7 +82,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 
   const notificationQueueRef = useRef<Array<{
     message: string;
-    type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
     icon?: string;
     iconImage?: any;
     statName?: string;
@@ -113,25 +116,51 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   });
 
   useEffect(() => {
+    console.log(`🔍 [StoryScreen RewardManager] Checking initialization:`, {
+      visible,
+      hasStoryId: !!story?.id,
+      isInitialized,
+      primaryTrait,
+      personalityLoading,
+      hasRewardManager: !!rewardManager,
+      lastUsedPrimaryTrait
+    });
+
     if (visible && story?.id && isInitialized) {
+      console.log(`✅ [StoryScreen RewardManager] Basic conditions met - initializing...`);
+
       const initializeRewardManager = async () => {
-        const homeData = wellness.homeData as any; // Type assertion for flexible backend structure
+        // Load homeData if not available
+        let homeData = wellness.homeData as any;
+        if (!homeData && wellness.loadHomeData) {
+          console.log(`📊 [StoryScreen RewardManager] Loading homeData...`);
+          await wellness.loadHomeData();
+          homeData = wellness.homeData as any;
+        }
 
         // Wait for homeData to load before initializing
         if (!homeData) {
+          console.log(`⚠️ [StoryScreen RewardManager] No homeData available - waiting...`);
           return;
         }
 
-        // Skip if RewardManager already exists (prevents duplicate initialization)
+        console.log(`📊 [StoryScreen RewardManager] HomeData loaded`);
+
+        // CHANGED: Allow reinitialization if primaryTrait changes
+        // This fixes the issue where manager is created with default "Openness" before real trait loads
+        if (rewardManager && lastUsedPrimaryTrait === primaryTrait) {
+          console.log(`⏭️ [StoryScreen RewardManager] Manager exists with same trait - skipping`);
+          return; // Skip reinitialization if trait hasn't changed
+        }
+
         if (rewardManager) {
-          return;
+          console.log(`🔄 [StoryScreen RewardManager] Trait changed - resetting manager`);
+          setRewardManager(null);
         }
 
         let researchCondition: "character" | "personality" = "personality";
 
         // Determine research condition: Group A = Character, Group B = Personality
-        // homeData structure: wellness.homeData.userProfile.profile.research_group.condition
-
         if (homeData?.userProfile?.profile?.research_group?.condition) {
           researchCondition = homeData.userProfile.profile.research_group.condition === "A" ? "character" : "personality";
         } else {
@@ -139,14 +168,37 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           const completionType = homeData?.userProfile?.completion_type;
           if (completionType) {
             researchCondition = completionType === "character" ? "character" : "personality";
-          } else {
           }
         }
 
+        console.log(`📊 [StoryScreen RewardManager] Research condition: ${researchCondition}`);
 
         // For personality users, wait until personality data is loaded
         if (researchCondition === "personality" && personalityLoading) {
+          console.log(`⏳ [StoryScreen RewardManager] Personality data still loading - waiting...`);
           return;
+        }
+
+        // For personality users, determine the correct trait to use
+        // IMPORTANT: Use backend trait directly to avoid timing issues with PersonalityContext
+        let traitToUse = primaryTrait;
+        if (researchCondition === "personality") {
+          const backendTrait = homeData?.userProfile?.personality_profile?.profile_summary?.dominant_trait;
+
+          if (backendTrait) {
+            // Normalize backend trait (lowercase → Title Case)
+            const normalizedBackendTrait = backendTrait.charAt(0).toUpperCase() + backendTrait.slice(1).toLowerCase();
+            traitToUse = normalizedBackendTrait;
+
+            console.log(`🔍 [StoryScreen RewardManager] Using backend trait for accuracy:`, {
+              backendTrait,
+              normalizedBackendTrait,
+              frontendTrait: primaryTrait,
+              usingTrait: traitToUse
+            });
+          } else {
+            console.log(`⚠️ [StoryScreen RewardManager] No backend trait found - using frontend trait:`, primaryTrait);
+          }
         }
 
         // Get userId for personality users (needed for coping tool acquisition)
@@ -155,27 +207,40 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           userId = homeData?.userProfile?.id;
         }
 
-        // Character ID: for character users (Group A)
-        const characterId = researchCondition === "character" ? (homeData?.userProfile?.character?.id || homeData?.character?.id || 0) : 0;
-
+        // Character ID: Both user types need this for wellness stats
+        const characterId = homeData?.userProfile?.character?.id || homeData?.character?.id || 0;
 
         // Equipment array: only for character users
         const equippedGear = researchCondition === "character" ? (homeData?.userProfile?.character?.equipped_gear || homeData?.character?.equipped_gear || []) : [];
-        
+
+        console.log(`🎯 [StoryScreen RewardManager] Creating StoryRewardManager:`, {
+          storyId: story.id,
+          researchCondition,
+          characterId,
+          userId,
+          primaryTrait: traitToUse,
+          hasEquippedGear: equippedGear.length > 0
+        });
+
         const manager = new StoryRewardManager(
           story.id.toString(),
           showRewardNotification,
           handleStoryCompletionWithRewards,
           apiService,
-          characterId,       // Character users get their character ID, personality users get 0
-          equippedGear,      // Character users get their equipment array, personality users get []
+          characterId,       // Both user types: character ID for wellness stat storage
+          equippedGear,      // Character users: equipment array, Personality users: []
           0,                 // storyReplayCount
-          researchCondition, // "character" | "personality" - NOW in correct position
-          userId,            // Personality users get their user ID, character users get undefined
-          primaryTrait       // User's primary personality trait
+          researchCondition, // "character" | "personality"
+          userId,            // Personality users: user ID for coping tool acquisition
+          traitToUse         // User's primary personality trait (from backend for accuracy)
         );
+
+        console.log(`✅ [StoryScreen RewardManager] StoryRewardManager created successfully`);
         setRewardManager(manager);
-        
+        setLastUsedPrimaryTrait(traitToUse); // Track which trait was used for this manager
+        console.log(`✅ [StoryScreen RewardManager] RewardManager set in state`);
+
+
         const storyProgress = await apiService.getOrCreateStoryProgress(story.id, {
           current_passage_id: currentPassage?.passage_id || '',
           story_variables: {}
@@ -191,7 +256,15 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   }, [rewardNotification]);
 
   useEffect(() => {
+    console.log(`🔍 [StoryScreen] Passage reward check:`, {
+      hasRewardManager: !!rewardManager,
+      hasCurrentPassage: !!currentPassage,
+      isInitialized,
+      passageId: currentPassage?.passage_id
+    });
+
     if (rewardManager && currentPassage && isInitialized) {
+      console.log(`✅ [StoryScreen] All conditions met - processing passage rewards for: ${currentPassage.passage_id}`);
 
       const passageForRewards: Passage = {
         id: (currentPassage as any).id || 0,
@@ -233,9 +306,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 
         const validQuests = questIds.filter((questId: string) => {
           const questInfo = getQuestInfo(questId);
-          return questInfo && questInfo.personalityType === primaryTrait;
+          const isValid = questInfo && questInfo.personalityType === primaryTrait;
+          return isValid;
         });
-
 
 
         if (validQuests.length > 0) {
@@ -252,14 +325,22 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           }
         }
       }
-      
+
+      console.log(`📦 [StoryScreen] Calling rewardManager.handlePassageVisit with passage:`, {
+        passageId: passageForRewards.passage_id,
+        story_effects: passageForRewards.story_effects,
+        effects: passageForRewards.effects
+      });
+
       rewardManager.handlePassageVisit(passageForRewards);
+    } else {
+      console.log(`⚠️ [StoryScreen] Skipping reward processing - conditions not met`);
     }
   }, [currentPassage?.passage_id, rewardManager, isInitialized, primaryTrait]);
 
   const showRewardNotification = (
     message: string,
-    type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest',
+    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest',
     icon?: string,
     iconImage?: any,
     statName?: string
@@ -333,21 +414,28 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     onStoryComplete?.(completionData);
   };
 
-  const handlePassageTap = () => {
+  const handlePassageTap = async () => {
     if (loading) return;
 
     if (isEnding) {
+
       if (rewardManager) {
         const homeData = wellness.homeData as any; // Type assertion
-        
+
         const currentSavedRewards = {
           characterStats: homeData?.character ? [homeData.character] : [],
           totalExperience: homeData?.character?.experience || 0,
           wellnessStats: homeData?.character?.wellness_stats || {},
           storiesCompleted: 0
         };
-        
-        rewardManager.handleStoryCompletion(currentSavedRewards);
+
+        try {
+          await rewardManager.handleStoryCompletion(currentSavedRewards);
+        } catch (error: any) {
+          console.error(`❌ [StoryScreen] Error during story completion:`, error.message);
+          console.error(`   Full error:`, error);
+          // Still call onStoryComplete to close the story even if rewards fail
+        }
       } else {
         onStoryComplete?.({ storyId: story.id });
       }

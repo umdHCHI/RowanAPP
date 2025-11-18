@@ -4,7 +4,7 @@ import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 interface FloatingRewardNotificationProps {
   visible: boolean;
   message: string;
-  type?: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+  type?: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
   icon?: string;
   iconImage?: any; // For PNG image assets
   statName?: string;
@@ -112,12 +112,12 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
           icon: '⭐',
           label: 'Lumens'
         };
-      case 'resonance':
+      case 'lumens':
         return {
           backgroundColor: '#FF6B6B',
           borderColor: '#FF5252',
           icon: '🌟',
-          label: 'Resonance'
+          label: 'Lumens'
         };
       case 'item':
         return {

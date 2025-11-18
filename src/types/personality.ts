@@ -92,7 +92,18 @@ export const DailyCuratorMessages = {
 };
 
 // 2. PERSONALITY-SPECIFIC QUESTS
-export const PersonalityQuests = {
+
+export interface PersonalityQuest {
+  id: string;
+  title: string;
+  description: string;
+  reward: string;
+  total: number;
+  wellnessProperty: string;
+  journalUnlock?: string; // Optional journal prompt ID to unlock when quest is completed
+}
+
+export const PersonalityQuests: Record<PersonalityKey, PersonalityQuest[]> = {
   Openness: [
     { id: 'openness_1', title: "The Unread Chapter", description: "Delve into 3 unexplored story chapters within the archives.", reward: "🔮 Visionary's Orb", total: 3, wellnessProperty: "connection" },
     { id: 'openness_2', title: "Mind Weaver", description: "Transform 5 different types of negative thoughts in the 'Thought Invaders' mini-game.", reward: "✨ Sigil of Innovation", total: 5 , wellnessProperty: "balance"},
@@ -106,7 +117,7 @@ export const PersonalityQuests = {
   Extraversion: [
     { id: 'extraversion_1', title: "Kindred Spirits", description: "Forge a meaningful connection with a key character in the story.", reward: "🌟 Emblem of Fellowship", total: 1, wellnessProperty: "connection" },
     { id: 'extraversion_2', title: "Voice of the Heart", description: "Choose 10 dialogue options that build positive relationships with others.", reward: "⚡ Heartwood Charm", total: 10, wellnessProperty: "balance" },
-    { id: 'extraversion_3', title: "Shared Horizons", description: "Record 5 journal entries reflecting on your interactions with the story's characters.", reward: "🎭 Silver Tongue's Badge", total: 5, wellnessProperty: "awareness" }
+    { id: 'extraversion_3', title: "Shared Horizons", description: "Record 5 journal entries reflecting on your interactions with the story's characters.", reward: "🎭 Silver Tongue's Badge", total: 5, wellnessProperty: "awareness", journalUnlock: "019" }
   ],
   Agreeableness: [
     { id: 'agreeableness_1', title: "The Peacemaker's Gambit", description: "Successfully de-escalate 5 conflicts through dialogue choices in the story.", reward: "🕊️ Branch of Accord", total: 5, wellnessProperty: "connection" },
