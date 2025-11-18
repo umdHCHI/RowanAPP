@@ -66,7 +66,9 @@ export const RARITY_COLORS = {
 
 
 export interface CopingToolsCollectionProps {
-  unlockedTools: string[];
+  unlockedTools: string[]; // Array of tool IDs that are unlocked (kept for backward compatibility)
+  userUnlockedTools?: CopingTool[]; // Full coping tool objects from backend (tools user has collected)
+  availableTools?: CopingTool[]; // All available tools from backend (to show locked/unlocked state)
   primaryTrait: PersonalityKey;
   authToken: string | null;
   globalStyles: any;
@@ -93,6 +95,28 @@ export interface CopingTool {
     created_at: string;
 }
 
+export interface GearType {
+  id: number;
+  name: string;
+  slot: string;
+  description: string;
+  emoji_icon: string;
+  mindfulness_bonus: number;
+  focus_bonus: number;
+  confidence_bonus: number;
+  resilience_bonus: number;
+  empathy_bonus: number;
+  organization_bonus: number;
+  stat_bonuses: {
+    mindfulness: number;
+    focus: number;
+    confidence: number;
+    resilience: number;
+    empathy: number;
+    organization: number;
+  };
+  created_at: string;
+}
 // ===== SHARED EQUIPMENT UTILITY FUNCTIONS =====
 
 /**

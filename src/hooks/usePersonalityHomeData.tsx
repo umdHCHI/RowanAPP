@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { apiService } from '../services/apiService';
@@ -151,52 +152,23 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
 
       try {
 
-        // **FIX: Get quest progress from backend records (more reliable)**
+        // **FIX: Get quest progress from user profile (primary source for personality users)**
         let questProgress: Record<string, number> = {};
-        
-        try {
-          // Use the proper API method to get quest progress from backend records
-          questProgress = await apiService.getQuestProgressFromRecords();
-          
-          // If no quest progress found from records, try the fallback
-          if (Object.keys(questProgress).length === 0) {
-            throw new Error('No quest progress found in records');
-          }
-        } catch (questError) {
-          console.warn('⚠️ Failed to fetch quest progress from backend records:', questError);
-          
-          // Fallback: try to get quest progress from user profile
-          const backendQuestProgress = fullProfile.quest_progress || [];
-          
-          if (Array.isArray(backendQuestProgress)) {
-            // Transform from backend format to frontend format
-            backendQuestProgress.forEach((questData: any, index: number) => {
-              if (questData.quest && questData.quest.quest_id) {
-                questProgress[questData.quest.quest_id] = questData.progress || 0;
-              } else {
-              }
-            });
-            
-          } else {
-            console.warn('⚠️ Backend quest_progress is not an array:', backendQuestProgress);
-          }
-        }
-        
-        // Log quest progress details for debugging
-        if (Object.keys(questProgress).length > 0) {
-          Object.entries(questProgress).forEach(([questId, progress]) => {
+
+        const backendQuestProgress = fullProfile.quest_progress || [];
+
+        if (Array.isArray(backendQuestProgress) && backendQuestProgress.length > 0) {
+          // Transform from backend array format to frontend object format
+          // Backend: [{id: 25, quest: {quest_id: "extraversion_3"}, progress: 0}, ...]
+          // Frontend: {extraversion_3: 0, extraversion_2: 0, ...}
+          backendQuestProgress.forEach((questData: any) => {
+            if (questData.quest && questData.quest.quest_id) {
+              const questId = questData.quest.quest_id;
+              const progress = questData.progress || 0;
+              questProgress[questId] = progress;
+            }
           });
-        } else {
         }
-        
-        // Check if this is a quest from the correct personality type
-        const expectedTrait = (mappedTrait || 'unknown').toLowerCase();
-        Object.entries(questProgress).forEach(([questId, progress]) => {
-          const questTraitMatch = questId.match(/^(\w+)_\d+$/);
-          if (questTraitMatch) {
-            const questTrait = questTraitMatch[1].toLowerCase();
-          }
-        });
         
         // **FIX: Build proper character data structure for personality users**
         // Character data is now directly on UserProfile, but personality users may not have character data
@@ -214,13 +186,40 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
           experience: fullProfile.character?.experience || fullProfile.experience || 0,
           experience_needed: fullProfile.character?.experience_needed || fullProfile.experience_needed || 1000,
           
-          // **FIX: Use real wellness stats from backend instead of hardcoded values**
-          wellness_stats: fullProfile.wellness_stats || [
-            { icon: "🧘", label: "Exploration", value: 0, color: "#4A90E2" },
-            { icon: "💚", label: "Courage", value: 0, color: "#2ECC71" },
-            { icon: "🤝", label: "Connection", value: 0, color: "#E74C3C" },
-            { icon: "⚖️", label: "Balance", value: 0, color: "#F39C12" }
-          ],
+          // **FIX: Extract wellness stats from character record**
+          // Personality users have character records with wellness stats stored as individual fields
+          wellness_stats: (() => {
+            const character = fullProfile.character;
+
+            // **PRIMARY SOURCE**: Extract from character's individual stat fields
+            if (character) {
+              return {
+                awareness: character.awareness || 0,
+                resilience: character.resilience || 0,
+                connection: character.connection || 0,
+                balance: character.balance || 0
+              };
+            }
+
+            // **FALLBACK**: Try wellness_stats object if character doesn't exist
+            const stats = fullProfile.wellness_stats;
+            if (stats && typeof stats === 'object' && !Array.isArray(stats)) {
+              return {
+                awareness: stats.awareness || 0,
+                resilience: stats.resilience || 0,
+                connection: stats.connection || 0,
+                balance: stats.balance || 0
+              };
+            }
+
+            // **DEFAULT**: All zeros if no data available
+            return {
+              awareness: 0,
+              resilience: 0,
+              connection: 0,
+              balance: 0
+            };
+          })(),
           
           // Personality-specific data
           primaryTrait: mappedTrait || 'unknown',
@@ -228,20 +227,19 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
 
           // Tools and progress - **FIX: Use actual user's unlocked tools**
           unlocked_tools: myUnlockedTools.map(tool => tool.tool_id) || [],
-          coping_tools: myUnlockedTools || [],
+          coping_tools: myUnlockedTools || [], // Tools user has collected (unlocked)
+          available_tools: fullProfile.available_tools || [], // All tools from backend
           quest_progress: questProgress,
-          
+
           // Raw profile data for reference
           rawProfile: fullProfile
         };
-        
-        
+
         // **FIX: Actually set the userProfile state**
         setUserProfile(characterData);
-        
+
       } catch (questError) {
-        console.error('❌ QUEST PROGRESS LOADING ERROR:', questError);
-        console.warn('⚠️ Failed to load quest progress, using empty object:', questError);
+        console.error('❌ Failed to load quest progress:', questError);
         
         // Continue without quest data - set userProfile with empty quest progress in case of error
         const characterData = {
@@ -261,6 +259,7 @@ export const usePersonalityHomeData = ({ authToken, user }: any) => {
           personalityProfile: fullProfile.personality_profile,
           unlocked_tools: myUnlockedTools.map(tool => tool.tool_id) || [],
           coping_tools: myUnlockedTools || [],
+          available_tools: fullProfile.available_tools || [],
           quest_progress: {}, // Empty quest progress in case of error
           rawProfile: fullProfile
         };

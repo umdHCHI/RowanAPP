@@ -94,6 +94,7 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
       setStoryState(null);
 
       try {
+<<<<<<< HEAD
         // Check if user is allowed to access this story based on research condition
         console.log('🔍 useStoryEngine: Checking story access', {
           storyId,
@@ -109,6 +110,100 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
           } else {
             console.log('📚 Fetching all available stories for character user');
             allowedStories = await apiService.getAvailableStories();
+=======
+        let startingPassageId: string;
+        let chapterTitle: string | undefined;
+        let chapterNumber: number | undefined;
+
+        // Special handling: Introduction story (ID 12) should use standard restart
+        const isIntroductionStory = Number(storyId) === 12;
+
+        if (chapterId && !isIntroductionStory) {
+          // For chapters (except Introduction), fetch the chapter's passages and find the first one by order
+
+          // First, get chapter info
+          const chapters = await retryApiCall(
+            () => apiService.getChapters(storyId),
+            3,
+            Platform.OS === 'web' ? 500 : 1000
+          );
+
+          const currentChapter = chapters.find((ch: any) => ch.id === chapterId);
+          if (!currentChapter) {
+            throw new Error(`Chapter ${chapterId} not found for story ${storyId}`);
+          }
+
+          chapterTitle = currentChapter.title;
+          chapterNumber = currentChapter.chapter_number;
+
+          // Get all passages for this chapter
+          const chapterPassages = await retryApiCall(
+            () => apiService.getChapterPassages(storyId, chapterId),
+            3,
+            Platform.OS === 'web' ? 500 : 1000
+          );
+
+          if (!chapterPassages || chapterPassages.length === 0) {
+            throw new Error(`No passages found for chapter ${chapterId}`);
+          }
+
+          // Find the first passage by order (lowest order number)
+          const firstPassage = chapterPassages
+            .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))[0];
+
+          if (!firstPassage || !firstPassage.passage_id) {
+            throw new Error(`No valid starting passage found for chapter ${chapterId}`);
+          }
+
+          startingPassageId = firstPassage.passage_id;
+
+          // Also call restartChapter to initialize progress
+          try {
+            await retryApiCall(
+              () => apiService.restartChapter(storyId, chapterId),
+              3,
+              Platform.OS === 'web' ? 500 : 1000
+            );
+          } catch (restartError) {
+            // Non-critical - silently continue
+          }
+        } else if (chapterId && isIntroductionStory) {
+          // For Introduction story with chapters, use restartChapter
+          const restartResponse = await retryApiCall(
+            () => apiService.restartChapter(storyId, chapterId),
+            3,
+            Platform.OS === 'web' ? 500 : 1000
+          );
+
+          startingPassageId = restartResponse.starting_passage;
+          if (!startingPassageId) {
+            throw new Error("Chapter restart did not provide a starting passage ID.");
+          }
+
+          // Fetch chapter info
+          const chapters = await retryApiCall(
+            () => apiService.getChapters(storyId),
+            3,
+            Platform.OS === 'web' ? 500 : 1000
+          );
+
+          const currentChapter = chapters.find((ch: any) => ch.id === chapterId);
+          if (currentChapter) {
+            chapterTitle = currentChapter.title;
+            chapterNumber = currentChapter.chapter_number;
+          }
+        } else {
+          // For stories without chapters, use the standard restart flow
+          const restartResponse = await retryApiCall(
+            () => apiService.restartStory(storyId),
+            3,
+            Platform.OS === 'web' ? 500 : 1000
+          );
+
+          startingPassageId = restartResponse.starting_passage;
+          if (!startingPassageId) {
+            throw new Error("Story restart did not provide a starting passage ID.");
+>>>>>>> prodOne
           }
 
           console.log('✅ Allowed stories fetched:', allowedStories.length, 'stories');
@@ -143,6 +238,7 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
           console.warn('⚠️ Skipping access check due to error');
         }
 
+<<<<<<< HEAD
         // Always use restartStory to get the proper starting passage ID
         console.log('📡 Calling apiService.restartStory with:', { storyId, chapterId });
         const restartResponse = await retryApiCall(
@@ -158,16 +254,34 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
         }
 
         // Fetch the starting passage state
+=======
+        // Fetch the starting passage using the ID
+>>>>>>> prodOne
         const initialState = await retryApiCall(
           () => apiService.getPassage(Number(storyId), startingPassageId),
           3,
           Platform.OS === 'web' ? 500 : 1000
         );
 
+<<<<<<< HEAD
         if (!initialState) {
           throw new Error("Failed to fetch the initial passage.");
         }
 
+=======
+        if (!initialState || !initialState.passage) {
+          throw new Error("Failed to fetch the initial passage.");
+        }
+
+        // Override chapter info if we have it
+        if (chapterTitle !== undefined) {
+          initialState.chapter_title = chapterTitle;
+        }
+        if (chapterNumber !== undefined) {
+          initialState.chapter_number = chapterNumber;
+        }
+
+>>>>>>> prodOne
         setStoryState(initialState);
 
       } catch (err: any) {
@@ -181,6 +295,7 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
         });
 
         let errorMessage = 'Failed to load story.';
+<<<<<<< HEAD
         if (err?.response?.status === 403) {
           // Check if it's a "story already completed" error
           if (err?.response?.data?.error === 'Story restart not allowed') {
@@ -189,12 +304,20 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
             errorMessage = 'You do not have permission to access this story.';
           }
         } else if (err.message) {
+=======
+
+        if (err.message) {
+>>>>>>> prodOne
           errorMessage = err.message;
         } else if (err.response) {
           errorMessage = `Network error: ${err.response.status} - ${err.response.statusText}`;
         } else if (err.request) {
           errorMessage = 'Network request failed. Please check your connection.';
         }
+<<<<<<< HEAD
+=======
+
+>>>>>>> prodOne
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -222,16 +345,16 @@ export const useStoryEngine = ({ storyId, chapterId }: UseStoryEngineProps) => {
       if (!nextState || !nextState.passage) {
         throw new Error(`Failed to fetch passage for choice target: ${choice.target_id}`);
       }
-      
+
       const currentChapterTitle = storyState?.chapter_title;
       const currentChapterNumber = storyState?.chapter_number;
-      
+
       const updatedState = {
         ...nextState,
         chapter_title: nextState.chapter_title || currentChapterTitle,
         chapter_number: nextState.chapter_number || currentChapterNumber,
       };
-      
+
       setStoryState(updatedState);
       return updatedState;
 

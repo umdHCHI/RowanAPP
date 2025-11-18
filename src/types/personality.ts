@@ -95,7 +95,18 @@ export const DailyCuratorMessages = {
 };
 
 // 2. PERSONALITY-SPECIFIC QUESTS
-export const PersonalityQuests = {
+
+export interface PersonalityQuest {
+  id: string;
+  title: string;
+  description: string;
+  reward: string;
+  total: number;
+  wellnessProperty: string;
+  journalUnlock?: string; // Optional journal prompt ID to unlock when quest is completed
+}
+
+export const PersonalityQuests: Record<PersonalityKey, PersonalityQuest[]> = {
   Openness: [
     {
       id: 'openness_1',

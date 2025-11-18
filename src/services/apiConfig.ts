@@ -66,10 +66,10 @@ export const API_ENDPOINTS = {
     updateCustomization: 'characters/',
 
     // Quest endpoints
-    quests: 'characters/quests/',
-    questProgress: 'characters/quests/',
-    myQuests: 'characters/quests/my_quests/',
-    userQuestProgress: 'characters/userquestprogress/',
+    quests: 'personality/quests/',
+    questProgress: 'personality/quests/',
+    myQuests: 'personality/quests/my_quests/',
+    userQuestProgress: 'personality/quests/',
 
     // Wellness & Coping Tools
     copingTools: 'coping-tools/',

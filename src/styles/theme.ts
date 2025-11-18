@@ -239,6 +239,17 @@ export type ThemeColors = {
   emptyStateIconColor?: string;
   emptyStateTitleText?: string;
   emptyStateSubtitleText?: string;
+  
+  // Gradient arrays (instead of individual start/middle/end)
+  archiveGradient?: string[];
+  characterFrameGradient?: string[];
+  gearSlotGradient?: string[];
+  foundationCardGradient?: string[];
+  chronicleCardGradient?: string[];
+  chronicleButtonGradient?: string[];
+  levelBadgeGradient?: string[];
+  moodBubbleGradient?: string[];
+  experienceProgressGradient?: string[];
 };
 
 // The new theme designed to evoke an "old library" feeling.
@@ -483,12 +494,41 @@ export const personalitySurveyTheme: ThemeColors = {
 };
 
 export const characterHomeScreenTheme: ThemeColors = {
+  // Core archive colors
+  archiveBackground: '#0a0b0f',
+  archiveText: '#ffffff',
+  archiveSubtext: '#a1887f', // For story descriptions and secondary text
+  archiveBorder: '#8d7527ff',
+  archiveAccent: '#c89f65',
+  archiveAccentSecondary: '#8a0303', // For secondary accents like stat text
+  archiveCard: 'rgba(62, 39, 35, 0.8)', // Card backgrounds
+  archiveGradientStart: '#0a0b0f',
+  archiveGradientMiddle: '#1e293b',
+  archiveGradientEnd: '#0a0b0f',
+
+  // Tab colors
   tabTextColor:  '#4ee6e6',
   tabTextSecondColor: '#9CA3AF', // Dark brown shadow for text
   tabIsActiveGradient: "rgba(78, 230, 230, 0.4)",
   tabIsActiveSecondaryGradient: "rgba(6, 182, 212, 0.4)", // Secondary gradient for active tab background
   tabTextShadowColor: 'rgba(78, 230, 230, 0.5)',
+  archiveGradient: ['rgba(10, 11, 15, 0.95)', 'rgba(30, 41, 59, 0.8)', 'rgba(10, 11, 15, 0.95)'],
   
+  characterFrameGradient: ['#d4af37', '#8d7527ff'],
+  
+  gearSlotGradient: ['rgba(10, 11, 15, 0.9)', 'rgba(30, 41, 59, 0.7)'],
+  
+  foundationCardGradient: ['rgba(10, 11, 15, 0.9)', 'rgba(30, 41, 59, 0.7)', 'rgba(10, 11, 15, 0.9)'],
+  
+  chronicleCardGradient: ['rgba(10, 11, 15, 0.95)', 'rgba(30, 41, 59, 0.8)', 'rgba(10, 11, 15, 0.95)'],
+  
+  chronicleButtonGradient: ['rgba(78, 230, 230, 0.4)', 'rgba(6, 182, 212, 0.4)', 'rgba(78, 230, 230, 0.4)'],
+  
+  levelBadgeGradient: ['#d4af37', '#8d7527ff'],
+  
+  moodBubbleGradient: ['rgba(212, 175, 55, 0.2)', 'rgba(139, 117, 39, 0.3)'],
+  
+  experienceProgressGradient: ['#4ee6e6', '#06B6D4'],
   // Character display colors
   characterFrameBorder: '#d4af37',
   characterFrameShadow: '#d4af37',

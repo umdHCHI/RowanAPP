@@ -5,7 +5,7 @@ import { PersonalityWellnessAttributes } from '../imports';
 interface FloatingRewardNotificationProps {
   visible: boolean;
   message: string;
-  type?: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+  type?: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
   icon?: string;
   iconImage?: any; // For PNG image assets
   statName?: string;
@@ -54,10 +54,10 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
         }),
       ]).start();
 
-      // Auto hide after 4 seconds (increased from 3 seconds)
+      // Auto hide after 3 seconds
       const timer = setTimeout(() => {
         hideNotification();
-      }, 4000);
+      }, 3000);
 
       return () => clearTimeout(timer);
     }
@@ -132,7 +132,7 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
       const statColors: Record<string, { backgroundColor: string; borderColor: string }> = {
         'awareness': { backgroundColor: '#4A90E2', borderColor: '#357ABD' },
         'exploration': { backgroundColor: '#4A90E2', borderColor: '#357ABD' },
-        'resilience': { backgroundColor: '#2ECC71', borderColor: '#27AE60' },
+        'lumens': { backgroundColor: '#2ECC71', borderColor: '#27AE60' },
         'courage': { backgroundColor: '#2ECC71', borderColor: '#27AE60' },
         'connection': { backgroundColor: '#E74C3C', borderColor: '#C0392B' },
         'balance': { backgroundColor: '#F39C12', borderColor: '#D68910' },
@@ -153,13 +153,15 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
         return {
           backgroundColor: '#FFD700',
           borderColor: '#FFA500',
-          icon: '⭐'
+          icon: '⭐',
+          label: 'Lumens'
         };
-      case 'resonance':
+      case 'lumens':
         return {
           backgroundColor: '#FF6B6B',
           borderColor: '#FF5252',
-          icon: '🌟'
+          icon: '🌟',
+          label: 'Lumens'
         };
       case 'item':
         return {
@@ -213,11 +215,13 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
   };
 
   const typeStyles = getTypeStyles();
-  
+
   // Use custom icon if provided, otherwise use type-based icon
   const displayIcon = customIcon || typeStyles.icon;
 
-  if (!visible) return null;
+  if (!visible) {
+    return null;
+  }
 
   return (
     <Animated.View

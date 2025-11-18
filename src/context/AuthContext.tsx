@@ -15,9 +15,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [characterId, setCharacterId] = useState<string | null>(null);
   const [isTestUser, setIsTestUser] = useState(false);
   const [user, setUser] = useState<{ username: string } | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const loadStoredAuth = async () => {
+      // Don't load auth if we're in the middle of logging out
+      if (isLoggingOut) {
+        return;
+      }
+      
       try {
         const [storedToken, storedCharId, storedUserData] = await Promise.all([
           AsyncStorage.getItem('authToken'),
@@ -48,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     
     loadStoredAuth();
-  }, []);
+  }, [isLoggingOut]);
   
   const login = async (token: string, charId: string, userData?: any) => {
     try {
@@ -104,12 +110,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await apiService.logout();
+    // Set logout flag to prevent re-authentication
+    setIsLoggingOut(true);
+    
+    try {
+      await apiService.logout();
+    } catch (error) {
+      // Silently handle logout API errors - local logout still proceeds
+    }
+    
+    // Clear state immediately
     setAuthToken(null);
     setCharacterId(null);
     setIsTestUser(false);
     setUser(null);
-    router.replace('/(auth)/login');
+    
+    // Clear AsyncStorage
+    try {
+      await AsyncStorage.multiRemove(['authToken', 'characterId', 'userData', 'isTestUser']);
+    } catch (error) {
+      console.error('[AuthContext] Failed to clear AsyncStorage:', error);
+      setIsLoggingOut(false);
+      throw error;
+    }
+    
+    // Small delay to ensure state updates propagate
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
+    // Navigate to login screen
+    try {
+      router.replace('/(auth)/login');
+    } catch (navError) {
+      // Try fallback navigation methods
+      try {
+        router.push('/(auth)/login');
+      } catch (pushError) {
+        router.replace('/');
+        setTimeout(() => router.replace('/(auth)/login'), 100);
+      }
+    }
+    
+    // Reset logout flag after navigation
+    setTimeout(() => setIsLoggingOut(false), 1000);
   };
 
   return (

@@ -31,7 +31,7 @@ export type {
 
 // Equipment types
 export type {
-    CharacterGear, CopingTool, CopingToolsCollectionProps, EQUIPMENT_CATEGORIES, EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems, RARITY_COLORS
+    CharacterGear, CopingTool, CopingToolsCollectionProps, EQUIPMENT_CATEGORIES, EquipmentItem, EquipmentSubtype, EquipmentType, EquippedItems, GearType, RARITY_COLORS
 } from './equipment';
 
 // Equipment utility functions

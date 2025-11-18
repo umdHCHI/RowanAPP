@@ -662,6 +662,7 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
                 console.log('  - Dominant trait:', dominantTraitName);
                 console.log('  - Mapped to:', mappedTrait);
                 console.log('  - Scores:', scores);
+                console.log('  - primaryTrait state SHOULD NOW BE:', mappedTrait);
 
                 // Success - skip survey data
                 setIsLoading(false);
@@ -815,6 +816,11 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({
     isLoading,
     error,
   };
+
+  // Log context value changes for debugging
+  useEffect(() => {
+    console.log(`🔄 [PersonalityContext.Provider] Context value updated - primaryTrait: ${primaryTrait}, isLoading: ${isLoading}`);
+  }, [primaryTrait, isLoading]);
 
   return (
     <PersonalityContext.Provider value={value}>

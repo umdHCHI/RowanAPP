@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Text, TouchableOpacity, View, AccessibilityInfo } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
+import React, { useEffect, useState } from 'react';
+import { AccessibilityInfo, Text, TouchableOpacity, View } from 'react-native';
+import {
   Easing,
+  useSharedValue,
+  withRepeat,
+  withTiming
 } from 'react-native-reanimated';
 import { PersonalityConfigs, PersonalityKey } from '../../imports';
-import RunicThreadBar from '../../ui/RunicThreadBar';
 import RuneBackground from '../../ui/RuneBackground';
+import RunicThreadBar from '../../ui/RunicThreadBar';
 
 interface PersonalizedArchiveHeaderProps {
   primaryTrait: PersonalityKey;
@@ -66,13 +64,13 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
     return (
       <View style={{
         backgroundColor: '#0a0b0f',
-        padding: 12,
-        paddingTop: 16,
-        paddingBottom: 10,
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        paddingBottom: 8,
         borderBottomWidth: 2,
         borderBottomColor: '#4ee6e6',
       }}>
-        <Text style={{ color: '#4ee6e6', fontSize: 18, textAlign: 'center' }}>
+        <Text style={{ color: '#4ee6e6', fontSize: 16, textAlign: 'center' }}>
           The Archive
         </Text>
       </View>
@@ -139,6 +137,7 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
               fontSize: 15,
               fontWeight: 'bold',
               letterSpacing: 1.5,
+              letterSpacing: 1.5,
               textShadowColor: `${config.theme?.primary || '#4ee6e6'}50`,
               textShadowOffset: { width: 0, height: 2 },
               textShadowRadius: 8,
@@ -153,9 +152,10 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
             style={{
               color: config.theme?.secondary || '#ccc',
               fontSize: 10,
+              fontSize: 10,
               fontStyle: 'italic',
               textAlign: 'center',
-              marginTop: 2
+              marginTop: 1
             }}
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -165,12 +165,12 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
         </View>
 
         {/* Character Info Section */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <View style={{ flex: 1, paddingRight: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <View style={{ flex: 1, paddingRight: 6 }}>
             <Text
               style={{
                 color: config.theme?.primary || '#4ee6e6',
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: 'bold'
               }}
               numberOfLines={1}
@@ -180,30 +180,52 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
             <Text
               style={{
                 color: '#ccc',
-                fontSize: 11,
+                fontSize: 10,
                 fontStyle: 'italic'
               }}
               numberOfLines={1}
             >
-              {config.scholarClass || 'The Explorer'} • Level {characterLevel}
+              {config.scholarClass || 'The Explorer'} • Lvl {characterLevel}
             </Text>
           </View>
 
-          <View style={{ alignItems: 'flex-end', flex: 1, paddingLeft: 8 }}>
-            <Text
-              style={{
-                color: config.theme?.primary || '#4ee6e6',
-                fontSize: 14,
-                fontWeight: '600'
-              }}
-              numberOfLines={1}
-            >
-              {config.avatar || '🏛️'} {config.archiveSection || 'Archive'}
-            </Text>
+          <View style={{ alignItems: 'flex-end', flex: 1, paddingLeft: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {typeof config.avatar === 'string' ? (
+                <Text
+                  style={{
+                    color: config.theme?.primary || '#4ee6e6',
+                    fontSize: 12,
+                    fontWeight: '600'
+                  }}
+                >
+                  {config.avatar || '🏛️'}
+                </Text>
+              ) : (
+                <Image
+                  source={config.avatar}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    resizeMode: 'contain'
+                  }}
+                />
+              )}
+              <Text
+                style={{
+                  color: config.theme?.primary || '#4ee6e6',
+                  fontSize: 12,
+                  fontWeight: '600'
+                }}
+                numberOfLines={1}
+              >
+                {config.archiveSection || 'Archive'}
+              </Text>
+            </View>
             <Text
               style={{
                 color: '#ccc',
-                fontSize: 10
+                fontSize: 9
               }}
               numberOfLines={1}
             >

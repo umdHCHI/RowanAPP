@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View, AccessibilityInfo, Image } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Image, ScrollView, Text, View } from 'react-native';
 import { useMasterState } from '../../context/MasterStateContext';
 import { CopingTool, CopingToolsCollectionProps, PersonalityConfigs, PersonalityWellnessAttributes } from '../../imports';
 import { apiService } from '../../services/apiService';
@@ -7,6 +7,8 @@ import RuneBackground from '../../ui/RuneBackground';
 
 export const CopingToolsCollection: React.FC<CopingToolsCollectionProps> = ({
   unlockedTools,
+  userUnlockedTools: propsUserUnlockedTools,
+  availableTools: propsAvailableTools,
   primaryTrait,
   authToken,
   globalStyles
@@ -48,25 +50,33 @@ export const CopingToolsCollection: React.FC<CopingToolsCollectionProps> = ({
   useEffect(() => {
     const loadPersonalityTools = async () => {
       try {
-        // Map personality types to match your PersonalityKey format
+        // Map personality types to match backend format (lowercase)
         const personalityMapping: Record<string, string> = {
           'Openness': 'openness',
-          'Conscientiousness': 'conscientiousness', 
+          'Conscientiousness': 'conscientiousness',
           'Extraversion': 'extraversion',
           'Agreeableness': 'agreeableness',
           'Neuroticism': 'neuroticism'
         };
-        
+
         const targetPersonalityType = personalityMapping[primaryTrait] || primaryTrait.toLowerCase();
-        
-        // Get available coping tools from the backend
+
+        // **BEST APPROACH: Use availableTools from props if provided**
+        if (propsAvailableTools && Array.isArray(propsAvailableTools) && propsAvailableTools.length > 0) {
+          // Filter tools for the current personality type
+          const filteredTools = propsAvailableTools.filter((tool: CopingTool) => {
+            return tool.personality_type === targetPersonalityType;
+          });
+          setPersonalityTools(filteredTools);
+          setToolsLoading(false);
+          return;
+        }
+
+        // **FALLBACK: Fetch from API if not provided in props**
         const allTools = await apiService.getAvailableCopingTools();
-        
-        // Filter tools for the current personality type
         const filteredTools = allTools.filter((tool: CopingTool) => {
           return tool.personality_type === targetPersonalityType;
         });
-        
         setPersonalityTools(filteredTools);
         setToolsLoading(false);
       } catch (error) {
@@ -75,7 +85,7 @@ export const CopingToolsCollection: React.FC<CopingToolsCollectionProps> = ({
     };
 
     loadPersonalityTools();
-  }, [primaryTrait, userUnlockedTools]);
+  }, [primaryTrait, propsAvailableTools, userUnlockedTools]);
 
   const isToolUnlocked = (tool: CopingTool): boolean => {
     // Check if this tool is in the user's unlocked tools list

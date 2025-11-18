@@ -1,9 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import CodexModal from '../../components/CodexModal';
-import ThoughtDefenderModal from '../../components/ThoughtDefenderModal';
+import { Alert, Animated, Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { CodexContentRef } from '../../components/personality';
 import {
   CodexContent,
@@ -16,6 +14,8 @@ import {
   WellnessAttributesDisplay
 } from '../../components/personality';
 import PersonalizedArchiveHeader from '../../components/personality/PersonalizedArchiveHeader';
+import CodexModal from '../../components/shared/CodexModal';
+import ThoughtDefenderModal from '../../components/shared/ThoughtDefenderModal';
 import { useMasterState } from '../../context/MasterStateContext';
 import { usePersonalityHomeData } from '../../hooks/usePersonalityHomeData';
 import { createGlobalStyles, PersonalityConfigs } from '../../imports';
@@ -316,7 +316,7 @@ const TUTORIAL_STEPS = [
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#181A20" }}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#181A20" />
 
       <PersonalizedArchiveHeader
@@ -333,12 +333,12 @@ const TUTORIAL_STEPS = [
         hasSeenTutorial={hasSeenTutorial}
       />
 
-      <TabNavigation
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        primaryTrait={primaryTrait}
-        globalStyles={globalStyles}
-      />
+        <TabNavigation
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          primaryTrait={primaryTrait}
+          globalStyles={globalStyles}
+        />
 
       {activeTab === 'entrance' && (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 }}>
@@ -399,26 +399,26 @@ const TUTORIAL_STEPS = [
         </ScrollView>
       )}
 
-      {activeTab === 'stories' && (
-        <View style={{ flex: 1 }}>
-          <TutorialHighlight 
-            isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'stories'}
-            style={{ flex: 1 }}
-          >
-            <PersonalityStoryCatalog 
-              primaryTrait={primaryTrait}
-              onStorySelect={handleOpenStory}
-              globalStyles={globalStyles} 
-              stories={stories} 
-              isLoading={isLoadingStories} 
-              setStories={() => {}}
-              setIsLoading={() => {}}
-              personalityStyles={primaryTrait ? PersonalityConfigs[primaryTrait]?.theme : undefined}
-              userPersonalityTrait={primaryTrait}
-            />
-          </TutorialHighlight>
-        </View>
-      )}
+        {activeTab === 'stories' && (
+          <View style={{ flex: 1 }}>
+            <TutorialHighlight
+              isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'stories'}
+              style={{ flex: 1 }}
+            >
+              <PersonalityStoryCatalog
+                primaryTrait={primaryTrait}
+                onStorySelect={handleOpenStory}
+                globalStyles={globalStyles}
+                stories={stories}
+                isLoading={isLoadingStories}
+                setStories={() => {}}
+                setIsLoading={() => {}}
+                personalityStyles={primaryTrait ? PersonalityConfigs[primaryTrait]?.theme : undefined}
+                userPersonalityTrait={primaryTrait}
+              />
+            </TutorialHighlight>
+          </View>
+        )}
 
       {activeTab === 'codex' && (
         <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
@@ -457,119 +457,119 @@ const TUTORIAL_STEPS = [
         </ScrollView>
       )}
 
-      {activeTab === 'restoration' && (
-        <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
-          <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'restoration'}>
-            <PersonalityRestoration
-              primaryTrait={primaryTrait}
-              userProfile={userProfile}
-              stories={stories}
-              globalStyles={globalStyles}
-              onThemeToggle={() => theme.toggleTheme()}
-              onLogout={() => {
-                if (auth && auth.logout) {
-                  try {
-                    auth.logout();
-                  } catch (error) {
-                    Alert.alert('Logout Error', `Failed to logout: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        {activeTab === 'restoration' && (
+          <ScrollView style={styles.tabContent} contentContainerStyle={{ flexGrow: 1 }}>
+            <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'restoration'}>
+              <PersonalityRestoration
+                primaryTrait={primaryTrait}
+                userProfile={userProfile}
+                stories={stories}
+                globalStyles={globalStyles}
+                onThemeToggle={() => theme.toggleTheme()}
+                onLogout={() => {
+                  if (auth && auth.logout) {
+                    try {
+                      auth.logout();
+                    } catch (error) {
+                      Alert.alert('Logout Error', `Failed to logout: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    }
+                  } else {
+                    Alert.alert('Error', 'Logout function not available');
                   }
-                } else {
-                  Alert.alert('Error', 'Logout function not available');
-                }
-              }}
-              currentTheme={theme.themeMode}
-            />
-          </TutorialHighlight>
-        </ScrollView>
-      )}
+                }}
+                currentTheme={theme.themeMode}
+              />
+            </TutorialHighlight>
+          </ScrollView>
+        )}
 
-      {selectedStory && isStoryVisible && (
-        <StoryScreen
-          visible={isStoryVisible}
-          onClose={handleCloseStory}
-          story={selectedStory}
-          chapter={selectedChapter || { id: 1, title: 'Chapter 1', passages: [] }}
-          passage={{ id: 'start', text: 'The story begins...' } as any}
-          choices={[]}
-          onStoryComplete={handleStoryComplete as any}
-          onStatGain={() => {}}
-          onArtifactUnlock={() => {}}
-          onSkillLearned={() => {}}
-        />
-      )}
+        {selectedStory && isStoryVisible && (
+          <StoryScreen
+            visible={isStoryVisible}
+            onClose={handleCloseStory}
+            story={selectedStory}
+            chapter={selectedChapter || { id: 1, title: 'Chapter 1', passages: [] }}
+            passage={{ id: 'start', text: 'The story begins...' } as any}
+            choices={[]}
+            onStoryComplete={handleStoryComplete as any}
+            onStatGain={() => {}}
+            onArtifactUnlock={() => {}}
+            onSkillLearned={() => {}}
+          />
+        )}
 
-      {selectedStory && isChapterScreenVisible && (
-        <ChapterScreen
-          visible={isChapterScreenVisible}
-          onClose={() => setIsChapterScreenVisible(false)}
-          storyId={String(selectedStory.id)}
-          storyTitle={selectedStory.title}
-          onChapterSelect={handleChapterSelect}
-        />
-      )}
+        {selectedStory && isChapterScreenVisible && (
+          <ChapterScreen
+            visible={isChapterScreenVisible}
+            onClose={() => setIsChapterScreenVisible(false)}
+            storyId={String(selectedStory.id)}
+            storyTitle={selectedStory.title}
+            onChapterSelect={handleChapterSelect}
+          />
+        )}
 
-      {showTutorial && (
-        <Modal
-          visible={showTutorial}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={skipTutorial}
-        >
-          <View style={styles.tutorialOverlay}>
-            <View style={styles.tutorialContent}>
-              <View style={styles.tutorialHeader}>
-                <Text style={styles.tutorialTitle}>{TUTORIAL_STEPS[currentTutorialStep].title}</Text>
-                <Text style={styles.tutorialMessage}>{TUTORIAL_STEPS[currentTutorialStep].message}</Text>
-                {TUTORIAL_STEPS[currentTutorialStep].tip && (
-                  <View style={styles.tipContainer}>
-                    <Text style={styles.tipText}>💡 Pro Tip: {TUTORIAL_STEPS[currentTutorialStep].tip}</Text>
-                  </View>
-                )}
-              </View>
+        {showTutorial && (
+          <Modal
+            visible={showTutorial}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={skipTutorial}
+          >
+            <View style={styles.tutorialOverlay}>
+              <View style={styles.tutorialContent}>
+                <View style={styles.tutorialHeader}>
+                  <Text style={styles.tutorialTitle}>{TUTORIAL_STEPS[currentTutorialStep].title}</Text>
+                  <Text style={styles.tutorialMessage}>{TUTORIAL_STEPS[currentTutorialStep].message}</Text>
+                  {TUTORIAL_STEPS[currentTutorialStep].tip && (
+                    <View style={styles.tipContainer}>
+                      <Text style={styles.tipText}>💡 Pro Tip: {TUTORIAL_STEPS[currentTutorialStep].tip}</Text>
+                    </View>
+                  )}
+                </View>
 
-              <View style={styles.progressContainer}>
-                {TUTORIAL_STEPS.map((_, index: number) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.progressDot,
-                      index === currentTutorialStep && styles.progressDotActive,
-                      index < currentTutorialStep && styles.progressDotCompleted
-                    ]}
-                  />
-                ))}
-              </View>
+                <View style={styles.progressContainer}>
+                  {TUTORIAL_STEPS.map((_, index: number) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.progressDot,
+                        index === currentTutorialStep && styles.progressDotActive,
+                        index < currentTutorialStep && styles.progressDotCompleted
+                      ]}
+                    />
+                  ))}
+                </View>
 
-              <View style={styles.buttonContainer}>
-                {currentTutorialStep > 0 && (
+                <View style={styles.buttonContainer}>
+                  {currentTutorialStep > 0 && (
+                    <TouchableOpacity
+                      style={[styles.tutorialButton, styles.previousButton]}
+                      onPress={previousTutorialStep}
+                    >
+                      <Text style={styles.buttonText}>← Previous</Text>
+                    </TouchableOpacity>
+                  )}
+
                   <TouchableOpacity
-                    style={[styles.tutorialButton, styles.previousButton]}
-                    onPress={previousTutorialStep}
+                    style={[styles.tutorialButton, styles.skipButton]}
+                    onPress={skipTutorial}
                   >
-                    <Text style={styles.buttonText}>← Previous</Text>
+                    <Text style={styles.buttonText}>Skip</Text>
                   </TouchableOpacity>
-                )}
-                
-                <TouchableOpacity
-                  style={[styles.tutorialButton, styles.skipButton]}
-                  onPress={skipTutorial}
-                >
-                  <Text style={styles.buttonText}>Skip</Text>
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.tutorialButton, styles.nextButton]}
-                  onPress={nextTutorialStep}
-                >
-                  <Text style={styles.buttonText}>
-                    {currentTutorialStep === TUTORIAL_STEPS.length - 1 ? 'Get Started!' : 'Next →'}
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.tutorialButton, styles.nextButton]}
+                    onPress={nextTutorialStep}
+                  >
+                    <Text style={styles.buttonText}>
+                      {currentTutorialStep === TUTORIAL_STEPS.length - 1 ? 'Get Started!' : 'Next →'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
-      )}
+          </Modal>
+        )}
 
       <CodexModal
         visible={showCodexModal}
@@ -592,12 +592,13 @@ const TUTORIAL_STEPS = [
         editingEntry={editingEntry}
       />
 
-      <ThoughtDefenderModal
-        visible={showThoughtDefenderModal}
-        onClose={() => setShowThoughtDefenderModal(false)}
-        onScoreUpdate={(data: any) => {}}
-        primaryTrait={primaryTrait}
-      />
+        <ThoughtDefenderModal
+          visible={showThoughtDefenderModal}
+          onClose={() => setShowThoughtDefenderModal(false)}
+          onScoreUpdate={(data: any) => {}}
+          primaryTrait={primaryTrait}
+        />
+      </View>
     </SafeAreaView>
   );
 }

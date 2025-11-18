@@ -17,8 +17,8 @@ import { Choice, Passage, SavedRewards } from '../types/story';
 // Works with the existing SavedRewards interface and backend data structure
 
 // Helper function to determine reward type based on research condition
-export const getRewardType = (researchCondition: "character" | "personality"): "experience" | "resonance" => {
-  return researchCondition === "character" ? "resonance" : "experience";
+export const getRewardType = (researchCondition: "character" | "personality"): "experience" | "lumens" => {
+  return researchCondition === "character" ? "lumens" : "experience";
 };
 
 // Helper function to get the appropriate reward field name
@@ -120,46 +120,66 @@ export function filterEffectsForPersonalityUser(
   effects: Record<string, any>,
   primaryTrait: string
 ): Record<string, any> {
+  console.log(`🔍 [filterEffectsForPersonalityUser] Filtering effects for personality user (trait: ${primaryTrait})`);
+  console.log(`   Input effects:`, JSON.stringify(effects, null, 2));
+
   const filteredEffects = { ...effects };
-  
-  // Remove resonance (personality users get experience instead)
-  delete filteredEffects.resonance;
-  
+
+  // Remove lumens (personality users get experience instead)
+  if (filteredEffects.lumens) {
+    console.log(`   🗑️ Removing lumens (personality users get experience instead)`);
+  }
+  delete filteredEffects.lumens;
+
   // Convert character items/artifacts to coping tools
   if (filteredEffects.rewards || filteredEffects.artifacts) {
     const characterItems = [...(filteredEffects.rewards || []), ...(filteredEffects.artifacts || [])];
+    console.log(`   🔄 Converting ${characterItems.length} character items to coping tools:`, characterItems);
+
     if (characterItems.length > 0 && primaryTrait) {
       filteredEffects.tools = characterItems
         .map((itemName: string) => {
           // Use personality-aware mapping
           const convertedTool = convertEquipmentToCopingTool(itemName, primaryTrait as any);
+          console.log(`      ${itemName} → ${convertedTool || itemName.toLowerCase().replace(/\s+/g, '_')}`);
           return convertedTool || itemName.toLowerCase().replace(/\s+/g, '_');
         })
         .filter((toolId: string | null): toolId is string => toolId !== null);
+
+      console.log(`   ✅ Converted tools:`, filteredEffects.tools);
     }
     delete filteredEffects.rewards;
     delete filteredEffects.artifacts;
   }
-  
+
   // Filter tools by personality trait (if tools exist)
   if (filteredEffects.tools && primaryTrait) {
     const originalTools = filteredEffects.tools;
+    console.log(`   🔍 Filtering ${originalTools.length} tools by personality trait ${primaryTrait}`);
+
     filteredEffects.tools = originalTools.filter((toolId: string) => {
       const personalityTools = CopingTools[primaryTrait as keyof typeof CopingTools];
       if (personalityTools) {
-        return personalityTools.some((tool: any) => tool.id === toolId);
+        const isValid = personalityTools.some((tool: any) => tool.id === toolId);
+        console.log(`      ${toolId}: ${isValid ? '✅ Valid' : '❌ Invalid for this trait'}`);
+        return isValid;
       }
       return true;
     });
-    
+
     if (filteredEffects.tools.length === 0) {
+      console.log(`   ⚠️ No tools remaining after filtering - removing tools field`);
       delete filteredEffects.tools;
+    } else {
+      console.log(`   ✅ Filtered tools:`, filteredEffects.tools);
     }
   }
   
   // Filter quests by personality trait (if quests exist)
   if (filteredEffects.quests && primaryTrait) {
     const originalQuests = filteredEffects.quests;
+    console.log(`   🎯 Filtering ${originalQuests.length} quests by personality trait ${primaryTrait}`);
+
     filteredEffects.quests = originalQuests.filter((questId: string) => {
       // STRICT VALIDATION: Quest MUST follow the pattern {trait}_{number}
       const questTraitMatch = questId.match(/^([a-zA-Z]+)_(\d+)$/);
@@ -168,23 +188,28 @@ export function filterEffectsForPersonalityUser(
         const normalizedQuestTrait = questTrait.toLowerCase().trim();
         const normalizedPrimaryTrait = primaryTrait.toLowerCase().trim();
 
-        console.log(`🔍 Filtering quest: "${questId}" - Quest trait: "${normalizedQuestTrait}", Primary trait: "${normalizedPrimaryTrait}"`);
-
         // EXACT match required - no partial matches
-        return normalizedQuestTrait === normalizedPrimaryTrait;
+        const matches = normalizedQuestTrait === normalizedPrimaryTrait;
+        console.log(`      ${questId}: ${matches ? '✅ Matches' : `❌ Does not match (expected ${normalizedPrimaryTrait})`}`);
+        return matches;
       }
-      console.log(`❌ Excluding quest: "${questId}" - invalid format or no match`);
+      console.log(`      ${questId}: ❌ Invalid quest ID format`);
       return false; // Only include quests that match the personality pattern
     });
 
     if (filteredEffects.quests.length === 0) {
+      console.log(`   ⚠️ No quests remaining after filtering - removing quests field`);
       delete filteredEffects.quests;
+    } else {
+      console.log(`   ✅ Filtered quests:`, filteredEffects.quests);
     }
   }
 
   // Filter quest_progress by personality trait (if quest_progress exists)
   if (filteredEffects.quest_progress && primaryTrait) {
     const originalQuestProgress = filteredEffects.quest_progress;
+    console.log(`   🎯 Filtering ${originalQuestProgress.length} quest progress entries by personality trait ${primaryTrait}`);
+
     filteredEffects.quest_progress = originalQuestProgress.filter((questId: string) => {
       // STRICT VALIDATION: Quest MUST follow the pattern {trait}_{number}
       const questTraitMatch = questId.match(/^([a-zA-Z]+)_(\d+)$/);
@@ -193,20 +218,50 @@ export function filterEffectsForPersonalityUser(
         const normalizedQuestTrait = questTrait.toLowerCase().trim();
         const normalizedPrimaryTrait = primaryTrait.toLowerCase().trim();
 
-        console.log(`🔍 Filtering quest_progress: "${questId}" - Quest trait: "${normalizedQuestTrait}", Primary trait: "${normalizedPrimaryTrait}"`);
-
         // EXACT match required - no partial matches
-        return normalizedQuestTrait === normalizedPrimaryTrait;
+        const matches = normalizedQuestTrait === normalizedPrimaryTrait;
+        console.log(`      ${questId}: ${matches ? '✅ Matches' : `❌ Does not match (expected ${normalizedPrimaryTrait})`}`);
+        return matches;
       }
-      console.log(`❌ Excluding quest_progress: "${questId}" - invalid format or no match`);
+      console.log(`      ${questId}: ❌ Invalid quest ID format`);
       return false; // Only include quests that match the personality pattern
     });
 
     if (filteredEffects.quest_progress.length === 0) {
+      console.log(`   ⚠️ No quest progress remaining after filtering - removing quest_progress field`);
       delete filteredEffects.quest_progress;
+    } else {
+      console.log(`   ✅ Filtered quest progress:`, filteredEffects.quest_progress);
     }
   }
-  
+
+  // Filter journal_entry by personality trait (if journal_entry exists)
+  // Journal entries in story effects are keyed by personality trait
+  // Example: { journal_entry: { extraversion: "019", openness: "012" } }
+  // or single string format: { journal_entry: "019" }
+  if (filteredEffects.journal_entry && primaryTrait) {
+    const journalEntry = filteredEffects.journal_entry;
+
+    // Handle object format (personality-keyed journal entries)
+    if (typeof journalEntry === 'object' && !Array.isArray(journalEntry)) {
+      const normalizedPrimaryTrait = primaryTrait.toLowerCase().trim();
+      const personalityJournalEntry = journalEntry[normalizedPrimaryTrait];
+
+      if (personalityJournalEntry) {
+        // Replace the object with the personality-specific journal entry ID
+        filteredEffects.journal_entry = personalityJournalEntry;
+        console.log(`📝 [filterEffectsForPersonalityUser] Selected journal entry "${personalityJournalEntry}" for ${primaryTrait}`);
+      } else {
+        // No journal entry for this personality trait, remove it
+        delete filteredEffects.journal_entry;
+        console.log(`📝 [filterEffectsForPersonalityUser] No journal entry found for ${primaryTrait}, removing`);
+      }
+    }
+    // If it's a string, keep it as-is (generic journal entry for all personalities)
+    // The backend will handle personality filtering via the journal prompt's personality_traits field
+  }
+
+  console.log(`✅ [filterEffectsForPersonalityUser] Final filtered effects:`, JSON.stringify(filteredEffects, null, 2));
   return filteredEffects;
 }
 
@@ -215,16 +270,16 @@ export function filterEffectsForCharacterUser(
   effects: Record<string, any>
 ): Record<string, any> {
   const filteredEffects = { ...effects };
-  
-  // Convert experience to resonance for character users
+
+  // Convert experience to lumens for character users
   if (filteredEffects.experience) {
-    filteredEffects.resonance = filteredEffects.experience;
+    filteredEffects.lumens = filteredEffects.experience;
     delete filteredEffects.experience;
   }
-  
+
   // Remove tools (character users don't get coping tools)
   delete filteredEffects.tools;
-  
+
   return filteredEffects;
 }
 
@@ -280,8 +335,8 @@ export function calculateTotalRewards(
     // Handle legacy stats object format
     if (effects.stats) {
       Object.entries(effects.stats).forEach(([stat, value]) => {
-        // Skip experience/resonance as it's handled separately to avoid double-counting
-        if (stat === 'experience' || stat === 'resonance') {
+        // Skip experience/lumens as it's handled separately to avoid double-counting
+        if (stat === 'experience' || stat === 'lumens') {
           return;
         }
         
@@ -297,7 +352,7 @@ export function calculateTotalRewards(
       });
     }
 
-    // Handle experience/resonance (direct or from stats)
+    // Handle experience/lumens (direct or from stats)
     let rewardGain = 0;
     
     if (effects[rewardFieldName]) {
@@ -519,19 +574,22 @@ export function formatRewardsForDisplay(tracker: StoryRewardTracker): {
 
 // Helper function to create notification messages from effects
 export function createNotificationFromEffects(
-  effects: Record<string, any>, 
+  effects: Record<string, any>,
   researchCondition: "character" | "personality" = "personality",
   primaryTrait?: string
 ): Array<{
   message: string;
-  type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
+  type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
   icon?: string;
   iconImage?: any;
   statName?: string;
 }> {
+  console.log(`🔔 [createNotificationFromEffects] Creating notifications for ${researchCondition} user (trait: ${primaryTrait})`);
+  console.log(`   Input effects:`, JSON.stringify(effects, null, 2));
+
   const notifications: Array<{
     message: string;
-    type: 'experience' | 'resonance' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
+    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'quest';
     icon?: string;
     iconImage?: any;
     statName?: string;
@@ -641,34 +699,38 @@ export function createNotificationFromEffects(
     return defaultIcons[statName.toLowerCase()] || '✨';
   };
 
-  // Map stat names to image assets (for character users)
+  // Map stat names to image assets (for character users only)
+  // Backend sends personality stat names, so we map them to character images
   const statImages: Record<string, any> = {
-    'awareness': uiIcons.sectionIcons.exploration,
-    'resilience': uiIcons.sectionIcons.courage,
-    'connection': uiIcons.sectionIcons.balance,
-    'balance': uiIcons.sectionIcons.fear,
     'exploration': uiIcons.sectionIcons.exploration,
     'courage': uiIcons.sectionIcons.courage,
-    'fear': uiIcons.sectionIcons.fear
+    'fear': uiIcons.sectionIcons.fear,
+    'awareness': uiIcons.sectionIcons.exploration,   // Backend sends awareness -> use exploration image
+    'resilience': uiIcons.sectionIcons.courage,      // Backend sends resilience -> use courage image
+    'connection': uiIcons.sectionIcons.connection,   // Connection uses its own image
+    'balance': uiIcons.sectionIcons.fear             // Backend sends balance -> use fear image
   };
 
   const rewardType = getRewardType(researchCondition);
   const rewardFieldName = getRewardFieldName(researchCondition);
 
   // Handle direct stat gains from story_effects
+  console.log(`   📊 Processing direct stat gains from effects...`);
   Object.entries(effects).forEach(([key, value]) => {
-    if (['rewards', 'artifacts', 'skills', 'journal_entry', 'stats', 'wellness'].includes(key)) {
+    if (['rewards', 'artifacts', 'skills', 'journal_entry', 'stats', 'wellness', 'tools', 'quests', 'quest_progress'].includes(key)) {
       return;
     }
-    
+
     const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
-    if (!isNaN(numValue) && numValue > 0) {
-      if (key === 'experience' || key === 'resonance') {
-        const rewardLabel = key === 'experience' ? 'Experience' : 'Resonance';
+    if (!isNaN(numValue) && numValue !== 0) {  // Changed from numValue > 0 to support negative values
+      if (key === 'experience' || key === 'lumens') {
+        console.log(`      ✅ Adding ${key} notification: ${numValue}`);
+        const rewardLabel = key === 'experience' ? 'Lumens' : 'Lumens';
         const icon = key === 'experience' ? '⭐' : '🌟';
+        const sign = numValue > 0 ? '+' : '';  // Add sign prefix
         notifications.push({
-          message: `+${numValue} ${rewardLabel}`,
-          type: key as 'experience' | 'resonance',
+          message: `${sign}${numValue} ${rewardLabel}`,
+          type: key as 'experience' | 'lumens',
           icon: icon
         });
       } else {
@@ -684,7 +746,7 @@ export function createNotificationFromEffects(
         const iconText = isIconObject ? undefined : icon;
 
         notifications.push({
-          message: `+${numValue} ${displayName}`,
+          message: `${sign}${numValue} ${displayName}`,
           type: 'stat',
           icon: iconText,
           iconImage: iconImage,
@@ -694,20 +756,20 @@ export function createNotificationFromEffects(
     }
   });
 
-  // Handle experience/resonance from stats (legacy format)
+  // Handle experience/lumens from stats (legacy format)
   let rewardGain = 0;
-  
+
   if (effects.stats && effects.stats[rewardFieldName] && effects[rewardFieldName] === undefined) {
-    const rewardValue = typeof effects.stats[rewardFieldName] === 'number' 
-      ? effects.stats[rewardFieldName] 
+    const rewardValue = typeof effects.stats[rewardFieldName] === 'number'
+      ? effects.stats[rewardFieldName]
       : parseInt(effects.stats[rewardFieldName] as string, 10);
     if (!isNaN(rewardValue) && rewardValue > 0) {
       rewardGain += rewardValue;
     }
   }
-  
+
   if (rewardGain > 0 && !notifications.some(n => n.type === rewardType)) {
-    const rewardLabel = rewardType === 'experience' ? 'Experience' : 'Resonance';
+    const rewardLabel = rewardType === 'experience' ? 'Lumens' : 'Lumens';
     const icon = rewardType === 'experience' ? '⭐' : '🌟';
     notifications.push({
       message: `+${rewardGain} ${rewardLabel}`,
@@ -720,7 +782,7 @@ export function createNotificationFromEffects(
   if (effects.stats) {
     Object.entries(effects.stats).forEach(([stat, value]) => {
       if (stat === 'experience') return;
-      
+
       const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
       if (!isNaN(numValue) && numValue > 0) {
         const displayName = getStatDisplayName(stat);
@@ -735,7 +797,7 @@ export function createNotificationFromEffects(
         const iconText = isIconObject ? undefined : icon;
 
         notifications.push({
-          message: `+${numValue} ${displayName}`,
+          message: `${sign}${numValue} ${displayName}`,
           type: 'stat',
           icon: iconText,
           iconImage: iconImage,
@@ -781,6 +843,32 @@ export function createNotificationFromEffects(
         icon: '📚'
       });
     }
+  }
+
+  // Handle tools (for personality users - converted from rewards/artifacts)
+  if (effects.tools) {
+    console.log(`   🛠️ Processing tools (personality users)...`);
+    if (Array.isArray(effects.tools)) {
+      console.log(`      Found ${effects.tools.length} tools:`, effects.tools);
+      effects.tools.forEach((tool: string) => {
+        console.log(`         ✅ Adding tool notification: ${tool}`);
+        notifications.push({
+          message: `Unlocked ${tool}`,
+          type: 'skill',
+          icon: '🛠️'
+        });
+      });
+    } else if (typeof effects.tools === 'string') {
+      console.log(`      Found single tool: ${effects.tools}`);
+      console.log(`         ✅ Adding tool notification: ${effects.tools}`);
+      notifications.push({
+        message: `Unlocked ${effects.tools}`,
+        type: 'skill',
+        icon: '🛠️'
+      });
+    }
+  } else {
+    console.log(`   🛠️ No tools in effects`);
   }
 
   // Handle artifacts (only for character users)
@@ -897,6 +985,15 @@ export function createNotificationFromEffects(
     }
   }
 
+  console.log(`✅ [createNotificationFromEffects] Created ${notifications.length} notifications`);
+  if (notifications.length > 0) {
+    notifications.forEach((notif, index) => {
+      console.log(`   ${index + 1}. [${notif.type}] ${notif.message}`);
+    });
+  } else {
+    console.log(`   ⚠️ No notifications created from effects`);
+  }
+
   return notifications;
 }
 
@@ -985,9 +1082,9 @@ export const calculateLevelProgress = (
 // Format reward message for display
 export const formatRewardMessage = (reward: JournalReward, levelsGained: number = 0): string => {
   let message = reward.message;
-  
+
   if (reward.experience > 0) {
-    message += `\n\n✨ +${reward.experience} Experience`;
+    message += `\n\n✨ +${reward.experience} Lumens`;
   }
   
   if (levelsGained > 0) {
@@ -1122,13 +1219,13 @@ export const calculateMiniGameLevelProgress = (
 
 // Format ThoughtDefender reward message for display
 export const formatThoughtDefenderRewardMessage = (
-  reward: ThoughtDefenderReward, 
+  reward: ThoughtDefenderReward,
   levelsGained: number = 0
 ): string => {
   let message = reward.message;
-  
+
   if (reward.experience > 0) {
-    message += `\n\n✨ +${reward.experience} Experience`;
+    message += `\n\n✨ +${reward.experience} Lumens`;
   }
   
   if (levelsGained > 0) {
@@ -1244,7 +1341,7 @@ export const createThoughtDefenderNotifications = (
   
   if (reward.experience > 0) {
     notifications.push({
-      message: `+${reward.experience} Experience`,
+      message: `+${reward.experience} Lumens`,
       type: 'experience'
     });
   }
@@ -1466,6 +1563,7 @@ export const createQuestNotifications = (
   message: string;
   type: 'quest' | 'achievement';
   questId: string;
+  journalUnlock?: string;
 }> => {
   return completedQuests.map(questId => {
     const questInfo = getQuestInfo(questId);
@@ -1473,7 +1571,8 @@ export const createQuestNotifications = (
       return {
         message: `🎯 Quest Complete: ${questInfo.title}! You earned: ${questInfo.reward}`,
         type: 'quest' as const,
-        questId
+        questId,
+        journalUnlock: questInfo.journalUnlock // Include journal unlock ID if present
       };
     }
     return {
@@ -1482,6 +1581,23 @@ export const createQuestNotifications = (
       questId
     };
   });
+};
+
+// Get journal unlocks from completed quests
+export const getJournalUnlocksFromCompletedQuests = (
+  completedQuests: string[]
+): string[] => {
+  const journalUnlocks: string[] = [];
+
+  completedQuests.forEach(questId => {
+    const questInfo = getQuestInfo(questId);
+    if (questInfo?.journalUnlock) {
+      journalUnlocks.push(questInfo.journalUnlock);
+      console.log(`📝 Quest ${questId} unlocks journal prompt: ${questInfo.journalUnlock}`);
+    }
+  });
+
+  return journalUnlocks;
 };
 
 // Get random quest reward for a personality type

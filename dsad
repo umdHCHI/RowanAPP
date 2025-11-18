@@ -1,0 +1,17 @@
+warning: in the working copy of '.expo/types/router.d.ts', LF will be replaced by CRLF the next time Git touches it
+app.config.js
+package-lock.json
+package.json
+src/components/DrawingCanvas.tsx
+src/components/personality/CopingToolsCollection.tsx
+src/components/personality/PersonalizedArchiveHeader.tsx
+src/components/shared/CodexModal.tsx
+src/components/shared/VoiceMemoRecorder.tsx
+src/context/MasterStateContext.tsx
+src/hooks/useStoryEngine.ts
+src/screens/auth/LoginScreen.tsx
+src/screens/characterStory/StoryScreen.tsx
+src/screens/personalityStory/PersonalityHomeScreen.tsx
+src/services/apiService.ts
+src/types/personality.ts
+src/utils/rewardsUtils.ts

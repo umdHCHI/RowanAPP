@@ -11,24 +11,24 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { uiIcons } from "../assets/ui/index";
-import { useMasterState } from "../context/MasterStateContext";
-import { convertGameDataToPerformance, useDDA } from "../hooks/useDDA";
-import { useProgressLogger } from "../hooks/useProgressLogger";
-import { apiService, TDifficulty } from "../services/apiService";
-import { ThoughtDefenderRunDTO } from "../types/thoughtDefender";
-import { GameData } from "../types/user";
+import { uiIcons } from "../../assets/ui/index";
+import { useMasterState } from "../../context/MasterStateContext";
+import { convertGameDataToPerformance, useDDA } from "../../hooks/useDDA";
+import { useProgressLogger } from "../../hooks/useProgressLogger";
+import { apiService, TDifficulty } from "../../services/apiService";
+import { ThoughtDefenderRunDTO } from "../../types/thoughtDefender";
+import { GameData } from "../../types/user";
 import {
   formatThoughtDefenderRewardMessage,
   processThoughtDefenderCompletion
-} from "../utils/rewardsUtils";
+} from "../../utils/rewardsUtils";
 
 
 const { width, height } = Dimensions.get("window");
 const GAME_WIDTH = width * 0.9;
-const GAME_HEIGHT = height * 0.6;
-const PADDLE_WIDTH = 60;
-const PADDLE_HEIGHT = 20;
+const GAME_HEIGHT = Math.min(height * 0.5, 400); // Reduced and capped to ensure it fits
+const PADDLE_WIDTH = 120;
+const PADDLE_HEIGHT = 50;
 
 const CharacterArchetypes = {
   scholar: {
@@ -345,6 +345,11 @@ interface ThoughtDefenderModalProps {
     level: number;
     won: boolean;
     difficulty: string;
+    accuracy: number;
+    missedShots: number;
+    dynamicDifficultyMultiplier: number;
+    shotsFired: number;
+    hits: number;
   }) => void;
   isFullScreen?: boolean;
   primaryTrait?: string; // Optional prop for primary trait
@@ -389,6 +394,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     GAME_WIDTH / 2 - PADDLE_WIDTH / 2
   );
   const [canShoot, setCanShoot] = useState<boolean>(true);
+  const [isDraggingPaddle, setIsDraggingPaddle] = useState<boolean>(false);
+  const touchStartTimeRef = useRef<number>(0);
+  const touchStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [totalThoughtsSpawned, setTotalThoughtsSpawned] = useState<number>(0);
@@ -396,7 +404,13 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const [negativeThoughtsCleared, setNegativeThoughtsCleared] = useState<number>(0);
   const [shotsFired, setShotsFired] = useState<number>(0);
   const [hits, setHits] = useState<number>(0);
+  const [missedShots, setMissedShots] = useState<number>(0);
   const [powerupsCollected, setPowerupsCollected] = useState<number>(0);
+  
+  // Dynamic difficulty scaling
+  const [dynamicDifficultyMultiplier, setDynamicDifficultyMultiplier] = useState<number>(1.0);
+  const [lastDifficultyRamp, setLastDifficultyRamp] = useState<number>(0);
+  const [showDifficultyRampNotification, setShowDifficultyRampNotification] = useState<boolean>(false);
 
   const {
     ddaState,
@@ -418,9 +432,33 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const hasHomeData = homeData && 'userProfile' in homeData ? homeData.userProfile?.character : homeData;
   const hasBackendCharacter = backendCharacter;
 
+  // Silent wellness gain function that doesn't show alerts
+  // This is used during game completion to avoid duplicate alerts
+  const gainWellnessSilently = async (gains: Record<string, number>) => {
+    try {
+      if (!backendCharacter?.id) return;
+
+      const id = Number(backendCharacter.id);
+      if (!id || isNaN(id)) return;
+
+      // Filter to only positive values
+      const payload = Object.fromEntries(
+        Object.entries(gains).filter(([, v]) => typeof v === 'number' && v > 0)
+      );
+
+      // Only make API call if there are positive gains
+      if (Object.keys(payload).length === 0) return;
+
+      // Call API and silently update character state (no alerts)
+      await apiService.gainWellness(id, payload);
+      // Successfully updated - the character state will refresh on next screen navigation
+    } catch (error) {
+      console.error('Failed to gain wellness:', error);
+      // Fail silently to avoid interrupting game completion flow
+    }
+  };
 
 
-  
   // Fetch game data when modal opens
   useEffect(() => {
     if (visible && !isLoadingGameData && !apiGameData) {
@@ -542,6 +580,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const levelRef = useRef(level);
   const livesRef = useRef(lives);
   const gameStartedRef = useRef(gameStarted);
+  const dynamicDifficultyRef = useRef(dynamicDifficultyMultiplier);
 
   const getDifficultyConfig = useCallback((): DifficultyConfig => {
     const baseDifficulty = DIFFICULTY_LEVELS[selectedDifficulty] || DIFFICULTY_LEVELS.normal;
@@ -556,6 +595,65 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     
     return baseDifficulty;
   }, [selectedDifficulty, ddaState.lastResult, getAdaptiveModifiers]);
+
+  // Check if player is doing "too well" and ramp up difficulty
+  const checkDynamicDifficultyAdjustment = useCallback(() => {
+    if (!gameStarted || lives <= 0) return;
+    
+    const currentTime = Date.now();
+    const timeSinceLastRamp = currentTime - lastDifficultyRamp;
+    
+    // Only check every 10 seconds
+    if (timeSinceLastRamp < 10000) return;
+    
+    // Calculate current performance metrics
+    const accuracy = shotsFired > 0 ? hits / shotsFired : 0;
+    const survivalTime = (currentTime - gameStartTime) / 1000;
+    const scoreRate = survivalTime > 0 ? score / survivalTime : 0;
+    const thoughtClearRate = survivalTime > 0 ? (positiveThoughtsCleared + negativeThoughtsCleared) / survivalTime : 0;
+    
+    // Thresholds for "dominating" performance
+    const isDominating = 
+      accuracy >= 0.8 && // 80%+ accuracy
+      scoreRate > 10 && // Scoring fast
+      lives >= 2 && // Not taking damage
+      thoughtClearRate > 0.8 && // Clearing thoughts efficiently
+      survivalTime > 30; // At least 30 seconds in
+    
+    const isExcelling = 
+      accuracy >= 0.9 && // 90%+ accuracy
+      scoreRate > 15 && // Scoring very fast
+      lives >= 3 && // Full health
+      thoughtClearRate > 1.0 && // Clearing thoughts very efficiently
+      survivalTime > 45; // At least 45 seconds in
+    
+    if (isExcelling && dynamicDifficultyMultiplier < 1.5) {
+      // Ramp up significantly
+      setDynamicDifficultyMultiplier(prev => Math.min(1.5, prev + 0.15));
+      setLastDifficultyRamp(currentTime);
+      setShowDifficultyRampNotification(true);
+      setTimeout(() => setShowDifficultyRampNotification(false), 3000);
+      logger.waveStart(level); // Log difficulty increase
+    } else if (isDominating && dynamicDifficultyMultiplier < 1.3) {
+      // Ramp up moderately
+      setDynamicDifficultyMultiplier(prev => Math.min(1.3, prev + 0.1));
+      setLastDifficultyRamp(currentTime);
+      setShowDifficultyRampNotification(true);
+      setTimeout(() => setShowDifficultyRampNotification(false), 3000);
+      logger.waveStart(level); // Log difficulty increase
+    }
+  }, [gameStarted, lives, shotsFired, hits, score, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, lastDifficultyRamp, dynamicDifficultyMultiplier, level, logger]);
+
+  // Run dynamic difficulty check periodically
+  useEffect(() => {
+    if (!gameStarted) return;
+    
+    const interval = setInterval(() => {
+      checkDynamicDifficultyAdjustment();
+    }, 5000); // Check every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [gameStarted, checkDynamicDifficultyAdjustment]);
 
   const handleGameOver = async (finalStats: {
     score: number;
@@ -580,13 +678,15 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       wavesCleared: finalStats.wavesCleared,
       shotsFired: finalStats.shotsFired,
       hits: finalStats.hits,
-      accuracy,
+      accuracy, //thanks trevor! 
       livesRemaining: finalStats.livesRemaining,
       durationMs: finalStats.durationMs,
       difficulty: finalStats.difficulty,
       result: finalStats.result,
       perksUsed: finalStats.perksUsed ?? [],
       powerupsCollected: finalStats.powerupsCollected ?? 0,
+      missedShots: missedShots,
+      dynamicDifficultyMultiplier: dynamicDifficultyMultiplier,
       startedAt: new Date(finalStats.startedAt).toISOString(),
       finishedAt: new Date(finalStats.finishedAt).toISOString(),
       clientVersion: process.env.EXPO_PUBLIC_APP_VERSION ?? 'web',
@@ -625,7 +725,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   const handlePlayerMove = (x: number): void => {
     const newX = Math.max(
       0,
-      Math.min(GAME_WIDTH - PADDLE_WIDTH - 32, x - PADDLE_WIDTH / 2)
+      Math.min(GAME_WIDTH - PADDLE_WIDTH, x - PADDLE_WIDTH / 2)
     );
     setPlayerX(newX);
   };
@@ -773,7 +873,8 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       : 2 + Math.random() * difficulty.modifiers.thoughtSpeed;
     
     const levelSpeed = baseSpeed * levelMultiplier;
-    const finalSpeed = levelSpeed;
+    // Apply dynamic difficulty multiplier if player is dominating
+    const finalSpeed = levelSpeed * dynamicDifficultyRef.current;
 
     const newThought: Thought = {
       id: ++thoughtIdCounter.current,
@@ -875,9 +976,22 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     setProjectiles((prev) => {
       const projectileSpeedScale = gameState.fastShootActive ? 1.2 : 1;
       const f = (dtMs / FRAME_MS) * (gameState.timeSlowActive ? 0.5 : 1); // same factor used for thoughts
+      
+      // Track missed shots and apply penalty
+      const difficulty = getDifficultyConfig();
+      const missedPenalty = Math.floor(5 * difficulty.modifiers.scoreMultiplier); // Scaled by difficulty
+      
       return prev
         .map((p) => ({ ...p, y: p.y - p.speed * projectileSpeedScale * f }))
-        .filter((p) => p.y > -20)
+        .filter((p) => {
+          const isOffScreen = p.y <= -20;
+          if (isOffScreen && !collisionData.projectilesToRemove.has(p.id)) {
+            // This shot missed - apply penalty
+            setMissedShots(prev => prev + 1);
+            setScore(prevScore => Math.max(0, prevScore - missedPenalty));
+          }
+          return !isOffScreen;
+        })
         .filter((p) => !collisionData.projectilesToRemove.has(p.id));
     });
   }, [
@@ -890,8 +1004,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     getDifficultyConfig,
     logger,
     level,
-    score,
-    selectedDifficulty
+    score
   ]);
   const handleThoughtPress = (thought: Thought): void => {
     if (!thought.isPositive) {
@@ -960,7 +1073,13 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     setNegativeThoughtsCleared(0);
     setShotsFired(0);
     setHits(0);
+    setMissedShots(0);
     setPowerupsCollected(0);
+    
+    // Reset dynamic difficulty
+    setDynamicDifficultyMultiplier(1.0);
+    setLastDifficultyRamp(0);
+    setShowDifficultyRampNotification(false);
 
     const difficultyName: TDifficulty = DIFFICULTY_LEVELS[selectedDifficulty].name as TDifficulty;
     logger.start(difficultyName);
@@ -1051,7 +1170,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         
         if (rewardResult.success) {
           if (ui.researchCondition === "character") {
-            character.gainResonance(rewardResult.rewards.experience, 'ThoughtDefender');
+            character.gainLumens(rewardResult.rewards.experience, 'ThoughtDefender');
           } else {
             character.gainExperience(rewardResult.rewards.experience, 'ThoughtDefender');
           }
@@ -1069,8 +1188,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           if (rewardResult.rewards.wellnessStats.fear !== undefined) {
             backendWellnessStats.balance = rewardResult.rewards.wellnessStats.fear;
           }
-          
-          character.gainWellness(backendWellnessStats);
+
+          // Apply wellness gains silently (no alert popups)
+          gainWellnessSilently(backendWellnessStats);
           
           const rewardMessage = formatThoughtDefenderRewardMessage(
             rewardResult.rewards, 
@@ -1081,33 +1201,49 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
             score, 
             level, 
             won: true, 
-            difficulty: selectedDifficulty 
+            difficulty: selectedDifficulty,
+            accuracy: shotsFired > 0 ? hits / shotsFired : 0,
+            missedShots,
+            dynamicDifficultyMultiplier,
+            shotsFired,
+            hits
           });
 
-          Alert.alert(
-            ' You have overcome your negative thoughts! ',
-            `${rewardMessage}\n\n Against all odds you have conquered the ${difficulty.name} difficulty, and overcome your negative thoughts. You are one step closer to tackling anything that comes your way ${homeData?.userProfile?.character?.name}.`,
-            [
-              { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
-              { text: '❌ EXIT', onPress: onClose }
-            ]
-          );
+          // Delay showing rewards so player can see final game state
+          setTimeout(() => {
+            Alert.alert(
+              ' You have overcome your negative thoughts! ',
+              `${rewardMessage}\n\n Against all odds you have conquered the ${difficulty.name} difficulty, and overcome your negative thoughts. You are one step closer to tackling anything that comes your way ${homeData?.userProfile?.character?.name}.`,
+              [
+                { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
+                { text: '❌ EXIT', onPress: onClose }
+              ]
+            );
+          }, 800);
         } else {
           if (onScoreUpdate) onScoreUpdate({ 
             score, 
             level, 
             won: true, 
-            difficulty: selectedDifficulty 
+            difficulty: selectedDifficulty,
+            accuracy: shotsFired > 0 ? hits / shotsFired : 0,
+            missedShots,
+            dynamicDifficultyMultiplier,
+            shotsFired,
+            hits
           });
 
-          Alert.alert(
-            'You have overcome your negative thoughts!',
-            `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${homeData?.userProfile?.character?.level}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
-            [
-              { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
-              { text: '❌ EXIT', onPress: onClose }
-            ]
-          );
+          // Delay showing rewards so player can see final game state
+          setTimeout(() => {
+            Alert.alert(
+              'You have overcome your negative thoughts!',
+              `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${homeData?.userProfile?.character?.level}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
+              [
+                { text: '🎉 PLAY AGAIN', onPress: () => setShowDifficultySelect(true) },
+                { text: '❌ EXIT', onPress: onClose }
+              ]
+            );
+          }, 800);
         }
         return;
       }
@@ -1200,7 +1336,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     
     if (rewardResult.success) {
       if (ui.researchCondition === "character") {
-        character.gainResonance(rewardResult.rewards.experience, 'ThoughtDefender');
+        character.gainLumens(rewardResult.rewards.experience, 'ThoughtDefender');
       } else {
         character.gainExperience(rewardResult.rewards.experience, 'ThoughtDefender');
       }
@@ -1218,11 +1354,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       if (rewardResult.rewards.wellnessStats.fear !== undefined) {
         backendWellnessStats.balance = rewardResult.rewards.wellnessStats.fear;
       }
-      
-      character.gainWellness(backendWellnessStats);
-      
+
+      // Apply wellness gains silently (no alert popups)
+      gainWellnessSilently(backendWellnessStats);
+
       const rewardMessage = formatThoughtDefenderRewardMessage(
-        rewardResult.rewards, 
+        rewardResult.rewards,
         rewardResult.levelsGained || 0
       );
       
@@ -1230,33 +1367,49 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
         score, 
         level, 
         won: false, 
-        difficulty: selectedDifficulty 
+        difficulty: selectedDifficulty,
+        accuracy: shotsFired > 0 ? hits / shotsFired : 0,
+        missedShots,
+        dynamicDifficultyMultiplier,
+        shotsFired,
+        hits
       });
 
-      Alert.alert(
-        '⚡ GAME OVER ⚡',
-        `${rewardMessage}\n\n🧠 MIND DEFENDED!`,
-        [
-          { text: '🔄 RETRY', onPress: () => setShowDifficultySelect(true) },
-          { text: '❌ EXIT', onPress: onClose }
-        ]
-      );
+      // Delay showing rewards so player can see final game state
+      setTimeout(() => {
+        Alert.alert(
+          '💀 DEFEATED 💀',
+          `The negative thoughts overwhelmed you!\n\nDIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\n${rewardMessage}\n\nEven in defeat, you've gained resilience. Try again!`,
+          [
+            { text: '🔄 RETRY', onPress: () => setShowDifficultySelect(true) },
+            { text: '❌ EXIT', onPress: onClose }
+          ]
+        );
+      }, 800);
     } else {
       if (onScoreUpdate) onScoreUpdate({ 
         score, 
         level, 
         won: false, 
-        difficulty: selectedDifficulty 
+        difficulty: selectedDifficulty,
+        accuracy: shotsFired > 0 ? hits / shotsFired : 0,
+        missedShots,
+        dynamicDifficultyMultiplier,
+        shotsFired,
+        hits
       });
 
-      Alert.alert(
-        '⚡ GAME OVER ⚡',
-        `DIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\n🧠 MIND DEFENDED!`,
-        [
-          { text: '🔄 RETRY', onPress: () => setShowDifficultySelect(true) },
-          { text: '❌ EXIT', onPress: onClose }
-        ]
-      );
+      // Delay showing rewards so player can see final game state
+      setTimeout(() => {
+        Alert.alert(
+          '💀 DEFEATED 💀',
+          `The negative thoughts overwhelmed you!\n\nDIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\nKeep training your mental defenses and try again!`,
+          [
+            { text: '🔄 RETRY', onPress: () => setShowDifficultySelect(true) },
+            { text: '❌ EXIT', onPress: onClose }
+          ]
+        );
+      }, 800);
     }
   }, [score, level, onScoreUpdate, onClose, selectedDifficulty, getDifficultyConfig, gameStartTime, positiveThoughtsCleared, negativeThoughtsCleared, totalThoughtsSpawned, character, logger, ui]);
   // for HUD display - lives can't be less than the difficulty's lives start or 3
@@ -1283,7 +1436,10 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const difficulty = getDifficultyRef.current();
     const baseSpawnMs = 2000 * difficulty.modifiers.spawnRate; // 2s on 'normal'
     const lvl = levelRef.current;
-    const levelSpawnMs = Math.max(800, baseSpawnMs - (Math.max(0, lvl - 1) * 150));
+    let levelSpawnMs = Math.max(800, baseSpawnMs - (Math.max(0, lvl - 1) * 150));
+    
+    // Apply dynamic difficulty - faster spawns if player is dominating
+    levelSpawnMs = levelSpawnMs / dynamicDifficultyRef.current;
 
     spawnAccRef.current += dtMs;
     while (spawnAccRef.current >= levelSpawnMs) {
@@ -1339,6 +1495,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   useEffect(() => { levelRef.current = level; }, [level]);
   useEffect(() => { livesRef.current = lives; }, [lives]);
   useEffect(() => { gameStartedRef.current = gameStarted; }, [gameStarted]);
+  useEffect(() => { dynamicDifficultyRef.current = dynamicDifficultyMultiplier; }, [dynamicDifficultyMultiplier]);
 
   const renderDifficultySelect = () => (
     <View style={styles.difficultyScreen}>
@@ -1499,6 +1656,21 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                   </Text>
                 </View>
                 <View style={styles.hudItem}>
+                  <Text style={styles.hudLabel}>ACCURACY</Text>
+                  <Text style={[
+                    styles.hudValue,
+                    { 
+                      color: shotsFired > 0 
+                        ? (hits / shotsFired) >= 0.7 ? '#00ff41' 
+                          : (hits / shotsFired) >= 0.5 ? '#FCD34D' 
+                          : '#ff0041'
+                        : '#ffffff'
+                    }
+                  ]}>
+                    {shotsFired > 0 ? `${Math.round((hits / shotsFired) * 100)}%` : '--'}
+                  </Text>
+                </View>
+                <View style={styles.hudItem}>
                   <Text style={styles.hudLabel}>DIFFICULTY</Text>
                   <Text style={styles.hudValue}>{DIFFICULTY_LEVELS[selectedDifficulty].icon}</Text>
                 </View>
@@ -1518,7 +1690,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
             ) : !gameStarted ? (
               // Start Screen
               <View style={[styles.startScreen, { backgroundColor: theme.theme.archiveBackground }]}>
-                <Text style={styles.startTitle}>PROTECT YOUR THOUGHTS!</Text>
+                <Text style={styles.startTitle}>Light your way through the darkness</Text>
 
                 {/* Loading indicator */}
                 {isLoadingGameData && (
@@ -1541,20 +1713,26 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                   </View>
                 )}
 
-                <View style={styles.startInstructions}>
-                  <Text style={styles.startInstructionText}>
-                    💚 TAP positive thoughts for power-ups
-                  </Text>
-                  <Text style={styles.startInstructionText}>
-                    ⚡ SHOOT negative thoughts to defend
-                  </Text>
-                  <Text style={styles.startInstructionText}>
-                    🏆 Complete {getDifficultyConfig().modifiers.maxLevels} levels to win
-                  </Text>
-                  <Text style={styles.startInstructionText}>
-                    🛡️ Collect power-ups for special abilities
-                  </Text>
-                </View>
+               <View style={styles.startInstructions}>
+  <Text style={styles.startInstructionText}>
+    📚 In this wing, loose thoughts slip from the shelves. Some are shadows, some are anchors.
+  </Text>
+  <Text style={styles.startInstructionText}>
+    🛡️ Touch and drag the golden shield at the bottom to move it left and right.
+  </Text>
+  <Text style={styles.startInstructionText}>
+    ⚡ Tap anywhere to shoot bolts upward. Tap the shield to shoot while moving!
+  </Text>
+  <Text style={styles.startInstructionText}>
+    💚 Tap green thoughts directly to welcome them in. They grant power-ups and help steady you.
+  </Text>
+  <Text style={[styles.startInstructionText, { color: '#ff0041' }]}>
+    ⚠️ Letting red thoughts reach the bottom costs lives. Firing wildly wastes energy and lowers your score.
+  </Text>
+  <Text style={styles.startInstructionText}>
+    🏆 Clear enough thoughts to complete each wave. Survive all levels to restore this shelf of The Archive.
+  </Text>
+</View>
 
                 <Text style={styles.startSubtitle}>CURRENT DIFFICULTY:</Text>
                 <Text style={styles.startSubtitle}>{DIFFICULTY_LEVELS[selectedDifficulty].icon}{DIFFICULTY_LEVELS[selectedDifficulty].name}</Text>
@@ -1601,12 +1779,16 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                   {gameState.fastShootActive && (
                     <Text style={styles.powerUpIcon}>🚀</Text>
                   )}
+                  {dynamicDifficultyMultiplier > 1.0 && (
+                    <Text style={[styles.powerUpIcon, { color: '#ff0041' }]}>
+                      ⚡x{dynamicDifficultyMultiplier.toFixed(1)}
+                    </Text>
+                  )}
                 </View>
 
                 {/* Debug Info */}
                 <Text style={styles.debugText}>
-                  T: {thoughts.length} | P: {projectiles.length} | X:{" "}
-                  {Math.round(playerX)}
+                  T: {thoughts.length} | P: {projectiles.length} | Hit: {hits}/{shotsFired} | Miss: {missedShots} | Diff: x{dynamicDifficultyMultiplier.toFixed(1)}
                 </Text>
                 
                 {/* Final Level Indicator */}
@@ -1636,38 +1818,67 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                     </Text>
                   </View>
                 )}
+                
+                {/* Dynamic Difficulty Ramp Notification */}
+                {showDifficultyRampNotification && (
+                  <View style={{
+                    position: 'absolute',
+                    top: level >= getDifficultyConfig().modifiers.maxLevels ? 60 : 25,
+                    left: 0,
+                    right: 0,
+                    alignItems: 'center',
+                    zIndex: 50
+                  }}>
+                    <Text style={{
+                      color: '#ff0041',
+                      fontSize: 14,
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      textShadowColor: '#000',
+                      textShadowOffset: { width: 1, height: 1 },
+                      textShadowRadius: 2,
+                      backgroundColor: 'rgba(255,0,0,0.8)',
+                      paddingHorizontal: 12,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      borderWidth: 2,
+                      borderColor: '#ff0041'
+                    }}>
+                      ⚠️ DIFFICULTY INCREASED! ⚠️
+                    </Text>
+                  </View>
+                )}
 
-                {/* Background touch area for movement */}
+                {/* Background touch area for tap-to-shoot */}
                 <View
                   style={styles.backgroundTouchArea}
-                  onTouchStart={(evt) => {
+                  onStartShouldSetResponder={() => !isDraggingPaddle}
+                  onResponderGrant={(evt) => {
                     const { locationX, locationY } = evt.nativeEvent;
+                    touchStartTimeRef.current = Date.now();
+                    touchStartPosRef.current = { x: locationX, y: locationY };
+                  }}
+                  onResponderRelease={(evt) => {
+                    const touchDuration = Date.now() - touchStartTimeRef.current;
+                    const { locationX, locationY } = evt.nativeEvent;
+                    const dx = Math.abs(locationX - touchStartPosRef.current.x);
+                    const dy = Math.abs(locationY - touchStartPosRef.current.y);
 
-                    // Move player
-                    handlePlayerMove(locationX);
-
-                    // Shoot if in bottom area
-                    if (locationY > GAME_HEIGHT * 0.66) {
+                    // If it's a quick tap (not a drag), shoot
+                    if (touchDuration < 200 && dx < 10 && dy < 10) {
                       shoot();
                     }
                   }}
-                  onTouchMove={(evt) => {
-                    const { locationX } = evt.nativeEvent;
-                    handlePlayerMove(locationX);
-                  }}
                 >
-                  {/* Shooting Zone Overlay */}
-                <TouchableOpacity 
-                  style={styles.shootingZone}
-                  onPress={() => {
-                    shoot();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  {gameState.waveComplete && (
-                    <Text style={styles.shootingZoneText}>WAVE COMPLETE!</Text>
-                )}
-                </TouchableOpacity>
+                  {/* Shooting Zone Visual Indicator */}
+                  <View
+                    style={styles.shootingZone}
+                    pointerEvents="none"
+                  >
+                    {gameState.waveComplete && (
+                      <Text style={styles.shootingZoneText}>WAVE COMPLETE!</Text>
+                  )}
+                  </View>
                 </View>
                 
                 {/* Thoughts - High priority for tapping */}
@@ -1725,9 +1936,51 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                   </TouchableOpacity>
                 ))}
                 
-                {/* Player */}
-                <View style={[styles.player, { left: playerX }]}>
-                  <Text style={styles.playerText}>🛡️</Text>
+                {/* Player - Draggable Paddle */}
+                <View
+                  style={[
+                    styles.player,
+                    {
+                      left: playerX,
+                      opacity: isDraggingPaddle ? 0.9 : 1,
+                      transform: [{ scale: isDraggingPaddle ? 1.05 : 1 }]
+                    }
+                  ]}
+                  onStartShouldSetResponder={() => true}
+                  onMoveShouldSetResponder={() => true}
+                  onResponderGrant={(evt) => {
+                    setIsDraggingPaddle(true);
+                    touchStartTimeRef.current = Date.now();
+                    const { locationX } = evt.nativeEvent;
+                    touchStartPosRef.current = { x: locationX, y: 0 };
+                  }}
+                  onResponderMove={(evt) => {
+                    const { pageX } = evt.nativeEvent;
+                    // Convert pageX to game area relative position
+                    const gameAreaLeft = (width - GAME_WIDTH) / 2;
+                    const relativeX = pageX - gameAreaLeft;
+                    const newX = Math.max(
+                      0,
+                      Math.min(GAME_WIDTH - PADDLE_WIDTH, relativeX - PADDLE_WIDTH / 2)
+                    );
+                    setPlayerX(newX);
+                  }}
+                  onResponderRelease={(evt) => {
+                    const touchDuration = Date.now() - touchStartTimeRef.current;
+                    const { locationX } = evt.nativeEvent;
+                    const dx = Math.abs(locationX - touchStartPosRef.current.x);
+
+                    setIsDraggingPaddle(false);
+
+                    // If it's a quick tap on the paddle (not a drag), shoot
+                    if (touchDuration < 200 && dx < 10) {
+                      shoot();
+                    }
+                  }}
+                >
+                  <View style={styles.playerInner}>
+                    <Text style={styles.playerText}>🛡️</Text>
+                  </View>
                 </View>
 
                 {/* Projectiles */}
@@ -1756,13 +2009,19 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
           {gameStarted && (
             <View style={styles.instructions}>
               <Text style={styles.instructionTitle}>
-                🎮 ENHANCED CONTROLS 🎮
+                🎮 CONTROLS 🎮
               </Text>
               <Text style={styles.instructionText}>
-                TAP GREEN THOUGHTS FOR POWER-UPS
+                DRAG SHIELD 🛡️ TO MOVE
               </Text>
               <Text style={styles.instructionText}>
-                SHOOT RED THOUGHTS TO SURVIVE
+                TAP TO SHOOT ⚡
+              </Text>
+              <Text style={styles.instructionText}>
+                TAP GREEN FOR POWER-UPS 💚
+              </Text>
+              <Text style={[styles.instructionText, { color: '#ff0041' }]}>
+                ⚠️ MISSED SHOTS COST POINTS!
               </Text>
             </View>
           )}
@@ -1785,11 +2044,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 8,
-    paddingVertical: 18,
+    paddingVertical: 8,
   },
   modalpassages: {
     width: Math.min(GAME_WIDTH, width * 0.95),
     maxWidth: 400,
+    maxHeight: height * 0.95,
     backgroundColor: 'rgba(212, 175, 55, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
@@ -1859,7 +2119,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   gameContainer: {
-    flex: 1,
+    width: "100%",
+    height: GAME_HEIGHT,
     position: "relative",
   },
   backgroundTouchArea: {
@@ -2132,10 +2393,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: GAME_HEIGHT * 0.34,
-    backgroundColor: "rgba(212, 175, 55, 0.05)",
-    borderTopWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.3)",
+    height: GAME_HEIGHT * 0.2,
+    backgroundColor: "rgba(212, 175, 55, 0.08)",
+    borderTopWidth: 2,
+    borderColor: "rgba(212, 175, 55, 0.4)",
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
@@ -2149,24 +2410,37 @@ const styles = StyleSheet.create({
   },
   player: {
     position: "absolute",
-    bottom: 20,
+    bottom: 15,
     width: PADDLE_WIDTH,
     height: PADDLE_HEIGHT,
-    backgroundColor: '#fe9900',
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#e28802',
+    backgroundColor: '#ff9d00',
+    borderRadius: 10,
+    borderWidth: 4,
+    borderColor: '#ffd700',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#ff9901',
+    shadowColor: '#ffd700',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    zIndex: 200,
+    elevation: 200,
+    // Much larger touch area for easier grabbing
+    padding: 20,
+    margin: -20,
+  },
+  playerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   playerText: {
-    fontSize: 16,
+    fontSize: 28,
     color: "#0f0f23",
+    textShadowColor: '#ffd700',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
   },
   thought: {
     position: "absolute",

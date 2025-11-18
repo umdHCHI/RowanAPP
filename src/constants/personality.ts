@@ -27,7 +27,7 @@ export const PersonalityConfigs = {
   },
 
   Conscientiousness: {
-    avatar: "⚖️",
+    avatar: require("../../assets/personalityCharacters/Conscientiousness.png"),
     gameTitle: "The Ledger of Quiet Mastery",
     scholarClass: "Binder of Pages",
     journeyDesc: "Numbering shelves, setting lamps, restoring what frays.",
@@ -77,7 +77,7 @@ export const PersonalityConfigs = {
   },
 
   Agreeableness: {
-    avatar: "🕊️",
+    avatar: require("../../assets/personalityCharacters/agreeableness.png"),
     gameTitle: "The Harmony Wing",
     scholarClass: "Peace Weaver",
     journeyDesc: "Tending to soft places where stories remember to breathe.",
@@ -102,7 +102,7 @@ export const PersonalityConfigs = {
   },
 
   Neuroticism: {
-    avatar: "🌙",
+    avatar: require("../../assets/personalityCharacters/neurotism.png"),
     gameTitle: "The Nocturne Vault",
     scholarClass: "Shadow Walker",
     journeyDesc: "Reading the pages that tremble and turning them with care.",

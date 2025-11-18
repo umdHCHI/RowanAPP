@@ -47,20 +47,43 @@ export const useCharacterCreation = ({
     }
     
     try {
-      
-      if(characterId) {
+      console.log('🔍 [useCharacterCreation] Starting character creation/update', {
+        hasCharacterId: !!characterId,
+        characterId,
+        characterName
+      });
+
+      const isUpdate = !!characterId;
+
+      if(isUpdate) {
+        console.log('🔄 [useCharacterCreation] Updating existing character');
         await updateCharacterCustomization();
       } else {
+        console.log('✨ [useCharacterCreation] Creating new character');
         await createCharacter();
       }
-      
-      
-      // Complete onboarding process
-      await completeCharacter();
-      
-      
-      // Navigate immediately after onboarding completion
-      router.push(CHARACTER_CREATOR_CONSTANTS.ROUTES.CHARACTER_HOME);
+
+      console.log('✅ [useCharacterCreation] Character create/update completed');
+
+      // Only complete onboarding for new characters, not for updates
+      if (!isUpdate) {
+        await completeCharacter();
+        console.log('✅ [useCharacterCreation] Onboarding completed');
+      } else {
+        console.log('✅ [useCharacterCreation] Character update completed, skipping onboarding');
+      }
+
+      // Navigate immediately after completion
+      if (isUpdate) {
+        // For updates, go back to the previous screen with a refresh flag
+        router.push({
+          pathname: CHARACTER_CREATOR_CONSTANTS.ROUTES.CHARACTER_HOME,
+          params: { refreshCharacter: Date.now().toString() }
+        });
+      } else {
+        // For new characters, navigate to home
+        router.push(CHARACTER_CREATOR_CONSTANTS.ROUTES.CHARACTER_HOME);
+      }
       
       // Show success alert after navigation (non-blocking)
       // Use setTimeout to ensure navigation happens first
@@ -70,9 +93,13 @@ export const useCharacterCreation = ({
           // Web fallback - simple console log or could use a toast notification
         } else {
           // Native platforms - show alert
+          const message = isUpdate 
+            ? `${characterName}'s appearance has been updated!`
+            : CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.MESSAGE(characterName);
+          
           Alert.alert(
             CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.TITLE,
-            CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.MESSAGE(characterName),
+            message,
             [{ text: CHARACTER_CREATOR_CONSTANTS.ALERTS.SUCCESS.BUTTON_TEXT, style: 'default' }]
           );
         }

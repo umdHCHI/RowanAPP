@@ -1,15 +1,13 @@
-import React, {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Alert } from "react-native";
+// Composes all modular contexts into a unified provider
+// See: src/context/modules/README.md for details
+
+import React, { ReactNode, useEffect, useRef } from 'react';
+import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
+
+// Import all modular contexts
 import {
+<<<<<<< HEAD
   baseOptions,
   bgOptionsBlonde,
   bgOptionsBlue,
@@ -101,548 +99,278 @@ import { CategoryConfig, createCharacterCreatorCategories, UserProfile } from ".
 import { getResearchCondition } from "../utils/researchCondition";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
+=======
+  ArchiveProvider,
+  CharacterProvider,
+  EquipmentProvider,
+  LoadingProvider,
+  OnboardingProvider,
+  StoryProvider,
+  UIProvider,
+  useArchive,
+  useCharacter,
+  useEquipment,
+  useLoading,
+  useOnboarding,
+  useStory,
+  useUI,
+  useWellness,
+  WellnessProvider,
+} from './modules';
+>>>>>>> prodOne
 
-// ===== UPDATED TYPES FOR NEW BACKEND =====
+// Re-export types for convenience
+export type {
+  ArchiveContextType,
+  CharacterContextType,
+  EquipmentContextType,
+  LoadingContextType,
+  OnboardingContextType,
+  StoryContextType,
+  UIContextType,
+  WellnessContextType
+} from './modules';
+export type { ArchiveArea, ArchiveFoundation, MentalArtifact } from './modules/types';
 
-export interface ArchiveFoundation {
-  icon: string;
-  label: string;
-  value: number;
-  maxValue: number;
-  colors: string[];
-  description: string;
-  recentGain: number;
-  nextUnlock: string;
-  storyTriggers: string[];
-}
+// Import types for internal use
+import type { LoadingContextType, UIContextType } from './modules';
 
-
-
-export interface MentalArtifact {
-  name: string;
-  type: string;
-  equipped: boolean;
-  resonance: number;
-  description: string;
-  rarity: "Common" | "Rare" | "Epic" | "Legendary";
-}
-
-
-
-export interface ArchiveArea {
-  id: string;
-  name: string;
-  roomNumber: number;
-  description: string;
-  requiredStories: number;
-  requiredEntries: number;
-  unlocked: boolean;
-  progress: number;
-}
-
-// ===== MASTER STATE INTERFACE =====
-
-interface MasterStateContextType {
-  // ===== AUTHENTICATION & USER STATE =====
-  auth: {
-    authToken: string | null;
-    characterId: string | null;
-    isTestUser: boolean;
-    user: { username: string } | null;
-    login: (token: string, charId: string, userData?: any) => Promise<void>;
-    logout: () => Promise<void>;
-  };
-
-  // ===== ONBOARDING STATE =====
-  onboarding: {
-    isComplete: boolean;
-    assignedPath: "survey" | "character" | null;
-    researchGroup: string | null;
-    characterAppearance: Character | undefined;
-    isLoading: boolean;
-    completeCharacter: () => Promise<void>;
-    setAssignedPath: (path: "survey" | "character" | null) => void;
-    setCharacterAppearance: (appearance: Character) => void;
-    resetOnboarding: () => void;
-    resetCharacterCreatorToDefaults: () => void;
-    setIsLoading: (loading: boolean) => void;
-    loadOnboardingStatus: () => Promise<void>;
-  };
-
-  // ===== THEME STATE =====
-  theme: {
-    theme: any;
-    themeMode: "light" | "dark";
-    toggleTheme: () => void;
-    setThemeMode: (mode: "light" | "dark") => void;
-    styles: any;
-    isDark: boolean;
-    loginTheme: any;
-    onboardingTheme: any;
-    characterCreatorTheme: any;
-    characterHomeScreenTheme: any;
-    personalitySurveyTheme: any;
-  };
-
-  // ===== CHARACTER & APPEARANCE STATE (UPDATED FOR NEW BACKEND) =====
-  character: {
-    // Backend character data - now directly on UserProfile, not nested under profile.character
-    backendCharacter: Character | null;
-    userProfileData: UserProfile | null;
-    // UI state for character creator (local only)
-    characterName: string;
-    selectedBaseModel: number;
-    selectedBaseColor: number; //color index for base model
-    selectedHairStyle: number;
-    selectedHairColor: number;
-    selectedEyeType: number;
-    selectedEyeColor: number;
-    selectedEyebrowStyle: number;
-    selectedEyebrowColor: number;
-    selectedMouthType: number;
-    selectedShirtType: number;
-    selectedClothesColor: number;
-    selectedBackgroundType: number;
-    selectedBackgroundColor: number;
-
-    // Character creator categories (memoized)
-    styleCategories: CategoryConfig[];
-    colorCategories: CategoryConfig[];
-
-    // Methods
-    setCharacterName: (name: string) => void;
-    setSelectedBaseModel: (index: number) => void;
-    setSelectedBaseColor: (index: number) => void;
-    setSelectedHairStyle: (index: number) => void;
-    setSelectedHairColor: (index: number) => void;
-    setSelectedEyeType: (index: number) => void;
-    setSelectedEyeColor: (index: number) => void;
-    setSelectedEyebrowStyle: (index: number) => void;
-    setSelectedEyebrowColor: (index: number) => void;
-    setSelectedMouthType: (index: number) => void;
-    setSelectedShirtType: (index: number) => void;
-    setSelectedClothesColor: (index: number) => void;
-    setSelectedBackgroundType: (index: number) => void;
-    setSelectedBackgroundColor: (index: number) => void;
-    getCharacterName: () => string;
-    getBaseIndex: () => number;
-    getHairIndex: () => number;
-    getClothesIndex: () => number;
-    getEyesIndex: () => number;
-    getEyebrowsIndex: () => number;
-    getHairAsset: (useLocalState?: boolean) => any;
-    getClothesAsset: (useLocalState?: boolean) => any;
-    getEyesAsset: (useLocalState?: boolean) => any;
-    getEyebrowsAsset: (useLocalState?: boolean) => any;
-    getCurrentBackgroundAsset: (useLocalState?: boolean) => any;
-    getBaseAsset: (useLocalState?: boolean) => any;
-    getMouthAsset: (useLocalState?: boolean) => any;
-    createCharacter: () => Promise<void>;
-    updateCharacter: () => Promise<void>;
-    loadCharacter: () => Promise<Character | null>;
-    gainExperience: (amount: number, source?: string) => Promise<void>;
-    gainResonance: (amount: number, source?: string) => Promise<void>;
-    gainWellness: (gains: Record<string, number>) => Promise<void>;
-  };
-  // ===== WELLNESS FEATURES (NEW) =====
-  wellness: {    availableTools: CopingTool[];
-    myTools: CopingTool[];
-    equippedTools: CopingTool[];    recentCodexEntries: CodexEntry[];
-    homeData: HomeData | null;
-    
-    // Journal prompts
-    availablePrompts: JournalPrompt[];
-    categoryPrompts: {
-      journal: JournalPrompt | null;
-      draw: JournalPrompt | null;
-      voice: JournalPrompt | null;
-    };
-
-    // Tool methods
-    loadAvailableTools: () => Promise<void>;
-    loadMyTools: () => Promise<void>;
-    acquireTool: (toolId: number) => Promise<void>;
-    equipTool: (toolId: number) => Promise<void>;
-    unequipTool: (toolId: number) => Promise<void>;
-    useTool: (
-      toolId: number,
-      effectiveness?: number,
-      notes?: string
-    ) => Promise<void>;
-
-    // Codex entry methods
-    loadRecentCodexEntries: () => Promise<void>;
-    createCodexEntry: (entryData: {
-        prompt: number;
-        entry_type: 'journal' | 'draw' | 'voice';
-        content: string;
-    }) => Promise<void>;
-    quickJournalEntry: (
-      promptId: number, // Changed from string to number
-      content: string,
-      entryType: 'journal' | 'draw' | 'voice'
-    ) => Promise<void>;
-
-    // Journal prompt methods
-    loadAvailablePrompts: () => Promise<void>;
-    loadCategoryPrompts: (unlockedAreas: string[], completedStories: string[]) => Promise<void>;
-    refreshPrompts: () => Promise<void>;
-    markPromptInactive: (promptId: number) => Promise<void>;
-
-    // Home data
-    loadHomeData: () => Promise<void>;
-  };
-
-  // ===== EQUIPMENT & INVENTORY STATE =====
-  equipment: {
-    inventory: EquipmentItem[];
-    equippedItems: EquippedItems;
-    backendGear: CharacterGear[];
-    equippedGear: CharacterGear[];
-    setInventory: (items: EquipmentItem[]) => void;
-    equipItem: (type: keyof EquippedItems, item: EquipmentItem) => void;
-    unequipItem: (type: keyof EquippedItems) => void;
-    getItemIcon: (item: EquipmentItem) => any;
-    getRarityColors: (rarity: string) => string[];
-    loadBackendGear: () => Promise<void>;
-    equipBackendGear: (gearId: number) => Promise<void>;
-    unequipBackendGear: (gearId: number) => Promise<void>;
-    // New upgrade system functions
-    acquireEquipmentWithUpgrade: (itemName: string, storyId?: string) => Promise<any>;
-    getPlayerInventory: () => string[];
-    getStoryReplayCount: (storyId: string) => number;
-    handleEquipmentUpgrade: (upgradeResult: any) => void;
-  };
-
-  // ===== ARCHIVE PROGRESS STATE =====
-  archive: {
-    completedStories: Set<string>;
-    codexEntries: CodexEntry[];
-    miniGameProgress: MiniGameProgress;
-    discoveredArtifacts: MentalArtifact[];
-    finalRewardsArtifacts: MentalArtifact[];
-    learnedSkills: string[];
-    archiveFoundations: ArchiveFoundation[];
-    restorationMetrics: {
-      chroniclesExplored: number;
-      artifactsDiscovered: number;
-      revelationsUnlocked: number;
-    };
-    handleStoryComplete: (StoryId: string) => void;
-    handleCodexEntry: (entry: Omit<CodexEntry, "id" | "created_at" | "updated_at">) => void;
-    handleMiniGameComplete: (
-      gameType: "thoughtDefender" | "drawing",
-      data: any
-    ) => void;
-    handleArtifactUnlock: (artifact: MentalArtifact) => void;
-    handleSkillLearned: (skills: string[]) => void;
-    handleStoryRewardTracker: (rewardTracker: any) => void;
-    setFinalRewardsArtifacts: (artifacts: MentalArtifact[]) => void;
-    loadArchiveProgress: () => Promise<void>;
-    saveArchiveProgress: () => Promise<void>;
-    logThoughtDefenderRun: (run: ThoughtDefenderRunDTO) => Promise<ThoughtDefenderRunResponse>;
-  };
-
-  // ===== UI STATE =====
-  ui: {
-    activeTab: string;
-    researchCondition: "character" | "survey" | "unknown";
-    isCodexVisible: boolean;
-    isThoughtDefenderVisible: boolean;
-    isMapVisible: boolean;
-    isStoryVisible: boolean;
-    isStoryCatalogVisible: boolean;
-    currentMapRoomId: string;
-    selectedStory: Story | null;
-    memoryStories: Story[];
-    setActiveTab: (tab: string) => void;
-    setResearchCondition: (condition: "character" | "survey" | "unknown") => void;
-    setIsCodexVisible: (visible: boolean) => void;
-    setIsThoughtDefenderVisible: (visible: boolean) => void;
-    setIsMapVisible: (visible: boolean) => void;
-    setIsStoryVisible: (visible: boolean) => void;
-    setIsStoryCatalogVisible: (visible: boolean) => void;
-    setCurrentMapRoomId: (roomId: string) => void;
-    setSelectedStory: (story: Story | null) => void;
-    setMemoryStories: (stories: Story[]) => void;
-    openStory: (Story: Story) => void;
-    closeStory: () => void;
-  };
-
-  // ===== STORY & GAMEPLAY STATE =====
-  story: {
-    currentPassageId: string;
-    totalStatGains: { [key: string]: number };
-    recentGains: { [key: string]: number };
-    showStatGain: boolean;
-    unlockedArtifacts: string[];
-    learnedSkills: string[];
-    showArtifactUnlock: boolean;
-    newArtifact: MentalArtifact | null;
-    setCurrentPassageId: (id: string) => void;
-    setTotalStatGains: (gains: { [key: string]: number }) => void;
-    setRecentGains: (gains: { [key: string]: number }) => void;
-    setShowStatGain: (show: boolean) => void;
-    setUnlockedArtifacts: (artifacts: string[]) => void;
-    setLearnedSkills: (skills: string[]) => void;
-    setShowArtifactUnlock: (show: boolean) => void;
-    setNewArtifact: (artifact: MentalArtifact | null) => void;
-    handleChoice: (choice: any) => void;
-    resetStoryState: () => void;
-  };
-
-  // ===== LOADING & ERROR STATE =====
-  loading: {
-    isLoading: boolean;
-    error: string | null;
-    setIsLoading: (loading: boolean) => void;
-    setError: (error: string | null) => void;
-    clearError: () => void;
-  };
-}
-
-// ===== CONTEXT CREATION =====
-
-const MasterStateContext = createContext<MasterStateContextType | undefined>(
-  undefined
-);
-
+// ===== BACKWARD COMPATIBLE HOOK =====
+// This maintains the old API while using new modular contexts
 export const useMasterState = () => {
-  const context = useContext(MasterStateContext);
-  if (context === undefined) {
-    throw new Error("useMasterState must be used within a MasterStateProvider");
-  }
-  return context;
+  const auth = useAuth();
+  const theme = useTheme();
+  const onboarding = useOnboarding();
+  const character = useCharacter();
+  const user = useProfile();
+  const wellness = useWellness();
+  const equipment = useEquipment();
+  const archive = useArchive();
+  const ui = useUI();
+  const story = useStory();
+  const loading = useLoading();
+
+  return {
+    auth: {
+      authToken: auth.authToken,
+      characterId: auth.characterId,
+      isTestUser: auth.isTestUser,
+      user: auth.user,
+      login: auth.login,
+      logout: auth.logout,
+    },
+    onboarding: {
+      isComplete: onboarding.isComplete,
+      assignedPath: onboarding.assignedPath,
+      researchGroup: onboarding.researchGroup,
+      characterAppearance: onboarding.characterAppearance,
+      isLoading: onboarding.isLoading,
+      completeCharacter: onboarding.completeCharacter,
+      setAssignedPath: onboarding.setAssignedPath,
+      setCharacterAppearance: onboarding.setCharacterAppearance,
+      resetOnboarding: onboarding.resetOnboarding,
+      resetCharacterCreatorToDefaults: onboarding.resetCharacterCreatorToDefaults,
+      setIsLoading: onboarding.setIsLoading,
+      loadOnboardingStatus: onboarding.loadOnboardingStatus,
+    },
+    theme: {
+      theme: theme.theme,
+      themeMode: theme.themeMode,
+      toggleTheme: theme.toggleTheme,
+      setThemeMode: theme.setThemeMode,
+      styles: theme.styles,
+      isDark: theme.isDark,
+      loginTheme: theme.loginTheme,
+      onboardingTheme: theme.onboardingTheme,
+      characterCreatorTheme: theme.characterCreatorTheme,
+      characterHomeScreenTheme: theme.characterHomeScreenTheme,
+      personalitySurveyTheme: theme.personalitySurveyTheme,
+    },
+    character: {
+      backendCharacter: character.backendCharacter,
+      userProfileData: character.userProfile, // Legacy - not used in new structure
+      characterName: character.characterName,
+      selectedBaseModel: character.selectedBaseModel,
+      selectedBaseColor: character.selectedBaseColor,
+      selectedHairStyle: character.selectedHairStyle,
+      selectedHairColor: character.selectedHairColor,
+      selectedEyeType: character.selectedEyeType,
+      selectedEyeColor: character.selectedEyeColor,
+      selectedEyebrowStyle: character.selectedEyebrowStyle,
+      selectedEyebrowColor: character.selectedEyebrowColor,
+      selectedMouthType: character.selectedMouthType,
+      selectedShirtType: character.selectedShirtType,
+      selectedClothesColor: character.selectedClothesColor,
+      selectedBackgroundType: character.selectedBackgroundType,
+      selectedBackgroundColor: character.selectedBackgroundColor,
+      styleCategories: character.styleCategories,
+      colorCategories: character.colorCategories,
+      setCharacterName: character.setCharacterName,
+      setSelectedBaseModel: character.setSelectedBaseModel,
+      setSelectedBaseColor: character.setSelectedBaseColor,
+      setSelectedHairStyle: character.setSelectedHairStyle,
+      setSelectedHairColor: character.setSelectedHairColor,
+      setSelectedEyeType: character.setSelectedEyeType,
+      setSelectedEyeColor: character.setSelectedEyeColor,
+      setSelectedEyebrowStyle: character.setSelectedEyebrowStyle,
+      setSelectedEyebrowColor: character.setSelectedEyebrowColor,
+      setSelectedMouthType: character.setSelectedMouthType,
+      setSelectedShirtType: character.setSelectedShirtType,
+      setSelectedClothesColor: character.setSelectedClothesColor,
+      setSelectedBackgroundType: character.setSelectedBackgroundType,
+      setSelectedBackgroundColor: character.setSelectedBackgroundColor,
+      getCharacterName: character.getCharacterName,
+      getBaseIndex: character.getBaseIndex,
+      getHairIndex: character.getHairIndex,
+      getClothesIndex: character.getClothesIndex,
+      getEyesIndex: character.getEyesIndex,
+      getEyebrowsIndex: character.getEyebrowsIndex,
+      getHairAsset: character.getHairAsset,
+      getClothesAsset: character.getClothesAsset,
+      getEyesAsset: character.getEyesAsset,
+      getEyebrowsAsset: character.getEyebrowsAsset,
+      getCurrentBackgroundAsset: character.getCurrentBackgroundAsset,
+      getBaseAsset: character.getBaseAsset,
+      getMouthAsset: character.getMouthAsset,
+      createCharacter: character.createCharacter,
+      updateCharacter: character.updateCharacter,
+      loadCharacter: character.loadCharacter,
+      gainExperience: character.gainExperience,
+      gainLumens: character.gainLumens,
+      gainWellness: character.gainWellness,
+    },
+    wellness: {
+      availableTools: wellness.availableTools,
+      myTools: wellness.myTools,
+      equippedTools: wellness.equippedTools,
+      recentCodexEntries: wellness.recentCodexEntries,
+      homeData: wellness.homeData,
+      availablePrompts: wellness.availablePrompts,
+      categoryPrompts: wellness.categoryPrompts,
+      loadAvailableTools: wellness.loadAvailableTools,
+      loadMyTools: wellness.loadMyTools,
+      acquireTool: wellness.acquireTool,
+      equipTool: wellness.equipTool,
+      unequipTool: wellness.unequipTool,
+      useTool: wellness.useTool,
+      loadRecentCodexEntries: wellness.loadRecentCodexEntries,
+      createCodexEntry: wellness.createCodexEntry,
+      quickJournalEntry: wellness.quickJournalEntry,
+      loadAvailablePrompts: wellness.loadAvailablePrompts,
+      loadCategoryPrompts: wellness.loadCategoryPrompts,
+      refreshPrompts: wellness.refreshPrompts,
+      markPromptInactive: wellness.markPromptInactive,
+      loadHomeData: wellness.loadHomeData,
+    },
+    equipment: {
+      inventory: equipment.inventory,
+      equippedItems: equipment.equippedItems,
+      backendGear: equipment.backendGear,
+      equippedGear: equipment.equippedGear,
+      setInventory: equipment.setInventory,
+      equipItem: equipment.equipItem,
+      unequipItem: equipment.unequipItem,
+      getItemIcon: equipment.getItemIcon,
+      getRarityColors: equipment.getRarityColors,
+      loadBackendGear: equipment.loadBackendGear,
+      equipBackendGear: equipment.equipBackendGear,
+      unequipBackendGear: equipment.unequipBackendGear,
+      acquireEquipmentWithUpgrade: equipment.acquireEquipmentWithUpgrade,
+      getPlayerInventory: equipment.getPlayerInventory,
+      getStoryReplayCount: equipment.getStoryReplayCount,
+      handleEquipmentUpgrade: equipment.handleEquipmentUpgrade,
+    },
+    archive: {
+      completedStories: archive.completedStories,
+      codexEntries: archive.codexEntries,
+      miniGameProgress: archive.miniGameProgress,
+      discoveredArtifacts: archive.discoveredArtifacts,
+      finalRewardsArtifacts: archive.finalRewardsArtifacts,
+      learnedSkills: archive.learnedSkills,
+      archiveFoundations: archive.archiveFoundations,
+      restorationMetrics: archive.restorationMetrics,
+      handleStoryComplete: archive.handleStoryComplete,
+      handleCodexEntry: archive.handleCodexEntry,
+      handleMiniGameComplete: archive.handleMiniGameComplete,
+      handleArtifactUnlock: archive.handleArtifactUnlock,
+      handleSkillLearned: archive.handleSkillLearned,
+      handleStoryRewardTracker: archive.handleStoryRewardTracker,
+      setFinalRewardsArtifacts: archive.setFinalRewardsArtifacts,
+      loadArchiveProgress: archive.loadArchiveProgress,
+      saveArchiveProgress: archive.saveArchiveProgress,
+      logThoughtDefenderRun: archive.logThoughtDefenderRun,
+    },
+    ui: {
+      activeTab: ui.activeTab,
+      researchCondition: ui.researchCondition,
+      isCodexVisible: ui.isCodexVisible,
+      isThoughtDefenderVisible: ui.isThoughtDefenderVisible,
+      isMapVisible: ui.isMapVisible,
+      isStoryVisible: ui.isStoryVisible,
+      isStoryCatalogVisible: ui.isStoryCatalogVisible,
+      currentMapRoomId: ui.currentMapRoomId,
+      selectedStory: ui.selectedStory,
+      memoryStories: ui.memoryStories,
+      setActiveTab: ui.setActiveTab,
+      setResearchCondition: ui.setResearchCondition,
+      setIsCodexVisible: ui.setIsCodexVisible,
+      setIsThoughtDefenderVisible: ui.setIsThoughtDefenderVisible,
+      setIsMapVisible: ui.setIsMapVisible,
+      setIsStoryVisible: ui.setIsStoryVisible,
+      setIsStoryCatalogVisible: ui.setIsStoryCatalogVisible,
+      setCurrentMapRoomId: ui.setCurrentMapRoomId,
+      setSelectedStory: ui.setSelectedStory,
+      setMemoryStories: ui.setMemoryStories,
+      openStory: ui.openStory,
+      closeStory: ui.closeStory,
+    },
+    story: {
+      currentPassageId: story.currentPassageId,
+      totalStatGains: story.totalStatGains,
+      recentGains: story.recentGains,
+      showStatGain: story.showStatGain,
+      unlockedArtifacts: story.unlockedArtifacts,
+      learnedSkills: story.learnedSkills,
+      showArtifactUnlock: story.showArtifactUnlock,
+      newArtifact: story.newArtifact,
+      setCurrentPassageId: story.setCurrentPassageId,
+      setTotalStatGains: story.setTotalStatGains,
+      setRecentGains: story.setRecentGains,
+      setShowStatGain: story.setShowStatGain,
+      setUnlockedArtifacts: story.setUnlockedArtifacts,
+      setLearnedSkills: story.setLearnedSkills,
+      setShowArtifactUnlock: story.setShowArtifactUnlock,
+      setNewArtifact: story.setNewArtifact,
+      handleChoice: story.handleChoice,
+      resetStoryState: story.resetStoryState,
+    },
+    loading: {
+      isLoading: loading.isLoading,
+      error: loading.error,
+      setIsLoading: loading.setIsLoading,
+      setError: loading.setError,
+      clearError: loading.clearError,
+    },
+  };
 };
 
-// ===== PROVIDER COMPONENT =====
-
+// ===== COMPOSED PROVIDER =====
 interface MasterStateProviderProps {
   children: ReactNode;
 }
 
-export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
-  children,
-}) => {
-  const { authToken, characterId, isTestUser, user, login, logout } = useAuth();
-  const { theme, themeMode, toggleTheme, setThemeMode, styles, isDark, loginTheme, onboardingTheme, characterCreatorTheme, characterHomeScreenTheme, personalitySurveyTheme } =
-    useTheme();
+// Internal component that wires all contexts together with proper data flow
+const ConnectedProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { authToken, characterId, isTestUser } = useAuth();
+  const loading = useLoading();
+  const ui = useUI();
 
-  const [isComplete, setIsComplete] = useState(false);
-  const [assignedPath, setAssignedPathState] = useState<"survey" | "character" | null>(null);
-  const [researchGroup, setResearchGroup] = useState<string | null>(null);
-  const [characterAppearance, setCharacterAppearance] = useState<Character | undefined>(undefined);
-  const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
-  const setAssignedPath = useCallback((path: "survey" | "character" | null) => {
-    setAssignedPathState(path);
-    
-    if (path === 'character') {
-      setResearchGroup("A");
-      setResearchCondition("character");
-    } else if (path === 'survey') {
-      setResearchGroup("B");
-      setResearchCondition("survey");
-    } else {
-      setResearchGroup(null);
-    }
-  }, []);
-
-
-
-  const completeCharacter = async () => {
-    try {
-      const updatedProfile = await apiService.completeOnboarding('character');
-      setIsComplete(true);
-      setAssignedPath("character");
-    } catch (error: any) {
-      if (isTestUser || error.code === 'ERR_NETWORK') {
-        setIsComplete(true);
-        setAssignedPath("character");
-      } else {
-        throw error;
-      }
-    }
-  };
-
-  const resetOnboarding = () => {
-    setIsComplete(false);
-    setAssignedPath(null);
-    setCharacterAppearance(undefined);
-  };
-
-  const resetCharacterCreatorToDefaults = () => {
-    setCharacterName("");
-    setSelectedBaseModel(0);
-    setSelectedBaseColor(0);
-    setSelectedHairStyle(0);
-    setSelectedHairColor(0);
-    setSelectedEyeType(0);
-    setSelectedEyeColor(0);
-    setSelectedEyebrowStyle(0);
-    setSelectedEyebrowColor(0);
-    setSelectedMouthType(0);
-    setSelectedShirtType(0);
-    setSelectedClothesColor(0);
-    setSelectedBackgroundType(0);
-    setSelectedBackgroundColor(0);
-    setBackendCharacter(null);
-  };
-
-  const setOnboardingLoading = (loading: boolean) => {
-    setIsOnboardingLoading(loading);
-  };
-
-  const loadUserOnboardingStatus = useCallback(async () => {
-    if (!authToken) {
-      return;
-    }
-
-    try {
-      const status = await apiService.checkOnboardingStatus();
-      if (status.isOnboarded) {
-        setIsComplete(true);
-        
-        if (status.completionType) {
-          setAssignedPath(status.completionType as "survey" | "character");
-        } else {
-          setIsComplete(false);
-          setAssignedPath(null);
-        }
-      } else {
-        setIsComplete(false);
-        setAssignedPath(null);
-      }
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        setIsComplete(false);
-        setAssignedPath(null);
-      } else {
-        setIsComplete(false);
-        setAssignedPath(null);
-      }
-    }
-  }, [authToken, isTestUser]);
-
-  const [backendCharacter, setBackendCharacter] = useState<Character | null>(null);
-  const [characterName, setCharacterName] = useState("");
-  const [selectedBaseModel, setSelectedBaseModel] = useState(0);
-  const [selectedBaseColor, setSelectedBaseColor] = useState(0);
-  const [selectedHairStyle, setSelectedHairStyle] = useState(0);
-  const [selectedHairColor, setSelectedHairColor] = useState(0);
-  const [selectedEyeType, setSelectedEyeType] = useState(0);
-  const [selectedEyeColor, setSelectedEyeColor] = useState(0);
-  const [selectedEyebrowStyle, setSelectedEyebrowStyle] = useState(0);
-  const [selectedEyebrowColor, setSelectedEyebrowColor] = useState(0);
-  const [selectedMouthType, setSelectedMouthType] = useState(0);
-  const [selectedShirtType, setSelectedShirtType] = useState(0);
-  const [selectedClothesColor, setSelectedClothesColor] = useState(0);
-  const [selectedBackgroundType, setSelectedBackgroundType] = useState(0);
-  const [selectedBackgroundColor, setSelectedBackgroundColor] = useState(0);
-
-  const [availableTools, setAvailableTools] = useState<CopingTool[]>([]);
-  const [myTools, setMyTools] = useState<CopingTool[]>([]);
-  const [equippedTools, setEquippedTools] = useState<CopingTool[]>([]);
-  const [recentCodexEntries, setRecentCodexEntries] = useState<CodexEntry[]>([]);
-  const [homeData, setHomeData] = useState<HomeData | null>(null);
-  const [availablePrompts, setAvailablePrompts] = useState<JournalPrompt[]>([]);
-  const [categoryPrompts, setCategoryPrompts] = useState<{
-    journal: JournalPrompt | null;
-    draw: JournalPrompt | null;
-    voice: JournalPrompt | null;
-  }>({
-    journal: null,
-    draw: null,
-    voice: null,
-  });
-
-  const [inventory, setInventory] = useState<EquipmentItem[]>([]);
-  const [backendGear, setBackendGear] = useState<CharacterGear[]>([]);
-  const [equippedGear, setEquippedGear] = useState<CharacterGear[]>([]);
-
-  const equippedItems = useMemo(() => {
-    const convertedEquippedItems: EquippedItems = {};
-    equippedGear.forEach(gear => {
-      const frontendType = mapBackendSlotToFrontendType(gear.gear_type.slot);
-      const wellnessStats = mapBackendStatsToWellnessStats(gear.gear_type.stat_bonuses);
-      convertedEquippedItems[frontendType] = {
-        id: gear.id.toString(),
-        name: gear.gear_type.name,
-        type: frontendType,
-        subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot),
-        description: gear.gear_type.description,
-        unlockCondition: 'Unlocked through story completion',
-        wellnessStats: wellnessStats,
-        effect: `Provides ${Object.entries(wellnessStats).map(([stat, value]) => value > 0 ? `${stat} +${value}` : '').filter(Boolean).join(', ')}`,
-        rarity: 'common',
-        level: 1
-      };
-    });
-    return convertedEquippedItems;
-  }, [equippedGear]);
-
-  const convertBackendGearToEquipmentItem = useCallback((gear: CharacterGear): EquipmentItem => {
-    const wellnessStats = mapBackendStatsToWellnessStats(gear.gear_type.stat_bonuses);
-    return {
-      id: gear.id.toString(),
-      name: gear.gear_type.name,
-      type: mapBackendSlotToFrontendType(gear.gear_type.slot),
-      subtype: mapBackendGearToSubtype(gear.gear_type.name, gear.gear_type.slot),
-      description: gear.gear_type.description,
-      unlockCondition: 'Unlocked through story completion',
-      wellnessStats: wellnessStats,
-      effect: `Provides ${Object.entries(wellnessStats).map(([stat, value]) => value > 0 ? `${stat} +${value}` : '').filter(Boolean).join(', ')}`,
-      rarity: 'common',
-      level: 1
-    };
-  }, []);
-
-  const [completedStories, setCompletedStories] = useState<Set<string>>(new Set());
-  const [codexEntries, setCodexEntries] = useState<CodexEntry[]>([]);
-  const [miniGameProgress, setMiniGameProgress] = useState<MiniGameProgress>({
-    thoughtDefenderLevel: 0,
-    thoughtDefenderScore: 0,
-    thoughtDefenderWins: 0,
-    drawingEntries: 0,
-    totalGameTime: 0,
-  });
-  const [discoveredArtifacts, setDiscoveredArtifacts] = useState<
-    MentalArtifact[]
-  >([]);
-  const [finalRewardsArtifacts, setFinalRewardsArtifacts] = useState<
-    MentalArtifact[]
-  >([]);
-  const [learnedSkills, setLearnedSkills] = useState<string[]>([]);
-
-  const [activeTab, setActiveTab] = useState("entrance");
-  const [researchCondition, setResearchCondition] = useState<
-    "character" | "survey" | "unknown"
-  >("unknown");
-  const [isCodexVisible, setIsCodexVisible] = useState(false);
-  const [isThoughtDefenderVisible, setIsThoughtDefenderVisible] =
-    useState(false);
-  const [isMapVisible, setIsMapVisible] = useState(false);
-  const [isStoryVisible, setIsStoryVisible] = useState(false);
-  const [isStoryCatalogVisible, setIsStoryCatalogVisible] = useState(false);
-  const [currentMapRoomId, setCurrentMapRoomId] = useState("");
-  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
-  const [memoryStories, setMemoryStories] = useState<Story[]>([]);
-
-  const [currentPassageId, setCurrentPassageId] = useState("start");
-  const [totalStatGains, setTotalStatGains] = useState<{
-    [key: string]: number;
-  }>({});
-  const [recentGains, setRecentGains] = useState<{ [key: string]: number }>({});
-  const [showStatGain, setShowStatGain] = useState(false);
-  const [unlockedArtifacts, setUnlockedArtifacts] = useState<string[]>([]);
-  const [storyLearnedSkills, setStoryLearnedSkills] = useState<string[]>([]);
-  const [showArtifactUnlock, setShowArtifactUnlock] = useState(false);
-  const [newArtifact, setNewArtifact] = useState<MentalArtifact | null>(null);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  // Shared refs for character creation tracking
   const didHomeScreenInit = useRef(false);
+  const justCreatedCharacter = useRef(false);
+  const newlyCreatedCharacter = useRef<any>(null);
 
+<<<<<<< HEAD
   const getBaseIndex = () => {
     const baseModel = backendCharacter?.selected_base_model ?? selectedBaseModel;
     const baseColor = backendCharacter?.selected_skin_color ?? selectedBaseColor;
@@ -2312,220 +2040,191 @@ export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
   }, [authToken]);
 
   // Reset home screen initialization guard when auth changes
+=======
+  // Reset refs when auth changes
+>>>>>>> prodOne
   useEffect(() => {
     if (!authToken) {
       didHomeScreenInit.current = false;
+      justCreatedCharacter.current = false;
+      newlyCreatedCharacter.current = null;
     }
   }, [authToken]);
 
-  // ===== CONTEXT VALUE =====
-  const value: MasterStateContextType = {
-    auth: {
-      authToken,
-      characterId,
-      isTestUser,
-      user,
-      login,
-      logout,
-    },
-    onboarding: {
-      isComplete,
-      assignedPath,
-      researchGroup,
-      characterAppearance,
-      isLoading: isOnboardingLoading,
-      completeCharacter,
-      setAssignedPath,
-      setCharacterAppearance,
-      resetOnboarding,
-      resetCharacterCreatorToDefaults,
-      setIsLoading: setOnboardingLoading,
-      loadOnboardingStatus: loadUserOnboardingStatus,
-    },
-    theme: {
-      theme,
-      themeMode,
-      toggleTheme,
-      setThemeMode,
-      styles,
-      isDark,
-      loginTheme,
-      onboardingTheme,
-      characterCreatorTheme,
-      characterHomeScreenTheme,
-      personalitySurveyTheme
-    },
-    character: {
-      backendCharacter,
-      userProfileData: null, // This will be populated from homeData when needed
-      characterName,
-      selectedBaseModel,
-      selectedBaseColor,
-      selectedHairStyle,
-      selectedHairColor,
-      selectedEyeType,
-      selectedEyeColor,
-      selectedEyebrowStyle,
-      selectedEyebrowColor,
-      selectedMouthType,
-      selectedShirtType,
-      selectedClothesColor,
-      selectedBackgroundType,
-      selectedBackgroundColor,
-      styleCategories,
-      colorCategories,
-      setCharacterName,
-      setSelectedBaseModel,
-      setSelectedBaseColor,
-      setSelectedHairStyle,
-      setSelectedHairColor,
-      setSelectedEyeType,
-      setSelectedEyeColor,
-      setSelectedEyebrowStyle,
-      setSelectedEyebrowColor,
-      setSelectedMouthType,
-      setSelectedShirtType,
-      setSelectedClothesColor,
-      setSelectedBackgroundType,
-      setSelectedBackgroundColor,
-      getBaseIndex,
-      getHairIndex,
-      getClothesIndex,
-      getEyesIndex,
-      getEyebrowsIndex,
-      getHairAsset,
-      getClothesAsset,
-      getEyesAsset,
-      getEyebrowsAsset,
-      getCurrentBackgroundAsset,
-      getBaseAsset,
-      getMouthAsset,
-      getCharacterName,
-      createCharacter,
-      updateCharacter,
-      loadCharacter: memoizedLoadCharacter,
-      gainExperience,
-      gainResonance,
-      gainWellness,
-    },
-    wellness: {
-      availableTools,
-      myTools,
-      equippedTools,
-      recentCodexEntries,
-      homeData,
-      availablePrompts,
-      categoryPrompts,
-          loadAvailableTools: memoizedLoadAvailableTools,
-    loadMyTools: memoizedLoadMyTools,
-      acquireTool,
-      equipTool,
-      unequipTool,
-      useTool,
-      loadRecentCodexEntries: memoizedLoadRecentCodexEntries,
-      createCodexEntry,
-      quickJournalEntry,
-      loadAvailablePrompts,
-      loadCategoryPrompts,
-      refreshPrompts,
-      markPromptInactive: memoizedMarkPromptInactive,
-      loadHomeData: memoizedLoadHomeData,
-    },
-    equipment: {
-      inventory,
-      equippedItems,
-      backendGear,
-      equippedGear,
-      setInventory,
-      equipItem,
-      unequipItem,
-      getItemIcon,
-      getRarityColors,
-      loadBackendGear,
-      equipBackendGear,
-      unequipBackendGear,
-      // New upgrade system functions
-      acquireEquipmentWithUpgrade,
-      getPlayerInventory,
-      getStoryReplayCount,
-      handleEquipmentUpgrade,
-    },
-    archive: {
-      completedStories,
-      codexEntries,
-      miniGameProgress,
-      discoveredArtifacts,
-      finalRewardsArtifacts,
-      learnedSkills,
-      archiveFoundations,
-      restorationMetrics,
-      handleStoryComplete,
-      handleCodexEntry,
-      handleMiniGameComplete,
-      handleArtifactUnlock,
-      handleSkillLearned,
-      handleStoryRewardTracker,
-      setFinalRewardsArtifacts,
-      loadArchiveProgress,
-      saveArchiveProgress,
-      logThoughtDefenderRun,
-    },
-    ui: {
-      activeTab,
-      researchCondition,
-      isCodexVisible,
-      isThoughtDefenderVisible,
-      isMapVisible,
-      isStoryVisible,
-      isStoryCatalogVisible,
-      currentMapRoomId,
-      selectedStory,
-      memoryStories,
-      setActiveTab,
-      setResearchCondition,
-      setIsCodexVisible,
-      setIsThoughtDefenderVisible,
-      setIsMapVisible,
-      setIsStoryVisible,
-      setIsStoryCatalogVisible,
-      setCurrentMapRoomId,
-      setSelectedStory,
-      setMemoryStories,
-      openStory,
-      closeStory,
-    },
-    story: {
-      currentPassageId,
-      totalStatGains,
-      recentGains,
-      showStatGain,
-      unlockedArtifacts,
-      learnedSkills: storyLearnedSkills,
-      showArtifactUnlock,
-      newArtifact,
-      setCurrentPassageId,
-      setTotalStatGains,
-      setRecentGains,
-      setShowStatGain,
-      setUnlockedArtifacts,
-      setLearnedSkills: setStoryLearnedSkills,
-      setShowArtifactUnlock,
-      setNewArtifact,
-      handleChoice,
-      resetStoryState,
-    },
-    loading: {
-      isLoading,
-      error,
-      setIsLoading,
-      setError,
-      clearError,
-    },
-  };
-
   return (
-    <MasterStateContext.Provider value={value}>
-      {children}
-    </MasterStateContext.Provider>
+    <OnboardingProvider
+      authToken={authToken}
+      isTestUser={isTestUser}
+      backendCharacter={null}
+      userProfile={null}
+      justCreatedCharacter={justCreatedCharacter}
+      newlyCreatedCharacter={newlyCreatedCharacter}
+      didHomeScreenInit={didHomeScreenInit}
+      setBackendCharacter={() => {}}
+      onResearchConditionChange={(condition) => {
+        ui.setResearchCondition(condition);
+      }}
+      onCharacterCreatorReset={() => {}}
+    >
+      <InnerProviders
+        authToken={authToken}
+        characterId={characterId}
+        isTestUser={isTestUser}
+        loading={loading}
+        ui={ui}
+        justCreatedCharacter={justCreatedCharacter}
+        newlyCreatedCharacter={newlyCreatedCharacter}
+      >
+        {children}
+      </InnerProviders>
+    </OnboardingProvider>
   );
 };
+
+// Second level - WellnessProvider
+const InnerProviders: React.FC<{
+  children: ReactNode;
+  authToken: string | null;
+  characterId: string | null;
+  isTestUser: boolean;
+  loading: LoadingContextType;
+  ui: UIContextType;
+  justCreatedCharacter: React.MutableRefObject<boolean>;
+  newlyCreatedCharacter: React.MutableRefObject<any>;
+}> = ({
+  children,
+  authToken,
+  characterId,
+  isTestUser,
+  loading,
+  ui,
+  justCreatedCharacter,
+  newlyCreatedCharacter,
+}) => {
+  return (
+    <WellnessProvider characterId={characterId} onError={loading.setError} completedStories={new Set()}>
+      <CharacterProviderWrapper
+        authToken={authToken}
+        characterId={characterId}
+        isTestUser={isTestUser}
+        loading={loading}
+        ui={ui}
+        justCreatedCharacter={justCreatedCharacter}
+        newlyCreatedCharacter={newlyCreatedCharacter}
+      >
+        {children}
+      </CharacterProviderWrapper>
+    </WellnessProvider>
+  );
+};
+
+// Third level - CharacterProvider which needs WellnessProvider's homeData
+const CharacterProviderWrapper: React.FC<{
+  children: ReactNode;
+  authToken: string | null;
+  characterId: string | null;
+  isTestUser: boolean;
+  loading: LoadingContextType;
+  ui: UIContextType;
+  justCreatedCharacter: React.MutableRefObject<boolean>;
+  newlyCreatedCharacter: React.MutableRefObject<any>;
+}> = ({
+  children,
+  authToken,
+  characterId,
+  isTestUser,
+  loading,
+  ui,
+  justCreatedCharacter,
+  newlyCreatedCharacter,
+}) => {
+  const wellness = useWellness();
+
+  return (
+    <CharacterProvider
+      authToken={authToken}
+      characterId={characterId}
+      isTestUser={isTestUser}
+      homeData={wellness.homeData}
+      onLoadingChange={loading.setIsLoading}
+      onError={loading.setError}
+      justCreatedCharacter={justCreatedCharacter}
+      newlyCreatedCharacter={newlyCreatedCharacter}
+    >
+      <DeepProviders ui={ui} authToken={authToken}>
+        {children}
+      </DeepProviders>
+    </CharacterProvider>
+  );
+};
+
+// Fourth level - Equipment, Archive, and Story providers that need Character context
+const DeepProviders: React.FC<{
+  children: ReactNode;
+  ui: UIContextType;
+  authToken: string | null;
+}> = ({ children, ui, authToken }) => {
+  const wellness = useWellness();
+  const character = useCharacter();
+
+  return (
+    <EquipmentProvider authToken={authToken} onWellnessGain={character.gainWellness}>
+      <ArchiveProvider
+        authToken={authToken}
+        memoryStories={ui.memoryStories}
+        researchCondition={ui.researchCondition}
+        onGainExperience={character.gainExperience}
+        onGainLumens={character.gainLumens}
+        onGainWellness={character.gainWellness}
+        onLoadHomeData={wellness.loadHomeData}
+      >
+        <FinalProvider ui={ui} authToken={authToken}>
+          {children}
+        </FinalProvider>
+      </ArchiveProvider>
+    </EquipmentProvider>
+  );
+};
+
+// Fifth level - StoryProvider that needs Archive context
+const FinalProvider: React.FC<{
+  children: ReactNode;
+  ui: UIContextType;
+  authToken: string | null;
+}> = ({ children, ui, authToken }) => {
+  const archive = useArchive();
+
+  return (
+    <StoryProvider authToken={authToken} onStoryClose={ui.closeStory} onSkillLearned={archive.handleSkillLearned}>
+      {children}
+    </StoryProvider>
+  );
+};
+
+export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ children }) => {
+  return (
+    <LoadingProvider>
+      <UIProvider>
+        <ConnectedProviders>{children}</ConnectedProviders>
+      </UIProvider>
+    </LoadingProvider>
+  );
+};
+
+// ===== EXPORTS =====
+// Export individual hooks for direct usage (recommended)
+export {
+  useArchive,
+  useCharacter,
+  useEquipment,
+  useLoading,
+  useOnboarding,
+  useStory,
+  useUI,
+  useWellness
+};
+function useProfile() {
+  const auth = useAuth();
+  return auth.user;
+}
+

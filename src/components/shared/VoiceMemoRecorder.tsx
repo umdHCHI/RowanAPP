@@ -38,14 +38,15 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
 
   React.useEffect(() => {
     if (isRecording) {
-      const id = setInterval(() => setTimer(t => t + 1), 1000);
-      setIntervalId(id);
-    } else if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
+      timerIntervalRef.current = setInterval(() => setTimer(t => t + 1), 1000);
+    } else if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
     };
   }, [isRecording]);
 
@@ -59,8 +60,8 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
     })();
 
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
       }
       if (soundRef.current) {
         soundRef.current.unloadAsync();
@@ -117,7 +118,8 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
         setRecordingUri(uri);
         onSave(uri);
       }
-    } catch {
+    } catch (error) {
+      console.error('Recording stop error:', error);
       Alert.alert('Recording Error', 'Failed to stop recording. Please try again.');
     }
   };
@@ -194,6 +196,11 @@ const VoiceMemoRecorder: React.FC<VoiceMemoRecorderProps> = ({ onSave, theme }) 
     setTimer(0);
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);

@@ -1,6 +1,6 @@
 import axios from 'axios';
-import * as FileSystem from 'expo-file-system';
-import { AsyncStorage } from '../imports';
+import * as FileSystem from 'expo-file-system/legacy';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiBaseUrl } from './apiConfig';
 
 class FileUploadService {
@@ -24,9 +24,7 @@ class FileUploadService {
     difficulty?: string;
   }): Promise<{ file_url: string; file_id: string }> {
     try {
-      console.log('=== UPLOADING AUDIO FILE ===');
       console.log('Audio URI:', audioUri);
-      console.log('Metadata:', metadata);
 
       // Check if it's a web blob URL
       if (audioUri.startsWith('blob:')) {
@@ -35,12 +33,6 @@ class FileUploadService {
 
       // Create form data
       const formData = new FormData();
-      
-      // Add the audio file
-      const fileInfo = await FileSystem.getInfoAsync(audioUri);
-      if (!fileInfo.exists) {
-        throw new Error('Audio file does not exist');
-      }
 
       // Get file extension
       const fileExtension = audioUri.split('.').pop() || 'm4a';
@@ -77,7 +69,6 @@ class FileUploadService {
       console.log('Audio upload successful:', response.data);
       return response.data;
     } catch (error: any) {
-      console.log('Backend upload failed, using local storage fallback');
       
       // Check if it's a 404 (endpoint doesn't exist) or HTML response
       const isEndpointMissing = error.response?.status === 404 || 
@@ -114,7 +105,6 @@ class FileUploadService {
     difficulty?: string;
   }): Promise<{ file_url: string; file_id: string }> {
     try {
-      console.log('=== UPLOADING WEB AUDIO BLOB ===');
       
       // Fetch the blob
       const response = await fetch(blobUrl);
@@ -176,7 +166,7 @@ class FileUploadService {
   }
 
   /**
-   * Upload a drawing as JSON data
+   * Upload a drawing as JSON data or base64 image
    * Falls back to local JSON storage if backend endpoint doesn't exist
    */
   async uploadDrawingData(drawingPaths: any[], metadata?: {
@@ -187,9 +177,11 @@ class FileUploadService {
     difficulty?: string;
   }): Promise<{ file_url: string; file_id: string }> {
     try {
-      console.log('=== UPLOADING DRAWING DATA ===');
-      console.log('Drawing paths:', drawingPaths);
-      console.log('Metadata:', metadata);
+
+      // Check if we have a base64 image (from SignatureCanvas)
+      if (drawingPaths.length === 1 && drawingPaths[0].imageData) {
+        return await this.uploadBase64Image(drawingPaths[0].imageData, metadata);
+      }
 
       // Get auth headers
       const token = await AsyncStorage.getItem('authToken');
@@ -217,13 +209,12 @@ class FileUploadService {
       console.log('Drawing upload successful:', response.data);
       return response.data;
     } catch (error: any) {
-      console.log('Backend upload failed, using local storage fallback');
-      
+
       // Check if it's a 404 (endpoint doesn't exist) or HTML response
-      const isEndpointMissing = error.response?.status === 404 || 
+      const isEndpointMissing = error.response?.status === 404 ||
                                 error.response?.status === 405 ||
                                 (error.response?.data && typeof error.response.data === 'string' && error.response.data.includes('<!DOCTYPE'));
-      
+
       if (isEndpointMissing) {
         console.log('Backend endpoint not available, storing drawing as JSON locally');
         // Return a fake success response for local storage
@@ -232,11 +223,103 @@ class FileUploadService {
           file_id: `drawing_${Date.now()}`
         };
       }
-      
+
       // For other errors, still fall back but log them
       console.error('Failed to upload drawing data:', error.message);
       return {
         file_url: 'local://drawing.json',
+        file_id: `drawing_${Date.now()}`
+      };
+    }
+  }
+
+  /**
+   * Upload a base64 image (from SignatureCanvas)
+   * Falls back to local base64 storage if backend endpoint doesn't exist
+   */
+  private async uploadBase64Image(base64Data: string, metadata?: {
+    prompt?: string;
+    entry_type?: string;
+    skill_category?: string;
+    map_area?: string;
+    difficulty?: string;
+  }): Promise<{ file_url: string; file_id: string }> {
+    try {
+
+      // Get auth token
+      const token = await AsyncStorage.getItem('authToken');
+
+      // Create form data for image upload
+      const formData = new FormData();
+      const fileName = `drawing_${Date.now()}.png`;
+
+      // Convert base64 data URI to blob for web platforms
+      if (base64Data.startsWith('data:')) {
+        // Extract the base64 content (remove the data URI prefix)
+        const base64Content = base64Data.split(',')[1];
+        const mimeType = base64Data.split(';')[0].split(':')[1];
+
+        // Convert base64 to blob
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+
+        // Append blob to FormData
+        formData.append('image_file', blob, fileName);
+      } else {
+        // Fallback: if it's not a data URI, treat it as raw base64
+        console.warn('Base64 data does not start with "data:" - unexpected format');
+        formData.append('image_file', {
+          uri: base64Data,
+          type: 'image/png',
+          name: fileName,
+        } as any);
+      }
+
+      // Add metadata if provided
+      if (metadata) {
+        Object.entries(metadata).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
+          }
+        });
+      }
+
+      const headers = {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'multipart/form-data',
+      };
+
+      // Try to upload to backend
+      const response = await axios.post(
+        `${apiBaseUrl}journal/upload-image/`,
+        formData,
+        {
+          headers,
+          timeout: 30000, // 30 second timeout
+        }
+      );
+
+      console.log('Base64 image upload successful:', response.data);
+      return response.data;
+    } catch (error: any) {
+
+      // Check if it's a 404 (endpoint doesn't exist) or HTML response
+      const isEndpointMissing = error.response?.status === 404 ||
+                                error.response?.status === 405 ||
+                                (error.response?.data && typeof error.response.data === 'string' && error.response.data.includes('<!DOCTYPE'));
+
+      if (isEndpointMissing) {
+        console.log('Backend endpoint not available, storing base64 image locally');
+      }
+
+      // Return the base64 data itself as the file_url for local storage
+      return {
+        file_url: base64Data,
         file_id: `drawing_${Date.now()}`
       };
     }

@@ -63,7 +63,7 @@ export default ({ config }) => {
           image: "./assets/images/archivewelcome.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#070707ff"
+          backgroundColor: "#070707"
         }
       ],
     ],
@@ -72,14 +72,18 @@ export default ({ config }) => {
       bundleIdentifier: "com.roesorcerer.thearchivethesisproject",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+<<<<<<< HEAD
         NSMicrophoneUsageDescription: "This app needs access to your microphone to record voice journal entries."
+=======
+        NSMicrophoneUsageDescription: "The Archive needs access to your microphone to record voice journal entries."
+>>>>>>> prodOne
       }
     },
     android: {
       package: "com.roesorcerer.thearchivethesisproject",
       adaptiveIcon: {
         foregroundImage: "./assets/images/archivewelcome.png",
-        backgroundColor: "#070707ff"
+        backgroundColor: "#070707"
       },
       edgeToEdgeEnabled: true,
       permissions: [
