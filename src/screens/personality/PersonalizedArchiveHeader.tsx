@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo, Text, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, Image, Text, TouchableOpacity, View } from 'react-native';
 import {
   Easing,
   useSharedValue,
@@ -137,7 +137,6 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
               fontSize: 15,
               fontWeight: 'bold',
               letterSpacing: 1.5,
-              letterSpacing: 1.5,
               textShadowColor: `${config.theme?.primary || '#4ee6e6'}50`,
               textShadowOffset: { width: 0, height: 2 },
               textShadowRadius: 8,
@@ -151,7 +150,6 @@ const PersonalizedArchiveHeader: React.FC<PersonalizedArchiveHeaderProps> = ({
           <Text
             style={{
               color: config.theme?.secondary || '#ccc',
-              fontSize: 10,
               fontSize: 10,
               fontStyle: 'italic',
               textAlign: 'center',

@@ -1,4 +1,4 @@
-import { TextStyle, ViewStyle } from 'react-native';
+import { ImageStyle, TextStyle, ViewStyle } from 'react-native';
 import { BORDER_RADIUS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '../foundation';
 import { ThemeColors, loginTheme } from '../theme';
 
@@ -62,9 +62,10 @@ export const createLoginStyles = (theme: ThemeColors = loginTheme) => ({
   } as ViewStyle,
 
   avatarIcon: {
-    fontSize: 60,
+    width: 60,
+    height: 60,
     zIndex: 2,
-  } as TextStyle,
+  } as ImageStyle,
 
   avatarGlow: {
     position: 'absolute',

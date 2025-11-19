@@ -1,8 +1,7 @@
-import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Animated,
-  Dimensions,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,18 +11,13 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { FloatingElementProps } from '../../components/rewards/FloatingElement';
 import { useMasterState } from '../../context/MasterStateContext';
 import { apiService } from '../../services/apiService';
 import { createLoginStyles } from '../../styles/screens/login';
+import { ResearchConditions } from '../characterStory/constants/researchConditions';
 
-const { width, height } = Dimensions.get('window');
 
-type FloatingElementProps = {
-  children: React.ReactNode;
-  duration?: number;
-  delay?: number;
-  translateY?: number;
-};
 
 const FloatingElement = ({ children, duration = 3000, delay = 0, translateY = 20 }: FloatingElementProps) => {
   const floatAnim = new Animated.Value(0);
@@ -64,40 +58,12 @@ const FloatingElement = ({ children, duration = 3000, delay = 0, translateY = 20
   );
 };
 
-const ResearchConditions = {
-  A: {
-    avatars: ['⚔️', '🛡️', '🏹', '🔮', '⚡', '💥'],
-    titles: [
-      'Seeker of Truths',
-      'Bearer of Burdens',
-      'Keeper of Bonds',
-      'Weaver of Change',
-      'Watcher Between Worlds', 
-      'Marked by Fate'
-    ],
-    theme: 'Character Creation Realm',
-    description: 'Forge your avatar and customize your path through The Archive'
-  },
-  B: {
-    avatars: ['🔮', '⚖️', '🌟', '🕊️', '🌙'],
-    titles: [
-      'Sage Explorer',
-      'Order Keeper', 
-      'Social Catalyst',
-      'Peace Weaver',
-      'Shadow Walker'
-    ],
-    theme: 'Personality Discovery Chambers',
-    description: 'Discover your true nature through the ancient wisdom of personality'
-  }
-};
-
-const AllAvatars = [...ResearchConditions.A.avatars, ...ResearchConditions.B.avatars];
-const AllTitles = [...ResearchConditions.A.titles, ...ResearchConditions.B.titles];
+const AllAvatars = ResearchConditions.avatars;
+const AllTitles = ResearchConditions.titles;
 
 export default function ArchiveLoginScreen() {
-  const router = useRouter();
-  const { auth, theme, onboarding } = useMasterState();
+  //const router = useRouter();
+  const { auth, theme,  } = useMasterState();
   const { login } = auth;
   const loginStyles = createLoginStyles(theme.loginTheme);
 
@@ -105,13 +71,13 @@ export default function ArchiveLoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [currentPersonality, setCurrentPersonality] = useState(0);
+  const [currentImage, setCurrentImage] = useState(0);
   const [showCurator, setShowCurator] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentPersonality((prev) => (prev + 1) % AllAvatars.length);
+      setCurrentImage((prev) => (prev + 1) % AllAvatars.length);
     }, 4000);
     
     const curatorTimer = setTimeout(() => setShowCurator(true), 1000);
@@ -154,21 +120,6 @@ export default function ArchiveLoginScreen() {
 
         <View style={[loginStyles.backgroundContainer, { pointerEvents: 'none' }]}>
           <View style={[loginStyles.floatingElements, { pointerEvents: 'none' }]}>
-            <FloatingElement delay={0} duration={4000} translateY={15}>
-              <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>📚</Text>
-            </FloatingElement>
-            <FloatingElement delay={1000} duration={5000} translateY={20}>
-              <Text style={[loginStyles.floatingIcon, { right: 40, top: 60 }]}>✨</Text>
-            </FloatingElement>
-            <FloatingElement delay={2000} duration={3500} translateY={18}>
-              <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>🕯️</Text>
-            </FloatingElement>
-            <FloatingElement delay={1500} duration={4500} translateY={22}>
-              <Text style={[loginStyles.floatingIcon, { right: 40, top: 60 }]}>📖</Text>
-            </FloatingElement>
-            <FloatingElement delay={3000} duration={3000} translateY={16}>
-              <Text style={[loginStyles.floatingIcon, { left: 40, top: 60 }]}>🗝️</Text>
-            </FloatingElement>
           </View>
 
           <View style={[loginStyles.gradientOverlay, { pointerEvents: 'none' }]} />
@@ -187,21 +138,21 @@ export default function ArchiveLoginScreen() {
         >
         <View style={loginStyles.header}>
           <View style={loginStyles.personalityAvatar}>
-            <Text style={loginStyles.avatarIcon}>
-              {AllAvatars[currentPersonality]}
-            </Text>
+            <Image 
+              source={AllAvatars[currentImage]} 
+              style={loginStyles.avatarIcon}
+              resizeMode="contain"
+            />
             <View style={loginStyles.avatarGlow} />
           </View>
           
           <View style={loginStyles.titleSection}>
             <Text style={loginStyles.gameTitle}>THE ARCHIVE</Text>
-            <Text style={loginStyles.gameSubtitle}>Chronicles of Inner Wisdom</Text>
+            <Text style={loginStyles.gameSubtitle}>Self Reflection to Combat Stress</Text>
             <Text style={loginStyles.personalityClass}>
-              {AllTitles[currentPersonality]} Path
+              {AllTitles[currentImage]} Path
             </Text>
-            <Text style={loginStyles.researchHint}>
-              {currentPersonality < 5 ? '⚔️ Character Path' : '🧠 Personality Path'}
-            </Text>
+
           </View>
         </View>
 
@@ -209,29 +160,22 @@ export default function ArchiveLoginScreen() {
           <View style={loginStyles.curatorSection}>
             <View style={loginStyles.curatorCard}>
               <View style={loginStyles.curatorHeader}>
-                <Text style={loginStyles.curatorAvatar}>🧙‍♂️</Text>
-                <View style={loginStyles.curatorInfo}>
-                  <Text style={loginStyles.curatorName}>The Curator</Text>
-                  <Text style={loginStyles.curatorTitle}>Guardian of The Archive</Text>
+              <Image 
+                    source={require('../../../assets/loginScreen/welcome.png')}
+                    style={{
+                      width: '100%',
+                      height: 300,
+                      marginBottom: 2,
+                    }}
+                  />
                 </View>
-              </View>
-              
-                <View style={loginStyles.curatorMessage}>
-                <Text style={loginStyles.curatorText}>
-                  "Welcome, Scholar. I am The Curator, guardian of this sacred Archive. 
-                  Within these mystical halls lie two paths of wisdom: the Character Creation Realm 
-                  where you forge your avatar, and the Personality Discovery Chambers where you 
-                  uncover your true nature. Both paths lead to mastery over stress and the 
-                  ancient arts of resilience."
-                </Text>
-              </View>
-
               <View style={loginStyles.curatorFooter}>
                 <Text style={loginStyles.curatorHint}>
                   Present your credentials to enter...
                 </Text>
-              </View>
+              
             </View>
+          </View>
           </View>
         )}
 
@@ -307,11 +251,11 @@ export default function ArchiveLoginScreen() {
         </View>
 
         <View style={loginStyles.footer}>
-          <Text style={loginStyles.footerText}>
-            "Every story is a doorway, every choice a teacher."
+          <Text style={loginStyles.footerText}>{/*Might want to make this dynamic */}
+            "You have power over your mind - not outside events. Realize this, and you will find strength."
           </Text>
           <Text style={loginStyles.footerSignature}>
-            ~ Ancient Archive Proverb
+            ~ Marcus Aurelius
           </Text>
         </View>
       </ScrollView>

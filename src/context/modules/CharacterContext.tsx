@@ -70,7 +70,7 @@ export interface CharacterContextType {
   updateCharacter: () => Promise<void>;
   loadCharacter: (forceLoad?: boolean) => Promise<Character | null>;
   gainExperience: (amount: number, source?: string) => Promise<void>;
-  gainLumens: (amount: number, source?: string) => Promise<void>;
+  gainResonance: (amount: number, source?: string) => Promise<void>;
   gainWellness: (gains: Record<string, number>) => Promise<void>;
   resetCharacterCreatorToDefaults: () => void;
   syncCharacterFromBackend: (character: Character) => void;
@@ -631,7 +631,7 @@ export const CharacterProvider: React.FC<CharacterProviderProps> = ({
     }
   };
 
-  const gainLumens = async (amount: number, source?: string) => {
+  const gainResonance = async (amount: number, source?: string) => {
     try {
       let ch = backendCharacter;
       if (!ch) {
@@ -649,19 +649,19 @@ export const CharacterProvider: React.FC<CharacterProviderProps> = ({
         return;
       }
 
-      const result = await apiService.gainLumens(id, amount, source);
+      const result = await apiService.gainResonance(id, amount, source);
 
       setBackendCharacter(result);
 
-      if (result.lumens_up) {
+      if (result.resonance_up) {
         Alert.alert(
-          '🎉 Lumens Up!',
-          `Congratulations! Your lumens increased by ${result.lumens_gained}!`,
+          '🎉 Resonance Up!',
+          `Congratulations! Your resonance increased by ${result.resonance_gained}!`,
           [{ text: 'Awesome!', style: 'default' }]
         );
       }
     } catch (error: any) {
-      onError('Failed to gain lumens: ' + (error?.message || 'Unknown error'));
+      onError('Failed to gain resonance: ' + (error?.message || 'Unknown error'));
     }
   };
 
@@ -755,7 +755,7 @@ export const CharacterProvider: React.FC<CharacterProviderProps> = ({
     updateCharacter,
     loadCharacter,
     gainExperience,
-    gainLumens,
+    gainResonance,
     gainWellness,
     resetCharacterCreatorToDefaults,
     syncCharacterFromBackend,

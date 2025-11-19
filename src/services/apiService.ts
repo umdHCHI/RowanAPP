@@ -152,10 +152,6 @@ class ApiService {
         return this.isInitialized;
     }
 
-    public getBaseURL(): string {
-        return apiBaseUrl;
-    }
-
     // Generic request methods
     public async get<T>(endpoint: keyof typeof API_ENDPOINTS, config?: AxiosRequestConfig & { urlSuffix?: string }): Promise<T> {
         try {
@@ -469,12 +465,6 @@ class ApiService {
 
                 // Include quest progress for personality users
                 quest_progress: full?.quest_progress ?? [],
-
-                // **FIX: Include coping tools data from full_profile endpoint**
-                // available_tools: all tools in the system (filter by personality_type on frontend)
-                // coping_tools: only tools the user has unlocked/collected
-                available_tools: full?.available_tools ?? [],
-                coping_tools: full?.coping_tools ?? character?.coping_tools ?? [],
             };
 
             return normalized;
@@ -602,9 +592,8 @@ class ApiService {
             
             if (isNetworkError) {
                 console.warn('⚠️ Network error detected, returning mock profile for development');
-
+                
                 // Create a mock user profile for web platform
-                // Use research_group.condition logic: A for character path, B for survey path
                 const researchCondition = path === 'character' ? 'A' : 'B';
                 const mockProfile: UserProfile = {
                     id: 1,
@@ -810,13 +799,11 @@ class ApiService {
     
     /**
      * Check if user has completed the personality survey
-     * Checks research_group.condition to determine if user is in personality (B) group
      */
     async hasSurveyBeenCompleted(): Promise<boolean> {
         try {
             const profile = await this.getProfile();
-            // Check if user is in research condition B (personality/survey path)
-            return profile?.profile?.research_group?.condition === 'B';
+            return profile?.profile?.completion_type === 'survey';
         } catch (error) {
 
             return false;
@@ -969,10 +956,10 @@ class ApiService {
         }
     }
 
-    async gainLumens(characterId: number, lumens: number, source?: string): Promise<Character & {
-        lumens_gained: number;
+    async gainResonance(characterId: number, resonance: number, source?: string): Promise<Character & {
+        resonance_gained: number;
         source: string;
-        lumens_up?: boolean;
+        resonance_up?: boolean;
         message?: string;
     }> {
 
@@ -984,11 +971,11 @@ class ApiService {
         
         try {
             const result = await this.post<Character & {
-                lumens_gained: number;
+                resonance_gained: number;
                 source: string;
-                lumens_up?: boolean;
+                resonance_up?: boolean;
                 message?: string;
-            }>('gainExperience', { experience: lumens, source: source || 'story_passage' }, { urlSuffix: `${characterId}/gain_experience/` });
+            }>('gainExperience', { experience: resonance, source: source || 'story_passage' }, { urlSuffix: `${characterId}/gain_experience/` });
 
             return result;
         } catch (error: any) {
@@ -1007,7 +994,7 @@ class ApiService {
     ) {
         // only send positive increments (serializer filters like this too)
         const payload = Object.fromEntries(
-            Object.entries(gains).filter(([, v]) => typeof v === 'number' && v > 0)
+            Object.entries(gains).filter(([, v]) => typeof v === 'number' && v! > 0)
         );
         if (Object.keys(payload).length === 0) {
             return { data: { message: 'No wellness gains to apply' } };
@@ -1046,24 +1033,19 @@ class ApiService {
 
     /**
      * Get my acquired coping tools (character-tools that user owns)
-     * Note: Coping tools are included in the character data from getProfile()
-     * This method extracts them from the character data instead of making a separate API call
+     * Endpoint: /api/characters/character-tools/my/
      */
     // Note: Tool methods are only used in personality/survey side of the app
     // These methods are kept for compatibility but should not be used in character side
     async getMyTools(): Promise<CopingTool[]> {
         try {
-            // Get character data which includes coping_tools array
-            const profile = await this.getProfile();
 
-            // Extract coping tools from character data
-            const copingTools = profile?.coping_tools || [];
+            const result = await this.get<CopingTool[]>('myTools');
 
-            return copingTools;
+            return result;
         } catch (error: any) {
-            // If profile fetch fails or coping_tools don't exist, return empty array
-            console.log('[apiService.getMyTools] Failed to fetch coping tools from character data:', error.message);
-            return [];
+
+            throw error;
         }
     }
 
@@ -1190,23 +1172,15 @@ class ApiService {
     }
 
     /**
-     * Helper method to find a coping tool by name OR tool_id from available tools
-     * This allows story rewards to use either the display name or the tool_id
+     * Helper method to find a coping tool by name from available tools
      */
     async findCopingToolByName(toolName: string): Promise<CopingTool | null> {
         try {
             const availableTools = await this.getAvailableCopingTools();
-
-            // Try matching by name first, then by tool_id
-            const tool = availableTools.find(t =>
-                t.name === toolName ||
-                t.name.toLowerCase() === toolName.toLowerCase() ||
-                t.tool_id === toolName ||
-                t.tool_id === toolName.toLowerCase()
-            );
-
+            const tool = availableTools.find(t => t.name === toolName);
             return tool || null;
         } catch (error) {
+
             return null;
         }
     }
@@ -3034,7 +3008,6 @@ class ApiService {
     async getPassage(storyId: number, passageId: string): Promise<any> {
         try {
             const response = await this.get<any>('storyPassage', { urlSuffix: `${storyId}/passage/${passageId}/` });
-            console.log('🔍 RAW API RESPONSE for getPassage:', JSON.stringify(response, null, 2));
             return response;
         } catch (error) {
             throw error;
@@ -3105,10 +3078,9 @@ class ApiService {
           target_passage_id: targetPassageId,
           ...additionalPayload
         };
-
+        
 
         const response = await apiClient.post('story/make_choice/', payload);
-        console.log('🔍 RAW API RESPONSE for makeChoice:', JSON.stringify(response.data, null, 2));
         return response.data;
     }
 
@@ -4218,55 +4190,46 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
             const questProgress: Record<string, number> = {};
             
 
-            console.log(`📊 [getQuestProgressFromRecords] Processing ${allProgress.length} progress records...`);
-
             allProgress.forEach((progress: any, index: number) => {
-                const event = progress.story_variables?.event;
 
+                
                 // Handle new quest progress format
                 if (progress.story_variables && progress.story_variables.event === 'quest_progress_update') {
-                    console.log(`✅ [getQuestProgressFromRecords] Found quest_progress_update event in record ${index}`);
 
                     const questData = progress.story_variables.quest_progress;
-                    console.log(`   Quest data:`, questData);
-
                     if (questData && typeof questData === 'object') {
                         Object.entries(questData).forEach(([questId, progressValue]) => {
                             const numValue = typeof progressValue === 'number' ? progressValue : parseInt(progressValue as string, 10);
                             if (!isNaN(numValue)) {
                                 questProgress[questId] = (questProgress[questId] || 0) + numValue;
-                                console.log(`   ✅ Added ${numValue} to ${questId}, total: ${questProgress[questId]}`);
+
                             }
                         });
                     }
                 }
                 // Handle legacy quest completion format - THIS IS THE KEY ONE!
                 else if (progress.story_variables && progress.story_variables.event === 'quest_completed') {
-                    console.log(`✅ [getQuestProgressFromRecords] Found quest_completed event in record ${index}`);
 
                     const questId = progress.story_variables.quest_id;
                     if (questId) {
                         questProgress[questId] = (questProgress[questId] || 0) + 1;
-                        console.log(`   ✅ Added 1 to ${questId}, total: ${questProgress[questId]}`);
+
                     }
                 } else {
-                    if (index < 5) { // Only log first 5 non-matching records
-                        console.log(`⏭️ [getQuestProgressFromRecords] Record ${index} - Event: ${event || 'none'}, skipping`);
-                    }
+
                 }
             });
+            
 
-            console.log(`📊 [getQuestProgressFromRecords] Final quest progress:`, questProgress);
-            console.log(`📊 [getQuestProgressFromRecords] Total quests found: ${Object.keys(questProgress).length}`);
 
+            
             if (Object.keys(questProgress).length > 0) {
-                Object.entries(questProgress).forEach(([questId, progress]) => {
-                    console.log(`   ${questId}: ${progress}`);
-                });
-            } else {
-                console.warn(`⚠️ [getQuestProgressFromRecords] No quest progress found in any records!`);
-            }
 
+                Object.entries(questProgress).forEach(([questId, progress]) => {
+
+                });
+            }
+            
             return questProgress;
         } catch (error) {
 
@@ -4293,69 +4256,75 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
         playerState?: any;
     }): Promise<any> {
         try {
-            // **FIX: Update existing story progress instead of creating new record**
-            // Backend has unique constraint on (user, story) - can't create multiple records
-            // Solution: Get existing progress record and UPDATE it with quest data
+            // Based on Django backend:
+            // - QuestViewSet (characters/quests/) is ReadOnly - only GET allowed
+            // - UserQuestProgress is aggregated from PlayerProgress events
+            // - Need to record quest progress as a story progress event with specific format
 
-            console.log('📤 Recording quest progress for:', questSlug);
+            console.log('📤 Recording quest progress event for:', questSlug);
 
-            // Get or create story progress record
-            const existingProgress = await this.getOrCreateStoryProgress(Number(storyId), {
+            const progressIncrement = storyVariables?.progress || 1;
+
+            // Record quest completion via story progress
+            // The backend aggregates these events into UserQuestProgress
+            // Based on Django error, endpoint expects: current_passage_id, story (not story_id), and user
+            const progressPayload = {
+                story: Number(storyId),  // Backend expects numeric story ID, not story_id
                 current_passage_id: passageId || `quest_${questSlug}_${Date.now()}`,
-                story_variables: {}
-            });
-
-            if (!existingProgress || !existingProgress.id) {
-                console.error('❌ Failed to get story progress record');
-                return { success: false, error: 'No progress record' };
-            }
-
-            console.log('📋 Found existing story progress record:', existingProgress.id);
-
-            // Merge quest progress into existing story_variables
-            const currentVars = existingProgress.story_variables || {};
-            const questProgressData = currentVars.quest_progress || {};
-
-            // Add/update quest progress from playerState
-            if (playerState?.quest_progress) {
-                Object.entries(playerState.quest_progress).forEach(([questId, progress]) => {
-                    questProgressData[questId] = (questProgressData[questId] || 0) + (progress as number);
-                });
-            }
-
-            // Update story variables with quest progress
-            // **IMPORTANT**: Set event='quest_progress_update' so getQuestProgressFromRecords can find it
-            const updatedVars = {
-                ...currentVars,
-                event: 'quest_progress_update', // Required for quest progress extraction
-                quest_progress: questProgressData,
-                last_quest_update: new Date().toISOString(),
-                source: storyVariables?.source || 'story_completion'
+                story_variables: {
+                    event: 'quest_progress',
+                    quest_id: questSlug,
+                    progress_increment: progressIncrement,
+                    source: storyVariables?.source || 'story_completion',
+                },
             };
 
-            console.log('📤 Updating story progress with quest data:', {
-                progressId: existingProgress.id,
-                questProgress: questProgressData
-            });
+            console.log('📤 Posting to story-progress:', progressPayload);
 
             try {
-                const response = await this.updateStoryProgress(existingProgress.id, {
-                    story_variables: updatedVars
-                });
-
-                console.log('✅ Quest progress updated in story progress record');
+                const response = await this.post('createProgress', progressPayload);
+                console.log('✅ Quest progress event recorded for', questSlug);
                 return response;
-            } catch (updateError: any) {
-                const status = updateError?.response?.status;
-                const errorData = updateError?.response?.data;
+            } catch (postError: any) {
+                const status = postError?.response?.status;
+                const errorData = postError?.response?.data;
 
-                console.error(`❌ Failed to update quest progress (${status}):`, errorData);
+                console.warn(`⚠️ Failed to record quest progress (${status}):`, errorData);
+
+                // Check if it's a duplicate key error - treat as success
+                if (errorData?.error && typeof errorData.error === 'string' &&
+                    errorData.error.includes('duplicate key value')) {
+                    console.log('✅ Quest progress event already recorded for', questSlug);
+                    return { success: true, message: 'Quest progress already recorded' };
+                }
+
+                // Try alternate approach: record as quest completion event
+                if (status === 400 || status === 404) {
+                    console.log('💡 Trying alternate quest event format...');
+
+                    const altPayload = {
+                        story: Number(storyId),
+                        current_passage_id: passageId || `quest_event_${questSlug}_${Date.now()}`,
+                        story_variables: {
+                            event: 'quest_completed',
+                            quest_id: questSlug,
+                        },
+                    };
+
+                    try {
+                        const altResponse = await this.post('createProgress', altPayload);
+                        console.log('✅ Quest completion event recorded for', questSlug);
+                        return altResponse;
+                    } catch (altError) {
+                        console.warn('⚠️ Alternate format also failed');
+                    }
+                }
 
                 // Last resort: silently succeed to not block user experience
                 console.log('✅ Quest progress tracked locally only for', questSlug);
                 return {
                     success: true,
-                    message: 'Quest progress tracked locally (backend update failed)'
+                    message: 'Quest progress tracked locally (backend sync pending)'
                 };
             }
         } catch (error: any) {
@@ -4378,201 +4347,6 @@ async getPersonalityStatus(): Promise<{ personality : PersonalityKey }> {
             console.error('❌ Quest progress save failed:', error?.message);
             console.log('✅ Continuing without backend quest save for', questSlug);
             return { success: false, message: 'Quest progress save failed, continuing without backend save' };
-        }
-    }
-
-    /**
-     * **WORKAROUND: Update quest progress via profile update**
-     * Since there's no dedicated writable quest endpoint, we update quest progress
-     * by fetching current profile, modifying quest_progress locally, then updating profile
-     * @param questId - Quest identifier (e.g., "extraversion_1")
-     * @param progressIncrement - Amount of progress to add (usually 1 per story completion)
-     * @param storyId - ID of the story that triggered the quest progress
-     */
-    async updateUserQuestProgress(
-        questId: string,
-        progressIncrement: number = 1,
-        storyId?: string | number
-    ): Promise<any> {
-        try {
-            console.log(`📤 [updateUserQuestProgress] Updating quest ${questId} +${progressIncrement} via profile patch`);
-
-            // Step 1: Get current profile to get quest_progress array
-            const currentProfile = await this.getProfile();
-            const questProgressArray = currentProfile?.quest_progress || [];
-
-            console.log(`📊 [updateUserQuestProgress] Current quest progress array:`, questProgressArray);
-
-            // Step 2: Find the quest in the array
-            const questIndex = questProgressArray.findIndex((q: any) => q.quest?.quest_id === questId);
-
-            if (questIndex === -1) {
-                console.warn(`⚠️ [updateUserQuestProgress] Quest ${questId} not found in profile, cannot update`);
-                return {
-                    success: false,
-                    message: `Quest ${questId} not found in user profile`
-                };
-            }
-
-            // Step 3: Update the progress value
-            const currentProgress = questProgressArray[questIndex].progress || 0;
-            const newProgress = currentProgress + progressIncrement;
-            questProgressArray[questIndex].progress = newProgress;
-
-            // Check if completed
-            const totalSteps = questProgressArray[questIndex].quest?.total_steps || 1;
-            if (newProgress >= totalSteps) {
-                questProgressArray[questIndex].is_completed = true;
-            }
-
-            console.log(`📤 [updateUserQuestProgress] Updating ${questId}: ${currentProgress} -> ${newProgress}`);
-
-            // Step 4: Update profile with modified quest_progress
-            // NOTE: This assumes the backend accepts quest_progress in the profile update
-            const updatePayload = {
-                quest_progress: questProgressArray
-            };
-
-            const response = await this.patch<any>('updateUserProfile', updatePayload);
-
-            console.log(`✅ [updateUserQuestProgress] Quest ${questId} updated successfully via profile`);
-            return {
-                success: true,
-                quest_id: questId,
-                previous_progress: currentProgress,
-                new_progress: newProgress,
-                data: response
-            };
-        } catch (error: any) {
-            const status = error?.response?.status;
-            const errorData = error?.response?.data;
-
-            console.error(`❌ [updateUserQuestProgress] Failed to update quest ${questId} (${status}):`, errorData);
-
-            // Don't throw - return error info so caller can handle gracefully
-            return {
-                success: false,
-                error: errorData,
-                message: `Failed to update quest ${questId}`
-            };
-        }
-    }
-
-    /**
-     * **WORKAROUND: Batch update multiple quests via profile update**
-     * Updates multiple quest progress values in a single profile update operation
-     * More efficient than calling updateUserQuestProgress multiple times
-     * @param questUpdates - Object mapping quest IDs to progress increments
-     * @param storyId - ID of the story that triggered the quest progress
-     */
-    async batchUpdateUserQuestProgress(
-        questUpdates: Record<string, number>,
-        storyId?: string | number
-    ): Promise<any> {
-        try {
-            console.log(`📤 [batchUpdateUserQuestProgress] Batch updating ${Object.keys(questUpdates).length} quests via profile:`, questUpdates);
-
-            // Step 1: Get current profile to get quest_progress array
-            const currentProfile = await this.getProfile();
-            const questProgressArray = currentProfile?.quest_progress || [];
-
-            console.log(`📊 [batchUpdateUserQuestProgress] Current quest progress array has ${questProgressArray.length} quests`);
-
-            // Step 2: Build the quest_updates payload
-            // Backend has NO writable UserQuestProgress endpoint, so we must update via profile
-            // Try sending a list of {id, progress, is_completed} objects
-            const questProgressUpdates: any[] = [];
-            let updatedCount = 0;
-            let notFoundCount = 0;
-
-            Object.entries(questUpdates).forEach(([questId, progressIncrement]) => {
-                const questRecord = questProgressArray.find((q: any) => q.quest?.quest_id === questId);
-
-                if (!questRecord || !questRecord.id) {
-                    console.warn(`⚠️ [batchUpdateUserQuestProgress] Quest ${questId} not found in profile, skipping`);
-                    notFoundCount++;
-                    return;
-                }
-
-                // Calculate new progress
-                const currentProgress = questRecord.progress || 0;
-                const newProgress = currentProgress + progressIncrement;
-
-                // Check if completed
-                const totalSteps = questRecord.quest?.total_steps || 1;
-                const isCompleted = newProgress >= totalSteps;
-
-                // Add to update payload with the UserQuestProgress record ID
-                questProgressUpdates.push({
-                    id: questRecord.id,
-                    progress: newProgress,
-                    is_completed: isCompleted
-                });
-
-                console.log(`   ✅ ${questId} (record ID: ${questRecord.id}): ${currentProgress} -> ${newProgress}`);
-                updatedCount++;
-            });
-
-            if (questProgressUpdates.length === 0) {
-                console.warn(`⚠️ [batchUpdateUserQuestProgress] No quest records to update`);
-                return {
-                    success: false,
-                    message: 'No quest records found to update',
-                    updated: 0,
-                    failed: Object.keys(questUpdates).length
-                };
-            }
-
-            // Step 3: Update each UserQuestProgress record via the quests endpoint
-            // Send individual PATCH requests to characters/quests/{id}/
-            console.log(`📤 [batchUpdateUserQuestProgress] Sending ${questProgressUpdates.length} PATCH requests to quests endpoint`);
-
-            const updatePromises = questProgressUpdates.map(async (update) => {
-                try {
-                    // PATCH to characters/quests/{id}/ (NOT userquestprogress)
-                    const response = await this.patch<any>('quests', {
-                        progress: update.progress,
-                        is_completed: update.is_completed
-                    }, {
-                        urlSuffix: `${update.id}/`
-                    });
-
-                    console.log(`   ✅ Quest record ${update.id}: PATCH successful, progress=${update.progress}`);
-                    return { success: true, id: update.id, data: response };
-                } catch (error: any) {
-                    const status = error?.response?.status;
-                    const errorData = error?.response?.data;
-                    console.error(`   ❌ Quest record ${update.id}: PATCH failed (${status}):`, errorData);
-                    return { success: false, id: update.id, error: errorData };
-                }
-            });
-
-            // Wait for all PATCH requests to complete
-            const results = await Promise.all(updatePromises);
-            const successCount = results.filter(r => r.success).length;
-            const failCount = results.filter(r => !r.success).length;
-
-            console.log(`✅ [batchUpdateUserQuestProgress] Completed: ${successCount} succeeded, ${failCount} failed`);
-
-            return {
-                success: failCount === 0,
-                updated: successCount,
-                failed: failCount,
-                results
-            };
-        } catch (error: any) {
-            const status = error?.response?.status;
-            const errorData = error?.response?.data;
-
-            console.error(`❌ [batchUpdateUserQuestProgress] Profile update failed (${status}):`, errorData);
-            console.error(`❌ [batchUpdateUserQuestProgress] Full error:`, error);
-
-            return {
-                success: false,
-                error: errorData || error.message,
-                updated: 0,
-                failed: Object.keys(questUpdates).length
-            };
         }
     }
 

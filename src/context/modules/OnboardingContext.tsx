@@ -7,13 +7,13 @@ import { Character, UserProfile } from '../../types';
 
 export interface OnboardingContextType {
   isComplete: boolean;
-  assignedPath: 'survey' | 'character' | null;
+  assignedPath: 'personality' | 'character' | null;
   researchGroup: string | null;
   characterAppearance: Character | undefined;
   isLoading: boolean;
 
   completeCharacter: () => Promise<void>;
-  setAssignedPath: (path: 'survey' | 'character' | null) => void;
+  setAssignedPath: (path: 'personality' | 'character' | null) => void;
   setCharacterAppearance: (appearance: Character) => void;
   resetOnboarding: () => void;
   resetCharacterCreatorToDefaults: () => void;
@@ -41,7 +41,7 @@ interface OnboardingProviderProps {
   newlyCreatedCharacter: React.MutableRefObject<Character | null>;
   didHomeScreenInit: React.MutableRefObject<boolean>;
   setBackendCharacter: (char: Character | null) => void;
-  onResearchConditionChange: (condition: 'character' | 'survey' | 'unknown') => void;
+  onResearchConditionChange: (condition: 'character' | 'personality' | 'unknown') => void;
   onCharacterCreatorReset: () => void;
 }
 
@@ -59,7 +59,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   onCharacterCreatorReset,
 }) => {
   const [isComplete, setIsComplete] = useState(false);
-  const [assignedPath, setAssignedPathState] = useState<'survey' | 'character' | null>(null);
+  const [assignedPath, setAssignedPathState] = useState<'personality' | 'character' | null>(null);
   const [researchGroup, setResearchGroup] = useState<string | null>(null);
   const [characterAppearance, setCharacterAppearance] = useState<Character | undefined>(
     undefined
@@ -82,15 +82,15 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   }, [authToken]);
 
   const setAssignedPath = useCallback(
-    (path: 'survey' | 'character' | null) => {
+    (path: 'personality' | 'character' | null) => {
       setAssignedPathState(path);
 
       if (path === 'character') {
         setResearchGroup('A');
         onResearchConditionChange('character');
-      } else if (path === 'survey') {
+      } else if (path === 'personality') {
         setResearchGroup('B');
-        onResearchConditionChange('survey');
+        onResearchConditionChange('personality');
       } else {
         setResearchGroup(null);
       }
@@ -137,7 +137,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
         setIsComplete(true);
 
         if (status.completionType) {
-          setAssignedPath(status.completionType as 'survey' | 'character');
+          setAssignedPath(status.completionType as 'personality' | 'character');
         } else {
           setIsComplete(false);
           setAssignedPath(null);

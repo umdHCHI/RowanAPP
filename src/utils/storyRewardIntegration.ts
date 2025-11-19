@@ -168,14 +168,14 @@ export class StoryRewardManager {
 }
 
   private displayNotifications(notifications: NotificationData[]): void {
-    console.log(`🔔 [StoryRewardManager] displayNotifications called with ${notifications.length} notifications`);
+    
 
     const validNotifications = this.filterNotifications(notifications);
-    console.log(`   ✅ Valid notifications after filtering: ${validNotifications.length}`);
+
 
     validNotifications.forEach(notification => {
         const notificationKey = `${notification.message}_${notification.type}`;
-        console.log(`   📣 Showing notification: ${notification.message} (type: ${notification.type})`);
+      
         this.sentNotifications.add(notificationKey);
       this.showNotification(
         notification.message,
@@ -238,7 +238,7 @@ export class StoryRewardManager {
               filteredRewards.push(itemName);
             }
           } catch (error) {
-            console.error(`❌ [StoryRewardManager] Error checking gear ownership for ${itemName}:`, error);
+         
             // Include item if ownership check fails (fail open)
             filteredRewards.push(itemName);
           }
@@ -258,7 +258,7 @@ export class StoryRewardManager {
               filteredArtifacts.push(itemName);
             }
           } catch (error) {
-            console.error(`❌ [StoryRewardManager] Error checking gear ownership for ${itemName}:`, error);
+      
             // Include item if ownership check fails (fail open)
             filteredArtifacts.push(itemName);
           }
@@ -286,7 +286,7 @@ export class StoryRewardManager {
           // 404 is expected for users who don't have the coping tools endpoint set up yet
           if (error.response?.status === 404) {
           } else {
-            console.error(`❌ [StoryRewardManager] Error fetching coping tools (${error.response?.status || error.code}):`, error.message);
+
           }
           // If fetching tools fails (404, etc.), keep all tools in effects (fail open)
           // This is expected for users who don't have coping tools set up yet
@@ -300,48 +300,43 @@ export class StoryRewardManager {
   // ===== PASSAGE & CHOICE HANDLERS =====
 
   async handlePassageVisit(passage: Passage): Promise<void> {
-    console.log(`🔍 [StoryRewardManager] handlePassageVisit called for passage: ${passage.passage_id}`);
-    console.log(`   Research condition: ${this.researchCondition}, Primary trait: ${this.primaryTrait}`);
+
 
     if (this.processedPassages.has(passage.passage_id)) {
-      console.log(`   ⏭️ Passage already processed - skipping`);
+
       return;
     }
 
     const hasRewards = hasPassageRewards(passage);
-    console.log(`   Has rewards: ${hasRewards}`);
+
 
     if (hasRewards) {
       const originalEffects = passage.story_effects || passage.effects;
-      console.log(`   📦 Original effects:`, JSON.stringify(originalEffects, null, 2));
+
 
       const filteredEffects = this.filterEffectsByUserType(originalEffects);
-      console.log(`   🔎 Filtered effects for ${this.researchCondition} user:`, JSON.stringify(filteredEffects, null, 2));
+
 
       this.rewardTracker = applyPassageRewards(this.rewardTracker, passage);
 
-      try {
+
         await this.processEffects(filteredEffects, 'passage', passage.passage_id);
-      } catch (error) {
-        console.error(`❌ [StoryRewardManager] Error processing effects:`, error);
-      }
+
 
       // Filter out already-owned items before creating notifications
-      try {
+
         const effectsForNotification = await this.filterOwnedItemsFromEffects(filteredEffects);
-        console.log(`   🧹 Effects after filtering owned items:`, JSON.stringify(effectsForNotification, null, 2));
+   
 
         const notifications = createNotificationFromEffects(effectsForNotification, this.researchCondition, this.primaryTrait);
-        console.log(`   🔔 Notifications created (${notifications.length}):`, JSON.stringify(notifications, null, 2));
+
 
         this.displayNotifications(notifications);
-      } catch (error) {
-        console.error(`❌ [StoryRewardManager] Error creating notifications:`, error);
-      }
+ 
     }
 
     this.processedPassages.add(passage.passage_id);
-    console.log(`   ✅ Passage marked as processed`);
+
   }
 
   async handleChoiceMade(choice: Choice, passageId: string): Promise<void> {
@@ -463,16 +458,11 @@ export class StoryRewardManager {
       );
 
       if (!matchingTool) {
-        console.warn(`❌ [StoryRewardManager] No matching tool found for "${itemName}"`);
-        console.warn(`   Available tools:`, availableCopingTools.map((t: any) => ({ name: t.name, tool_id: t.tool_id })));
+    
         return;
       }
 
-      console.log(`✅ [StoryRewardManager] Found matching tool:`, {
-        searchTerm: itemName,
-        matchedName: matchingTool.name,
-        matchedToolId: matchingTool.tool_id
-      });
+
 
       try {
         const myTools = await this.apiService.getMyTools();
@@ -485,14 +475,14 @@ export class StoryRewardManager {
         );
 
         if (alreadyOwnsTool) {
-          console.log(`⏭️ [StoryRewardManager] User already owns ${matchingTool.name} - skipping notification`);
+
           return;
         }
       } catch (error: any) {
         // 404 is expected for users who don't have tools yet - continue to acquire
         if (error.response?.status === 404) {
         } else {
-          console.error(`❌ [StoryRewardManager] Error checking owned tools:`, error.message);
+ 
           throw error; // Re-throw non-404 errors
         }
       }
@@ -502,7 +492,7 @@ export class StoryRewardManager {
     } catch (error: any) {
       if (error.response?.status === 404) {
       } else {
-        console.error(`❌ [StoryRewardManager] Failed to acquire coping tool "${itemName}":`, error.message);
+     
       }
     }
   }
@@ -666,7 +656,7 @@ export class StoryRewardManager {
         const questTitle = questInfo?.title || questId;
         this.showNotification(`🎯 Quest Progress: ${questTitle}`, 'quest');
       } catch (error: any) {
-        console.error(`❌ [StoryRewardManager] Failed to save quest progress for ${questId}:`, error.message);
+  
         // Continue with other quests even if one fails
       }
     }
@@ -726,16 +716,14 @@ export class StoryRewardManager {
       const questsToTrack = storyQuests[normalizedTrait as keyof typeof storyQuests] || [];
 
       if (questsToTrack.length > 0) {
-        // **NEW FIX: Use direct UserQuestProgress endpoint instead of story_variables aggregation**
-        // This ensures quest progress is immediately reflected in the backend UserQuestProgress model
-        // which is what populates the user profile's quest_progress array
+
 
         const batchedQuestProgress: Record<string, number> = {};
         questsToTrack.forEach((questId: string) => {
           batchedQuestProgress[questId] = 1; // Add 1 progress step per quest
         });
 
-        console.log(`💾 [StoryRewardManager] Updating ${questsToTrack.length} quests directly via userQuestProgress endpoint:`, batchedQuestProgress);
+       
 
         try {
           // Call the new batch update method that directly updates UserQuestProgress records
@@ -745,12 +733,12 @@ export class StoryRewardManager {
           );
 
           if (result.success) {
-            console.log(`✅ [StoryRewardManager] Successfully updated all ${result.successful} quests`);
+           
           } else {
-            console.warn(`⚠️ [StoryRewardManager] Quest update completed with ${result.failed} failures`);
+      
           }
         } catch (error: any) {
-          console.error(`❌ [StoryRewardManager] Failed to update quest progress:`, error.message);
+  
           // Don't throw - allow story completion to continue even if quest update fails
         }
       }
@@ -760,7 +748,7 @@ export class StoryRewardManager {
     try {
       await this.saveAccumulatedRewards();
     } catch (error: any) {
-      console.error(`❌ [StoryRewardManager] Failed to save accumulated rewards:`, error.message);
+     
       // Don't throw - we want the story to complete even if reward saving fails
     }
 
@@ -773,7 +761,7 @@ export class StoryRewardManager {
         completionData.journalEntries
       );
     } catch (error: any) {
-      console.error(`❌ [StoryRewardManager] Failed to send story completion to backend:`, error.message);
+   
       // Don't throw - we want the UI to show completion even if backend fails
     }
 
@@ -793,7 +781,7 @@ export class StoryRewardManager {
   }
 
   private async saveAccumulatedRewards(): Promise<void> {
-    console.log(`💾 [StoryRewardManager] saveAccumulatedRewards - Note: Wellness stats already saved per-passage`);
+
 
     // NOTE: Wellness stats are already saved incrementally per passage in saveRewardsToBackend()
     // We do NOT re-save them here to avoid sending cumulative totals that exceed backend limits
@@ -806,24 +794,23 @@ export class StoryRewardManager {
       // Save experience points (character-only stat) - this is safe to accumulate
       if (calculatedRewards.totalStatGains.experience && calculatedRewards.totalStatGains.experience > 0) {
         try {
-          console.log(`💰 [StoryRewardManager] Saving accumulated experience: ${calculatedRewards.totalStatGains.experience}`);
+
           await this.apiService.gainExperience(
             this.characterId,
             calculatedRewards.totalStatGains.experience,
             `story_completion_${this.rewardTracker.storyId}`
           );
         } catch (error: any) {
-          console.error(`❌ [StoryRewardManager] Failed to gain experience:`, error.message);
+
         }
       }
     }
     // Personality users (Research Group B): Nothing to save at completion
     // All stats (experience, wellness) were already saved incrementally per passage
     else if (this.researchCondition === 'personality' && this.userId) {
-      console.log(`✅ [StoryRewardManager] Personality user - all rewards already saved per-passage`);
+
     } else {
-      console.warn(`⚠️ [StoryRewardManager] Unknown research condition or missing user ID - skipping reward save`);
-      console.warn(`   Research condition: ${this.researchCondition}, Character ID: ${this.characterId}, User ID: ${this.userId}`);
+
     }
   }
 

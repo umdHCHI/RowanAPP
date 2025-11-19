@@ -10,82 +10,11 @@ import {
   View
 } from 'react-native';
 import { useMasterState } from "../../context/MasterStateContext";
-import { apiService } from "../../services/apiService";
+import { ArchivePaths } from '../../data/archivePaths';
 import { createOnboardingStyles } from '../../styles/screens/onboarding';
-type PathType = 'character' | 'survey';
+import { FloatingElementProps, PathCardProps, PathType } from '../../types/index';
 
-interface PathData {
-  icon: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  curatorNote: string;
-  benefits: string[];
-  atmosphere: string;
-  color: string;
-  secondaryColor: string;
-  gradientColors: string[];
-  buttonText: string;
-  journey: string;
-}
 
-interface FloatingElementProps {
-  children: React.ReactNode;
-  duration?: number;
-  delay?: number;
-  translateY?: number;
-}
-
-interface PathCardProps {
-  pathKey: PathType;
-  pathData: PathData;
-  isSelected: boolean;
-  onSelect: (pathKey: PathType) => void;
-  onChoose: (pathType: PathType) => Promise<void>;
-  isLoading: boolean;
-  onboardingStyles: any;
-}
-
-const ArchivePaths: Record<PathType, PathData> = {
-  character: {
-    icon: '⚔️',
-    title: 'Path of the Forged Soul',
-    subtitle: 'Character Creation Realm',
-    description: 'Craft your avatar through ancient rituals of self-expression. Choose your appearance, define your strengths, and forge the vessel that will carry you through The Archive. Your character becomes a reflection of how you wish to grow.',
-    curatorNote: '"Some scholars find wisdom through creation, shaping themselves as they would shape clay. This path offers tangible transformation."',
-    benefits: [
-      '⚡ Customize your Archive avatar',
-      '🛡️ Choose starting attributes and skills', 
-      '🎨 Express your ideal self visually',
-      '📈 Track growth through character progression'
-    ],
-    atmosphere: 'Creative Workshop',
-    color: '#f72585',
-    secondaryColor: '#4cc9f0',
-    gradientColors: ['rgba(247, 37, 133, 0.9)', 'rgba(76, 201, 240, 0.7)', 'rgba(157, 78, 221, 0.8)'],
-    buttonText: 'Enter the Forge',
-    journey: 'Embark on the Path of Creation'
-  },
-  survey: {
-    icon: '🔮',
-    title: 'Path of the True Self',
-    subtitle: 'Personality Discovery Chambers',
-    description: 'Journey deep into the chambers of self-knowledge through the ancient Big Five wisdom. Discover your authentic nature, understand your patterns, and unlock personalized guidance tailored to your unique psychological landscape.',
-    curatorNote: '"Others find wisdom through revelation, peeling back layers to discover what was always there. This path offers profound understanding."',
-    benefits: [
-      '🧠 Discover your Big Five personality traits',
-      '✨ Receive personalized story recommendations',
-      '🎯 Unlock trait-specific coping strategies',
-      '🌱 Experience content adapted to your nature'
-    ],
-    atmosphere: 'Reflection Sanctum',
-    color: '#9d4edd',
-    secondaryColor: '#06ffa5',
-    gradientColors: ['rgba(157, 78, 221, 0.9)', 'rgba(6, 255, 165, 0.7)', 'rgba(76, 201, 240, 0.8)'],
-    buttonText: 'Enter the Chambers',
-    journey: 'Embark on the Path of Discovery'
-  }
-};
 
 const FloatingElement: React.FC<FloatingElementProps> = ({ 
   children, 
@@ -146,10 +75,7 @@ const PathCard: React.FC<PathCardProps> = ({
     activeOpacity={0.8}
   >
     <View style={onboardingStyles.pathCardGradient}>
-      <View style={onboardingStyles.pathIconContainer}>
-        <Text style={onboardingStyles.pathIcon}>{pathData.icon}</Text>
-        <View style={[onboardingStyles.pathIconGlow, { backgroundColor: pathData.color }]} />
-      </View>
+
 
       <View style={onboardingStyles.pathHeader}>
         <Text style={[onboardingStyles.pathTitle, { color: pathData.color }]}>
@@ -233,7 +159,7 @@ const ArchiveOnboardingScreen: React.FC = () => {
     if (authToken && assignedPath && !isAdminOrTestUser && onboarding.isComplete) {
       if (assignedPath === 'character') {
         router.replace('/(onboarding)/character-creator');
-      } else if (assignedPath === 'survey') {
+      } else if (assignedPath === 'personality') {
         router.replace('/(onboarding)/personality-test');
       }
     }
@@ -293,23 +219,7 @@ const ArchiveOnboardingScreen: React.FC = () => {
       <StatusBar barStyle="light-content" backgroundColor="#0a0b0f" />
 
       <View style={onboardingStyles.backgroundContainer}>
-        <View style={onboardingStyles.floatingElements}>
-          <FloatingElement delay={0} duration={5000} translateY={20}>
-            <Text style={[onboardingStyles.floatingIcon, { left: '5%', top: '10%' }]}>📚</Text>
-          </FloatingElement>
-          <FloatingElement delay={1500} duration={4000} translateY={15}>
-            <Text style={[onboardingStyles.floatingIcon, { right: '10%', top: '15%' }]}>✨</Text>
-          </FloatingElement>
-          <FloatingElement delay={3000} duration={6000} translateY={25}>
-            <Text style={[onboardingStyles.floatingIcon, { left: '15%', top: '70%' }]}>🕯️</Text>
-          </FloatingElement>
-          <FloatingElement delay={2000} duration={4500} translateY={18}>
-            <Text style={[onboardingStyles.floatingIcon, { right: '20%', top: '60%' }]}>🔮</Text>
-          </FloatingElement>
-          <FloatingElement delay={4000} duration={3500} translateY={22}>
-            <Text style={[onboardingStyles.floatingIcon, { left: '80%', top: '30%' }]}>📖</Text>
-          </FloatingElement>
-        </View>
+
 
         <View style={onboardingStyles.gradientOverlay} />
       </View>
@@ -321,7 +231,7 @@ const ArchiveOnboardingScreen: React.FC = () => {
       >
         <View style={onboardingStyles.header}>
           <Text style={onboardingStyles.archiveTitle}>THE ARCHIVE</Text>
-          <Text style={onboardingStyles.archiveSubtitle}>Gateway to Inner Wisdom</Text>
+          <Text style={onboardingStyles.archiveSubtitle}>A story-driven space to practice handling stress</Text>
           <View style={onboardingStyles.decorativeLine} />
         </View>
 
@@ -329,7 +239,7 @@ const ArchiveOnboardingScreen: React.FC = () => {
           <View style={onboardingStyles.curatorSection}>
             <View style={onboardingStyles.curatorCard}>
               <View style={onboardingStyles.curatorHeader}>
-                <Text style={onboardingStyles.curatorAvatar}>🧙‍♂️</Text>
+                <Text style={onboardingStyles.curatorAvatar}>🐈‍⬛</Text>
                 <View style={onboardingStyles.curatorInfo}>
                   <Text style={onboardingStyles.curatorName}>The Curator Speaks</Text>
                   <Text style={onboardingStyles.curatorTitle}>Guardian of The Archive</Text>
@@ -338,10 +248,10 @@ const ArchiveOnboardingScreen: React.FC = () => {
               
               <View style={onboardingStyles.curatorMessage}>
                 <Text style={onboardingStyles.curatorText}>
-                  "Welcome, brave Scholar, to The Archive's threshold. Before you lie two sacred paths, 
-                  each leading to mastery over the storms of stress and the shadows of uncertainty. 
-                  Choose wisely, for your path will shape how you discover the coping wisdom that 
-                  lies dormant within your mind."
+                  "You look tired, Scholar. The kind of tired that sleep alone does not fix.
+                    This is The Archive, a living library built from your memories, worries, and 
+                    almost-breakdowns. Here, worry reshapes itself into myth. Nothing hunts you here. Nothing judges you.
+                    You only explore."
                 </Text>
               </View>
               
@@ -372,9 +282,9 @@ const ArchiveOnboardingScreen: React.FC = () => {
                 onboardingStyles={onboardingStyles}
               />
               <PathCard 
-                pathKey="survey" 
-                pathData={ArchivePaths.survey}
-                isSelected={selectedPath === 'survey'}
+                pathKey="personality" 
+                pathData={ArchivePaths.personality}
+                isSelected={selectedPath === 'personality'}
                 onSelect={handlePathSelect}
                 onChoose={handlePathChoice}
                 isLoading={isLoading}
@@ -386,11 +296,10 @@ const ArchiveOnboardingScreen: React.FC = () => {
 
         <View style={onboardingStyles.footer}>
           <Text style={onboardingStyles.footerText}>
-            "Every scholar's journey begins with a single choice, 
-            but wisdom lies in understanding that all paths lead to growth."
+            "Do not spoil what you have by desiring what you have not; remember that what you now have was once among the things you only hoped for."
           </Text>
           <Text style={onboardingStyles.footerSignature}>
-            ~ The Curator's First Teaching
+            ~ Epicurus
           </Text>
         </View>
       </ScrollView>

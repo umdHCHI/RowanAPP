@@ -45,11 +45,12 @@ export const useArchive = () => {
 interface ArchiveProviderProps {
   children: ReactNode;
   memoryStories: Story[];
-  researchCondition: 'character' | 'survey' | 'unknown';
+  researchCondition: 'character' | 'personality' | 'unknown';
   authToken?: string | null;
   onGainExperience?: (amount: number, source?: string) => Promise<void>;
   onGainLumens?: (amount: number, source?: string) => Promise<void>;
   onGainWellness?: (gains: Record<string, number>) => Promise<void>;
+  onGainResonance?: (amount: number, source?: string) => Promise<void>;
   onLoadHomeData?: () => Promise<void>;
 }
 
@@ -59,6 +60,7 @@ export const ArchiveProvider: React.FC<ArchiveProviderProps> = ({
   researchCondition,
   authToken,
   onGainExperience,
+  onGainResonance,
   onGainLumens,
   onGainWellness,
   onLoadHomeData,
@@ -406,7 +408,7 @@ export const ArchiveProvider: React.FC<ArchiveProviderProps> = ({
             } else if (onGainWellness) {
               onGainWellness({ [stat]: value });
             }
-          } else if (researchCondition === 'survey') {
+          } else if (researchCondition === 'personality') {
             if (stat === 'experience' && onGainExperience) {
               onGainExperience(value, `story_${rewardTracker.storyId}`);
             } else if (stat === 'lumens' && onGainLumens) {
@@ -434,7 +436,7 @@ export const ArchiveProvider: React.FC<ArchiveProviderProps> = ({
             description: `Equipment earned from story completion`,
             rarity: 'Common' as any,
           });
-        } else if (researchCondition === 'survey') {
+        } else if (researchCondition === 'personality') {
           handleArtifactUnlock({
             name: reward,
             type: 'coping_tool',

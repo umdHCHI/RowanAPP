@@ -1,8 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import type { CodexContentRef } from '../../components/personality';
+import { Alert, Animated, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMasterState } from '../../context/MasterStateContext';
+import { usePersonalityHomeData } from '../../hooks/usePersonalityHomeData';
+import { createGlobalStyles, PersonalityConfigs } from '../../imports';
+import type { CodexContentRef } from '../personality';
 import {
   CodexContent,
   CopingToolsCollection,
@@ -12,13 +15,10 @@ import {
   TabNavigation,
   ThoughtDefenderContent,
   WellnessAttributesDisplay
-} from '../../components/personality';
-import PersonalizedArchiveHeader from '../../components/personality/PersonalizedArchiveHeader';
-import CodexModal from '../../components/shared/CodexModal';
-import ThoughtDefenderModal from '../../components/shared/ThoughtDefenderModal';
-import { useMasterState } from '../../context/MasterStateContext';
-import { usePersonalityHomeData } from '../../hooks/usePersonalityHomeData';
-import { createGlobalStyles, PersonalityConfigs } from '../../imports';
+} from '../personality';
+import PersonalizedArchiveHeader from '../personality/PersonalizedArchiveHeader';
+import CodexModal from '../shared/CodexModal';
+import ThoughtDefenderModal from '../shared/ThoughtDefenderModal';
 
 import {
   getPersonalityCompletionMessage
@@ -316,7 +316,7 @@ const TUTORIAL_STEPS = [
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+     <SafeAreaView style={{ flex: 1, backgroundColor: "#181A20" }}>
       <StatusBar barStyle="light-content" backgroundColor="#181A20" />
 
       <PersonalizedArchiveHeader
@@ -458,7 +458,7 @@ const TUTORIAL_STEPS = [
       )}
 
         {activeTab === 'restoration' && (
-          <ScrollView style={styles.tabContent} contentContainerStyle={{ flexGrow: 1 }}>
+          <ScrollView style={{ flex: 1, backgroundColor: '#0a0b0f' }} contentContainerStyle={{ flexGrow: 1 }}>
             <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'restoration'}>
               <PersonalityRestoration
                 primaryTrait={primaryTrait}
@@ -589,7 +589,6 @@ const TUTORIAL_STEPS = [
           }
         }}
         selectedType={editingEntry?.entry_type || "journal"}
-        editingEntry={editingEntry}
       />
 
         <ThoughtDefenderModal
@@ -598,7 +597,6 @@ const TUTORIAL_STEPS = [
           onScoreUpdate={(data: any) => {}}
           primaryTrait={primaryTrait}
         />
-      </View>
     </SafeAreaView>
   );
 }

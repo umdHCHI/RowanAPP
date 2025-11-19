@@ -51,12 +51,12 @@ export {
 
 export { default as CharacterFrame } from './components/CharacterCreator/CharacterFrame';
 export { default as CharacterPreview } from './components/CharacterCreator/CharacterPreview';
-export { default as PersonalizedArchiveHeader } from './components/personality/PersonalizedArchiveHeader';
 export { default as FloatingIcon } from './components/rewards/FloatingIcon';
-export { default as CodexModal } from './components/shared/CodexModal';
-export { default as DrawingCanvas } from './components/shared/DrawingCanvas';
-export { default as ThoughtDefenderModal } from './components/shared/ThoughtDefenderModal';
 export { default as EquipmentModal } from './screens/characterStory/components/EquipmentModal';
+export { default as PersonalizedArchiveHeader } from './screens/personality/PersonalizedArchiveHeader';
+export { default as CodexModal } from './screens/shared/CodexModal';
+export { default as DrawingCanvas } from './screens/shared/DrawingCanvas';
+export { default as ThoughtDefenderModal } from './screens/shared/ThoughtDefenderModal';
 
 // ===== Character Creator Components =====
 export { CategorySelector } from './components/CharacterCreator/CategorySelector';

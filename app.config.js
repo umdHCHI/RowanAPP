@@ -72,11 +72,7 @@ export default ({ config }) => {
       bundleIdentifier: "com.roesorcerer.thearchivethesisproject",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-<<<<<<< HEAD
-        NSMicrophoneUsageDescription: "This app needs access to your microphone to record voice journal entries."
-=======
         NSMicrophoneUsageDescription: "The Archive needs access to your microphone to record voice journal entries."
->>>>>>> prodOne
       }
     },
     android: {

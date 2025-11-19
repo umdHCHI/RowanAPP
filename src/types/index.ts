@@ -44,7 +44,7 @@ export {
 
 // Game types
 export type {
-    ExtendedGameData, GameAchievement, GameSession, MiniGameProgress, Skill
+    ExtendedGameData, GameAchievement, GameSession, MiniGameProgress, PathCardProps, PathData, PathType, Skill
 } from './game';
 
 // Journal types
@@ -109,3 +109,9 @@ export type {
     WellnessAttributesDisplayProps
 } from './wellness';
 
+
+//floating elements for rewards 
+
+export type {
+    FloatingElementProps
+} from './floatingElements';

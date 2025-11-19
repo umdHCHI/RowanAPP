@@ -49,3 +49,33 @@ export interface MiniGameProgress {
   drawingEntries: number;
   totalGameTime: number;
 }
+
+
+//chosing a path
+export interface PathData {
+  icon: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  curatorNote: string;
+  benefits: string[];
+  atmosphere: string;
+  color: string;
+  secondaryColor: string;
+  gradientColors: string[];
+  buttonText: string;
+  journey: string;
+}
+
+export type PathType = 'character' | 'personality';
+
+export interface PathCardProps {
+  
+  pathKey: PathType;
+  pathData: PathData;
+  isSelected: boolean;
+  onSelect: (pathKey: PathType) => void;
+  onChoose: (pathType: PathType) => Promise<void>;
+  isLoading: boolean;
+  onboardingStyles: any;
+}

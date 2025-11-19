@@ -6,8 +6,8 @@ import { PersonalityKey } from '../../imports';
 import { apiService } from '../../services/apiService';
 import { CodexEntry } from '../../types/journal';
 import RuneBackground from '../../ui/RuneBackground';
-import AudioPlayer from '../AudioPlayer'; // You need to create this
-import DrawingViewer from '../DrawingViewer'; // You need to create this
+import AudioPlayer from '../shared/AudioPlayer'; // You need to create this
+import DrawingViewer from '../shared/DrawingViewer'; // You need to create this
 
 interface CodexContentProps {
   onClose: () => void;

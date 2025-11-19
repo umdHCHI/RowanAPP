@@ -1,15 +1,22 @@
 export const ResearchConditions = {
-  A: {
-    avatars: ['⚔️', '🛡️', '🏹', '🔮', '⚡', '💥'],
-    titles: [
-      'Seeker of Truths',
-      'Bearer of Burdens',
-      'Keeper of Bonds',
-      'Weaver of Change',
-      'Watcher Between Worlds',
-      'Marked by Fate'
+
+    avatars: [
+      require('../../../../assets/UI/assets/fc1001.png'),
+      require('../../../../assets/UI/assets/shieldwithblue.png'),
+      require('../../../../assets/UI/assets/fc1009.png'),
+      require('../../../../assets/UI/assets/purplebottle.png'),
+      require('../../../../assets/UI/assets/fc1015.png'),
+
     ],
-    theme: 'Character Creation Realm',
-    description: 'Forge your avatar and customize your path through The Archive'
-  }
+    titles: [
+      'Seeker of Doors',
+      'Binder of Pages',
+      'Voice of the Hall',
+      'Peace Weaver',
+      'Shadow Walker'
+    ],
+    description: [
+      'Stress Management Through Masked through the lensse of a story'
+    ]
+
 };

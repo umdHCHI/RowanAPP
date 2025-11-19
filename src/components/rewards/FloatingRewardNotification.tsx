@@ -1,11 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, StyleSheet, Text, View } from 'react-native';
-import { PersonalityWellnessAttributes } from '../imports';
+import { PersonalityWellnessAttributes } from '../../imports';
 
 interface FloatingRewardNotificationProps {
   visible: boolean;
   message: string;
-  type?: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
+  type?:  'experience' |'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
   icon?: string;
   iconImage?: any; // For PNG image assets
   statName?: string;
@@ -113,7 +113,7 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
 
         if (personalityAttributes) {
           const attribute = personalityAttributes.attributes.find(
-            attr => attr.wellnessProperty === wellnessProperty
+            (attr: any) => attr.wellnessProperty === wellnessProperty
           );
           if (attribute) {
             // Use personality-specific color with a darker border
@@ -149,18 +149,12 @@ const FloatingRewardNotification: React.FC<FloatingRewardNotificationProps> = ({
     }
     
     switch (type) {
-      case 'experience':
-        return {
-          backgroundColor: '#FFD700',
-          borderColor: '#FFA500',
-          icon: '⭐',
-          label: 'Lumens'
-        };
+
       case 'lumens':
         return {
           backgroundColor: '#FF6B6B',
           borderColor: '#FF5252',
-          icon: '🌟',
+          icon: '🌙',
           label: 'Lumens'
         };
       case 'item':

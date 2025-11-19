@@ -13,13 +13,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import FloatingRewardNotification from '../../components/rewards/FloatingRewardNotification';
 import { useMasterState } from "../../context/MasterStateContext";
 import { apiService } from '../../services/apiService';
 import fileUploadService from '../../services/fileUploadService';
 import { createGlobalStyles } from "../../styles/globalStyles";
 import { CodexModalProps, JournalPrompt } from "../../types";
 import { calculateJournalRewards } from '../../utils/rewardsUtils';
-import FloatingRewardNotification from './../rewards/FloatingRewardNotification';
 import DrawingCanvas from "./DrawingCanvas";
 import VoiceMemoRecorder from './VoiceMemoRecorder';
 const { width, height } = Dimensions.get("window");
@@ -30,8 +30,7 @@ const CodexModal = ({
   onSave,
   isFullScreen = false,
   selectedType = 'journal',
-  editingEntry,
-}: CodexModalProps & { isFullScreen?: boolean; editingEntry?: any }) => {
+}: CodexModalProps & { isFullScreen?: boolean }) => {
   const { wellness, archive, theme, character, auth } = useMasterState();
   const globalStyles = createGlobalStyles(theme.theme);
 
@@ -51,7 +50,7 @@ const CodexModal = ({
   const [rewardNotification, setRewardNotification] = useState<{
     visible: boolean;
     message: string;
-    type: 'experience' | 'item' | 'skill' | 'stat' | 'artifact';
+    type: 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest' | undefined;
     icon?: string;
     iconImage?: any;
     statName?: string;
@@ -60,47 +59,10 @@ const CodexModal = ({
     message: '',
     type: 'stat'
   });
-  const [isDrawing, setIsDrawing] = useState(false);
 
   useEffect(() => {
     setSelectedTypeState(selectedType);
   }, [selectedType]);
-
-  // Load editing entry data when modal opens in edit mode
-  useEffect(() => {
-    if (visible && editingEntry) {
-      setSelectedTypeState(editingEntry.entry_type || editingEntry.type || 'journal');
-      setpassages(editingEntry.content || '');
-
-      // If there's a prompt associated, try to set it
-      if (editingEntry.prompt_text) {
-        const matchingPrompt = wellness.categoryPrompts[editingEntry.entry_type || 'journal'];
-        if (matchingPrompt) {
-          setSelectedPrompt(matchingPrompt);
-        } else {
-          // Create a temporary prompt object from the entry data
-          setSelectedPrompt({
-            id: editingEntry.prompt || 0,
-            prompt_id: editingEntry.prompt_id || '',
-            text: editingEntry.prompt_text,
-            category: editingEntry.entry_type || 'journal',
-            skill_category: editingEntry.skill_category || 'General',
-            map_area: editingEntry.mapArea || 'entrance',
-            difficulty: editingEntry.difficulty || 'Beginner',
-            is_active: false,
-            requires_story: null,
-            unlocked_after_entries: 0,
-            created_at: editingEntry.created_at || '',
-            updated_at: editingEntry.updated_at || '',
-          } as JournalPrompt);
-        }
-      }
-    } else if (visible && !editingEntry) {
-      // Reset form when opening for new entry
-      setpassages('');
-      setDrawingPaths([]);
-    }
-  }, [visible, editingEntry]);
 
   useEffect(() => {
     if (visible) {
@@ -215,9 +177,7 @@ const CodexModal = ({
   const handleSave = async () => {
     if (selectedPrompt && hasContent) {
       try {
-        const isEditing = !!editingEntry;
-        let contentToSave = passages;
-        let entryType = selectedTypeState;
+        let contentToSave = selectedTypeState === 'journal' ? journalText : selectedTypeState === 'voice' ? voiceUri : '';
 
         // Handle voice recording upload
         if (selectedTypeState === 'voice' && voiceUri) {
@@ -230,8 +190,9 @@ const CodexModal = ({
               difficulty: selectedPrompt.difficulty,
             });
             contentToSave = uploadResult.file_url;
-          } catch {
-            contentToSave = passages;
+          } catch (error) {
+            console.error('Failed to save voice recording:', error);
+            contentToSave = voiceUri;
           }
         }
         
@@ -251,92 +212,68 @@ const CodexModal = ({
             } else {
               contentToSave = uploadResult.file_url;
             }
-          } catch {
+          } catch (error) {
+            console.error('Failed to save drawing:', error);
             contentToSave = JSON.stringify(drawingPaths);
           }
         }
 
         try {
+          const existingEntries = await apiService.getCodexEntriesByPrompt(selectedPrompt.id);
           let saveResult;
-
-          if (isEditing && editingEntry.id) {
-            // Update existing entry
-            saveResult = await apiService.updateCodexEntry(editingEntry.id, {
+          
+          if (existingEntries.length > 0) {
+            saveResult = await apiService.updateCodexEntry((existingEntries[0] as any).id, {
               content: contentToSave,
               entry_type: selectedTypeState
             });
           } else {
-            // Check if entry already exists for this prompt
-            const existingEntries = await apiService.getCodexEntriesByPrompt(selectedPrompt.id);
-
-            if (existingEntries.length > 0) {
-              saveResult = await apiService.updateCodexEntry((existingEntries[0] as any).id, {
-                content: contentToSave,
-                entry_type: selectedTypeState
-              });
-            } else {
-              saveResult = await wellness.quickJournalEntry(selectedPrompt.id, contentToSave, selectedTypeState);
-            }
+            saveResult = await wellness.quickJournalEntry(selectedPrompt.id, contentToSave, selectedTypeState);
           }
-
+          
           try {
-            // Only give rewards for new entries, not edits
-            if (!isEditing) {
-              const journalReward = calculateJournalRewards(
-                selectedTypeState,
-                selectedPrompt.skill_category,
-                selectedPrompt.difficulty
-              );
-
-              if (journalReward.experience > 0) {
-                await character.gainExperience(journalReward.experience, `journal_${selectedTypeState}`);
-              }
-
-              if (Object.keys(journalReward.wellnessStats).length > 0) {
-                const idFromContext = character.backendCharacter?.id ?? character.userProfileData?.character?.id;
-                if (!idFromContext) throw new Error('No character id to award wellness');
-
-                await apiService.gainWellness(idFromContext, journalReward.wellnessStats);
-
-                try {
-                  await wellness.loadHomeData?.();
-                } catch {
-                }
-              }
-
-              let rewardMessage = journalReward.message;
-              if (journalReward.experience > 0) {
-                rewardMessage += ` +${journalReward.experience} XP`;
-              }
-
-              const wellnessGainText = Object.entries(journalReward.wellnessStats)
-                .map(([stat, value]) => `${stat.charAt(0).toUpperCase() + stat.slice(1)} +${value}`)
-                .join(', ');
-
-              if (wellnessGainText) {
-                rewardMessage += ` | ${wellnessGainText}`;
-              }
-
-              setRewardNotification({
-                visible: true,
-                message: rewardMessage,
-                type: 'experience',
-                icon: '⭐'
-              });
-            } else {
-              // For edits, just show a success message
-              Alert.alert(
-                "Entry Updated",
-                "Your journal entry has been successfully updated.",
-                [{ text: "OK" }]
-              );
+            const journalReward = calculateJournalRewards(
+              selectedTypeState,
+              selectedPrompt.skill_category,
+              selectedPrompt.difficulty
+            );
+            
+            if (journalReward.experience > 0) {
+              await character.gainExperience(journalReward.experience, `journal_${selectedTypeState}`);
             }
+            
+            if (Object.keys(journalReward.wellnessStats).length > 0) {
+              const idFromContext = character.backendCharacter?.id ?? character.userProfileData?.character?.id;
+              if (!idFromContext) throw new Error('No character id to award wellness');
+              
+              await apiService.gainWellness(idFromContext, journalReward.wellnessStats);
+
+              await wellness.loadHomeData?.();
+            }
+            
+            let rewardMessage = journalReward.message;
+            if (journalReward.experience > 0) {
+              rewardMessage += ` +${journalReward.experience} XP`;
+            }
+            
+            const wellnessGainText = Object.entries(journalReward.wellnessStats)
+              .map(([stat, value]) => `${stat.charAt(0).toUpperCase() + stat.slice(1)} +${value}`)
+              .join(', ');
+            
+            if (wellnessGainText) {
+              rewardMessage += ` | ${wellnessGainText}`;
+            }
+            
+            setRewardNotification({
+              visible: true,
+              message: rewardMessage,
+              type: 'stat',
+              icon: '⭐'
+            });
           } catch {
             Alert.alert(
-              isEditing ? "Entry Updated" : "Entry Saved",
-              isEditing
-                ? "Your journal entry has been updated."
-                : "Your journal entry has been saved, but there was an issue applying rewards.",
+              "Entry Saved",
+              "Your journal entry has been saved, but there was an issue applying rewards.",
               [{ text: "OK" }]
             );
           }
@@ -372,12 +309,8 @@ const CodexModal = ({
           }
         }
 
-        try {
-          // Only mark prompt as inactive for new entries, not edits
-          if (!isEditing && selectedPrompt?.id) {
-            await wellness.markPromptInactive(selectedPrompt.id);
-          }
-        } catch {
+        if (selectedPrompt?.id) {
+          await wellness.markPromptInactive(selectedPrompt.id);
         }
 
         onSave({
@@ -436,10 +369,12 @@ const CodexModal = ({
             <View style={isFullScreen ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start' } : (isMobile ? { flex: 1, margin: 0, borderRadius: 0, justifyContent: 'flex-start', maxHeight: height - 40 } : globalStyles.codexModalpassages)}>
               <View style={[
                 isMobile ? { flex: 1, padding: 0 } : globalStyles.codexPixelBorder,
+                { pointerEvents: 'box-none' }
               ]}>
 
               <View style={[
                 isMobile ? { flex: 1, padding: 0 } : globalStyles.codexInnerpassages,
+                { pointerEvents: 'box-none' }
               ]}>
               <View
                 style={[
@@ -576,13 +511,11 @@ const CodexModal = ({
               </View>
 
               <ScrollView
-              <ScrollView
                 style={isMobile ? { flex: 1 } : { flex: 1 }}
                 contentContainerStyle={isMobile ? { flexGrow: 1 } : {}}
                 showsVerticalScrollIndicator={true}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={true}
-                scrollEnabled={!isDrawing}
                 scrollEnabled={!isDrawing}
               >
                 <View style={isMobile ? { flexDirection: 'column', minHeight: 0 } : globalStyles.codexpassagesContainer}>
@@ -1039,8 +972,6 @@ const CodexModal = ({
                     }}>
                       <DrawingCanvas
                         hideButtons={true}
-                        onDrawingStart={() => setIsDrawing(true)}
-                        onDrawingEnd={() => setIsDrawing(false)}
                         onStrokesChange={(paths) => {
                           try {
                             setDrawingPaths(paths);
