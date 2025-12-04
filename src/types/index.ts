@@ -70,10 +70,10 @@ export type {
 } from '../data/wellnessSystem';
 
 // Story types
-export type { ArchiveProgress, Chapter, ChapterPassage, ChapterSummary, Choice, LocalStoryProgress, MiniGameResult, NPC, Passage, SavedRewards, Story, StoryDetail, StoryProgress, StoryScreenProps, PassagesTabProps } from './story';
+export type { ArchiveProgress, Chapter, ChapterPassage, ChapterSummary, Choice, LocalStoryProgress, MiniGameResult, NPC, Passage, PassagesTabProps, SavedRewards, Story, StoryDetail, StoryProgress, StoryScreenProps } from './story';
 
 // MiniGame types
-export type { GameState, PowerUp, Projectile, Thought } from './thoughtGame';
+export type { DifficultyConfig, GameState, PowerUp, Projectile, Thought } from './thoughtGame';
 
 
 export type {
@@ -119,3 +119,4 @@ export type {
 export type {
     ProfileTabProps
 } from './characterHome';
+

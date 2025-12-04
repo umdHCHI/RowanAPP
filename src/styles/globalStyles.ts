@@ -3689,7 +3689,7 @@ export const getStoryStyles = (theme: ThemeColors): {[key: string]: any} => {
       marginBottom: 12,
     },
     centeredMessageText: {
-      fontSize: 14,
+      fontSize: 18,
       color: theme.archiveSubtext,
       textAlign: 'center',
       lineHeight: 20,
@@ -3792,6 +3792,7 @@ export const getStoryStyles = (theme: ThemeColors): {[key: string]: any} => {
     StoryMainpassages: {
       flex: 1,
       minHeight: 0,
+
     },
     StoryCurrentAtmosphere: {
       marginBottom: 12,

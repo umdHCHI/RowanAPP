@@ -7,7 +7,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import InlineRewardDisplay from "../../components/rewards/InlineRewardDisplay";
 import { useMasterState } from "../../context/MasterStateContext";
@@ -168,6 +168,68 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     storyId: story?.id,
     chapterId: chapter?.id,
   });
+
+  const resolveMediaSource = React.useCallback((image?: string | ImageSourcePropType | null) => {
+    if (!image) {
+      return undefined;
+    }
+
+    if (typeof image === 'number') {
+      return image;
+    }
+
+    if (typeof image === 'object' && 'uri' in image) {
+      return image as ImageSourcePropType;
+    }
+
+    const stringValue = image as string;
+    if (/^https?:\/\//i.test(stringValue) || stringValue.startsWith('data:')) {
+      return { uri: stringValue };
+    }
+
+    const sanitizedBase = apiBaseUrl.replace(/\/api\/?$/, '/');
+    const normalizedPath = stringValue.startsWith('/') ? stringValue.slice(1) : stringValue;
+    return { uri: `${sanitizedBase}${normalizedPath}` };
+  }, []);
+
+  const storyImageSource: ImageSourcePropType | undefined = React.useMemo(() => {
+    return resolveMediaSource(story?.image || undefined);
+  }, [resolveMediaSource, story?.image]);
+
+  const passageImageSource: ImageSourcePropType | undefined = React.useMemo(() => {
+    const passageMedia = currentPassage
+      ? (currentPassage as any).background_image || (currentPassage as any).speaker_image
+      : undefined;
+    return resolveMediaSource(passageMedia || undefined);
+  }, [resolveMediaSource, currentPassage]);
+
+  const renderImage = (
+    source: ImageSourcePropType | undefined,
+    options: { height?: number; marginBottom?: number; label?: string } = {}
+  ) => {
+    if (!source) {
+      return null;
+    }
+
+    const { height = 220, marginBottom = 18, label = `${story?.title || 'Story'} artwork` } = options;
+
+    return (
+      <Image
+        source={source}
+        style={{
+          width: '100%',
+          height,
+          borderRadius: 18,
+          marginBottom,
+          borderWidth: 1,
+          borderColor: 'rgba(212, 175, 55, 0.35)',
+          alignSelf: 'center'
+        }}
+        resizeMode="cover"
+        accessibilityLabel={label}
+      />
+    );
+  };
 
   useEffect(() => {
     if (visible && story?.id && isInitialized) {
@@ -333,6 +395,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       }
 
       rewardManager.handlePassageVisit(passageForRewards);
+      lastProcessedPassageRef.current = currentPassage.passage_id;
     }
   }, [currentPassage?.passage_id, rewardManager, isInitialized, primaryTrait]);
 

@@ -4,19 +4,17 @@ import {
   Dimensions,
   Image,
   Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { uiIcons } from "../../assets/ui/index";
 import { useMasterState } from "../../context/MasterStateContext";
+import { DIFFICULTY_LEVELS, POWER_UPS } from '../../data/archivePaths';
 import { convertGameDataToPerformance, useDDA } from "../../hooks/useDDA";
 import { useProgressLogger } from "../../hooks/useProgressLogger";
 import { apiService, TDifficulty } from "../../services/apiService";
-import { ThoughtDefenderRunDTO } from "../../types/thoughtDefender";
+import { DifficultyConfig, GameState, Projectile, Thought } from '../../types/index';
+import { ThoughtDefenderGameData, ThoughtDefenderRunDTO } from "../../types/thoughtDefender";
 import { GameData } from "../../types/user";
 import {
   formatThoughtDefenderRewardMessage,
@@ -349,17 +347,7 @@ const POWER_UPS = {
 interface ThoughtDefenderModalProps {
   visible: boolean;
   onClose: () => void;
-  onScoreUpdate?: (data: {
-    score: number;
-    level: number;
-    won: boolean;
-    difficulty: string;
-    accuracy: number;
-    missedShots: number;
-    dynamicDifficultyMultiplier: number;
-    shotsFired: number;
-    hits: number;
-  }) => void;
+  onScoreUpdate?: (data: ThoughtDefenderGameData) => void;
   isFullScreen?: boolean;
   primaryTrait?: string; // Optional prop for primary trait
 }
@@ -385,8 +373,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
   // Game data from API
   const [apiGameData, setApiGameData] = useState<GameData | null>(null);
   const [isLoadingGameData, setIsLoadingGameData] = useState<boolean>(false);
-  const rafRef = useRef<number | null>(null);
-  const lastTsRef = useRef<number | null>(null);
   const spawnAccRef = useRef<number>(0);
 
   useEffect(() => {
@@ -614,6 +600,40 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     return baseDifficulty;
   }, [selectedDifficulty, ddaState.lastResult, getAdaptiveModifiers]);
 
+  // Use optimized game loop hook (after getDifficultyConfig is defined)
+  useGameLoop({
+    gameStarted,
+    lives,
+    gameState,
+    thoughts,
+    projectiles,
+    setThoughts,
+    setProjectiles,
+    setScore,
+    setLives,
+    setHits,
+    setMissedShots,
+    setNegativeThoughtsCleared,
+    setGameState,
+    getDifficultyConfig,
+    logger,
+    level,
+    onThoughtDefeated: useCallback((thoughtText: string) => {
+      setUniqueThoughtsDefeated((prev) => new Set([...prev, thoughtText]));
+    }, []),
+    onEnemyDefeated: useCallback((position: { x: number; y: number }, text: string) => {
+      const id = ++confettiIdCounter.current;
+      setConfettiAnimations((prev) => [
+        ...prev,
+        { id, visible: true, position, text },
+      ]);
+      // Remove animation after it completes
+      setTimeout(() => {
+        setConfettiAnimations((prev) => prev.filter((anim) => anim.id !== id));
+      }, 1000);
+    }, []),
+  });
+
   // Check if player is doing "too well" and ramp up difficulty
   const checkDynamicDifficultyAdjustment = useCallback(() => {
     if (!gameStarted || lives <= 0) return;
@@ -765,13 +785,9 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     return difficulty.modifiers.waveTarget + levelBonus;
   }, [getDifficultyConfig, level]);
 
-  const handlePlayerMove = (x: number): void => {
-    const newX = Math.max(
-      0,
-      Math.min(GAME_WIDTH - PADDLE_WIDTH, x - PADDLE_WIDTH / 2)
-    );
-    setPlayerX(newX);
-  };
+  const handlePlayerMove = useCallback((x: number): void => {
+    setPlayerX(clampPlayerPosition(x - PADDLE_WIDTH / 2));
+  }, []);
 
   const shoot = useCallback((): void => {
     if (!canShoot) {
@@ -785,45 +801,16 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     const shootSpeed = gameState.fastShootActive ? 100 : 200;
     const projectileSpeed = 10; // Increased from 8 for snappier bullets
 
-    if (gameState.multiShotActive) {
-      const projectiles = [
-        {
-          id: ++projectileIdCounter.current,
-          x: playerX + PADDLE_WIDTH / 2 - 25,
-          y: GAME_HEIGHT - 60,
-          speed: projectileSpeed,
-        },
-        {
-          id: ++projectileIdCounter.current,
-          x: playerX + PADDLE_WIDTH / 2,
-          y: GAME_HEIGHT - 60,
-          speed: projectileSpeed,
-        },
-        {
-          id: ++projectileIdCounter.current,
-          x: playerX + PADDLE_WIDTH / 2 + 25,
-          y: GAME_HEIGHT - 60,
-          speed: projectileSpeed,
-        },
-      ];
+    const centerX = playerX + PADDLE_WIDTH / 2;
+    const newProjectiles: Projectile[] = gameState.multiShotActive
+      ? [
+          { id: ++gameStateRef.current.projectileIdCounter, x: centerX - 25, y: GAME_HEIGHT - 60, speed: projectileSpeed },
+          { id: ++gameStateRef.current.projectileIdCounter, x: centerX, y: GAME_HEIGHT - 60, speed: projectileSpeed },
+          { id: ++gameStateRef.current.projectileIdCounter, x: centerX + 25, y: GAME_HEIGHT - 60, speed: projectileSpeed },
+        ]
+      : [{ id: ++gameStateRef.current.projectileIdCounter, x: centerX, y: GAME_HEIGHT - 60, speed: projectileSpeed }];
 
-      setProjectiles((prev) => {
-        const updated = [...prev, ...projectiles];
-        return updated;
-      });
-    } else {
-      const newProjectile: Projectile = {
-        id: ++projectileIdCounter.current,
-        x: playerX + PADDLE_WIDTH / 2,
-        y: GAME_HEIGHT - 60,
-        speed: projectileSpeed,
-      };
-
-      setProjectiles((prev) => {
-        const updated = [...prev, newProjectile];
-        return updated;
-      });
-    }
+    setProjectiles((prev) => [...prev, ...newProjectiles]);
 
     setShotsFired((prev) => prev + (gameState.multiShotActive ? 3 : 1)); //might eed to compute from projectiles
     setCanShoot(false);
@@ -924,11 +911,11 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       : 2 + Math.random() * difficulty.modifiers.thoughtSpeed;
 
     const levelSpeed = baseSpeed * levelMultiplier;
-    // Apply dynamic difficulty multiplier if player is dominating
-    const finalSpeed = levelSpeed * dynamicDifficultyRef.current;
+    // Apply dynamic difficulty multiplier if player is dominating (but cap it lower)
+    const finalSpeed = levelSpeed * Math.min(gameStateRef.current.dynamicDifficultyMultiplier, 1.2);
 
     const newThought: Thought = {
-      id: ++thoughtIdCounter.current,
+      id: ++gameStateRef.current.thoughtIdCounter,
       text,
       isPositive,
       x: Math.random() * (GAME_WIDTH - 120),
@@ -1135,7 +1122,6 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       fastShootActive: false,
       waveComplete: false,
     });
-    setActivePowerUps([]);
     setGameStarted(true);
     setShowDifficultySelect(false);
 
@@ -1152,6 +1138,8 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     setDynamicDifficultyMultiplier(1.0);
     setLastDifficultyRamp(0);
     setShowDifficultyRampNotification(false);
+    gameStateRef.current.thoughtIdCounter = 0;
+    gameStateRef.current.projectileIdCounter = 0;
 
     const difficultyName: TDifficulty = DIFFICULTY_LEVELS[selectedDifficulty]
       .name as TDifficulty;
@@ -1159,7 +1147,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     logger.waveStart(1);
   }, [selectedDifficulty, getDifficultyConfig, getAdaptiveDifficulty, logger]);
 
-  const checkWinCondition = useCallback((): void => {
+  const checkWinCondition = useCallback(async (): Promise<void> => {
     const difficulty = getDifficultyConfig();
     const currentWaveTarget = getCurrentWaveTarget();
 
@@ -1171,7 +1159,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
       );
 
       if (level >= difficulty.modifiers.maxLevels) {
-        if (gameEndedRef.current) {
+        if (gameStateRef.current.gameEnded) {
           return;
         }
         gameEndedRef.current = true;
@@ -1299,6 +1287,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
           // Delay showing rewards so player can see final game state
           setTimeout(() => {
+            const defeatedList = Array.from(uniqueThoughtsDefeated);
+            const collectedList = Array.from(uniqueThoughtsCollected);
+            const thoughtsSummary = defeatedList.length > 0 || collectedList.length > 0
+              ? `\n\n💭 THOUGHTS DEFEATED (${defeatedList.length}):\n${defeatedList.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\n💚 THOUGHTS COLLECTED (${collectedList.length}):\n${collectedList.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
+              : '';
+            
             Alert.alert(
               " You have overcome your negative thoughts! ",
               `${rewardMessage}\n\n Against all odds you have conquered the ${difficulty.name} difficulty, and overcome your negative thoughts. You are one step closer to tackling anything that comes your way ${homeData?.userProfile?.character?.name}.`,
@@ -1327,6 +1321,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
           // Delay showing rewards so player can see final game state
           setTimeout(() => {
+            const defeatedList = Array.from(uniqueThoughtsDefeated);
+            const collectedList = Array.from(uniqueThoughtsCollected);
+            const thoughtsSummary = defeatedList.length > 0 || collectedList.length > 0
+              ? `\n\n💭 THOUGHTS DEFEATED (${defeatedList.length}):\n${defeatedList.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\n💚 THOUGHTS COLLECTED (${collectedList.length}):\n${collectedList.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
+              : '';
+            
             Alert.alert(
               "You have overcome your negative thoughts!",
               `CONGRATULATIONS!\n\nDifficulty: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${homeData?.userProfile?.character?.level}\n\n🧠 YOU HAVE MASTERED YOUR MIND!`,
@@ -1372,19 +1372,13 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     ui,
   ]);
 
-  const endGame = useCallback((): void => {
-    if (gameEndedRef.current) {
+  const endGame = useCallback(async (): Promise<void> => {
+    if (gameStateRef.current.gameEnded) {
       return;
     }
     gameEndedRef.current = true;
 
     setGameStarted(false);
-
-    // Cancel RAF - handled by useEffect cleanup
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
 
     const difficulty = getDifficultyConfig();
 
@@ -1501,6 +1495,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
       // Delay showing rewards so player can see final game state
       setTimeout(() => {
+        const defeatedList = Array.from(uniqueThoughtsDefeated);
+        const collectedList = Array.from(uniqueThoughtsCollected);
+        const thoughtsSummary = defeatedList.length > 0 || collectedList.length > 0
+          ? `\n\n💭 THOUGHTS DEFEATED (${defeatedList.length}):\n${defeatedList.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\n💚 THOUGHTS COLLECTED (${collectedList.length}):\n${collectedList.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
+          : '';
+        
         Alert.alert(
           "💀 DEFEATED 💀",
           `The negative thoughts overwhelmed you!\n\nDIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\n${rewardMessage}\n\nEven in defeat, you've gained resilience. Try again!`,
@@ -1526,6 +1526,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
 
       // Delay showing rewards so player can see final game state
       setTimeout(() => {
+        const defeatedList = Array.from(uniqueThoughtsDefeated);
+        const collectedList = Array.from(uniqueThoughtsCollected);
+        const thoughtsSummary = defeatedList.length > 0 || collectedList.length > 0
+          ? `\n\n💭 THOUGHTS DEFEATED (${defeatedList.length}):\n${defeatedList.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\n💚 THOUGHTS COLLECTED (${collectedList.length}):\n${collectedList.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
+          : '';
+        
         Alert.alert(
           "💀 DEFEATED 💀",
           `The negative thoughts overwhelmed you!\n\nDIFFICULTY: ${difficulty.name}\nFINAL SCORE: ${score}\nLEVEL REACHED: ${level}\n\nKeep training your mental defenses and try again!`,
@@ -1580,15 +1586,17 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     // Apply dynamic difficulty - faster spawns if player is dominating
     levelSpawnMs = levelSpawnMs / dynamicDifficultyRef.current;
 
-    spawnAccRef.current += dtMs;
-    while (spawnAccRef.current >= levelSpawnMs) {
-      spawnThoughtRef.current();
-      spawnAccRef.current -= levelSpawnMs;
-    }
+      spawnAccRef.current += dtMs;
+      while (spawnAccRef.current >= levelSpawnMs) {
+        spawnThought();
+        spawnAccRef.current -= levelSpawnMs;
+      }
+    }, 100); // Check every 100ms for spawning
 
     rafRef.current = requestAnimationFrame(stepGame);
   }, []);
 
+  // Check win condition
   useEffect(() => {
     if (!gameStarted) return;
     checkWinCondition();
@@ -1611,6 +1619,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
     }
   }, [lives, gameStarted, endGame]);
 
+  // Reset when modal closes
   useEffect(() => {
     if (!visible) {
       setGameStarted(false);
@@ -1870,7 +1879,12 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
             ]}
           >
             {!gameStarted && showDifficultySelect ? (
-              renderDifficultySelect()
+              <DifficultySelect
+                selectedDifficulty={selectedDifficulty}
+                onSelectDifficulty={setSelectedDifficulty}
+                onStartGame={startGame}
+                onBack={() => setShowDifficultySelect(false)}
+              />
             ) : !gameStarted ? (
               // Start Screen
               <View
@@ -2117,22 +2131,11 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                   <TouchableOpacity
                     key={`thought-${thought.id}`}
                     style={[
-                      styles.thought,
+                      styles.thoughtSprite,
                       {
+                        position: "absolute",
                         left: thought.x,
                         top: thought.y,
-                        backgroundColor: thought.isPositive
-                          ? "#00ff41"
-                          : "#ff0041",
-                        borderColor: thought.isPositive ? "#00aa2a" : "#aa0020",
-                        borderWidth: thought.powerUpType ? 3 : 2,
-                        shadowColor: thought.powerUpType
-                          ? "#ffff00"
-                          : thought.isPositive
-                          ? "#00ff41"
-                          : "#ff0041",
-                        shadowOpacity: thought.powerUpType ? 1 : 0.8,
-                        shadowRadius: thought.powerUpType ? 12 : 0,
                       },
                     ]}
                     onPress={() => {
@@ -2162,8 +2165,7 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                           </Text>
                         )}
                       </View>
-                      <Text style={styles.thoughtText}>{thought.text}</Text>
-                    </View>
+                    )}
                   </TouchableOpacity>
                 ))}
 
@@ -2213,25 +2215,37 @@ const ThoughtDefenderModal: React.FC<ThoughtDefenderModalProps> = ({
                     }
                   }}
                 >
-                  <View style={styles.playerInner}>
-                    <Text style={styles.playerText}>🛡️</Text>
-                  </View>
+                  <Image
+                    source={require("../../../assets/thoughtDefender/user.png")}
+                    style={styles.playerSprite}
+                    resizeMode="contain"
+                  />
                 </View>
 
                 {/* Projectiles */}
                 {projectiles.map((projectile) => (
-                  <View
+                  <Image
                     key={`projectile-${projectile.id}`}
+                    source={require("../../../assets/thoughtDefender/projectile.png")}
                     style={[
-                      styles.projectile,
+                      styles.projectileSprite,
                       {
-                        left: projectile.x - 4,
-                        top: projectile.y - 4,
+                        left: projectile.x - 8,
+                        top: projectile.y - 8,
                       },
                     ]}
-                  >
-                    <Text style={styles.projectileText}>⚡</Text>
-                  </View>
+                    resizeMode="contain"
+                  />
+                ))}
+                
+                {/* Confetti Animations */}
+                {confettiAnimations.map((confetti) => (
+                  <ConfettiAnimation
+                    key={confetti.id}
+                    visible={confetti.visible}
+                    position={confetti.position}
+                    text={confetti.text}
+                  />
                 ))}
               </View>
             )}

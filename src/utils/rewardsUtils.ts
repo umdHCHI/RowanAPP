@@ -595,6 +595,11 @@ export function createNotificationFromEffects(
     statName?: string;
   }> = [];
 
+  const formatSignedValue = (value: number): string => {
+    if (value > 0) return `+${value}`;
+    return `${value}`;
+  };
+
   // Map stat names to frontend display names and icons
   // For PERSONALITY users: Use personality-specific wellness attribute labels (e.g., "Lantern of Focus", "Keeper's Breath")
   // For CHARACTER users: Use generic stat names (Awareness, Resilience, Connection, Balance)
@@ -729,7 +734,7 @@ export function createNotificationFromEffects(
         const rewardLabel = key === 'experience' ? 'Lumens' : 'Lumens';
         const icon = key === 'experience' ? '⭐' : '🌟';
         notifications.push({
-          message: `${sign}${numValue} ${rewardLabel}`,
+          message: `${formattedValue} ${rewardLabel}`,
           type: key as 'experience' | 'lumens',
           icon: icon
         });
@@ -750,7 +755,7 @@ export function createNotificationFromEffects(
         const iconText = isIconObject ? undefined : icon;
 
         notifications.push({
-          message: `${sign}${numValue} ${displayName}`,
+          message: `${formattedValue} ${displayName}`,
           type: 'stat',
           icon: iconText,
           iconImage: iconImage,
@@ -802,7 +807,7 @@ export function createNotificationFromEffects(
         const iconText = isIconObject ? undefined : icon;
 
         notifications.push({
-          message: `${sign}${numValue} ${displayName}`,
+          message: `${formattedValue} ${displayName}`,
           type: 'stat',
           icon: iconText,
           iconImage: iconImage,

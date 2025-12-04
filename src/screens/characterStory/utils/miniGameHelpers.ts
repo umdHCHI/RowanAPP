@@ -1,4 +1,5 @@
 import { Alert } from 'react-native';
+import { ThoughtDefenderGameData } from '../../../types/thoughtDefender';
 
 /**
  * ThoughtDefender game statistics type
@@ -12,21 +13,6 @@ export interface ThoughtDefenderStats {
   maxDynamicDifficulty: number;
   gamesWon: number;
   gamesLost: number;
-}
-
-/**
- * ThoughtDefender game completion data from modal
- */
-export interface ThoughtDefenderGameData {
-  score: number;
-  level: number;
-  won: boolean;
-  difficulty: string;
-  accuracy: number;
-  missedShots: number;
-  dynamicDifficultyMultiplier: number;
-  shotsFired: number;
-  hits: number;
 }
 
 /**

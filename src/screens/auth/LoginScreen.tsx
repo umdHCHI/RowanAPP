@@ -12,11 +12,11 @@ import {
   View,
 } from "react-native";
 
+import { FloatingElementProps } from "@/src/types";
 import { useMasterState } from "../../context/MasterStateContext";
 import { apiService } from "../../services/apiService";
 import { createLoginStyles } from "../../styles/screens/login";
 import { ResearchConditions } from "../characterStory/constants/researchConditions";
-import { FloatingElementProps } from "@/src/types";
 
 const FloatingElement = ({
   children,
@@ -184,6 +184,7 @@ export default function ArchiveLoginScreen() {
                       width: "100%",
                       height: 300,
                       marginBottom: 2,
+                      
                     }}
                   />
                 </View>

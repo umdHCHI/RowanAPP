@@ -1,14 +1,13 @@
 import React from "react";
+import { uiIcons } from "../../../assets/ui";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  LinearGradient,
   Icon,
   Image,
-  Story,
+  LinearGradient,
+  Text,
+  TouchableOpacity,
+  View
 } from "../../../imports";
-import { uiIcons } from "../../../assets/ui";
 import { PassagesTabProps } from "../../../types/story";
 
 export const PassagesTab: React.FC<PassagesTabProps> = ({
@@ -20,6 +19,8 @@ export const PassagesTab: React.FC<PassagesTabProps> = ({
   handleOpenStory,
 }) => {
   return (
+    <View>
+<Text style={homeStyles.message}>Hello </Text>
     <View style={homeStyles.tabpassagesArea}>
       <View style={storyStyles.centeredMessageContainer}>
         <View style={storyStyles.chronicleTopBorder} />
@@ -204,7 +205,9 @@ export const PassagesTab: React.FC<PassagesTabProps> = ({
             discover.
           </Text>
         </View>
+        
       )}
+    </View>
     </View>
   );
 };

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, AccessibilityInfo } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { AccessibilityInfo, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PersonalityConfigs, PersonalityKey } from '../../imports';
+import { ThoughtDefenderGameData } from '../../types/thoughtDefender';
 import RuneBackground from '../../ui/RuneBackground';
 
 interface ThoughtDefenderContentProps {
   onClose: () => void;
-  onScoreUpdate: (data: any) => void;
+  onScoreUpdate: (data: ThoughtDefenderGameData) => void;
   onStartGame: () => void;
   primaryTrait: PersonalityKey;
 }

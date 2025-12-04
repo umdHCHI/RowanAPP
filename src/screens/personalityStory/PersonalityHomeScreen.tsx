@@ -5,6 +5,7 @@ import { Alert, Animated, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet
 import { useMasterState } from '../../context/MasterStateContext';
 import { usePersonalityHomeData } from '../../hooks/usePersonalityHomeData';
 import { createGlobalStyles, PersonalityConfigs } from '../../imports';
+import { ThoughtDefenderGameData } from '../../types/thoughtDefender';
 import type { CodexContentRef } from '../personality';
 import {
   CodexContent,
@@ -449,7 +450,7 @@ const TUTORIAL_STEPS = [
           <TutorialHighlight isHighlighted={showTutorial && TUTORIAL_STEPS[currentTutorialStep]?.highlight === 'tools'}>
             <ThoughtDefenderContent
               onClose={() => setActiveTab('entrance')}
-              onScoreUpdate={(data: any) => {}}
+              onScoreUpdate={(data: ThoughtDefenderGameData) => {}}
               onStartGame={() => setShowThoughtDefenderModal(true)}
               primaryTrait={primaryTrait}
             />
@@ -594,7 +595,7 @@ const TUTORIAL_STEPS = [
         <ThoughtDefenderModal
           visible={showThoughtDefenderModal}
           onClose={() => setShowThoughtDefenderModal(false)}
-          onScoreUpdate={(data: any) => {}}
+          onScoreUpdate={(data: ThoughtDefenderGameData) => {}}
           primaryTrait={primaryTrait}
         />
     </SafeAreaView>

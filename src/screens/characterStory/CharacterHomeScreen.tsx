@@ -5,7 +5,6 @@ import { useMasterState } from "../../context/MasterStateContext";
 import {
   BlurView,
   CodexModal,
-  Dimensions,
   LinearGradient,
   ScrollView,
   StatusBar,
@@ -13,7 +12,7 @@ import {
   ThoughtDefenderModal,
   View,
   useEffect,
-  useState,
+  useState
 } from "../../imports";
 import EquipmentModal from "../../screens/characterStory/components/EquipmentModal";
 import { getStoryStyles } from "../../styles/globalStyles";
@@ -21,7 +20,6 @@ import { createCharacterHomeStyles } from "../../styles/screens/characterHome";
 import AttributeInfoModal from "./components/AttributeInfoModal";
 
 import { apiService } from "../../services/apiService";
-import { getResearchCondition } from "../../utils/researchCondition";
 import ChapterScreen from "./ChapterScreen";
 import { ArchiveHeader } from "./components/ArchiveHeader";
 import { TabButton } from "./components/TabButton";
@@ -239,7 +237,7 @@ const ArchiveInterface: React.FC = () => {
           icon: "⚖️",
           label: "Balance",
           value: (normalizedBackendCharacter as any).balance || 0,
-          color: "#F39C12"
+          color: "#F39C12" //this doesnt make sense to people MOVE 
         }
       ];
     }*/
@@ -251,25 +249,25 @@ const ArchiveInterface: React.FC = () => {
       const baseValue = Math.floor(wellnessAverage * 5);
       return [
         { 
-          icon: "🧘", 
+          icon: uiIcons.sectionIcons.awareness, 
           label: "Awareness", 
           value: baseValue, 
           color: "#4A90E2" 
         },
         { 
-          icon: "💪", 
+          icon: uiIcons.sectionIcons.resilience, 
           label: "Resilience", 
           value: baseValue, 
           color: "#2ECC71" 
         },
         { 
-          icon: "🤝", 
+          icon: uiIcons.sectionIcons.connection, 
           label: "Connection", 
           value: baseValue, 
           color: "#E74C3C" 
         },
         { 
-          icon: "⚖️", 
+          icon: uiIcons.sectionIcons.balance, 
           label: "Balance", 
           value: baseValue, 
           color: "#F39C12" 
@@ -547,6 +545,22 @@ const ArchiveInterface: React.FC = () => {
               isLoadingStories={isLoadingStories}
               apiService={apiService}
               ui={ui}
+            />
+          )}
+
+                    {ui.activeTab === "atrium" && (
+            <AtriumTab
+              homeStyles={homeStyles}
+              homeTheme={homeTheme}
+              wellness={wellness}
+              equipment={equipment}
+              character={character}
+              setShowEquipmentModal={setShowEquipmentModal}
+              openAttributeModal={openAttributeModal}
+              wellnessStatsForDisplay={wellnessStatsForDisplay}
+              auth={auth}
+              params={params}
+              isLoadingCharacterData={isLoadingCharacterData}
             />
           )}
         </ScrollView>
