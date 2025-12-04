@@ -1,8 +1,14 @@
-import React from 'react';
-import { uiIcons } from '../../../assets/ui';
-import { Icon, Image, LinearGradient, Text, TouchableOpacity, View } from '../../../imports';
-import { PassagesTabProps } from '../../../types/index';
-
+import React from "react";
+import { uiIcons } from "../../../assets/ui";
+import {
+  Icon,
+  Image,
+  LinearGradient,
+  Text,
+  TouchableOpacity,
+  View
+} from "../../../imports";
+import { PassagesTabProps } from "../../../types/story";
 
 export const PassagesTab: React.FC<PassagesTabProps> = ({
   homeStyles,
@@ -10,12 +16,21 @@ export const PassagesTab: React.FC<PassagesTabProps> = ({
   isLoadingStories,
   stories,
   archive,
-  handleOpenStory
+  handleOpenStory,
 }) => {
   return (
     <View>
 <Text style={homeStyles.message}>Hello </Text>
     <View style={homeStyles.tabpassagesArea}>
+      <View style={storyStyles.centeredMessageContainer}>
+        <View style={storyStyles.chronicleTopBorder} />
+        <Text style={storyStyles.chronicleTitle}>
+          Welcome to The Archive, a place to manage your stress and make sense
+          of your thoughts.
+        </Text>
+        <View style={storyStyles.chronicleBottomBorder} />
+      </View>
+
       {isLoadingStories ? (
         <View style={storyStyles.centeredMessageContainer}>
           <Icon
@@ -40,20 +55,25 @@ export const PassagesTab: React.FC<PassagesTabProps> = ({
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={[
-                "rgba(10, 11, 15, 0.95)",
-                "rgba(30, 41, 59, 0.8)",
-                "rgba(10, 11, 15, 0.95)",
-              ] as const}
-              style={[storyStyles.chronicleGradient, {
-                borderColor: '#d4af37',
-                borderWidth: 2,
-                shadowColor: '#d4af37',
-                shadowOffset: { width: 2, height: 6 },
-                shadowOpacity: 0.4,
-                shadowRadius: 12,
-                elevation: 12,
-              }]}
+              colors={
+                [
+                  "rgba(10, 11, 15, 0.95)",
+                  "rgba(30, 41, 59, 0.8)",
+                  "rgba(10, 11, 15, 0.95)",
+                ] as const
+              }
+              style={[
+                storyStyles.chronicleGradient,
+                {
+                  borderColor: "#d4af37",
+                  borderWidth: 2,
+                  shadowColor: "#d4af37",
+                  shadowOffset: { width: 2, height: 6 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 12,
+                  elevation: 12,
+                },
+              ]}
             >
               <View style={storyStyles.chronicleTopBorder} />
 
@@ -128,30 +148,41 @@ export const PassagesTab: React.FC<PassagesTabProps> = ({
 
               <View style={storyStyles.chronicleButton}>
                 <LinearGradient
-                  colors={["rgba(78, 230, 230, 0.4)", "rgba(6, 182, 212, 0.4)", "rgba(78, 230, 230, 0.4)"] as const}
-                  style={[storyStyles.chronicleButtonGradient, {
-                    shadowColor: 'rgba(78, 230, 230, 0.2)',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 4,
-                    elevation: 4,
-                  }]}
+                  colors={
+                    [
+                      "rgba(78, 230, 230, 0.4)",
+                      "rgba(6, 182, 212, 0.4)",
+                      "rgba(78, 230, 230, 0.4)",
+                    ] as const
+                  }
+                  style={[
+                    storyStyles.chronicleButtonGradient,
+                    {
+                      shadowColor: "rgba(78, 230, 230, 0.2)",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 4,
+                      elevation: 4,
+                    },
+                  ]}
                 >
                   <Image
                     source={uiIcons.sectionIcons.bookOpen}
                     style={{ width: 18, height: 18 }}
                     resizeMode="contain"
                   />
-                  <Text style={{
-                    ...storyStyles.chronicleButtonText,
-                    color: 'rgba(78, 230, 230, 0.9)',
-                    fontWeight: '600',
-                  }}>
+                  <Text
+                    style={{
+                      ...storyStyles.chronicleButtonText,
+                      color: "rgba(78, 230, 230, 0.9)",
+                      fontWeight: "600",
+                    }}
+                  >
                     {archive.completedStories.has(story?.id || "")
                       ? "Restart Exploration"
                       : story.exploration > 0
-                        ? "Resume Exploration"
-                        : "Enter Ancient Story"}
+                      ? "Resume Exploration"
+                      : "Enter Ancient Story"}
                   </Text>
                 </LinearGradient>
               </View>
@@ -170,8 +201,8 @@ export const PassagesTab: React.FC<PassagesTabProps> = ({
             No Stories Available
           </Text>
           <Text style={storyStyles.centeredMessageText}>
-            The Archive is currently empty. Check back later for new
-            wisdom to discover.
+            The Archive is currently empty. Check back later for new wisdom to
+            discover.
           </Text>
         </View>
         

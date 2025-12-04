@@ -30,6 +30,7 @@ export interface Story {
   exploration?: number;
   unlockLevel?: number;
   isLocked?: boolean;
+  backgroundImage?: any; // Background image asset for the story card
 }
 
 export interface Chapter {
@@ -280,4 +281,13 @@ export interface PassageApiResponse {
     is_completed: boolean;
     progress_percentage: number;
   };
+}
+
+export interface PassagesTabProps {
+  homeStyles: any;
+  storyStyles: any;
+  isLoadingStories: boolean;
+  stories: any[];
+  archive: any;
+  handleOpenStory: (story: Story) => void;
 }

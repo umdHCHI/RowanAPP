@@ -1,4 +1,4 @@
-import { uiIcons } from '../assets/ui';
+import { getAttributeImage, uiIcons } from '../assets';
 import { PersonalityWellnessAttributes } from '../imports';
 import { CopingTools, convertEquipmentToCopingTool } from '../types/personality';
 import {
@@ -728,7 +728,7 @@ export function createNotificationFromEffects(
 
     const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
     if (!isNaN(numValue) && numValue !== 0) {  // Changed from numValue > 0 to support negative values
-      const formattedValue = formatSignedValue(numValue);
+      const sign = numValue > 0 ? '+' : '';  // Add sign prefix
       if (key === 'experience' || key === 'lumens') {
         console.log(`      ✅ Adding ${key} notification: ${numValue}`);
         const rewardLabel = key === 'experience' ? 'Lumens' : 'Lumens';
@@ -743,11 +743,15 @@ export function createNotificationFromEffects(
         const icon = getStatIcon(key);
 
         // For personality users, icon might be an image object
-        // For character users, use iconImage from statImages
+        // For character users, use attribute images (more appealing than stat icons)
         const isIconObject = typeof icon === 'object';
-        const iconImage = isIconObject
-          ? icon
-          : (researchCondition === 'character' ? statImages[key] : undefined);
+        let iconImage = isIconObject ? icon : undefined;
+        
+        // Use attribute images for character users - these are more visually appealing
+        if (researchCondition === 'character' && !iconImage) {
+          iconImage = getAttributeImage(key, 3); // Use level 3 as a nice middle ground
+        }
+        
         const iconText = isIconObject ? undefined : icon;
 
         notifications.push({
@@ -790,7 +794,7 @@ export function createNotificationFromEffects(
 
       const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
       if (!isNaN(numValue) && numValue > 0) {
-        const formattedValue = formatSignedValue(numValue);
+        const sign = numValue > 0 ? '+' : '';  // Add sign prefix
         const displayName = getStatDisplayName(stat);
         const icon = getStatIcon(stat);
 

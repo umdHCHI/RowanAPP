@@ -100,9 +100,17 @@ export const sectionIcons: Record<string, any> = {
   passages: require('../../../assets/UI/assets/pagewithribbon.png'),
   inscriptions: require('../../../assets/UI/assets/openbook.png'),
   defender: require('../../../assets/UI/assets/fc1372.png'),
-  restoration: require('../../../assets/UI/assets/fc1309.png')
+  restoration: require('../../../assets/UI/assets/fc1309.png'),
 
-
+  // Curator character images
+  curator: require('../../../assets/UI/assets/thecurator/curator.png'),
+  curatorExcited: require('../../../assets/UI/assets/thecurator/curatorexcited.png'),
+  curatorPawUp: require('../../../assets/UI/assets/thecurator/curatorpawup.png'),
+  curatorWinking: require('../../../assets/UI/assets/thecurator/curatorwinking.png'),
+  curatorTalking: require('../../../assets/UI/assets/thecurator/curatortalking.png'),
+  curatorTired: require('../../../assets/UI/assets/thecurator/curatortired.png'),
+  curatorStretch: require('../../../assets/UI/assets/thecurator/curatorstretch.png'),
+  curatorGhost: require('../../../assets/UI/assets/thecurator/curator-ghost.gif'),
 };
 
 // Floating decorative elements - you can use your equipment icons for variety
@@ -151,3 +159,6 @@ export const RowanAvatar = require('../../../assets/ourAvatars/blobguy.gif');
 export const ReganAvatar = require('../../../assets/ourAvatars/regan.png');
 export const MattAvatar = require('../../../assets/ourAvatars/matt.png');
 
+// Background UI assets
+export const hauntedLibraryBackground = require('../../../assets/UI/backgrounds/hauntedlibrary.png');
+export const forestBackground = require('../../../assets/UI/backgrounds/forest.png');

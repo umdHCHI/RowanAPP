@@ -427,7 +427,7 @@ export const loginTheme: ThemeColors = {
 //Onboarding theme
 export const onboardingTheme: ThemeColors = {
   background: '#0a0b0f',
-  floatingIconColor:"#4ee6e6",
+
   gradientOverlayBackground:'rgba(10, 11, 15, 0.7)',
   avatarGlow:"#4ee6e6",
   gameTitle:"#4ee6e6",
@@ -477,7 +477,7 @@ export const personalitySurveyTheme: ThemeColors = {
   buttonTextColor: '#ffffff',
   modalOverlayBackground: 'rgba(0,0,0,0.5)',
   placeholderTextColor: '#9CA3AF',
-  floatingIconColor: '#4ee6e6',
+
   avatarGlow: '#4ee6e6',
   gameTitle: '#4ee6e6',
   gameTitleShadow: 'rgba(78, 230, 230, 0.5)',

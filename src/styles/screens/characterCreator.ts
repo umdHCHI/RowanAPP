@@ -29,12 +29,7 @@ export const createCharacterCreatorStyles = (theme: ThemeColors) => ({
     bottom: 0,
   } as ViewStyle,
 
-  floatingIcon: {
-    position: 'absolute',
-    fontSize: FONT_SIZES.xxl,
-    color: theme.archiveAccent || '#4ee6e6',
-    opacity: 0.3,
-  } as TextStyle,
+
 
   gradientOverlay: {
     position: 'absolute',

@@ -1,27 +1,24 @@
-import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
-  ImageSourcePropType,
+  ImageBackground,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View
-} from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
-import FloatingRewardNotification from '../../components/rewards/FloatingRewardNotification';
-import { useMasterState } from '../../context/MasterStateContext';
-import { usePersonality } from '../../context/PersonalityContext';
-import { useStoryEngine } from '../../hooks/useStoryEngine'; // Make sure this path is correct
-import { apiBaseUrl } from '../../services/apiConfig';
-import { apiService } from '../../services/apiService';
-import { createGlobalStyles } from '../../styles/globalStyles';
-import { Chapter, Choice, Passage, Story } from '../../types/story';
-import { getQuestInfo } from '../../utils/rewardsUtils';
-import { StoryRewardManager } from '../../utils/storyRewardIntegration';
+} from "react-native";
+import InlineRewardDisplay from "../../components/rewards/InlineRewardDisplay";
+import { useMasterState } from "../../context/MasterStateContext";
+import { usePersonality } from "../../context/PersonalityContext";
+import { useStoryEngine } from "../../hooks/useStoryEngine"; // Make sure this path is correct
+import { apiService } from "../../services/apiService";
+import { createGlobalStyles } from "../../styles/globalStyles";
+import { Chapter, Choice, Passage, Story } from "../../types/story";
+import { getQuestInfo } from "../../utils/rewardsUtils";
+import { StoryRewardManager } from "../../utils/storyRewardIntegration";
+import { getStoryBackground } from "./utils/storyBackgrounds";
 interface StoryScreenProps {
   visible: boolean;
   onClose: () => void;
@@ -35,7 +32,22 @@ interface StoryScreenProps {
   onStoryComplete?: (completionData: any) => void;
 }
 
-const storyBackgroundVideo = require('../../../assets/UI/background/blue-dust-bokeh-particles-floating-in-the-air-slow-motion-SBV-347233457-HD.mp4');
+/**
+ * StoryScreen - Interactive story display with persistent reward tracking system
+ *
+ * This screen displays interactive stories and includes an inline reward system
+ * that shows rewards directly within the story content and keeps them visible
+ * throughout the story session for easy progress tracking.
+ *
+ * Key features:
+ * - Persistent inline reward display integrated with story content
+ * - Accumulated reward tracking - rewards stay visible throughout the story
+ * - Reward queue system for smooth sequential animations
+ * - Personality-specific reward styling and images
+ * - Character user attribute images for visual appeal
+ * - Non-intrusive reward presentation that enhances the story experience
+ * - Rewards reset automatically when starting a new story
+ */
 
 const StoryScreen: React.FC<StoryScreenProps> = ({
   visible,
@@ -44,73 +56,100 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   chapter,
   onStoryComplete,
 }) => {
-    const {
-      theme,
-      auth,
-      onboarding,
-      character,
-      equipment,
-      archive,
-      ui,
-      wellness,
-    } = useMasterState();
-  const { primaryTrait, isPersonalityUser, isLoading: personalityLoading } = usePersonality();
+  const {
+    theme,
+    auth,
+    onboarding,
+    character,
+    equipment,
+    archive,
+    ui,
+    wellness,
+  } = useMasterState();
+  const {
+    primaryTrait,
+    isPersonalityUser,
+    isLoading: personalityLoading,
+  } = usePersonality();
   const globalStyles = createGlobalStyles(theme.theme);
- 
 
+  const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(
+    null
+  );
 
-  const [rewardManager, setRewardManager] = useState<StoryRewardManager | null>(null);
-  const [rewardNotification, setRewardNotification] = useState<{
-    visible: boolean;
-    message: string;
-    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
-    icon?: string;
-    iconImage?: any;
-    statName?: string;
-  }>({
-    visible: false,
-    message: '',
-    type: 'stat'
-  });
+  // Accumulated rewards display state
+  const [accumulatedRewards, setAccumulatedRewards] = useState<
+    Array<{
+      id: string;
+      message: string;
+      type:
+        | "experience"
+        | "lumens"
+        | "item"
+        | "skill"
+        | "stat"
+        | "artifact"
+        | "upgrade"
+        | "strengthen"
+        | "new"
+        | "quest";
+      icon?: string;
+      iconImage?: any;
+      statName?: string;
+      visible: boolean;
+    }>
+  >([]);
 
-  const [notificationQueue, setNotificationQueue] = useState<Array<{
-    message: string;
-    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
-    icon?: string;
-    iconImage?: any;
-    statName?: string;
-  }>>([]);
+  const [rewardQueue, setRewardQueue] = useState<
+    Array<{
+      message: string;
+      type:
+        | "experience"
+        | "lumens"
+        | "item"
+        | "skill"
+        | "stat"
+        | "artifact"
+        | "upgrade"
+        | "strengthen"
+        | "new"
+        | "quest";
+      icon?: string;
+      iconImage?: any;
+      statName?: string;
+    }>
+  >([]);
 
-  const [isShowingNotification, setIsShowingNotification] = useState(false);
+  const [isProcessingRewards, setIsProcessingRewards] = useState(false);
 
-
-  const notificationQueueRef = useRef<Array<{
-    message: string;
-    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest';
-    icon?: string;
-    iconImage?: any;
-    statName?: string;
-  }>>([]);
-  const isShowingNotificationRef = useRef(false);
-  const lastProcessedPassageRef = useRef<string | null>(null);
-  const videoRef = useRef<Video | null>(null);
+  const rewardQueueRef = useRef<
+    Array<{
+      message: string;
+      type:
+        | "experience"
+        | "lumens"
+        | "item"
+        | "skill"
+        | "stat"
+        | "artifact"
+        | "upgrade"
+        | "strengthen"
+        | "new"
+        | "quest";
+      icon?: string;
+      iconImage?: any;
+      statName?: string;
+    }>
+  >([]);
+  const isProcessingRewardsRef = useRef(false);
 
   useEffect(() => {
-    notificationQueueRef.current = notificationQueue;
-  }, [notificationQueue]);
+    rewardQueueRef.current = rewardQueue;
+  }, [rewardQueue]);
 
   useEffect(() => {
-    isShowingNotificationRef.current = isShowingNotification;
-  }, [isShowingNotification]);
-
-  useEffect(() => {
-    if (!visible) {
-      lastProcessedPassageRef.current = null;
-      videoRef.current?.pauseAsync().catch(() => {});
-    } else {
-      videoRef.current?.playAsync().catch(() => {});
-    }
-  }, [visible]);
+    isProcessingRewardsRef.current = isProcessingRewards;
+  }, [isProcessingRewards]);
 
   const {
     loading,
@@ -194,6 +233,11 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 
   useEffect(() => {
     if (visible && story?.id && isInitialized) {
+      // Clear accumulated rewards when starting a new story
+      setAccumulatedRewards([]);
+      setRewardQueue([]);
+      rewardQueueRef.current = [];
+
       const initializeRewardManager = async () => {
         const homeData = wellness.homeData as any; // Type assertion for flexible backend structure
 
@@ -213,16 +257,19 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
         // homeData structure: wellness.homeData.userProfile.profile.research_group.condition
 
         if (homeData?.userProfile?.profile?.research_group?.condition) {
-          researchCondition = homeData.userProfile.profile.research_group.condition === "A" ? "character" : "personality";
+          researchCondition =
+            homeData.userProfile.profile.research_group.condition === "A"
+              ? "character"
+              : "personality";
         } else {
           // Fallback: check completion_type
           const completionType = homeData?.userProfile?.completion_type;
           if (completionType) {
-            researchCondition = completionType === "character" ? "character" : "personality";
+            researchCondition =
+              completionType === "character" ? "character" : "personality";
           } else {
           }
         }
-
 
         // For personality users, wait until personality data is loaded
         if (researchCondition === "personality" && personalityLoading) {
@@ -236,50 +283,61 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
         }
 
         // Character ID: for character users (Group A)
-        const characterId = researchCondition === "character" ? (homeData?.userProfile?.character?.id || homeData?.character?.id || 0) : 0;
-
+        const characterId =
+          researchCondition === "character"
+            ? homeData?.userProfile?.character?.id ||
+              homeData?.character?.id ||
+              0
+            : 0;
 
         // Equipment array: only for character users
-        const equippedGear = researchCondition === "character" ? (homeData?.userProfile?.character?.equipped_gear || homeData?.character?.equipped_gear || []) : [];
-        
+        const equippedGear =
+          researchCondition === "character"
+            ? homeData?.userProfile?.character?.equipped_gear ||
+              homeData?.character?.equipped_gear ||
+              []
+            : [];
+
         const manager = new StoryRewardManager(
           story.id.toString(),
-          showRewardNotification,
+          addRewardToDisplay,
           handleStoryCompletionWithRewards,
           apiService,
-          characterId,       // Character users get their character ID, personality users get 0
-          equippedGear,      // Character users get their equipment array, personality users get []
-          0,                 // storyReplayCount
+          characterId, // Character users get their character ID, personality users get 0
+          equippedGear, // Character users get their equipment array, personality users get []
+          0, // storyReplayCount
           researchCondition, // "character" | "personality" - NOW in correct position
-          userId,            // Personality users get their user ID, character users get undefined
-          primaryTrait       // User's primary personality trait
+          userId, // Personality users get their user ID, character users get undefined
+          primaryTrait // User's primary personality trait
         );
         setRewardManager(manager);
-        
-        const storyProgress = await apiService.getOrCreateStoryProgress(story.id, {
-          current_passage_id: currentPassage?.passage_id || '',
-          story_variables: {}
-        });
+
+        const storyProgress = await apiService.getOrCreateStoryProgress(
+          story.id,
+          {
+            current_passage_id: currentPassage?.passage_id || "",
+            story_variables: {},
+          }
+        );
       };
-      
+
       initializeRewardManager();
     }
-  }, [visible, story?.id, chapter?.id, isInitialized, primaryTrait, personalityLoading, wellness.homeData]);
+  }, [
+    visible,
+    story?.id,
+    chapter?.id,
+    isInitialized,
+    primaryTrait,
+    personalityLoading,
+    wellness.homeData,
+  ]);
 
-  // Monitor reward notification state changes
-  useEffect(() => {
-  }, [rewardNotification]);
+  // Monitor accumulated rewards state changes
+  useEffect(() => {}, [accumulatedRewards]);
 
   useEffect(() => {
     if (rewardManager && currentPassage && isInitialized) {
-      if (!currentPassage.passage_id) {
-        return;
-      }
-
-      if (lastProcessedPassageRef.current === currentPassage.passage_id) {
-        return;
-      }
-
       const passageForRewards: Passage = {
         id: (currentPassage as any).id || 0,
         chapter: (currentPassage as any).chapter || null,
@@ -290,46 +348,42 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
         required_conditions: (currentPassage as any).required_conditions || {},
         story_effects: (currentPassage as any).story_effects || {},
         effects: (currentPassage as any).effects || {},
-        mood: (currentPassage as any).mood || '',
-        background_music: (currentPassage as any).background_music || '',
+        mood: (currentPassage as any).mood || "",
+        background_music: (currentPassage as any).background_music || "",
         background_image: (currentPassage as any).background_image || null,
         order: (currentPassage as any).order || 0,
         choices: (currentPassage.choices || []).map((choice: any) => ({
           id: choice.id,
           passage: (currentPassage as any).id || 0,
           text: choice.text,
-          target_id: choice.target_id || '',
+          target_id: choice.target_id || "",
           target_passage_id: choice.target_passage_id,
           next_passage: choice.next_passage,
           next_passage_id: choice.next_passage_id,
-          choice_type: choice.choice_type || 'normal',
+          choice_type: choice.choice_type || "normal",
           requirements: choice.requirements || {},
           effects: choice.effects || {},
           success_passage_id: choice.success_passage_id,
           failure_passage_id: choice.failure_passage_id,
           required_conditions: choice.required_conditions || {},
-          order: choice.order || 0
-        }))
+          order: choice.order || 0,
+        })),
       };
-
 
       const passageEffects = (currentPassage as any).story_effects || {};
       const questIds = passageEffects.quest_progress || passageEffects.quests;
 
       if (questIds && Array.isArray(questIds)) {
-
         const validQuests = questIds.filter((questId: string) => {
           const questInfo = getQuestInfo(questId);
           return questInfo && questInfo.personalityType === primaryTrait;
         });
 
-
-
         if (validQuests.length > 0) {
           passageForRewards.story_effects = {
             ...passageForRewards.story_effects,
             quest_progress: validQuests,
-            quests: validQuests  // Also update 'quests' field to match
+            quests: validQuests, // Also update 'quests' field to match
           };
         } else {
           // Remove both quest fields if no valid quests
@@ -339,82 +393,97 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           }
         }
       }
-      
+
       rewardManager.handlePassageVisit(passageForRewards);
       lastProcessedPassageRef.current = currentPassage.passage_id;
     }
   }, [currentPassage?.passage_id, rewardManager, isInitialized, primaryTrait]);
 
-  const showRewardNotification = (
+  const addRewardToDisplay = (
     message: string,
-    type: 'experience' | 'lumens' | 'item' | 'skill' | 'stat' | 'artifact' | 'upgrade' | 'strengthen' | 'new' | 'quest',
+    type:
+      | "experience"
+      | "lumens"
+      | "item"
+      | "skill"
+      | "stat"
+      | "artifact"
+      | "upgrade"
+      | "strengthen"
+      | "new"
+      | "quest",
     icon?: string,
     iconImage?: any,
     statName?: string
   ) => {
-
-    // Add to queue and update ref immediately
-    const newNotification = { message, type, icon, iconImage, statName };
-    setNotificationQueue(prev => {
-      const newQueue = [...prev, newNotification];
-      // Update ref immediately to avoid race condition
-      notificationQueueRef.current = newQueue;
+    // Add to queue first
+    const newReward = { message, type, icon, iconImage, statName };
+    setRewardQueue((prev) => {
+      const newQueue = [...prev, newReward];
+      rewardQueueRef.current = newQueue;
       return newQueue;
     });
 
-    if (!isShowingNotificationRef.current) {
+    // Process the queue if not already processing
+    if (!isProcessingRewardsRef.current) {
       setTimeout(() => {
-        processNotificationQueue();
+        processRewardQueue();
       }, 100);
-    } else {
     }
   };
 
-  const processNotificationQueue = () => {
-
-    if (isShowingNotificationRef.current) {
+  const processRewardQueue = () => {
+    if (isProcessingRewardsRef.current) {
       return;
     }
 
-    if (notificationQueueRef.current.length === 0) {
-      isShowingNotificationRef.current = false;
-      setIsShowingNotification(false);
+    if (rewardQueueRef.current.length === 0) {
+      isProcessingRewardsRef.current = false;
+      setIsProcessingRewards(false);
       return;
     }
 
-    // Set flag immediately to prevent concurrent execution
-    isShowingNotificationRef.current = true;
-    setIsShowingNotification(true);
+    // Set flag to prevent concurrent execution
+    isProcessingRewardsRef.current = true;
+    setIsProcessingRewards(true);
 
-    const nextNotification = notificationQueueRef.current[0];
+    const nextReward = rewardQueueRef.current[0];
 
-    // Remove from ref immediately to prevent duplicate processing
-    notificationQueueRef.current = notificationQueueRef.current.slice(1);
+    // Remove from queue
+    rewardQueueRef.current = rewardQueueRef.current.slice(1);
+    setRewardQueue((prev) => prev.slice(1));
 
-    setRewardNotification({
-      visible: true,
-      message: nextNotification.message,
-      type: nextNotification.type,
-      icon: nextNotification.icon,
-      iconImage: nextNotification.iconImage,
-      statName: nextNotification.statName
-    });
+    // Add to accumulated rewards with unique ID
+    const rewardId = `reward_${Date.now()}_${Math.random()}`;
+    const accumulatedReward = {
+      id: rewardId,
+      message: nextReward.message,
+      type: nextReward.type,
+      icon: nextReward.icon,
+      iconImage: nextReward.iconImage,
+      statName: nextReward.statName,
+      visible: false, // Start as hidden for animation
+    };
 
-    // Update state to match ref
-    setNotificationQueue(prev => {
-      const newQueue = prev.slice(1);
-      return newQueue;
-    });
-  };
+    setAccumulatedRewards((prev) => [...prev, accumulatedReward]);
 
-  const hideRewardNotification = () => {
-    setRewardNotification(prev => ({ ...prev, visible: false }));
-    setIsShowingNotification(false);
-
-    // Wait for hide animation (300ms) before processing next notification
+    // Trigger animation after a brief delay
     setTimeout(() => {
-      processNotificationQueue();
-    }, 400); // Wait 400ms for hide animation to complete
+      setAccumulatedRewards((prev) =>
+        prev.map((reward) =>
+          reward.id === rewardId ? { ...reward, visible: true } : reward
+        )
+      );
+    }, 100);
+  };
+
+  const onRewardAnimationComplete = () => {
+    // Continue processing the next reward in queue after animation completes
+    setTimeout(() => {
+      isProcessingRewardsRef.current = false;
+      setIsProcessingRewards(false);
+      processRewardQueue();
+    }, 200);
   };
 
   const handleStoryCompletionWithRewards = async (completionData: any) => {
@@ -427,14 +496,14 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     if (isEnding) {
       if (rewardManager) {
         const homeData = wellness.homeData as any; // Type assertion
-        
+
         const currentSavedRewards = {
           characterStats: homeData?.character ? [homeData.character] : [],
           totalExperience: homeData?.character?.experience || 0,
           wellnessStats: homeData?.character?.wellness_stats || {},
-          storiesCompleted: 0
+          storiesCompleted: 0,
         };
-        
+
         rewardManager.handleStoryCompletion(currentSavedRewards);
       } else {
         onStoryComplete?.({ storyId: story.id });
@@ -448,33 +517,50 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
         id: choice.id,
         passage: (currentPassage as any).id || 0,
         text: choice.text,
-        target_id: choice.target_id || '',
+        target_id: choice.target_id || "",
         target_passage_id: choice.target_passage_id,
         next_passage: choice.next_passage,
         next_passage_id: choice.next_passage_id,
-        choice_type: choice.choice_type || 'normal',
+        choice_type: choice.choice_type || "normal",
         requirements: choice.requirements || {},
         effects: choice.effects || {},
         success_passage_id: choice.success_passage_id,
         failure_passage_id: choice.failure_passage_id,
         required_conditions: choice.required_conditions || {},
-        order: choice.order || 0
+        order: choice.order || 0,
       };
-      
-      await rewardManager.handleChoiceMade(choiceForRewards, currentPassage.passage_id);
+
+      await rewardManager.handleChoiceMade(
+        choiceForRewards,
+        currentPassage.passage_id
+      );
     }
-    
+
     makeChoice(choice);
   };
-  
+
   const renderContent = () => {
     if (loading && !isInitialized) {
       return (
         <View style={globalStyles.centeredMessageContainer}>
           <ActivityIndicator size="large" color="#4ee6e6" />
-          <Text style={[globalStyles.centeredMessageTitle, { color: '#4ee6e6', textShadowColor: 'rgba(78, 230, 230, 0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }]}>Loading Story...</Text>
-          <Text style={[globalStyles.centeredMessageText, { color: '#d4af37' }]}>
-            Story ID: {story?.id}, Chapter ID: {story?.chapterId || 'None'}
+          <Text
+            style={[
+              globalStyles.centeredMessageTitle,
+              {
+                color: "#4ee6e6",
+                textShadowColor: "rgba(78, 230, 230, 0.5)",
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 4,
+              },
+            ]}
+          >
+            Loading Story...
+          </Text>
+          <Text
+            style={[globalStyles.centeredMessageText, { color: "#d4af37" }]}
+          >
+            Story ID: {story?.id}, Chapter ID: {story?.chapterId || "None"}
           </Text>
         </View>
       );
@@ -484,20 +570,41 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       return (
         <View style={globalStyles.centeredMessageContainer}>
           <Ionicons name="alert-circle-outline" size={40} color="#ef4444" />
-          <Text style={[globalStyles.centeredMessageTitle, { color: '#ef4444', textShadowColor: 'rgba(239, 68, 68, 0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }]}>Error Loading Story</Text>
-          <Text style={[globalStyles.centeredMessageText, { color: '#d4af37' }]}>{error}</Text>
-          <Text style={[globalStyles.centeredMessageText, { fontSize: 12, marginTop: 10, color: '#d4af37' }]}>
-            Story ID: {story?.id}, Chapter ID: {story?.chapterId || 'None'}
+          <Text
+            style={[
+              globalStyles.centeredMessageTitle,
+              {
+                color: "#ef4444",
+                textShadowColor: "rgba(239, 68, 68, 0.5)",
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 4,
+              },
+            ]}
+          >
+            Error Loading Story
           </Text>
-          <TouchableOpacity 
+          <Text
+            style={[globalStyles.centeredMessageText, { color: "#d4af37" }]}
+          >
+            {error}
+          </Text>
+          <Text
+            style={[
+              globalStyles.centeredMessageText,
+              { fontSize: 12, marginTop: 10, color: "#d4af37" },
+            ]}
+          >
+            Story ID: {story?.id}, Chapter ID: {story?.chapterId || "None"}
+          </Text>
+          <TouchableOpacity
             style={{
-              backgroundColor: 'rgba(42, 138, 138, 0.2)',
+              backgroundColor: "rgba(42, 138, 138, 0.2)",
               padding: 12,
               borderRadius: 8,
               marginTop: 16,
               borderWidth: 1,
-              borderColor: '#2a8a8a',
-              shadowColor: '#2a8a8a',
+              borderColor: "#2a8a8a",
+              shadowColor: "#2a8a8a",
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.3,
               shadowRadius: 4,
@@ -508,7 +615,13 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
               setTimeout(() => {}, 100);
             }}
           >
-            <Text style={{ color: '#ffffff', textAlign: 'center', fontWeight: '600' }}>
+            <Text
+              style={{
+                color: "#ffffff",
+                textAlign: "center",
+                fontWeight: "600",
+              }}
+            >
               Retry Loading
             </Text>
           </TouchableOpacity>
@@ -517,231 +630,280 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     }
 
     if (!currentPassage) {
-        return (
-                    <View style={globalStyles.centeredMessageContainer}>
-            <Text style={[globalStyles.centeredMessageTitle, { color: '#4ee6e6', textShadowColor: 'rgba(78, 230, 230, 0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }]}>Ready to begin.</Text>
-            <Text style={[globalStyles.centeredMessageText, { color: '#d4af37' }]}>
-              Story ID: {story?.id}, Chapter ID: {story?.chapterId || 'None'}
-            </Text>
-            {renderImage(storyImageSource)}
+      return (
+        <View style={globalStyles.centeredMessageContainer}>
+          <Text
+            style={[
+              globalStyles.centeredMessageTitle,
+              {
+                color: "#4ee6e6",
+                textShadowColor: "rgba(78, 230, 230, 0.5)",
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 4,
+              },
+            ]}
+          >
+            Ready to begin.
+          </Text>
+          <Text
+            style={[globalStyles.centeredMessageText, { color: "#d4af37" }]}
+          >
+            Story ID: {story?.id}, Chapter ID: {story?.chapterId || "None"}
+          </Text>
         </View>
-        );
+      );
     }
 
     const canTap = false; // Disable tapping on passage content when ending - use button instead
 
     return (
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingVertical: 20 }}>
-        <TouchableOpacity 
-          activeOpacity={canTap ? 0.7 : 1} 
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "space-between",
+          paddingVertical: 20,
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={canTap ? 0.7 : 1}
           onPress={handlePassageTap}
           style={{ padding: 20 }}
         >
-          {renderImage(passageImageSource, {
-            height: 180,
-            marginBottom: 16,
-            label: `${chapterTitle || 'Passage'} visual`
-          })}
-          {!passageImageSource && renderImage(storyImageSource, {
-            height: 200,
-            marginBottom: 16
-          })}
-          <Text style={[globalStyles.StoryPassageText, {
-            color: '#ffe066',
-            fontSize: 16,
-            lineHeight: 24,
-            textShadowColor: 'rgba(255, 224, 102, 0.3)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 2,
-          }]}>
+          <Text
+            style={[
+              globalStyles.StoryPassageText,
+              {
+                color: "#ffe066",
+                fontSize: 16,
+                lineHeight: 24,
+                textShadowColor: "rgba(255, 224, 102, 0.3)",
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 2,
+              },
+            ]}
+          >
             {currentPassage.content}
           </Text>
+
+          {/* Accumulated reward displays */}
+          {accumulatedRewards.map((reward) => (
+            <InlineRewardDisplay
+              key={reward.id}
+              visible={reward.visible}
+              message={reward.message}
+              type={reward.type}
+              icon={reward.icon}
+              iconImage={reward.iconImage}
+              statName={reward.statName}
+              personalityTrait={primaryTrait}
+              onComplete={onRewardAnimationComplete}
+            />
+          ))}
+
           {isEnding && (
             <TouchableOpacity
               style={{
-                backgroundColor: 'rgba(78, 230, 230, 0.2)',
+                backgroundColor: "rgba(78, 230, 230, 0.2)",
                 paddingVertical: 12,
                 paddingHorizontal: 24,
                 borderRadius: 25,
                 borderWidth: 2,
-                borderColor: '#4ee6e6',
-                shadowColor: '#4ee6e6',
+                borderColor: "#4ee6e6",
+                shadowColor: "#4ee6e6",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.4,
                 shadowRadius: 8,
                 elevation: 8,
                 marginTop: 20,
-                alignSelf: 'center',
+                alignSelf: "center",
                 minWidth: 200,
               }}
               onPress={handlePassageTap}
               activeOpacity={0.7}
             >
-              <Text style={{
-                color: '#4ee6e6',
-                fontSize: 16,
-                fontWeight: 'bold',
-                textAlign: 'center',
-                textShadowColor: 'rgba(78, 230, 230, 0.5)',
-                textShadowOffset: { width: 0, height: 2 },
-                textShadowRadius: 4,
-                letterSpacing: 1,
-              }}>
+              <Text
+                style={{
+                  color: "#4ee6e6",
+                  fontSize: 16,
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  textShadowColor: "rgba(78, 230, 230, 0.5)",
+                  textShadowOffset: { width: 0, height: 2 },
+                  textShadowRadius: 4,
+                  letterSpacing: 1,
+                }}
+              >
                 🏆 Complete Story
               </Text>
             </TouchableOpacity>
           )}
         </TouchableOpacity>
-        
+
         <View style={globalStyles.StoryChoicesContainer}>
-          {hasChoices && availableChoices.map((choice: any, index: number) => (
-            <TouchableOpacity
-              key={choice.id || index}
-              style={[globalStyles.StoryChoiceButton, {
-                backgroundColor: '#2a8a8a',
-                borderColor: '#2a8a8a',
-                borderWidth: 2,
-                shadowColor: '#2a8a8a',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.4,
-                shadowRadius: 8,
-                elevation: 8,
-                alignSelf: 'center',
-                marginRight: 20,
-                borderRadius: 20,
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-              }]}
-              onPress={() => handleChoiceSelect(choice)}
-              disabled={loading}
-            >
-              <Text style={[globalStyles.StoryChoiceText, {
-                color: '#ffffff',
-                fontWeight: 'bold',
-                fontSize: 16,
-              }]}>{choice.text}</Text>
-            </TouchableOpacity>
-          ))}
+          {hasChoices &&
+            availableChoices.map((choice: any, index: number) => (
+              <TouchableOpacity
+                key={choice.id || index}
+                style={[
+                  globalStyles.StoryChoiceButton,
+                  {
+                    backgroundColor: "#2a8a8a",
+                    borderColor: "#2a8a8a",
+                    borderWidth: 2,
+                    shadowColor: "#2a8a8a",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 8,
+                    elevation: 8,
+                    alignSelf: "center",
+                    marginRight: 20,
+                    borderRadius: 20,
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                  },
+                ]}
+                onPress={() => handleChoiceSelect(choice)}
+                disabled={loading}
+              >
+                <Text
+                  style={[
+                    globalStyles.StoryChoiceText,
+                    {
+                      color: "#ffffff",
+                      fontWeight: "bold",
+                      fontSize: 16,
+                    },
+                  ]}
+                >
+                  {choice.text}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </View>
       </ScrollView>
     );
   };
 
-  const chapterHeader = chapterTitle && chapterNumber ? 
-    `Chapter ${chapterNumber}: ${chapterTitle}` : 
-    'Chapter';
+  const chapterHeader =
+    chapterTitle && chapterNumber
+      ? `Chapter ${chapterNumber}: ${chapterTitle}`
+      : "Chapter";
 
   return (
-    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
-        <View style={globalStyles.StoryModalOverlay}>
-            <View style={[globalStyles.StoryModalpassages, {
-              borderColor: '#d4af37',
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={globalStyles.StoryModalOverlay}>
+        <View
+          style={[
+            globalStyles.StoryModalpassages,
+            {
+              borderColor: "#d4af37",
               borderWidth: 2,
-              shadowColor: '#d4af37',
+              shadowColor: "#d4af37",
               shadowOffset: { width: 2, height: 6 },
               shadowOpacity: 0.4,
               shadowRadius: 12,
-              elevation: 12
-            }]}>
-                <View style={[globalStyles.StoryHeader, {
-                  borderBottomColor: '#d4af37',
-                  borderBottomWidth: 2,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                }]}>
-                    <Text style={[globalStyles.StoryTitle, {
-                      color: '#4ee6e6',
+              elevation: 12,
+              overflow: "hidden",
+            },
+          ]}
+        >
+          <ImageBackground
+            source={getStoryBackground(story)}
+            style={{ flex: 1 }}
+            imageStyle={{
+              opacity: 0.4,
+              resizeMode: "cover",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(10, 11, 15, 0.8)",
+              }}
+            >
+              <View
+                style={[
+                  globalStyles.StoryHeader,
+                  {
+                    borderBottomColor: "#d4af37",
+                    borderBottomWidth: 2,
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    backgroundColor: "rgba(10, 11, 15, 0.9)",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    globalStyles.StoryTitle,
+                    {
+                      color: "#4ee6e6",
                       fontSize: 24,
-                      fontWeight: 'bold',
+                      fontWeight: "bold",
                       letterSpacing: 2,
-                      textShadowColor: 'rgba(78, 230, 230, 0.5)',
+                      textShadowColor: "rgba(78, 230, 230, 0.5)",
                       textShadowOffset: { width: 0, height: 2 },
                       textShadowRadius: 8,
                       flex: 1,
-                      textAlign: 'left',
-                    }]}>{chapterHeader}</Text>
-                    <TouchableOpacity 
-                      style={{
-                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                        padding: 8,
-                        borderRadius: 20,
-                        borderWidth: 2,
-                        borderColor: '#ef4444',
-                        shadowColor: '#ef4444',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.3,
-                        shadowRadius: 4,
-                        elevation: 4,
-                        width: 36,
-                        height: 36,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }} 
-                      onPress={onClose}
-                    >
-                        <Ionicons name="close" size={20} color="#EF4444" />
-                    </TouchableOpacity>
-                </View>
-                <View style={[globalStyles.StoryMainpassages, {
-                  backgroundColor: 'rgba(10, 11, 15, 0.95)',
-                  borderColor: '#d4af37',
-                  borderWidth: 1,
-                  shadowColor: '#d4af37',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 4,
-                  elevation: 4,
-                  overflow: 'hidden',
-                  position: 'relative'
-                }]}>
-                    <View pointerEvents="none" style={styles.videoBackgroundWrapper}>
-                      <Video
-                        ref={videoRef}
-                        source={storyBackgroundVideo}
-                        style={styles.videoBackground}
-                        resizeMode={ResizeMode.COVER}
-                        isLooping
-                        shouldPlay={visible}
-                        isMuted
-                      />
-                      <View style={styles.videoDimOverlay} />
-                    </View>
-                    <View style={{ position: 'relative', zIndex: 1 }}>
-                      {renderContent()}
-                    </View>
-                </View>
+                      textAlign: "left",
+                    },
+                  ]}
+                >
+                  {chapterHeader}
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "rgba(239, 68, 68, 0.2)",
+                    padding: 8,
+                    borderRadius: 20,
+                    borderWidth: 2,
+                    borderColor: "#ef4444",
+                    shadowColor: "#ef4444",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 4,
+                    elevation: 4,
+                    width: 36,
+                    height: 36,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                  onPress={onClose}
+                >
+                  <Ionicons name="close" size={20} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+              <View
+                style={[
+                  globalStyles.StoryMainpassages,
+                  {
+                    flex: 1,
+                    backgroundColor: "transparent",
+                    borderColor: "transparent",
+                    borderWidth: 0,
+                    shadowColor: "transparent",
+                    elevation: 0,
+                  },
+                ]}
+              >
+                {renderContent()}
+              </View>
             </View>
-            {/* Reward notification overlay - positioned at Modal level for proper z-index */}
-            <FloatingRewardNotification
-              visible={rewardNotification.visible}
-              message={rewardNotification.message}
-              type={rewardNotification.type}
-              icon={rewardNotification.icon}
-              iconImage={rewardNotification.iconImage}
-              statName={rewardNotification.statName}
-              onHide={hideRewardNotification}
-            />
+          </ImageBackground>
         </View>
+      </View>
     </Modal>
   );
 };
 
 export default StoryScreen;
-
-const styles = StyleSheet.create({
-  videoBackgroundWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: -1
-  },
-  videoBackground: {
-    width: '100%',
-    height: '100%'
-  },
-  videoDimOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(6, 8, 12, 0.65)'
-  }
-});

@@ -18,6 +18,9 @@ export const useStoryData = () => {
           ...story,
           exploration: progress?.progress_percentage || 0,
           revelations: progress?.choices_made_count || 0,
+          backgroundImage: story.id === 12 || story.id === '12' || story.title?.toLowerCase().includes('introduction') 
+            ? require('../../../../assets/UI/backgrounds/forest.png')
+            : require('../../../../assets/UI/backgrounds/hauntedlibrary.png')
         };
       });
 

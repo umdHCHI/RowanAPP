@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native';
+import React, { useState } from "react";
+import { SafeAreaView } from "react-native";
 import {
   ErrorDisplay,
   LoadingScreen,
@@ -7,19 +7,21 @@ import {
   SurveyHeader,
   SurveyIntroModal,
   SurveyNavigation,
-  SurveyProgress
-} from '../../components/survey';
-import { useMasterState } from '../../context/MasterStateContext';
-import { SURVEY_QUESTIONS } from '../../data/surveyQuestions';
-import { usePersonalitySurvey } from '../../hooks/usePersonalitySurvey';
-import { createPersonalitySurveyStyles } from '../../styles/screens/personalitySurvey';
+  SurveyProgress,
+} from "../../components/survey";
+import { useMasterState } from "../../context/MasterStateContext";
+import { SURVEY_QUESTIONS } from "../../data/surveyQuestions";
+import { usePersonalitySurvey } from "../../hooks/usePersonalitySurvey";
+import { createPersonalitySurveyStyles } from "../../styles/screens/personalitySurvey";
 
 export default function PersonalitySurveyScreen() {
   const { theme } = useMasterState();
-  const personalitySurveyStyles = createPersonalitySurveyStyles(theme.personalitySurveyTheme);
-  
+  const personalitySurveyStyles = createPersonalitySurveyStyles(
+    theme.personalitySurveyTheme
+  );
+
   const [modalVisible, setModalVisible] = useState(true);
-  
+
   const {
     currentQuestion,
     answers,
@@ -30,7 +32,7 @@ export default function PersonalitySurveyScreen() {
     handleNext,
     handleSkip,
     submitSurvey,
-    isOptionSelected
+    isOptionSelected,
   } = usePersonalitySurvey();
 
   const handleNextOrSubmit = () => {
@@ -90,10 +92,7 @@ export default function PersonalitySurveyScreen() {
           />
 
           {error && (
-            <ErrorDisplay 
-              error={error} 
-              styles={personalitySurveyStyles} 
-            />
+            <ErrorDisplay error={error} styles={personalitySurveyStyles} />
           )}
         </>
       )}

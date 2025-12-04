@@ -1,19 +1,15 @@
 
-import { Story } from './index';
 
-export interface ArchiveHeaderProps {
-  homeStyles: any;
-  wellness: any;
-  auth: any;
-  character: any;
-  startTutorial: () => void;
-}
-
-export interface PassagesTabProps {
-  homeStyles: any;
-  storyStyles: any;
-  isLoadingStories: boolean;
-  stories: any[];
-  archive: any;
-  handleOpenStory: (story: Story) => void;
-}
+export interface ProfileTabProps {
+    homeStyles: any;
+    homeTheme: any;
+    wellness: any;
+    equipment: any;
+    character: any;
+    setShowEquipmentModal: (show: boolean) => void;
+    openAttributeModal: (attr: any) => void;
+    wellnessStatsForDisplay: any[];
+    auth: any;
+    params: any;
+    isLoadingCharacterData: boolean;
+  }

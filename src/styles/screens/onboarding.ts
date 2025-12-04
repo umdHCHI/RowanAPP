@@ -28,12 +28,6 @@ export const createOnboardingStyles = (theme: ThemeColors = onboardingTheme) => 
     bottom: 0,
   } as ViewStyle,
 
-  floatingIcon: {
-    position: 'absolute',
-    fontSize: 28,
-    color: theme.floatingIconColor || onboardingTheme.floatingIconColor,
-    opacity: 0.4,
-  } as TextStyle,
 
   gradientOverlay: {
     position: 'absolute',
