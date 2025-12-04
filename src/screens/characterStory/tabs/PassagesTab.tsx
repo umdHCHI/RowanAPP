@@ -1,15 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, LinearGradient, Icon, Image, Story } from '../../../imports';
 import { uiIcons } from '../../../assets/ui';
+import { Icon, Image, LinearGradient, Text, TouchableOpacity, View } from '../../../imports';
+import { PassagesTabProps } from '../../../types/index';
 
-interface PassagesTabProps {
-  homeStyles: any;
-  storyStyles: any;
-  isLoadingStories: boolean;
-  stories: any[];
-  archive: any;
-  handleOpenStory: (story: Story) => void;
-}
 
 export const PassagesTab: React.FC<PassagesTabProps> = ({
   homeStyles,
@@ -20,6 +13,8 @@ export const PassagesTab: React.FC<PassagesTabProps> = ({
   handleOpenStory
 }) => {
   return (
+    <View>
+<Text style={homeStyles.message}>Hello </Text>
     <View style={homeStyles.tabpassagesArea}>
       {isLoadingStories ? (
         <View style={storyStyles.centeredMessageContainer}>
@@ -179,7 +174,9 @@ export const PassagesTab: React.FC<PassagesTabProps> = ({
             wisdom to discover.
           </Text>
         </View>
+        
       )}
+    </View>
     </View>
   );
 };

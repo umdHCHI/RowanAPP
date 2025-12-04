@@ -73,7 +73,7 @@ export type {
 export type { ArchiveProgress, Chapter, ChapterPassage, ChapterSummary, Choice, LocalStoryProgress, MiniGameResult, NPC, Passage, SavedRewards, Story, StoryDetail, StoryProgress, StoryScreenProps } from './story';
 
 // MiniGame types
-export type { GameState, PowerUp, Projectile, Thought } from './thoughtGame';
+export type { DifficultyConfig, GameState, PowerUp, Projectile, Thought } from './thoughtGame';
 
 
 export type {
@@ -115,3 +115,7 @@ export type {
 export type {
     FloatingElementProps
 } from './floatingElements';
+
+
+export type { ArchiveHeaderProps, PassagesTabProps } from "./characterHome";
+

@@ -164,8 +164,9 @@ export default function ArchiveLoginScreen() {
                     source={require('../../../assets/loginScreen/welcome.png')}
                     style={{
                       width: '100%',
-                      height: 300,
+                      height: 500,
                       marginBottom: 2,
+                      
                     }}
                   />
                 </View>

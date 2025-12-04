@@ -595,6 +595,11 @@ export function createNotificationFromEffects(
     statName?: string;
   }> = [];
 
+  const formatSignedValue = (value: number): string => {
+    if (value > 0) return `+${value}`;
+    return `${value}`;
+  };
+
   // Map stat names to frontend display names and icons
   // For PERSONALITY users: Use personality-specific wellness attribute labels (e.g., "Lantern of Focus", "Keeper's Breath")
   // For CHARACTER users: Use generic stat names (Awareness, Resilience, Connection, Balance)
@@ -723,13 +728,13 @@ export function createNotificationFromEffects(
 
     const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
     if (!isNaN(numValue) && numValue !== 0) {  // Changed from numValue > 0 to support negative values
+      const formattedValue = formatSignedValue(numValue);
       if (key === 'experience' || key === 'lumens') {
         console.log(`      ✅ Adding ${key} notification: ${numValue}`);
         const rewardLabel = key === 'experience' ? 'Lumens' : 'Lumens';
         const icon = key === 'experience' ? '⭐' : '🌟';
-        const sign = numValue > 0 ? '+' : '';  // Add sign prefix
         notifications.push({
-          message: `${sign}${numValue} ${rewardLabel}`,
+          message: `${formattedValue} ${rewardLabel}`,
           type: key as 'experience' | 'lumens',
           icon: icon
         });
@@ -746,7 +751,7 @@ export function createNotificationFromEffects(
         const iconText = isIconObject ? undefined : icon;
 
         notifications.push({
-          message: `${sign}${numValue} ${displayName}`,
+          message: `${formattedValue} ${displayName}`,
           type: 'stat',
           icon: iconText,
           iconImage: iconImage,
@@ -785,6 +790,7 @@ export function createNotificationFromEffects(
 
       const numValue = typeof value === 'number' ? value : parseInt(value as string, 10);
       if (!isNaN(numValue) && numValue > 0) {
+        const formattedValue = formatSignedValue(numValue);
         const displayName = getStatDisplayName(stat);
         const icon = getStatIcon(stat);
 
@@ -797,7 +803,7 @@ export function createNotificationFromEffects(
         const iconText = isIconObject ? undefined : icon;
 
         notifications.push({
-          message: `${sign}${numValue} ${displayName}`,
+          message: `${formattedValue} ${displayName}`,
           type: 'stat',
           icon: iconText,
           iconImage: iconImage,

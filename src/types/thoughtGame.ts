@@ -1,3 +1,6 @@
+// TypeScript Interfaces
+
+
 export interface Thought {
   id: number;
   text: string;
@@ -42,4 +45,21 @@ export interface GameState {
   shieldActive: boolean;
   multiShotActive: boolean;
   fastShootActive: boolean;
+  waveComplete: boolean;
+}
+
+export interface DifficultyConfig {
+  name: string;
+  icon: string;
+  modifiers: {
+    thoughtSpeed: number;
+    spawnRate: number;
+    negativeThoughtChance: number;
+    powerUpChance: number;
+    scoreMultiplier: number;
+    livesStart: number;
+    waveTarget: number;
+    levelScaling: number;
+    maxLevels: number;
+  };
 }

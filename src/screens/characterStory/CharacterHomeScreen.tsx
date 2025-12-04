@@ -21,7 +21,6 @@ import { createCharacterHomeStyles } from "../../styles/screens/characterHome";
 import AttributeInfoModal from "./components/AttributeInfoModal";
 
 import { apiService } from "../../services/apiService";
-import { getResearchCondition } from "../../utils/researchCondition";
 import ChapterScreen from "./ChapterScreen";
 import { ArchiveHeader } from './components/ArchiveHeader';
 import { TabButton } from './components/TabButton';
@@ -38,6 +37,7 @@ import StoryScreen from "./StoryScreen";
 import { AtriumTab, DefenderTab, InscriptionsTab, PassagesTab, RestorationTab } from './tabs';
 import { handleCodexEntrySubmission } from './utils/codexHelpers';
 import { selectProfileAndCharacter } from "./utils/profileHelpers";
+
 const { width, height } = Dimensions.get("window");
 
 
@@ -46,12 +46,10 @@ const ArchiveInterface: React.FC = () => {
   const {
     theme,
     auth,
-    onboarding,
     character,
     equipment,
     archive,
-    ui,
-    loading,
+    ui,    
     wellness
   } = useMasterState();
   const {
@@ -159,7 +157,7 @@ const ArchiveInterface: React.FC = () => {
 
     // Determine if this is a character user based on research_group.condition
     // homeData structure: wellness.homeData.userProfile.profile.research_group.condition
-    const isCharacterUser =
+    const isCharacterUser = //I think I might already have logic for this. Maybe move to MasterState? 
       (homeData as any)?.userProfile?.profile?.research_group?.condition === "A" ||
       (homeData as any)?.userProfile?.completion_type === "character";
 
@@ -220,8 +218,8 @@ const ArchiveInterface: React.FC = () => {
       ];
     }
 
-    // Check for personality stats (awareness, resilience, balance)
-    if (normalizedBackendCharacter && (
+    //  Check for personality stats (awareness, resilience, balance) //Not needed on this screen 
+    /*if (normalizedBackendCharacter && (
       (normalizedBackendCharacter as any).awareness !== undefined ||
       (normalizedBackendCharacter as any).resilience !== undefined ||
       (normalizedBackendCharacter as any).balance !== undefined
@@ -249,35 +247,35 @@ const ArchiveInterface: React.FC = () => {
           icon: "⚖️",
           label: "Balance",
           value: (normalizedBackendCharacter as any).balance || 0,
-          color: "#F39C12"
+          color: "#F39C12" //this doesnt make sense to people MOVE 
         }
       ];
-    }
+    }*/
     
     const wellnessAverage = (normalizedBackendCharacter as any)?.wellness_average || backendCharacterData?.wellness_average;
     if (wellnessAverage !== undefined) {
       const baseValue = Math.floor(wellnessAverage * 5);
       return [
         { 
-          icon: "🧘", 
+          icon: uiIcons.sectionIcons.awareness, 
           label: "Awareness", 
           value: baseValue, 
           color: "#4A90E2" 
         },
         { 
-          icon: "💪", 
+          icon: uiIcons.sectionIcons.resilience, 
           label: "Resilience", 
           value: baseValue, 
           color: "#2ECC71" 
         },
         { 
-          icon: "🤝", 
+          icon: uiIcons.sectionIcons.connection, 
           label: "Connection", 
           value: baseValue, 
           color: "#E74C3C" 
         },
         { 
-          icon: "⚖️", 
+          icon: uiIcons.sectionIcons.balance, 
           label: "Balance", 
           value: baseValue, 
           color: "#F39C12" 
@@ -287,7 +285,7 @@ const ArchiveInterface: React.FC = () => {
     
     // Determine user type based on research condition
     // Pass profile directly since we have it in this context
-    const researchCondition = getResearchCondition({ profile: userProfile });
+    /*const researchCondition = getResearchCondition({ profile: userProfile });
     const hasCompletionDataId = !!(userProfile?.completion_data_id || (normalizedBackendCharacter as any)?.completion_data_id);
 
     if (researchCondition === 'character' && hasCompletionDataId && !normalizedBackendCharacter && !backendCharacterData) {
@@ -318,7 +316,7 @@ const ArchiveInterface: React.FC = () => {
         }
       ];
     }
-    
+    */
     return archive.archiveFoundations;
   })();
 
@@ -424,9 +422,9 @@ const ArchiveInterface: React.FC = () => {
   }, [auth.authToken, auth.characterId]);
 
   useEffect(() => {
-    const validTabs = ["atrium", "passages", "inscriptions", "defender", "restoration"];
+    const validTabs = [ "passages", "atrium","inscriptions", "defender", "restoration"];
     if (!validTabs.includes(ui.activeTab)) {
-      ui.setActiveTab("atrium");
+      ui.setActiveTab("passages");
     }
   }, []);
 
@@ -505,19 +503,20 @@ const ArchiveInterface: React.FC = () => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={homeStyles.archiveTabScrollpassages}
               >
-                <TabButton
-                  title="The Atrium"
-                  icon={uiIcons.sectionIcons.atrium}
-                  isActive={ui.activeTab === "atrium"}
-                  onPress={() => ui.setActiveTab("atrium")}
-                  homeStyles={homeStyles}
-                  homeTheme={homeTheme}
-                />
+
                 <TabButton
                   title="Passages"
                   icon={uiIcons.sectionIcons.passages}
                   isActive={ui.activeTab === "passages"}
                   onPress={() => ui.setActiveTab("passages")}
+                  homeStyles={homeStyles}
+                  homeTheme={homeTheme}
+                />
+                <TabButton
+                  title="The Atrium"
+                  icon={uiIcons.sectionIcons.atrium}
+                  isActive={ui.activeTab === "atrium"}
+                  onPress={() => ui.setActiveTab("atrium")}
                   homeStyles={homeStyles}
                   homeTheme={homeTheme}
                 />
@@ -555,21 +554,6 @@ const ArchiveInterface: React.FC = () => {
           style={homeStyles.archiveTabpassagesContainer}
           showsVerticalScrollIndicator={false}
         >
-          {ui.activeTab === "atrium" && (
-            <AtriumTab
-              homeStyles={homeStyles}
-              homeTheme={homeTheme}
-              wellness={wellness}
-              equipment={equipment}
-              character={character}
-              setShowEquipmentModal={setShowEquipmentModal}
-              openAttributeModal={openAttributeModal}
-              wellnessStatsForDisplay={wellnessStatsForDisplay}
-              auth={auth}
-              params={params}
-              isLoadingCharacterData={isLoadingCharacterData}
-            />
-          )}
 
           {ui.activeTab === "passages" && (
             <PassagesTab
@@ -619,6 +603,22 @@ const ArchiveInterface: React.FC = () => {
               ui={ui}
             />
           )}
+
+                    {ui.activeTab === "atrium" && (
+            <AtriumTab
+              homeStyles={homeStyles}
+              homeTheme={homeTheme}
+              wellness={wellness}
+              equipment={equipment}
+              character={character}
+              setShowEquipmentModal={setShowEquipmentModal}
+              openAttributeModal={openAttributeModal}
+              wellnessStatsForDisplay={wellnessStatsForDisplay}
+              auth={auth}
+              params={params}
+              isLoadingCharacterData={isLoadingCharacterData}
+            />
+          )}
         </ScrollView>
       </View>
 
@@ -666,17 +666,7 @@ const ArchiveInterface: React.FC = () => {
       <ThoughtDefenderModal
           visible={ui.isThoughtDefenderVisible}
           onClose={() => ui.setIsThoughtDefenderVisible(false)}
-          onScoreUpdate={(data: { 
-            score: number; 
-            level: number; 
-            won: boolean;
-            difficulty: string;
-            accuracy: number;
-            missedShots: number;
-            dynamicDifficultyMultiplier: number;
-            shotsFired: number;
-            hits: number;
-          }) => handleMiniGameCompleteSubmit("thoughtDefender", data)}
+          onScoreUpdate={(data) => handleMiniGameCompleteSubmit("thoughtDefender", data)}
         />
       <EquipmentModal
         visible={showEquipmentModal}

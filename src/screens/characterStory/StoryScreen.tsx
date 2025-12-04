@@ -2,16 +2,21 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
+  ImageSourcePropType,
   Modal,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import FloatingRewardNotification from '../../components/rewards/FloatingRewardNotification';
 import { useMasterState } from '../../context/MasterStateContext';
 import { usePersonality } from '../../context/PersonalityContext';
 import { useStoryEngine } from '../../hooks/useStoryEngine'; // Make sure this path is correct
+import { apiBaseUrl } from '../../services/apiConfig';
 import { apiService } from '../../services/apiService';
 import { createGlobalStyles } from '../../styles/globalStyles';
 import { Chapter, Choice, Passage, Story } from '../../types/story';
@@ -29,6 +34,8 @@ interface StoryScreenProps {
   onSkillLearned: (skill: string) => void;
   onStoryComplete?: (completionData: any) => void;
 }
+
+const storyBackgroundVideo = require('../../../assets/UI/background/blue-dust-bokeh-particles-floating-in-the-air-slow-motion-SBV-347233457-HD.mp4');
 
 const StoryScreen: React.FC<StoryScreenProps> = ({
   visible,
@@ -85,6 +92,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     statName?: string;
   }>>([]);
   const isShowingNotificationRef = useRef(false);
+  const lastProcessedPassageRef = useRef<string | null>(null);
+  const videoRef = useRef<Video | null>(null);
 
   useEffect(() => {
     notificationQueueRef.current = notificationQueue;
@@ -93,6 +102,15 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   useEffect(() => {
     isShowingNotificationRef.current = isShowingNotification;
   }, [isShowingNotification]);
+
+  useEffect(() => {
+    if (!visible) {
+      lastProcessedPassageRef.current = null;
+      videoRef.current?.pauseAsync().catch(() => {});
+    } else {
+      videoRef.current?.playAsync().catch(() => {});
+    }
+  }, [visible]);
 
   const {
     loading,
@@ -111,6 +129,68 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
     storyId: story?.id,
     chapterId: chapter?.id,
   });
+
+  const resolveMediaSource = React.useCallback((image?: string | ImageSourcePropType | null) => {
+    if (!image) {
+      return undefined;
+    }
+
+    if (typeof image === 'number') {
+      return image;
+    }
+
+    if (typeof image === 'object' && 'uri' in image) {
+      return image as ImageSourcePropType;
+    }
+
+    const stringValue = image as string;
+    if (/^https?:\/\//i.test(stringValue) || stringValue.startsWith('data:')) {
+      return { uri: stringValue };
+    }
+
+    const sanitizedBase = apiBaseUrl.replace(/\/api\/?$/, '/');
+    const normalizedPath = stringValue.startsWith('/') ? stringValue.slice(1) : stringValue;
+    return { uri: `${sanitizedBase}${normalizedPath}` };
+  }, []);
+
+  const storyImageSource: ImageSourcePropType | undefined = React.useMemo(() => {
+    return resolveMediaSource(story?.image || undefined);
+  }, [resolveMediaSource, story?.image]);
+
+  const passageImageSource: ImageSourcePropType | undefined = React.useMemo(() => {
+    const passageMedia = currentPassage
+      ? (currentPassage as any).background_image || (currentPassage as any).speaker_image
+      : undefined;
+    return resolveMediaSource(passageMedia || undefined);
+  }, [resolveMediaSource, currentPassage]);
+
+  const renderImage = (
+    source: ImageSourcePropType | undefined,
+    options: { height?: number; marginBottom?: number; label?: string } = {}
+  ) => {
+    if (!source) {
+      return null;
+    }
+
+    const { height = 220, marginBottom = 18, label = `${story?.title || 'Story'} artwork` } = options;
+
+    return (
+      <Image
+        source={source}
+        style={{
+          width: '100%',
+          height,
+          borderRadius: 18,
+          marginBottom,
+          borderWidth: 1,
+          borderColor: 'rgba(212, 175, 55, 0.35)',
+          alignSelf: 'center'
+        }}
+        resizeMode="cover"
+        accessibilityLabel={label}
+      />
+    );
+  };
 
   useEffect(() => {
     if (visible && story?.id && isInitialized) {
@@ -192,6 +272,13 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 
   useEffect(() => {
     if (rewardManager && currentPassage && isInitialized) {
+      if (!currentPassage.passage_id) {
+        return;
+      }
+
+      if (lastProcessedPassageRef.current === currentPassage.passage_id) {
+        return;
+      }
 
       const passageForRewards: Passage = {
         id: (currentPassage as any).id || 0,
@@ -254,6 +341,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
       }
       
       rewardManager.handlePassageVisit(passageForRewards);
+      lastProcessedPassageRef.current = currentPassage.passage_id;
     }
   }, [currentPassage?.passage_id, rewardManager, isInitialized, primaryTrait]);
 
@@ -435,6 +523,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
             <Text style={[globalStyles.centeredMessageText, { color: '#d4af37' }]}>
               Story ID: {story?.id}, Chapter ID: {story?.chapterId || 'None'}
             </Text>
+            {renderImage(storyImageSource)}
         </View>
         );
     }
@@ -448,6 +537,15 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           onPress={handlePassageTap}
           style={{ padding: 20 }}
         >
+          {renderImage(passageImageSource, {
+            height: 180,
+            marginBottom: 16,
+            label: `${chapterTitle || 'Passage'} visual`
+          })}
+          {!passageImageSource && renderImage(storyImageSource, {
+            height: 200,
+            marginBottom: 16
+          })}
           <Text style={[globalStyles.StoryPassageText, {
             color: '#ffe066',
             fontSize: 16,
@@ -543,7 +641,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
               shadowOffset: { width: 2, height: 6 },
               shadowOpacity: 0.4,
               shadowRadius: 12,
-              elevation: 12,
+              elevation: 12
             }]}>
                 <View style={[globalStyles.StoryHeader, {
                   borderBottomColor: '#d4af37',
@@ -596,8 +694,24 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
                   shadowOpacity: 0.2,
                   shadowRadius: 4,
                   elevation: 4,
+                  overflow: 'hidden',
+                  position: 'relative'
                 }]}>
-                    {renderContent()}
+                    <View pointerEvents="none" style={styles.videoBackgroundWrapper}>
+                      <Video
+                        ref={videoRef}
+                        source={storyBackgroundVideo}
+                        style={styles.videoBackground}
+                        resizeMode={ResizeMode.COVER}
+                        isLooping
+                        shouldPlay={visible}
+                        isMuted
+                      />
+                      <View style={styles.videoDimOverlay} />
+                    </View>
+                    <View style={{ position: 'relative', zIndex: 1 }}>
+                      {renderContent()}
+                    </View>
                 </View>
             </View>
             {/* Reward notification overlay - positioned at Modal level for proper z-index */}
@@ -616,3 +730,18 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
 };
 
 export default StoryScreen;
+
+const styles = StyleSheet.create({
+  videoBackgroundWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: -1
+  },
+  videoBackground: {
+    width: '100%',
+    height: '100%'
+  },
+  videoDimOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(6, 8, 12, 0.65)'
+  }
+});

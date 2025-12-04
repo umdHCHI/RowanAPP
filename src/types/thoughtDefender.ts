@@ -1,6 +1,25 @@
 export type TDDifficulty = 'easy' | 'normal' | 'hard' | string;
 export type TDResult = 'win' | 'lose' | 'quit';
 
+/**
+ * Game completion data passed from ThoughtDefenderModal to parent components
+ * Used for stats tracking and UI updates
+ */
+export interface ThoughtDefenderGameData {
+  score: number;
+  level: number;
+  won: boolean;
+  difficulty: string;
+  accuracy: number;
+  missedShots: number;
+  dynamicDifficultyMultiplier: number;
+  shotsFired: number;
+  hits: number;
+}
+
+/**
+ * Full game run data sent to backend API
+ */
 export interface ThoughtDefenderRunDTO {
   score: number;
   level: number;
@@ -28,3 +47,4 @@ export interface ThoughtDefenderRunResponse {
   gameData?: any;
   progressRecordId?: number | string;
 }
+

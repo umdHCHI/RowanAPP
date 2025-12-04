@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"name": "thearchive",
+			"path": "../../.."
+		}
+	],
+	"settings": {
+		"editor.codeActionsOnSave": {
+			"source.fixAll": "explicit",
+			"source.organizeImports": "explicit",
+			"source.sortMembers": "explicit"
+		},
+		"editor.quickSuggestions": {
+			"other": "inline",
+			"strings": "inline",
+			"comments": "inline"
+		},
+		"editor.inlineSuggest.enabled": false,
+		"files.autoGuessEncoding": true,
+		"editor.inlineSuggest.edits.showCollapsed": true
+	}
+}
