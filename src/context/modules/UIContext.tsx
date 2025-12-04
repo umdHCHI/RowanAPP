@@ -1,11 +1,11 @@
 // Manages UI state like modals, tabs, and navigation
 
-import React, { createContext, ReactNode, useContext, useState } from 'react';
-import { Story } from '../../types';
+import React, { createContext, ReactNode, useContext, useState } from "react";
+import { Story } from "../../types";
 
 export interface UIContextType {
   activeTab: string;
-  researchCondition: 'character' | 'survey' | 'unknown';
+  researchCondition: "A" | "B" | "unknown";
   isCodexVisible: boolean;
   isThoughtDefenderVisible: boolean;
   isMapVisible: boolean;
@@ -16,7 +16,7 @@ export interface UIContextType {
   memoryStories: Story[];
 
   setActiveTab: (tab: string) => void;
-  setResearchCondition: (condition: 'character' | 'survey' | 'unknown') => void;
+  setResearchCondition: (condition: "A" | "B" | "unknown") => void;
   setIsCodexVisible: (visible: boolean) => void;
   setIsThoughtDefenderVisible: (visible: boolean) => void;
   setIsMapVisible: (visible: boolean) => void;
@@ -34,7 +34,7 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 export const useUI = () => {
   const context = useContext(UIContext);
   if (!context) {
-    throw new Error('useUI must be used within UIProvider');
+    throw new Error("useUI must be used within UIProvider");
   }
   return context;
 };
@@ -44,14 +44,17 @@ interface UIProviderProps {
 }
 
 export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState('entrance');
-  const [researchCondition, setResearchCondition] = useState<'character' | 'survey' | 'unknown'>('unknown');
+  const [activeTab, setActiveTab] = useState("entrance");
+  const [researchCondition, setResearchCondition] = useState<
+    "A" | "B" | "unknown"
+  >("unknown");
   const [isCodexVisible, setIsCodexVisible] = useState(false);
-  const [isThoughtDefenderVisible, setIsThoughtDefenderVisible] = useState(false);
+  const [isThoughtDefenderVisible, setIsThoughtDefenderVisible] =
+    useState(false);
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [isStoryVisible, setIsStoryVisible] = useState(false);
   const [isStoryCatalogVisible, setIsStoryCatalogVisible] = useState(false);
-  const [currentMapRoomId, setCurrentMapRoomId] = useState('');
+  const [currentMapRoomId, setCurrentMapRoomId] = useState("");
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [memoryStories, setMemoryStories] = useState<Story[]>([]);
 

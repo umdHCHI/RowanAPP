@@ -1,9 +1,9 @@
 // Composes all modular contexts into a unified provider
 // See: src/context/modules/README.md for details
 
-import React, { ReactNode, useEffect, useRef } from 'react';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
+import React, { ReactNode, useEffect, useRef } from "react";
+import { useAuth } from "./AuthContext";
+import { useTheme } from "./ThemeContext";
 
 // Import all modular contexts
 import {
@@ -23,7 +23,7 @@ import {
   useUI,
   useWellness,
   WellnessProvider,
-} from './modules';
+} from "./modules";
 
 // Re-export types for convenience
 export type {
@@ -34,12 +34,16 @@ export type {
   OnboardingContextType,
   StoryContextType,
   UIContextType,
-  WellnessContextType
-} from './modules';
-export type { ArchiveArea, ArchiveFoundation, MentalArtifact } from './modules/types';
+  WellnessContextType,
+} from "./modules";
+export type {
+  ArchiveArea,
+  ArchiveFoundation,
+  MentalArtifact,
+} from "./modules/types";
 
 // Import types for internal use
-import type { LoadingContextType, UIContextType } from './modules';
+import type { LoadingContextType, UIContextType } from "./modules";
 
 // ===== BACKWARD COMPATIBLE HOOK =====
 // This maintains the old API while using new modular contexts
@@ -75,7 +79,8 @@ export const useMasterState = () => {
       setAssignedPath: onboarding.setAssignedPath,
       setCharacterAppearance: onboarding.setCharacterAppearance,
       resetOnboarding: onboarding.resetOnboarding,
-      resetCharacterCreatorToDefaults: onboarding.resetCharacterCreatorToDefaults,
+      resetCharacterCreatorToDefaults:
+        onboarding.resetCharacterCreatorToDefaults,
       setIsLoading: onboarding.setIsLoading,
       loadOnboardingStatus: onboarding.loadOnboardingStatus,
     },
@@ -142,6 +147,7 @@ export const useMasterState = () => {
       updateCharacter: character.updateCharacter,
       loadCharacter: character.loadCharacter,
       gainExperience: character.gainExperience,
+      gainLumens: character.gainLumens,
       gainResonance: character.gainResonance,
       gainWellness: character.gainWellness,
     },
@@ -266,7 +272,9 @@ interface MasterStateProviderProps {
 }
 
 // Internal component that wires all contexts together with proper data flow
-const ConnectedProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
+const ConnectedProviders: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const { authToken, characterId, isTestUser } = useAuth();
   const loading = useLoading();
   const ui = useUI();
@@ -296,7 +304,14 @@ const ConnectedProviders: React.FC<{ children: ReactNode }> = ({ children }) => 
       didHomeScreenInit={didHomeScreenInit}
       setBackendCharacter={() => {}}
       onResearchConditionChange={(condition) => {
-        ui.setResearchCondition(condition);
+        // Map the internal condition strings to backend condition values
+        const mappedCondition: "A" | "B" | "unknown" =
+          condition === "character"
+            ? "A"
+            : condition === "personality"
+            ? "B"
+            : "unknown";
+        ui.setResearchCondition(mappedCondition);
       }}
       onCharacterCreatorReset={() => {}}
     >
@@ -336,7 +351,11 @@ const InnerProviders: React.FC<{
   newlyCreatedCharacter,
 }) => {
   return (
-    <WellnessProvider characterId={characterId} onError={loading.setError} completedStories={new Set()}>
+    <WellnessProvider
+      characterId={characterId}
+      onError={loading.setError}
+      completedStories={new Set()}
+    >
       <CharacterProviderWrapper
         authToken={authToken}
         characterId={characterId}
@@ -402,12 +421,16 @@ const DeepProviders: React.FC<{
   const character = useCharacter();
 
   return (
-    <EquipmentProvider authToken={authToken} onWellnessGain={character.gainWellness}>
+    <EquipmentProvider
+      authToken={authToken}
+      onWellnessGain={character.gainWellness}
+    >
       <ArchiveProvider
         authToken={authToken}
         memoryStories={ui.memoryStories}
         researchCondition={ui.researchCondition}
         onGainExperience={character.gainExperience}
+        onGainLumens={character.gainLumens}
         onGainResonance={character.gainResonance}
         onGainWellness={character.gainWellness}
         onLoadHomeData={wellness.loadHomeData}
@@ -429,13 +452,19 @@ const FinalProvider: React.FC<{
   const archive = useArchive();
 
   return (
-    <StoryProvider authToken={authToken} onStoryClose={ui.closeStory} onSkillLearned={archive.handleSkillLearned}>
+    <StoryProvider
+      authToken={authToken}
+      onStoryClose={ui.closeStory}
+      onSkillLearned={archive.handleSkillLearned}
+    >
       {children}
     </StoryProvider>
   );
 };
 
-export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({ children }) => {
+export const MasterStateProvider: React.FC<MasterStateProviderProps> = ({
+  children,
+}) => {
   return (
     <LoadingProvider>
       <UIProvider>
@@ -455,7 +484,7 @@ export {
   useOnboarding,
   useStory,
   useUI,
-  useWellness
+  useWellness,
 };
 function useProfile() {
   const auth = useAuth();

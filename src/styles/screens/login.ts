@@ -28,12 +28,7 @@ export const createLoginStyles = (theme: ThemeColors = loginTheme) => ({
     bottom: 0,
   } as ViewStyle,
 
-  floatingIcon: {
-    position: 'absolute',
-    fontSize: FONT_SIZES.xxl,
-    color: theme.floatingIconColor || loginTheme.floatingIconColor,
-    opacity: 0.3,
-  } as TextStyle,
+
 
   gradientOverlay: {
     position: 'absolute',

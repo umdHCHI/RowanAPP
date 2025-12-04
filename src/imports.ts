@@ -51,7 +51,7 @@ export {
 
 export { default as CharacterFrame } from './components/CharacterCreator/CharacterFrame';
 export { default as CharacterPreview } from './components/CharacterCreator/CharacterPreview';
-export { default as FloatingIcon } from './components/rewards/FloatingIcon';
+
 export { default as EquipmentModal } from './screens/characterStory/components/EquipmentModal';
 export { default as PersonalizedArchiveHeader } from './screens/personality/PersonalizedArchiveHeader';
 export { default as CodexModal } from './screens/shared/CodexModal';
@@ -64,7 +64,7 @@ export { CharacterNameInput } from './components/CharacterCreator/CharacterNameI
 export { CharacterPreviewSection } from './components/CharacterCreator/CharacterPreviewSection';
 export { ColorOptionControls } from './components/CharacterCreator/ColorOptionControls';
 export { StyleControls } from './components/CharacterCreator/StyleControls';
-export { default as FloatingElement } from './components/rewards/FloatingElement';
+
 export { useCharacterCreation } from './hooks/useCharacterCreation';
 
 // ===== Assets =====

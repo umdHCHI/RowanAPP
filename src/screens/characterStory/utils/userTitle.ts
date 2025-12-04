@@ -14,8 +14,8 @@ export const getUserTitle = (userId?: string | number): string => {
     hash = hash & hash;
   }
 
-  const titleIndex = Math.abs(hash) % ResearchConditions.A.titles.length;
-  const selectedTitle = ResearchConditions.A.titles[titleIndex];
+  const titleIndex = Math.abs(hash) % ResearchConditions.titles.length;
+  const selectedTitle = ResearchConditions.titles[titleIndex];
 
   return selectedTitle;
 };

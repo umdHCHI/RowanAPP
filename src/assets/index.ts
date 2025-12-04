@@ -7,6 +7,9 @@ export {
 // UI assets and icons
 export { getUIAsset, uiAssetLabels, uiIcons } from './ui';
 
+// Attribute images for rewards
+export { attributeImages, getAttributeImage } from './attributes';
+
 // Frame assets for character creator
 
 // Character options - only export what actually exists
@@ -88,4 +91,7 @@ export {
 
 // Our avatar assets
 export { MattAvatar, ReganAvatar, RowanAvatar, TrevorAvatar } from './ui/index';
+
+// Background assets
+export { hauntedLibraryBackground, forestBackground } from './ui/index';
 

@@ -47,12 +47,7 @@ export const loginStyles = (theme: ThemeColors) : {[key: string]: any} => {
     bottom: 0,
   },
   
-  floatingIcon: {
-    position: 'absolute',
-    fontSize: 24,
-    color: loginTheme.floatingIconColor,
-    opacity: 0.3,
-  },
+
   
   gradientOverlay: {
     position: 'absolute',
@@ -392,13 +387,7 @@ export const getOnboardingStyles = (onboardingTheme: ThemeColors): {[key: string
       right: 0,
       bottom: 0,
     },
-    
-    floatingIcon: {
-      position: 'absolute',
-      fontSize: 28,
-      color: onboardingTheme.floatingIconColor,
-      opacity: 0.4,
-    },
+
     
     gradientOverlay: {
       position: 'absolute',
@@ -778,13 +767,7 @@ export const characterCreatorStyles = (characterCreatorTheme: ThemeColors): {[ke
     right: 0,
     bottom: 0,
   },
-  
-  floatingIcon: {
-    position: 'absolute',
-    fontSize: 24,
-    color: '#4ee6e6',
-    opacity: 0.3,
-  },
+
   
   gradientOverlay: {
     position: 'absolute',
