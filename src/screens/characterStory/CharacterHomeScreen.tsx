@@ -136,50 +136,93 @@ const ArchiveInterface: React.FC = () => {
   const [isLoadingCharacterData, setIsLoadingCharacterData] = useState(false);
   const storyStyles = getStoryStyles(theme.theme);
 
+  // Normalize wellness stat to ensure it has all required properties for FoundationCard
+  const normalizeWellnessStat = (stat: any) => {
+    const statLabel = stat.label?.toLowerCase() || '';
+    
+    // Map foundation labels to their corresponding icons
+    let icon = stat.icon;
+    // Check if icon is missing or is a string (emoji or path string)
+    // Image objects from require() are not strings, so we only replace string icons
+    if (!icon || typeof icon === 'string') {
+      // If icon is emoji or missing, use proper image icon based on label
+      if (statLabel.includes('awareness') || statLabel.includes('sight beyond sight')) {
+        icon = uiIcons.sectionIcons.awareness;
+      } else if (statLabel.includes('resilience') || statLabel.includes('unbreakable will')) {
+        icon = uiIcons.sectionIcons.resilience;
+      } else if (statLabel.includes('connection') || statLabel.includes('heart') || statLabel.includes('compass')) {
+        icon = uiIcons.sectionIcons.connection;
+      } else if (statLabel.includes('balance') || statLabel.includes('harmony')) {
+        icon = uiIcons.sectionIcons.balance;
+      } else if (statLabel.includes('exploration')) {
+        icon = uiIcons.sectionIcons.exploration;
+      } else if (statLabel.includes('courage')) {
+        icon = uiIcons.sectionIcons.courage;
+      } else if (statLabel.includes('fear')) {
+        icon = uiIcons.sectionIcons.fear;
+      } else {
+        icon = uiIcons.sectionIcons.greenslug;
+      }
+    }
 
+    // Get color from stat.color, stat.colors[0], or use default
+    const color = stat.color || (Array.isArray(stat.colors) ? stat.colors[0] : null) || '#4ee6e6';
+
+    return {
+      label: stat.label || '',
+      value: stat.value ?? 0,
+      color: color,
+      icon: icon,
+      useImage: true,
+      // Preserve other properties
+      ...(stat.maxValue !== undefined && { maxValue: stat.maxValue }),
+      ...(stat.description && { description: stat.description }),
+      ...(stat.recentGain !== undefined && { recentGain: stat.recentGain }),
+      ...(stat.nextUnlock && { nextUnlock: stat.nextUnlock }),
+      ...(stat.storyTriggers && { storyTriggers: stat.storyTriggers }),
+    };
+  };
 
   const wellnessStatsForDisplay = (() => {
+    // Ensure we have valid homeData before proceeding
+    if (!wellness.homeData) {
+      return [];
+    }
+
     const homeData = wellness.homeData;
     const { profile: userProfile, backendCharacter: backendCharacterData } = selectProfileAndCharacter(homeData);
 
     const normalizedBackendCharacter = (() => {
       let char: any = character.backendCharacter;
 
-      if (Array.isArray(char)) {
-        char = char[0];
+      // Handle null/undefined
+      if (!char) {
+        return null;
       }
 
+      // Handle array format (take first element)
+      if (Array.isArray(char)) {
+        char = char.length > 0 ? char[0] : null;
+        if (!char) return null;
+      }
+
+      // Handle nested character object
       if (char && typeof char === 'object' && 'character' in char) {
         char = char.character;
+      }
+
+      // Ensure we have a valid object
+      if (!char || typeof char !== 'object') {
+        return null;
       }
 
       return char;
     })();
 
-    // Determine if this is a character user based on research_group.condition
-    // homeData structure: wellness.homeData.userProfile.profile.research_group.condition
-    const isCharacterUser =
-      (homeData as any)?.userProfile?.profile?.research_group?.condition === "A" ||
-      (homeData as any)?.userProfile?.completion_type === "character";
-
-
     const characterWellnessStats = (normalizedBackendCharacter as any)?.wellness_stats || backendCharacterData?.wellness_stats;
     if (characterWellnessStats && Array.isArray(characterWellnessStats) && characterWellnessStats.length > 0) {
-      // If this is a character user, replace emoji icons with image icons
-      if (isCharacterUser) {
-        return characterWellnessStats.map((stat: any) => {
-          const statLabel = stat.label?.toLowerCase();
-          if (statLabel === 'exploration') {
-            return { ...stat, icon: uiIcons.sectionIcons.exploration, useImage: true };
-          } else if (statLabel === 'courage') {
-            return { ...stat, icon: uiIcons.sectionIcons.courage, useImage: true };
-          } else if (statLabel === 'fear') {
-            return { ...stat, icon: uiIcons.sectionIcons.fear, useImage: true };
-          }
-          return stat; // Keep connection as emoji
-        });
-      }
-      return characterWellnessStats;
+      // Normalize all wellness stats to ensure they have proper icon, color, and useImage properties
+      return characterWellnessStats.map(normalizeWellnessStat);
     }
     
     // Check for character stats (exploration, courage, fear)
@@ -189,33 +232,30 @@ const ArchiveInterface: React.FC = () => {
       (normalizedBackendCharacter as any).fear !== undefined
     )) {
       return [
-        {
+        normalizeWellnessStat({
           icon: uiIcons.sectionIcons.exploration,
           label: "Exploration",
           value: (normalizedBackendCharacter as any).exploration || 0,
-          color: "#4A90E2",
-          useImage: true
-        },
-        {
+          color: "#4A90E2"
+        }),
+        normalizeWellnessStat({
           icon: uiIcons.sectionIcons.courage,
           label: "Courage",
           value: (normalizedBackendCharacter as any).courage || 0,
-          color: "#2ECC71",
-          useImage: true
-        },
-        {
-          icon: "🤝",
+          color: "#2ECC71"
+        }),
+        normalizeWellnessStat({
+          icon: uiIcons.sectionIcons.connection,
           label: "Connection",
           value: (normalizedBackendCharacter as any).connection || 0,
           color: "#E74C3C"
-        },
-        {
+        }),
+        normalizeWellnessStat({
           icon: uiIcons.sectionIcons.fear,
           label: "Fear",
           value: (normalizedBackendCharacter as any).fear || 0,
-          color: "#F39C12",
-          useImage: true
-        }
+          color: "#F39C12"
+        })
       ];
     }
 
@@ -226,61 +266,61 @@ const ArchiveInterface: React.FC = () => {
       (normalizedBackendCharacter as any).balance !== undefined
     )) {
       return [
-        {
-          icon: "🧘",
+        normalizeWellnessStat({
+          icon: uiIcons.sectionIcons.awareness,
           label: "Awareness",
           value: (normalizedBackendCharacter as any).awareness || 0,
           color: "#4A90E2"
-        },
-        {
-          icon: "💪",
+        }),
+        normalizeWellnessStat({
+          icon: uiIcons.sectionIcons.resilience,
           label: "Resilience",
           value: (normalizedBackendCharacter as any).resilience || 0,
           color: "#2ECC71"
-        },
-        {
-          icon: "🤝",
+        }),
+        normalizeWellnessStat({
+          icon: uiIcons.sectionIcons.connection,
           label: "Connection",
           value: (normalizedBackendCharacter as any).connection || 0,
           color: "#E74C3C"
-        },
-        {
-          icon: "⚖️",
+        }),
+        normalizeWellnessStat({
+          icon: uiIcons.sectionIcons.balance,
           label: "Balance",
           value: (normalizedBackendCharacter as any).balance || 0,
           color: "#F39C12"
-        }
+        })
       ];
     }
     
-    const wellnessAverage = (normalizedBackendCharacter as any)?.wellness_average || backendCharacterData?.wellness_average;
-    if (wellnessAverage !== undefined) {
+    const wellnessAverage = (normalizedBackendCharacter as any)?.wellness_average ?? backendCharacterData?.wellness_average;
+    if (wellnessAverage !== undefined && wellnessAverage !== null) {
       const baseValue = Math.floor(wellnessAverage * 5);
       return [
-        { 
-          icon: "🧘", 
+        normalizeWellnessStat({ 
+          icon: uiIcons.sectionIcons.awareness, 
           label: "Awareness", 
           value: baseValue, 
           color: "#4A90E2" 
-        },
-        { 
-          icon: "💪", 
+        }),
+        normalizeWellnessStat({ 
+          icon: uiIcons.sectionIcons.resilience, 
           label: "Resilience", 
           value: baseValue, 
           color: "#2ECC71" 
-        },
-        { 
-          icon: "🤝", 
+        }),
+        normalizeWellnessStat({ 
+          icon: uiIcons.sectionIcons.connection, 
           label: "Connection", 
           value: baseValue, 
           color: "#E74C3C" 
-        },
-        { 
-          icon: "⚖️", 
+        }),
+        normalizeWellnessStat({ 
+          icon: uiIcons.sectionIcons.balance, 
           label: "Balance", 
           value: baseValue, 
           color: "#F39C12" 
-        }
+        })
       ];
     }
     
@@ -289,34 +329,41 @@ const ArchiveInterface: React.FC = () => {
     
     if (completionType === 'character' && hasCompletionDataId && !normalizedBackendCharacter && !backendCharacterData) {
       return [
-        { 
-          icon: "🧘", 
+        normalizeWellnessStat({ 
+          icon: uiIcons.sectionIcons.awareness, 
           label: "Awareness", 
           value: 5,
           color: "#4A90E2" 
-        },
-        { 
-          icon: "💪", 
+        }),
+        normalizeWellnessStat({ 
+          icon: uiIcons.sectionIcons.resilience, 
           label: "Resilience", 
           value: 5,
           color: "#2ECC71" 
-        },
-        { 
-          icon: "🤝", 
+        }),
+        normalizeWellnessStat({ 
+          icon: uiIcons.sectionIcons.connection, 
           label: "Connection", 
           value: 5,
           color: "#E74C3C" 
-        },
-        { 
-          icon: "⚖️", 
+        }),
+        normalizeWellnessStat({ 
+          icon: uiIcons.sectionIcons.balance, 
           label: "Balance", 
           value: 5,
           color: "#F39C12" 
-        }
+        })
       ];
     }
     
-    return archive.archiveFoundations;
+    // Normalize archiveFoundations fallback to use proper icons instead of emojis
+    if (archive.archiveFoundations && Array.isArray(archive.archiveFoundations) && archive.archiveFoundations.length > 0) {
+      return archive.archiveFoundations.map(normalizeWellnessStat);
+    }
+    
+    // Final fallback: return empty array to prevent map() errors in AtriumTab
+    // This ensures we always return an array, even if no data is available
+    return [];
   })();
 
 
