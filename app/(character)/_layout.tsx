@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useAuth } from '../../src/context/AuthContext';
+import { useAuth } from '../../src/components/auth/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
 
 export default function CharacterLayout() {

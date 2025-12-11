@@ -19,7 +19,7 @@ import {
 } from '../personality';
 import PersonalizedArchiveHeader from '../personality/PersonalizedArchiveHeader';
 import CodexModal from '../shared/CodexModal';
-import ThoughtDefenderModal from '../shared/ThoughtDefenderModal';
+//import ThoughtDefenderModal from '../shared/ThoughtDefenderModal';
 
 import {
   getPersonalityCompletionMessage
@@ -592,12 +592,12 @@ const TUTORIAL_STEPS = [
         selectedType={editingEntry?.entry_type || "journal"}
       />
 
-        <ThoughtDefenderModal
+      {/*   <ThoughtDefenderModal
           visible={showThoughtDefenderModal}
           onClose={() => setShowThoughtDefenderModal(false)}
           onScoreUpdate={(data: ThoughtDefenderGameData) => {}}
           primaryTrait={primaryTrait}
-        />
+        />*/}
     </SafeAreaView>
   );
 }

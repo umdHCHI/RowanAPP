@@ -2,7 +2,7 @@
 // See: src/context/modules/README.md for details
 
 import React, { ReactNode, useEffect, useRef } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../components/auth/context/AuthContext";
 import { useTheme } from "./ThemeContext";
 
 // Import all modular contexts
@@ -34,12 +34,12 @@ export type {
   OnboardingContextType,
   StoryContextType,
   UIContextType,
-  WellnessContextType,
+  WellnessContextType
 } from "./modules";
 export type {
   ArchiveArea,
   ArchiveFoundation,
-  MentalArtifact,
+  MentalArtifact
 } from "./modules/types";
 
 // Import types for internal use
@@ -484,7 +484,7 @@ export {
   useOnboarding,
   useStory,
   useUI,
-  useWellness,
+  useWellness
 };
 function useProfile() {
   const auth = useAuth();

@@ -1,4 +1,4 @@
-import LoginScreen from '../../src/screens/auth/LoginScreen';
+import LoginScreen from '../../src/components/auth/LoginScreen';
 
 export default function LoginScreenIndex() {
   return <LoginScreen />;

@@ -285,7 +285,7 @@ export const PersonalityWellnessAttributes = {
   }
 };
 // ===== Context Exports =====
-export { useAuth } from './context/AuthContext';
+export { useAuth } from './components/auth/context/AuthContext';
 export { useMasterState } from './context/MasterStateContext';
 export { useTheme } from './context/ThemeContext';
 

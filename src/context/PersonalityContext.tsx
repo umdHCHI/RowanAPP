@@ -5,9 +5,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useAuth } from "../components/auth/context/AuthContext";
 import { apiService } from "../services/apiService"; // Fixed import for apiService
 import { getResearchCondition } from "../utils/researchCondition";
-import { useAuth } from "./AuthContext";
 import { useMasterState } from "./MasterStateContext";
 
 // Types for personality system

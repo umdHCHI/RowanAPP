@@ -14,9 +14,9 @@ import {
 
 import { FloatingElementProps } from "@/src/types";
 import { useMasterState } from "../../context/MasterStateContext";
+import { ResearchConditions } from "../../screens/characterStory/constants/researchConditions";
 import { apiService } from "../../services/apiService";
 import { createLoginStyles } from "../../styles/screens/login";
-import { ResearchConditions } from "../characterStory/constants/researchConditions";
 
 const FloatingElement = ({
   children,

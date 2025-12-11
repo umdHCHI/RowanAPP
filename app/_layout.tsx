@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AuthProvider } from '../src/context/AuthContext';
+import { AuthProvider } from '../src/components/auth/context/AuthContext';
 import { MasterStateProvider } from '../src/context/MasterStateContext';
 import { PersonalityProvider } from '../src/context/PersonalityContext';
 import { ThemeProvider } from '../src/context/ThemeContext';

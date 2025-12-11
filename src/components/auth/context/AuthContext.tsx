@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { apiService } from '../services/apiService';
-import { AuthContextType } from '../types/user';
+import { apiService } from '../../../services/apiService';
+import { AuthContextType } from '../../../types/user';
 
 const HOME_ROUTE_CHARACTER = '/(character)/character';
 const HOME_ROUTE_PERSONALITY = '/(personality)/personality';
 const WELCOME_ROUTE = '/(onboarding)/onboarding';
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authToken, setAuthToken] = useState<string | null>(null);
