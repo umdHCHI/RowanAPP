@@ -1,0 +1,76 @@
+import { Stack } from 'expo-router'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { PaperProvider } from 'react-native-paper'
+import { useFonts } from 'expo-font'
+import * as SplashScreen from 'expo-splash-screen'
+import { useEffect } from 'react'
+import { archiveTheme } from '../theme/paper-theme'
+import '../global.css'
+
+// Configure React Query with sensible defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+})
+
+// Prevent the splash screen from auto-hiding
+SplashScreen.preventAutoHideAsync()
+
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    'BeyondWonderland': require('../assets/fonts/BeyondWonderland.ttf'),
+    'CrimsonPro-Medium-Italic': require('../assets/fonts/CrimsonPro-Medium-Italic.ttf'),
+    'Quicksand-SemiBold': require('../assets/fonts/Quicksand-SemiBold.ttf'),
+    'Quicksand-Bold': require('../assets/fonts/Quicksand-Bold.ttf'),
+    'FontTitle-White': require('../assets/fonts/manaspc.ttf'),
+    'FontText-Gold': require('../assets/fonts/manaspc.ttf'),
+  })
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync()
+    }
+  }, [fontsLoaded, fontError])
+
+  if (!fontsLoaded && !fontError) {
+    return null
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <PaperProvider theme={archiveTheme}>
+        <SafeAreaProvider>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen 
+              name="character-creator" 
+              options={{ 
+                contentStyle: { backgroundColor: '#000000' },
+                animation: 'fade',
+              }} 
+            />
+            <Stack.Screen name="hub" />
+            <Stack.Screen name="story" />
+            <Stack.Screen name="journal" />
+            <Stack.Screen name="thought-defender" />
+            <Stack.Screen name="profile" />
+            <Stack.Screen name="about" />
+            <Stack.Screen name="resources" />
+            <Stack.Screen name="crisis-help" />
+            <Stack.Screen name="api-test" />
+          </Stack>
+        </SafeAreaProvider>
+      </PaperProvider>
+    </QueryClientProvider>
+  )
+}
+
