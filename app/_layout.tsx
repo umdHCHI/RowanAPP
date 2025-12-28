@@ -5,6 +5,7 @@ import { PaperProvider } from 'react-native-paper'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
+import { setAudioModeAsync } from 'expo-audio'
 import { archiveTheme } from '../theme/paper-theme'
 import '../global.css'
 
@@ -33,7 +34,24 @@ export default function RootLayout() {
     'Quicksand-Bold': require('../assets/fonts/Quicksand-Bold.ttf'),
     'FontTitle-White': require('../assets/fonts/manaspc.ttf'),
     'FontText-Gold': require('../assets/fonts/manaspc.ttf'),
+    'VT323-Regular': require('../assets/fonts/VT323-Regular.ttf'),
   })
+
+  // Configure audio mode on app start - this is critical for audio playback
+  useEffect(() => {
+    async function configureAudio() {
+      try {
+        await setAudioModeAsync({
+          playsInSilentMode: true, // Allow audio to play even when device is in silent mode (iOS)
+          allowsRecording: false, // We're not recording, so set to false
+        })
+        console.log('🎵 Audio mode configured successfully')
+      } catch (error) {
+        console.error('❌ Error configuring audio mode:', error)
+      }
+    }
+    configureAudio()
+  }, [])
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -65,6 +83,7 @@ export default function RootLayout() {
             <Stack.Screen name="profile" />
             <Stack.Screen name="about" />
             <Stack.Screen name="resources" />
+            <Stack.Screen name="story-overview" />
             <Stack.Screen name="crisis-help" />
             <Stack.Screen name="api-test" />
           </Stack>

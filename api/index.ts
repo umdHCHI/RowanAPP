@@ -38,6 +38,7 @@ export {
   useUpdateStoryProgress,
   useStoryChapters,
   useStoryChapter,
+  useStories,
   storyKeys,
 } from './hooks/use-story'
 

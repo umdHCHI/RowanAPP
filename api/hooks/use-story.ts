@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { storyService } from '../services/story.service'
-import type { StoryProgressResponse, StoryProgressUpdateRequest } from '../types'
+import type { StoryProgressResponse, StoryProgressUpdateRequest, StoryResponse } from '../types'
 import type { StoryChapter } from '../../types/story'
 
 /**
@@ -11,6 +11,7 @@ export const storyKeys = {
   progress: () => [...storyKeys.all, 'progress'] as const,
   chapters: () => [...storyKeys.all, 'chapters'] as const,
   chapter: (id: number) => [...storyKeys.chapters(), id] as const,
+  stories: () => [...storyKeys.all, 'stories'] as const,
 }
 
 /**
@@ -83,5 +84,19 @@ export function useStoryChapter(chapterId: number | null) {
     },
     enabled: chapterId !== null,
     staleTime: 10 * 60 * 1000,
+  })
+}
+
+/**
+ * Get all stories from the catalog
+ */
+export function useStories() {
+  return useQuery({
+    queryKey: storyKeys.stories(),
+    queryFn: async () => {
+      const stories = await storyService.getAllStories()
+      return stories
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes (stories don't change often)
   })
 }

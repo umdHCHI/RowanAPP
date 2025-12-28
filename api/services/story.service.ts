@@ -47,23 +47,33 @@ export const storyService = {
   /**
    * Get all stories from the backend
    * This endpoint returns the full story data with chapters
-   * Note: The backend returns a direct array, not wrapped
+   * Note: The backend may return a direct array or wrapped in ApiResponse
    */
   async getAllStories(): Promise<StoryResponse[]> {
     const response = await apiClient.get<StoryResponse[]>(API_ENDPOINTS.STORY_STORIES, {
       skipVersion: true,
     })
 
-    // Handle direct array response (from example project)
-    if (Array.isArray(response)) {
-      return response
-    }
-
-    // Handle wrapped ApiResponse format
+    // Handle wrapped ApiResponse format (standard case)
     if (response && typeof response === 'object' && 'data' in response) {
-      if (Array.isArray(response.data)) {
+      if (response.success && Array.isArray(response.data)) {
         return response.data
       }
+      // If response failed, log and return empty array
+      if (!response.success) {
+        console.warn('Failed to fetch stories:', response.message)
+        return []
+      }
+      // If data exists but is not an array, return empty array
+      if (response.data) {
+        console.warn('Unexpected response data format from getAllStories:', response.data)
+        return []
+      }
+    }
+
+    // Handle direct array response (if backend returns array directly - unlikely but possible)
+    if (Array.isArray(response)) {
+      return response
     }
 
     console.warn('Unexpected response format from getAllStories:', response)
@@ -158,6 +168,78 @@ export const storyService = {
       }
       // If it's already the data structure we expect, return it directly
       if ('passage' in response || 'story' in response) {
+        return response
+      }
+    }
+    
+    return response
+  },
+
+  /**
+   * Get all chapters for a specific story
+   * Mirrors getChapters logic from the thesis app (GET /story/stories/{id}/chapters/)
+   */
+  async getChapters(storyId: number | string): Promise<any[]> {
+    const url = `/story/stories/${storyId}/chapters/`
+    const response = await apiClient.get<any[]>(url, { skipVersion: true } as any)
+    
+    // Handle both wrapped (ApiResponse) and direct responses
+    if (response && typeof response === 'object') {
+      if (Array.isArray(response)) {
+        return response
+      }
+      if ('data' in response && Array.isArray(response.data)) {
+        return response.data
+      }
+    }
+    
+    return []
+  },
+
+  /**
+   * Get all passages for a specific chapter
+   * Mirrors getChapterPassages logic from the thesis app (GET /story/stories/{id}/chapters/{chapterId}/passages/)
+   */
+  async getChapterPassages(
+    storyId: number | string,
+    chapterId: number
+  ): Promise<any[]> {
+    const url = `/story/stories/${storyId}/chapters/${chapterId}/passages/`
+    const response = await apiClient.get<any[]>(url, { skipVersion: true } as any)
+    
+    // Handle both wrapped (ApiResponse) and direct responses
+    if (response && typeof response === 'object') {
+      if (Array.isArray(response)) {
+        return response
+      }
+      if ('data' in response && Array.isArray(response.data)) {
+        return response.data
+      }
+    }
+    
+    return []
+  },
+
+  /**
+   * Restart a specific chapter
+   * Mirrors restartChapter logic from the thesis app (POST /story/stories/{id}/restart/?chapter_id={chapterId})
+   */
+  async restartChapter(
+    storyId: number | string,
+    chapterId: number
+  ): Promise<{ starting_passage: string }> {
+    const url = `/story/stories/${storyId}/restart/?chapter_id=${chapterId}`
+    const response = await apiClient.post<{ starting_passage: string }>(url, {}, {
+      skipVersion: true,
+    })
+    
+    // Handle both wrapped (ApiResponse) and direct responses
+    if (response && typeof response === 'object') {
+      if ('data' in response) {
+        return response.data
+      }
+      // If it's already the data structure we expect, return it directly
+      if ('starting_passage' in response) {
         return response
       }
     }

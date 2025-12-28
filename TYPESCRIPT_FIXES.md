@@ -31,3 +31,5 @@ All components **DO have children** - they're visible in the JSX:
 
 These errors are cosmetic and don't affect the application's functionality.
 
+
+

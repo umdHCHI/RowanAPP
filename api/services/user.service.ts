@@ -14,6 +14,16 @@ import type {
  */
 export const userService = {
   /**
+   * Login user and get authentication token
+   */
+  async login(email: string, password: string): Promise<ApiResponse<{ token: string; user: UserResponse }>> {
+    return apiClient.post<{ token: string; user: UserResponse }>(
+      API_ENDPOINTS.USER_LOGIN,
+      { email, password }
+    )
+  },
+
+  /**
    * Get all users
    */
   async getAll(): Promise<ApiResponse<UserResponse[]>> {
@@ -33,11 +43,36 @@ export const userService = {
    */
   async getFullProfile(
     id: string | number
-  ): Promise<ApiResponse<UserFullProfileResponse>> {
-    return apiClient.get<UserFullProfileResponse>(
+  ): Promise<UserFullProfileResponse> {
+    // NOTE: This endpoint returns the raw full profile object, not wrapped in { success, data }.
+    // The ApiClient is typed as returning ApiResponse<T>, but for this endpoint the backend
+    // actually responds with a plain UserFullProfileResponse. We cast here so callers can work
+    // with the correct shape.
+    const raw = await apiClient.get<UserFullProfileResponse>(
       API_ENDPOINTS.USER_FULL_PROFILE(id),
       { skipVersion: true }
     )
+
+    // Debug: Log the raw response structure
+    console.log('Raw API response structure:', {
+      hasData: 'data' in raw,
+      hasSuccess: 'success' in raw,
+      keys: Object.keys(raw),
+      isDirect: 'character' in raw,
+    })
+
+    // If the response is wrapped in { data, success }, extract data
+    // Otherwise, use the response directly
+    if ('data' in raw && raw.data) {
+      console.log('Response is wrapped, extracting data')
+      return raw.data as UserFullProfileResponse
+    }
+
+    // Response is already the direct object (backend returns it directly)
+    // Cast to bypass TypeScript since we know the actual shape
+    const profile = raw as unknown as UserFullProfileResponse
+    console.log('Using direct response, character exists:', !!profile.character)
+    return profile
   },
 
   /**

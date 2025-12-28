@@ -39,15 +39,13 @@ export function useUser(id: string | number | null) {
  * Get full profile for a user by ID
  */
 export function useUserFullProfile(id: string | number | null) {
-  return useQuery({
+  return useQuery<UserFullProfileResponse>({
     queryKey: userKeys.fullProfile(id!),
     queryFn: async () => {
       if (!id) throw new Error('User ID is required')
-      const response = await userService.getFullProfile(id)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch user full profile')
-      }
-      return response.data
+      // full_profile endpoint returns the raw profile object, not an ApiResponse wrapper
+      const profile = await userService.getFullProfile(id)
+      return profile
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes

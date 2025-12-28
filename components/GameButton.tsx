@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native'
 import * as Haptics from 'expo-haptics'
+import { usePageFlipSound } from '@/utils/usePageFlipSound'
 
 interface GameButtonProps {
   normalImage: any
@@ -21,10 +22,12 @@ export function GameButton({
   height = 60,
 }: GameButtonProps) {
   const [isSelected, setIsSelected] = useState(false)
+  const playPageFlipSound = usePageFlipSound()
 
   function handlePress() {
     setIsSelected(true)
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    playPageFlipSound()
     onPress()
   }
 

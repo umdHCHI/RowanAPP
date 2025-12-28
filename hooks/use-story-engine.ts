@@ -1,56 +1,40 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Platform } from 'react-native'
 import { storyService } from '@/api/services/story.service'
-
-interface EngineChoice {
-  id: number | string
-  text: string
-  target_id: string
-}
-
-interface EnginePassage {
-  passage_id: string
-  content: string
-  passage_type: 'narration' | 'dialogue' | 'decision' | 'ending'
-  choices: EngineChoice[]
-}
+import type { StoryPassage, StoryChoice } from '@/types/story'
+import {
+  retryApiCall,
+  getStartingPassageId,
+  normalizePassageState,
+} from './use-story-engine-helpers'
+import { normalizeChoices } from '@/utils/story-helpers'
 
 interface EngineState {
   story: any
-  passage: EnginePassage
+  passage: StoryPassage & { choices: StoryChoice[] }
   progress: any
   chapter_title: string
   chapter_number?: number
 }
 
 interface UseStoryEngineProps {
-  storyId: number
+  storyId: string | number
   chapterId?: number
 }
 
 const DEFAULT_MAX_RETRIES = 3
 
-async function retryApiCall<T>(
-  apiCall: () => Promise<T>,
-  maxRetries: number = DEFAULT_MAX_RETRIES,
-  baseDelay: number = 1000
-): Promise<T> {
-  let lastError: unknown
+function getRetryDelay(): number {
+  return Platform.OS === 'web' ? 500 : 1000
+}
 
-  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-    try {
-      return await apiCall()
-    } catch (error) {
-      lastError = error
-
-      if (attempt < maxRetries) {
-        const delay = baseDelay * Math.pow(2, attempt)
-        await new Promise((resolve) => setTimeout(resolve, delay))
-      }
-    }
+function extractErrorMessage(err: any): string {
+  if (err?.message) return err.message
+  if (err?.response) {
+    return `Network error: ${err.response.status} - ${err.response.statusText}`
   }
-
-  throw lastError
+  if (err?.request) return 'Network request failed. Please check your connection.'
+  return 'An unexpected error occurred.'
 }
 
 export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps) {
@@ -70,66 +54,31 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps) {
       setEngineState(null)
 
       try {
-        const introductionStory = await retryApiCall(
-          () => storyService.getStoryById(storyId),
-          DEFAULT_MAX_RETRIES,
-          Platform.OS === 'web' ? 500 : 1000
-        )
+        // Get starting passage ID and chapter info
+        const { startingPassageId, chapterTitle, chapterNumber } =
+          await getStartingPassageId(storyId, chapterId)
 
-        if (!introductionStory) {
-          throw new Error('Story not found. Please try again later.')
-        }
-
-        let startingPassageId = introductionStory.starting_passage_id
-
-        if (!startingPassageId) {
-          const restartResponse = await retryApiCall(
-            () => storyService.restartStory(storyId, chapterId),
-            DEFAULT_MAX_RETRIES,
-            Platform.OS === 'web' ? 500 : 1000
-          )
-
-          if (!restartResponse.starting_passage) {
-            throw new Error('Story restart did not provide a starting passage.')
-          }
-
-          startingPassageId = restartResponse.starting_passage
-        }
-
+        // Fetch the starting passage using the ID
         const initialState = await retryApiCall(
-          () => storyService.getPassage(storyId, startingPassageId),
+          () => storyService.getPassage(Number(storyId), startingPassageId),
           DEFAULT_MAX_RETRIES,
-          Platform.OS === 'web' ? 500 : 1000
+          getRetryDelay()
         )
 
         if (!initialState || !initialState.passage) {
-          throw new Error('Failed to load the opening passage.')
+          throw new Error('Failed to fetch the initial passage.')
         }
 
-        // Normalize choices: handle both target_id and target_passage_id
-        if (initialState.passage?.choices && Array.isArray(initialState.passage.choices)) {
-          initialState.passage.choices = initialState.passage.choices.map((choice: any) => ({
-            id: choice.id || choice.choice_id,
-            text: choice.text || choice.choice_text || choice.label,
-            target_id: choice.target_id || choice.target_passage_id || choice.target,
-          }))
-          console.log('📖 Normalized choices:', initialState.passage.choices)
-        } else {
-          console.log('⚠️ No choices found in passage:', initialState.passage)
-        }
+        // Normalize the passage state
+        const normalizedState = normalizePassageState(
+          initialState,
+          chapterTitle,
+          chapterNumber
+        )
 
-        setEngineState(initialState)
+        setEngineState(normalizedState)
       } catch (err: any) {
-        let message = 'Failed to load story.'
-
-        if (err?.message) {
-          message = err.message
-        } else if (err?.response) {
-          message = `Network error: ${err.response.status} - ${err.response.statusText}`
-        } else if (err?.request) {
-          message = 'Network request failed. Please check your connection.'
-        }
-
+        const message = extractErrorMessage(err)
         setError(message)
       } finally {
         setIsLoading(false)
@@ -140,7 +89,7 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps) {
   }, [storyId, chapterId])
 
   const makeChoice = useCallback(
-    async (choice: EngineChoice) => {
+    async (choice: StoryChoice) => {
       if (isLoading || !storyId || !choice?.target_id) return null
 
       setIsLoading(true)
@@ -150,47 +99,29 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps) {
         const nextState = await retryApiCall(
           () => storyService.makeChoice(storyId, choice.target_id),
           DEFAULT_MAX_RETRIES,
-          Platform.OS === 'web' ? 500 : 1000
+          getRetryDelay()
         )
 
         if (!nextState || !nextState.passage) {
-          throw new Error(`Failed to load the next passage.`)
+          throw new Error('Failed to load the next passage.')
         }
 
-        // Normalize choices: handle both target_id and target_passage_id
-        if (nextState.passage?.choices && Array.isArray(nextState.passage.choices)) {
-          nextState.passage.choices = nextState.passage.choices.map((choice: any) => ({
-            id: choice.id || choice.choice_id,
-            text: choice.text || choice.choice_text || choice.label,
-            target_id: choice.target_id || choice.target_passage_id || choice.target,
-          }))
-          console.log('📖 Normalized choices:', nextState.passage.choices)
-        } else {
-          console.log('⚠️ No choices found in passage:', nextState.passage)
-        }
+        // Normalize choices
+        const normalizedState = normalizePassageState(nextState)
 
-        const currentChapterTitle = engineState?.chapter_title
-        const currentChapterNumber = engineState?.chapter_number
-
+        // Preserve chapter info from current state
         const updatedState: EngineState = {
-          ...nextState,
-          chapter_title: nextState.chapter_title || currentChapterTitle,
-          chapter_number: nextState.chapter_number || currentChapterNumber,
+          ...normalizedState,
+          chapter_title:
+            normalizedState.chapter_title || engineState?.chapter_title || '',
+          chapter_number:
+            normalizedState.chapter_number ?? engineState?.chapter_number,
         }
 
         setEngineState(updatedState)
         return updatedState
       } catch (err: any) {
-        let message = 'Failed to process choice.'
-
-        if (err?.message) {
-          message = err.message
-        } else if (err?.response) {
-          message = `Network error: ${err.response.status} - ${err.response.statusText}`
-        } else if (err?.request) {
-          message = 'Network request failed. Please check your connection.'
-        }
-
+        const message = extractErrorMessage(err)
         setError(message)
         return null
       } finally {
@@ -226,5 +157,3 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps) {
     choices,
   }
 }
-
-

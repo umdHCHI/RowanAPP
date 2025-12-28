@@ -99,6 +99,8 @@ export interface StoryChapterData {
   created_at: string
 }
 
+export type TextSpeed = 'slow' | 'normal' | 'fast'
+
 interface GameState {
   // Character
   character: Character | null
@@ -123,6 +125,7 @@ interface GameState {
   
   // Settings
   soundMuted: boolean
+  textSpeed: TextSpeed
   
   // Actions
   setCharacter: (character: Character) => void
@@ -135,6 +138,8 @@ interface GameState {
   setStories: (stories: StoryData[]) => void
   setLoadingStories: (loading: boolean) => void
   toggleSoundMute: () => void
+  setTextSpeed: (speed: TextSpeed) => void
+  cycleTextSpeed: () => void
   setAttributes: (attributes: AttributeLevel) => void
   resetGame: () => void
 }
@@ -160,6 +165,8 @@ const defaultJournal: JournalState = {
   completedChoices: {},
 }
 
+const textSpeedOrder: TextSpeed[] = ['slow', 'normal', 'fast']
+
 export const useGameStore = create<GameState>()(
   persist(
     (set) => ({
@@ -173,6 +180,7 @@ export const useGameStore = create<GameState>()(
       stories: [],
       isLoadingStories: false,
       soundMuted: false,
+      textSpeed: 'normal',
 
       setCharacter: (character) =>
         set({ character, hasCreatedCharacter: true }),
@@ -252,6 +260,16 @@ export const useGameStore = create<GameState>()(
       toggleSoundMute: () =>
         set((state) => ({ soundMuted: !state.soundMuted })),
 
+      setTextSpeed: (speed) =>
+        set({ textSpeed: speed }),
+
+      cycleTextSpeed: () =>
+        set((state) => {
+          const currentIndex = textSpeedOrder.indexOf(state.textSpeed)
+          const nextSpeed = textSpeedOrder[(currentIndex + 1) % textSpeedOrder.length]
+          return { textSpeed: nextSpeed }
+        }),
+
       setAttributes: (attributes) =>
         set(() => ({
           attributes,
@@ -269,6 +287,7 @@ export const useGameStore = create<GameState>()(
           stories: [],
           isLoadingStories: false,
           soundMuted: false,
+          textSpeed: 'normal',
         }),
     }),
     {

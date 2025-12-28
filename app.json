@@ -5,38 +5,33 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "icon": "./hauntedlibrary.png",
-    "splash": {
-      "image": "./assets/splashscreen/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000"
-    },
+    "icon": "./assets/splashscreen/icon.png",
+    "backgroundColor": "#000000",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thearchive.app",
-      "splash": {
-        "image": "./assets/splashscreen/icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#000000"
-      }
+      "bundleIdentifier": "com.thearchive.app"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#000000"
       },
-      "package": "com.thearchive.app",
-      "splash": {
-        "image": "./assets/splashscreen/icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#000000"
-      }
+      "package": "com.thearchive.app"
     },
     "plugins": [
       "expo-router",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#000000",
+          "image": "./assets/splashscreen/icon.png",
+          "resizeMode": "contain",
+          "imageWidth": 200
+        }
+      ]
     ],
     "scheme": "thearchive"
   }

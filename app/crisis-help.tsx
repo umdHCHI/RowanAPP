@@ -67,7 +67,7 @@ export default function CrisisHelp() {
 
   return (
     <ImageBackground
-      source={require('../hauntedlibrary.png')}
+      source={require('../assets/splashscreen/icon.png')}
       style={styles.background}
       resizeMode="cover"
     >
