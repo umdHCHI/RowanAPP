@@ -82,11 +82,29 @@ export function useUpdateCharacter() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: CharacterUpdateRequest }) => {
-      const response = await characterService.update(id, data)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to update character')
+      try {
+        const response = await characterService.update(id, data)
+        if (!response.success) {
+          const error = new Error(response.message || 'Failed to update character') as Error & { status?: number; errors?: any }
+          error.status = (response as any).status
+          error.errors = (response as any).errors
+          throw error
+        }
+        return response.data
+      } catch (error: any) {
+        // If error already has status/message/errors, preserve it as-is
+        // This preserves ApiError objects from the API client
+        if (error && (error.status !== undefined || error.errors !== undefined || error.message)) {
+          // Make sure it's a proper Error object with all properties
+          const apiError = error instanceof Error ? error : new Error(error.message || String(error))
+          if (error.status !== undefined) (apiError as any).status = error.status
+          if (error.errors !== undefined) (apiError as any).errors = error.errors
+          if (error.code !== undefined) (apiError as any).code = error.code
+          throw apiError
+        }
+        // Otherwise wrap in a generic error
+        throw new Error(error?.message || 'Failed to update character')
       }
-      return response.data
     },
     onSuccess: (data) => {
       // Invalidate both list and specific character

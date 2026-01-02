@@ -1,9 +1,13 @@
 import React from 'react'
 import { View, Text as RNText, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { StoryPassage } from './StoryPassage'
-import { CharacterAvatar } from '@/components/CharacterAvatar'
+import { StoryRewardMoment } from './StoryRewardMoment'
+import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 import { useGameStore } from '@/stores/game-store'
-import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LAYOUT } from './story-theme'
+import { getStoryImageUrl } from '@/utils/story-helpers'
+import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LAYOUT, STORY_LINE_HEIGHTS } from './story-theme'
 import type { StoryHistoryItem } from '@/types/story'
 
 interface StoryHistoryProps {
@@ -12,19 +16,71 @@ interface StoryHistoryProps {
 
 export function StoryHistory({ history }: StoryHistoryProps) {
   const { character } = useGameStore()
+  const router = useRouter()
+  
+  function handleRewardPress(journalEntryId?: string) {
+    if (journalEntryId) {
+      router.push(`/journal?promptId=${journalEntryId}`)
+    } else {
+      router.push('/journal')
+    }
+  }
+
+  function handleMinigamePress() {
+    router.push('/thought-defender')
+  }
+
+  function getRewardType(type?: string): 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE' {
+    if (type === 'journal_entry') return 'JOURNAL_REWARD'
+    if (type === 'minigame') return 'MINIGAME'
+    if (type === 'power' || type === 'skill') return 'POWER'
+    if (type === 'action_scene') return 'ACTION_SCENE'
+    return 'ITEM'
+  }
   
   return (
     <>
-      {history.map((item, index) => (
-        <View key={`${item.type}-${item.id}-${index}`} style={styles.historyItem}>
-          {item.type === 'passage' ? (
-            <StoryPassage 
-              content={item.content} 
-              passageType={item.passageType} 
-              speakerName={item.speakerName}
-              speakerImage={item.speakerImage}
+      {history.map((item, index) => {
+        // Render action passages as rewards
+        const isActionPassage = item.type === 'passage' && item.passageType === 'action'
+        
+        if (isActionPassage) {
+          const actionImageUrl = getStoryImageUrl(item.speakerImage)
+          return (
+            <View key={`${item.type}-${item.id}-${index}`} style={styles.historyItem}>
+              <StoryRewardMoment
+                type="ACTION_SCENE"
+                title={item.content || 'Action Scene'}
+                subtitle={item.speakerName || undefined}
+                imageUrl={actionImageUrl}
+              />
+            </View>
+          )
+        }
+        
+        return (
+          <View key={`${item.type}-${item.id}-${index}`} style={styles.historyItem}>
+            {item.type === 'passage' ? (
+              <StoryPassage 
+                content={item.content} 
+                passageType={item.passageType} 
+                speakerName={item.speakerName}
+                speakerImage={item.speakerImage}
+              />
+            ) : item.type === 'reward' ? (
+            <StoryRewardMoment
+              type={getRewardType(item.rewardType)}
+              title={item.rewardTitle || item.content || 'Reward Unlocked'}
+              subtitle={item.rewardSubtitle}
+              onPress={
+                item.rewardType === 'journal_entry' 
+                  ? () => handleRewardPress(item.journalEntryId)
+                  : item.rewardType === 'minigame'
+                  ? handleMinigamePress
+                  : undefined
+              }
             />
-          ) : (
+            ) : (
             <View style={styles.playerChoiceContainer}>
               <View style={styles.playerChoiceBubble}>
                 <RNText style={styles.playerChoiceText}>{item.content}</RNText>
@@ -37,8 +93,9 @@ export function StoryHistory({ history }: StoryHistoryProps) {
               )}
             </View>
           )}
-        </View>
-      ))}
+          </View>
+        )
+      })}
     </>
   )
 }

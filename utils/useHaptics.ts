@@ -2,31 +2,66 @@ import * as Haptics from 'expo-haptics'
 
 export function useHaptics() {
   function lightImpact() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    } catch (error) {
+      // Haptics not supported on this platform (e.g., web)
+      // Silently fail to prevent crashes
+    }
   }
 
   function mediumImpact() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    } catch (error) {
+      // Haptics not supported on this platform (e.g., web)
+      // Silently fail to prevent crashes
+    }
   }
 
   function heavyImpact() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+    } catch (error) {
+      // Haptics not supported on this platform (e.g., web)
+      // Silently fail to prevent crashes
+    }
   }
 
   function selection() {
-    Haptics.selectionAsync()
+    try {
+      Haptics.selectionAsync()
+    } catch (error) {
+      // Haptics not supported on this platform (e.g., web)
+      // Silently fail to prevent crashes
+    }
   }
 
   function success() {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    } catch (error) {
+      // Haptics not supported on this platform (e.g., web)
+      // Silently fail to prevent crashes
+    }
   }
 
   function error() {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    } catch (error) {
+      // Haptics not supported on this platform (e.g., web)
+      // Silently fail to prevent crashes
+    }
   }
 
   function warning() {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+    } catch (error) {
+      // Haptics not supported on this platform (e.g., web)
+      // Silently fail to prevent crashes
+    }
   }
 
   return {

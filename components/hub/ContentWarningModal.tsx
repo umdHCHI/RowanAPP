@@ -30,12 +30,6 @@ export function ContentWarningModal({ visible, onClose, title, content, revelati
     // Base warning text
     const baseText = 'This story may contain themes that some players may find sensitive or triggering.'
 
-    // Debug: Log revelations to see what we're receiving
-    console.log('ContentWarningModal - revelations:', revelations)
-    console.log('ContentWarningModal - revelations type:', typeof revelations)
-    console.log('ContentWarningModal - revelations is array:', Array.isArray(revelations))
-    console.log('ContentWarningModal - revelations length:', revelations?.length)
-
     // If revelations exist, format them into the text
     if (revelations && Array.isArray(revelations) && revelations.length > 0) {
       // Filter out any empty strings or null values

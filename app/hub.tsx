@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { View, ScrollView, ImageBackground, Text as RNText, Dimensions, StyleSheet, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native'
+import { View, ScrollView, ImageBackground, Text as RNText, Dimensions, StyleSheet, TouchableOpacity, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useGameStore } from '@/stores/game-store'
@@ -67,6 +67,8 @@ export default function Hub() {
   }
 
   function handleDotPress(index: number) {
+    haptics.lightImpact()
+    playPageFlipSound()
     setActiveIndex(index)
     horizontalScrollRef.current?.scrollTo({ x: index * width, animated: true })
   }
@@ -75,7 +77,7 @@ export default function Hub() {
 
   return (
     <ImageBackground
-      source={require('../hauntedlibrary.png')}
+      source={require('../assets/UI/hauntedlibrary.png')}
       style={styles.imageCardBackground}
       resizeMode="cover"
     >
@@ -142,6 +144,7 @@ export default function Hub() {
             onNextPress={goToNextDream}
           />
         )}
+
       </View>
     </ImageBackground>
   )

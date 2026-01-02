@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from 'react-native-paper'
 import { Header } from '@/components/header'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { useHaptics } from '@/utils/useHaptics'
 import { GameButton } from '@/components/GameButton'
 import { TouchableOpacity } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
@@ -53,8 +54,10 @@ export default function CrisisHelp() {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const playPageFlipSound = usePageFlipSound()
+  const haptics = useHaptics()
 
   function handlePhonePress(phone: string) {
+    haptics.mediumImpact()
     const phoneNumber = phone.replace(/[^\d+]/g, '')
     if (phoneNumber) {
       Linking.openURL(`tel:${phoneNumber}`)
@@ -62,6 +65,7 @@ export default function CrisisHelp() {
   }
 
   function handleWebsitePress(url: string) {
+    haptics.mediumImpact()
     Linking.openURL(url)
   }
 
@@ -134,6 +138,7 @@ export default function CrisisHelp() {
             pressedImage={require('../assets/UI/buttons/blue/Button_05A_Pressed.png')}
             label="Return to Archive"
             onPress={() => {
+              haptics.lightImpact()
               playPageFlipSound()
               router.push('/hub')
             }}

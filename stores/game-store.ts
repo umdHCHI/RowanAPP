@@ -101,6 +101,28 @@ export interface StoryChapterData {
 
 export type TextSpeed = 'slow' | 'normal' | 'fast'
 
+// Memory item
+export interface Memory {
+  id: string
+  title: string
+  description?: string
+  type: string
+  modality?: 'write' | 'draw' | 'voice' | 'journal_reward'
+  content?: string // JSON string for drawings, text for write, URI for voice
+  createdAt?: string
+}
+
+// Power item
+export interface Power {
+  id: string
+  title: string
+  description?: string
+  isUnlocked: boolean
+  unlockedAt?: string
+  isActive?: boolean
+  icon?: string
+}
+
 interface GameState {
   // Character
   character: Character | null
@@ -119,9 +141,19 @@ interface GameState {
   journal: JournalState
   journalPrompts: JournalPrompt[]
   
+  // Memories
+  memories: Memory[]
+  
   // Stories from API
   stories: StoryData[]
   isLoadingStories: boolean
+  
+  // Journal reward tracking
+  collectedJournalRewardIds: string[]
+  
+  // Powers
+  powers: Power[]
+  lastSeenPowerUnlockAt?: string
   
   // Settings
   soundMuted: boolean
@@ -137,6 +169,13 @@ interface GameState {
   setJournalPrompts: (prompts: JournalPrompt[]) => void
   setStories: (stories: StoryData[]) => void
   setLoadingStories: (loading: boolean) => void
+  addMemory: (memory: Memory) => void
+  markJournalRewardCollected: (id: string) => void
+  hasCollectedJournalReward: (id: string) => boolean
+  setPowers: (powers: Power[]) => void
+  unlockPower: (power: Power) => void
+  setActivePower: (powerId: string) => void
+  markPowersSeen: () => void
   toggleSoundMute: () => void
   setTextSpeed: (speed: TextSpeed) => void
   cycleTextSpeed: () => void
@@ -169,7 +208,7 @@ const textSpeedOrder: TextSpeed[] = ['slow', 'normal', 'fast']
 
 export const useGameStore = create<GameState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       character: null,
       hasCreatedCharacter: false,
       attributes: defaultAttributes,
@@ -177,8 +216,12 @@ export const useGameStore = create<GameState>()(
       story: defaultStory,
       journal: defaultJournal,
       journalPrompts: [],
+      memories: [],
       stories: [],
       isLoadingStories: false,
+      collectedJournalRewardIds: [],
+      powers: [],
+      lastSeenPowerUnlockAt: undefined,
       soundMuted: false,
       textSpeed: 'normal',
 
@@ -257,6 +300,62 @@ export const useGameStore = create<GameState>()(
       setLoadingStories: (loading) =>
         set({ isLoadingStories: loading }),
 
+      addMemory: (memory) =>
+        set((state) => ({
+          memories: [...state.memories, memory],
+        })),
+
+      markJournalRewardCollected: (id) =>
+        set((state) => {
+          if (state.collectedJournalRewardIds.includes(id)) {
+            return state
+          }
+          return {
+            collectedJournalRewardIds: [...state.collectedJournalRewardIds, id],
+          }
+        }),
+
+      hasCollectedJournalReward: (id: string) => {
+        const state = get()
+        return state.collectedJournalRewardIds.includes(id)
+      },
+
+      setPowers: (powers) => set({ powers }),
+
+      unlockPower: (power) =>
+        set((state) => {
+          const existingIndex = state.powers.findIndex((p) => p.id === power.id)
+          const now = new Date().toISOString()
+          const updatedPower: Power = {
+            ...power,
+            isUnlocked: true,
+            unlockedAt: power.unlockedAt || now,
+          }
+
+          if (existingIndex >= 0) {
+            const updatedPowers = [...state.powers]
+            updatedPowers[existingIndex] = updatedPower
+            return { powers: updatedPowers }
+          } else {
+            return { powers: [...state.powers, updatedPower] }
+          }
+        }),
+      // TODO: Hook power unlocks into story effects parsing
+      // When story effects include a power unlock (e.g., effects.power or effects.unlock_power),
+      // call: useGameStore.getState().unlockPower({ id, title, description, icon })
+      // See: components/story/StoryPage.tsx collectJournalReward() for similar pattern
+
+      setActivePower: (powerId) =>
+        set((state) => ({
+          powers: state.powers.map((power) => ({
+            ...power,
+            isActive: power.id === powerId ? true : false,
+          })),
+        })),
+
+      markPowersSeen: () =>
+        set({ lastSeenPowerUnlockAt: new Date().toISOString() }),
+
       toggleSoundMute: () =>
         set((state) => ({ soundMuted: !state.soundMuted })),
 
@@ -284,8 +383,12 @@ export const useGameStore = create<GameState>()(
           story: defaultStory,
           journal: defaultJournal,
           journalPrompts: [],
+          memories: [],
           stories: [],
           isLoadingStories: false,
+          collectedJournalRewardIds: [],
+          powers: [],
+          lastSeenPowerUnlockAt: undefined,
           soundMuted: false,
           textSpeed: 'normal',
         }),

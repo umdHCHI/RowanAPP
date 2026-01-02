@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   Dimensions,
+  ImageBackground,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native'
@@ -42,6 +43,9 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
     equippedGear,
     characterName,
     avatarConfig,
+    powers,
+    markPowersSeen,
+    experience,
   } = useResources()
 
   // Set initial scroll position when component mounts
@@ -76,6 +80,9 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
             equippedGear={equippedGear}
             characterName={characterName}
             avatarConfig={avatarConfig}
+            powers={powers}
+            markPowersSeen={markPowersSeen}
+            experience={experience}
           />
         )
       case 'resources':
@@ -88,136 +95,154 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Background with subtle texture */}
-      <View style={styles.backgroundContainer}>
-        <View style={styles.backgroundGradient} />
-      </View>
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => {
-            playPageFlipSound()
-            router.push('/hub')
-          }}
-        >
-          <View style={styles.closeButtonCircle}>
-            <MaterialCommunityIcons name="close" size={20} color="#000000" />
-          </View>
-        </TouchableOpacity>
-        
-        <Text style={styles.storyLabel}>STORY I</Text>
-        
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => {
-            // TODO: Open edit menu
-          }}
-        >
-          <MaterialCommunityIcons name="feather" size={24} color="#ffffff" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Main Title */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.mainTitle}>Your Archive</Text>
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'powers' && styles.tabActive]}
-          onPress={() => handleTabChange('powers')}
-        >
-          <Text style={[styles.tabText, activeTab === 'powers' && styles.tabTextActive]}>
-            POWERS
-          </Text>
-          {activeTab === 'powers' && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'resources' && styles.tabActive]}
-          onPress={() => handleTabChange('resources')}
-        >
-          <Text style={[styles.tabText, activeTab === 'resources' && styles.tabTextActive]}>
-            ★ RESOURCES
-          </Text>
-          {activeTab === 'resources' && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'memories' && styles.tabActive]}
-          onPress={() => handleTabChange('memories')}
-        >
-          <Text style={[styles.tabText, activeTab === 'memories' && styles.tabTextActive]}>
-            MEMORIES
-          </Text>
-          {activeTab === 'memories' && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
-      </View>
-
-      {/* Content - Horizontal swipeable tabs */}
-      <ScrollView
-        ref={horizontalScrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        style={styles.horizontalScrollView}
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ImageBackground
+        source={require('../../assets/UI/hauntedlibrary.png')}
+        style={styles.backgroundContainer}
+        resizeMode="cover"
       >
-        {/* Powers Tab */}
-        <ScrollView
-          style={[styles.tabScrollView, { width: SCREEN_WIDTH }]}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading...</Text>
+        {/* Dark overlay for better text readability */}
+        <View style={styles.overlay} />
+        
+        {/* Content wrapper */}
+        <View style={styles.contentWrapper}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => {
+              playPageFlipSound()
+              router.push('/hub')
+            }}
+          >
+            <View style={styles.closeButtonCircle}>
+              <MaterialCommunityIcons name="close" size={20} color="#000000" />
             </View>
+          </TouchableOpacity>
+          
+          <Text style={styles.storyLabel}>STORY I</Text>
+          
+          <View style={styles.headerButtonsContainer}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => {
+                playPageFlipSound()
+                router.push('/thought-defender')
+              }}
+            >
+              <MaterialCommunityIcons name="gamepad-variant" size={24} color="#ffffff" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => {
+                playPageFlipSound()
+                router.push('/journal')
+              }}
+            >
+              <MaterialCommunityIcons name="feather" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Main Title */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.mainTitle}>Your Archive</Text>
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'powers' && styles.tabActive]}
+            onPress={() => handleTabChange('powers')}
+          >
+            <Text style={[styles.tabText, activeTab === 'powers' && styles.tabTextActive]}>
+              POWERS
+            </Text>
+            {activeTab === 'powers' && <View style={styles.tabUnderline} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'resources' && styles.tabActive]}
+            onPress={() => handleTabChange('resources')}
+          >
+            <Text style={[styles.tabText, activeTab === 'resources' && styles.tabTextActive]}>
+              ★ RESOURCES
+            </Text>
+            {activeTab === 'resources' && <View style={styles.tabUnderline} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'memories' && styles.tabActive]}
+            onPress={() => handleTabChange('memories')}
+          >
+            <Text style={[styles.tabText, activeTab === 'memories' && styles.tabTextActive]}>
+              MEMORIES
+            </Text>
+            {activeTab === 'memories' && <View style={styles.tabUnderline} />}
+          </TouchableOpacity>
+        </View>
+
+        {/* Content - Horizontal swipeable tabs */}
+        <ScrollView
+          ref={horizontalScrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          style={styles.horizontalScrollView}
+        >
+          {/* Powers Tab */}
+          <View style={[styles.tabContainer, { width: SCREEN_WIDTH }]}>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading...</Text>
+              </View>
           ) : (
             <ResourcesPowersTab
               attributes={attributes}
               equippedGear={equippedGear}
               characterName={characterName}
               avatarConfig={avatarConfig}
+              powers={powers}
+              markPowersSeen={markPowersSeen}
+              experience={experience}
             />
           )}
-        </ScrollView>
+          </View>
 
-        {/* Resources Tab */}
-        <ScrollView
-          style={[styles.tabScrollView, { width: SCREEN_WIDTH }]}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading...</Text>
-            </View>
-          ) : (
-            <ResourcesResourcesTab resources={resources} storyId={storyId} />
-          )}
-        </ScrollView>
+          {/* Resources Tab */}
+          <View style={[styles.tabContainer, { width: SCREEN_WIDTH }]}>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading...</Text>
+              </View>
+            ) : (
+              <ResourcesResourcesTab resources={resources} storyId={storyId} />
+            )}
+          </View>
 
-        {/* Memories Tab */}
-        <ScrollView
-          style={[styles.tabScrollView, { width: SCREEN_WIDTH }]}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading...</Text>
-            </View>
-          ) : (
-            <ResourcesMemoriesTab memories={memories} />
-          )}
+          {/* Memories Tab */}
+          <View style={[styles.tabContainer, { width: SCREEN_WIDTH }]}>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading...</Text>
+              </View>
+            ) : (
+              <ScrollView
+                style={styles.tabScrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <ResourcesMemoriesTab memories={memories} />
+              </ScrollView>
+            )}
+          </View>
         </ScrollView>
-      </ScrollView>
+        </View>
+      </ImageBackground>
     </SafeAreaView>
   )
 }
@@ -228,11 +253,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
   },
   backgroundContainer: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
   },
-  backgroundGradient: {
+  overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  contentWrapper: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -242,6 +270,10 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
     zIndex: 10,
+  },
+  headerButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
   },
   headerButton: {
     width: 40,
@@ -313,6 +345,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   horizontalScrollView: {
+    flex: 1,
+  },
+  tabContainer: {
     flex: 1,
   },
   tabScrollView: {

@@ -1,0 +1,254 @@
+import type React from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions, ScrollView } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { useHaptics } from '@/utils/useHaptics'
+import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+const { width, height } = Dimensions.get('window')
+
+interface PowerDetailsModalProps {
+  visible: boolean
+  onClose: () => void
+  title: string
+  description?: string
+  icon?: string | React.ReactNode
+  isActive?: boolean
+}
+
+export function PowerDetailsModal({ 
+  visible, 
+  onClose, 
+  title, 
+  description, 
+  icon,
+  isActive 
+}: PowerDetailsModalProps) {
+  const haptics = useHaptics()
+  const playPageFlipSound = usePageFlipSound()
+  const insets = useSafeAreaInsets()
+
+  function handleClose() {
+    haptics.lightImpact()
+    playPageFlipSound()
+    onClose()
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleClose}
+    >
+      <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={styles.modalContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerSpacer} />
+            
+            <Text style={styles.modalTitle}>Power Details</Text>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={handleClose}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="close" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Content - Scrollable */}
+          <ScrollView 
+            style={styles.contentScrollView}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            <View style={styles.contentWrapper}>
+              {/* Icon */}
+              {icon && (
+                <View style={[styles.iconContainer, isActive && styles.iconContainerActive]}>
+                  {typeof icon === 'string' ? (
+                    <MaterialCommunityIcons name={icon as any} size={48} color="#D4AF37" />
+                  ) : (
+                    icon
+                  )}
+                </View>
+              )}
+
+              {/* Title */}
+              <Text style={styles.powerTitle}>{title}</Text>
+
+              {/* Active Badge */}
+              {isActive && (
+                <View style={styles.activeBadge}>
+                  <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                </View>
+              )}
+
+              {/* Description */}
+              {description && (
+                <Text style={styles.descriptionText}>
+                  {description}
+                </Text>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* Close Button */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.closeButtonLarge}
+              onPress={handleClose}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    width: width,
+    height: height,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(26, 26, 46, 0.95)',
+    padding: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
+    flexDirection: 'column',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerSpacer: {
+    width: 32,
+  },
+  modalTitle: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 32,
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  closeButton: {
+    padding: 2,
+    width: 32,
+    alignItems: 'flex-end',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginBottom: 16,
+  },
+  contentScrollView: {
+    flex: 1,
+    maxHeight: 400,
+    marginBottom: 16,
+    minHeight: 100,
+  },
+  contentContainer: {
+    paddingBottom: 8,
+  },
+  contentWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    marginBottom: 20,
+  },
+  iconContainerActive: {
+    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+  },
+  powerTitle: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 36,
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 42,
+  },
+  activeBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    marginBottom: 20,
+  },
+  activeBadgeText: {
+    fontFamily: 'System',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: '#D4AF37',
+    textTransform: 'uppercase',
+  },
+  descriptionText: {
+    fontFamily: 'System',
+    fontSize: 16,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    lineHeight: 24,
+    width: '100%',
+  },
+  footer: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  closeButtonLarge: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontFamily: 'System',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: '#ffffff',
+  },
+})
+

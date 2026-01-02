@@ -44,12 +44,38 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 
 export const CharacterCreateSchema = z.object({
   name: z.string().min(1).max(50),
-  avatar: z.string().min(1),
+  avatar: z.string().optional(),
+  selected_base_model: z.number().optional(),
+  selected_skin_color: z.number().optional(),
+  selected_background_color: z.number().optional(),
+  selected_background_type: z.number().optional(),
+  selected_hair_color: z.number().optional(),
+  selected_hair_style: z.number().optional(),
+  selected_shirt_color: z.number().optional(),
+  selected_shirt_type: z.number().optional(),
+  selected_eye_color: z.number().optional(),
+  selected_eye_type: z.number().optional(),
+  selected_eyebrow_color: z.number().optional(),
+  selected_eyebrow_style: z.number().optional(),
+  selected_mouth_type: z.number().optional(),
 })
 
 export const CharacterUpdateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
-  avatar: z.string().min(1).optional(),
+  avatar: z.string().optional(),
+  selected_base_model: z.number().optional(),
+  selected_skin_color: z.number().optional(),
+  selected_background_color: z.number().optional(),
+  selected_background_type: z.number().optional(),
+  selected_hair_color: z.number().optional(),
+  selected_hair_style: z.number().optional(),
+  selected_shirt_color: z.number().optional(),
+  selected_shirt_type: z.number().optional(),
+  selected_eye_color: z.number().optional(),
+  selected_eye_type: z.number().optional(),
+  selected_eyebrow_color: z.number().optional(),
+  selected_eyebrow_style: z.number().optional(),
+  selected_mouth_type: z.number().optional(),
 })
 
 export const CharacterResponseSchema = z.object({
@@ -160,27 +186,32 @@ export type AttributesUpdateRequest = z.infer<typeof AttributesUpdateSchema>
 // ============================================================================
 
 export const JournalEntryCreateSchema = z.object({
-  title: z.string().min(1).max(200),
+  prompt: z.number(),
+  entry_type: z.string().min(1),
   content: z.string().min(1),
-  tags: z.array(z.string()).optional(),
-  mood: z.string().optional(),
 })
 
 export const JournalEntryUpdateSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
+  prompt: z.number().optional(),
+  entry_type: z.string().min(1).optional(),
   content: z.string().min(1).optional(),
-  tags: z.array(z.string()).optional(),
-  mood: z.string().optional(),
 })
 
 export const JournalEntryResponseSchema = z.object({
-  id: z.string(),
-  title: z.string(),
+  id: z.number(),
+  prompt: z.number(),
+  prompt_id: z.string(),
+  prompt_text: z.string(),
+  entry_type: z.string(),
   content: z.string(),
-  tags: z.array(z.string()).default([]),
-  mood: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number().optional(),
+  content_preview: z.string(),
+  skill_category: z.string(),
+  difficulty: z.string(),
+  word_count: z.number(),
+  duration_seconds: z.number().nullable(),
+  username: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
 })
 
 export type JournalEntryCreateRequest = z.infer<typeof JournalEntryCreateSchema>

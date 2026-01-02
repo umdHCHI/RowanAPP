@@ -1,17 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   View,
   ScrollView,
   StatusBar,
   StyleSheet,
+  Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useVideoPlayer, VideoView } from 'expo-video'
 import { useGameStore } from '@/stores/game-store'
-import { CharacterPreview } from '@/components/CharacterPreview'
+import { CharacterPreview } from '@/components/character/CharacterPreview'
 import { COLORS, Color, BASE_COUNT, BG_COUNT, HAIR_COUNT, CLOTHES_COUNT, EYES_COUNT, EYEBROWS_COUNT, MOUTH_COUNT } from '@/utils/character-assets'
 import { TextInput, Text, Button, Card, useTheme, IconButton, Chip } from 'react-native-paper'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { useHaptics } from '@/utils/useHaptics'
+import { useCreateCharacter, useUpdateCharacter } from '@/api/hooks/use-character'
+import { useUserFullProfile, userKeys } from '@/api/hooks/use-user'
+import { convertToBackendConfig, buildAvatarConfig } from '@/utils/character-avatar-config'
+import { useQueryClient } from '@tanstack/react-query'
+import { characterKeys } from '@/api/hooks/use-character'
+
+const USER_ID = 1 // TODO: Get from auth context or store
 
 type Category = 'base' | 'background' | 'hair' | 'clothes' | 'eyes' | 'eyebrows' | 'mouth'
 
@@ -35,8 +44,21 @@ export default function CharacterCreator() {
   const theme = useTheme()
   const { setCharacter } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
+  const haptics = useHaptics()
   const [characterName, setCharacterName] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<Category>('base')
+  const [isSaving, setIsSaving] = useState(false)
+  
+  const queryClient = useQueryClient()
+  const { data: profileData } = useUserFullProfile(USER_ID)
+  const createCharacter = useCreateCharacter()
+  const updateCharacter = useUpdateCharacter()
+  
+  const existingCharacter = profileData?.character
+  // Character ID from backend can be number or string
+  // TODO: Use actual character ID from profile once login/auth is implemented
+  // For now, use ID 1 as default if we have a character (until login/auth is implemented)
+  const existingCharacterId = existingCharacter ? '5' : undefined
   
   // Simple video player with auto-loop
   const player = useVideoPlayer(require('../assets/UI/thevoid.mp4'), (player) => {
@@ -60,6 +82,23 @@ export default function CharacterCreator() {
     mouthIndex: 0,
   })
 
+  // Load existing character data when available
+  useEffect(() => {
+    if (existingCharacter && profileData?.character) {
+      const avatarConfigStr = buildAvatarConfig(profileData.character)
+      if (avatarConfigStr) {
+        try {
+          const loadedConfig = JSON.parse(avatarConfigStr) as CharacterConfig
+          setConfig(loadedConfig)
+          setCharacterName(existingCharacter.name || '')
+        } catch (error) {
+          console.error('Failed to parse existing character config:', error)
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingCharacter?.id, profileData?.character?.id])
+
   function cycleIndex(current: number, direction: number, max: number): number {
     const newIndex = current + direction
     if (newIndex < 0) return max - 1
@@ -68,6 +107,7 @@ export default function CharacterCreator() {
   }
 
   function handlePrevious() {
+    haptics.lightImpact()
     playPageFlipSound()
     switch (selectedCategory) {
       case 'base':
@@ -95,6 +135,7 @@ export default function CharacterCreator() {
   }
 
   function handleNext() {
+    haptics.lightImpact()
     playPageFlipSound()
     switch (selectedCategory) {
       case 'base':
@@ -122,6 +163,7 @@ export default function CharacterCreator() {
   }
 
   function handleColorChange(color: Color) {
+    haptics.selection()
     playPageFlipSound()
     switch (selectedCategory) {
       case 'background':
@@ -181,20 +223,116 @@ export default function CharacterCreator() {
     return ['background', 'hair', 'clothes', 'eyes', 'eyebrows'].includes(selectedCategory)
   }
 
-  function handleCreateCharacter() {
+  async function handleCreateCharacter() {
     if (!characterName.trim()) return
 
+    haptics.mediumImpact()
     playPageFlipSound()
-    const avatarConfig = JSON.stringify(config)
-    
-    setCharacter({
-      id: Date.now().toString(),
-      name: characterName.trim(),
-      avatar: avatarConfig,
-      createdAt: Date.now(),
-    })
+    setIsSaving(true)
 
-    router.replace('/hub')
+    try {
+      // Convert frontend config to backend format
+      const backendConfig = convertToBackendConfig(config)
+      const avatarConfig = JSON.stringify(config)
+
+      const requestData: any = {
+        name: characterName.trim(),
+        ...backendConfig,
+      }
+
+      // Preserve existing skin_color if updating and it's a valid value (>= 1)
+      // Otherwise, use the default from convertToBackendConfig (which is 1)
+      if (existingCharacterId && existingCharacter?.character_config?.selected_skin_color) {
+        const existingSkinColor = existingCharacter.character_config.selected_skin_color
+        if (existingSkinColor >= 1) {
+          requestData.selected_skin_color = existingSkinColor
+        }
+      }
+
+      console.log('Saving character with data:', {
+        isUpdate: !!existingCharacterId,
+        characterId: existingCharacterId,
+        requestData,
+      })
+
+      if (existingCharacterId) {
+        try {
+          // Try to update existing character
+          await updateCharacter.mutateAsync({
+            id: existingCharacterId,
+            data: requestData,
+          })
+        } catch (updateError: any) {
+          // If update fails with 404, the character doesn't exist - create a new one instead
+          if (updateError?.status === 404 || updateError?.message?.includes('No Character matches')) {
+            console.log('Character not found, creating new character instead')
+            await createCharacter.mutateAsync(requestData)
+          } else {
+            // Re-throw other errors
+            throw updateError
+          }
+        }
+      } else {
+        // Create new character
+        await createCharacter.mutateAsync(requestData)
+      }
+
+      // Invalidate user profile query to refresh data
+      queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(USER_ID) })
+      queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
+
+      // Also update local game store for backwards compatibility
+      setCharacter({
+        id: existingCharacterId || Date.now().toString(),
+        name: characterName.trim(),
+        avatar: avatarConfig,
+        createdAt: Date.now(),
+      })
+
+      router.replace('/hub')
+    } catch (error: any) {
+      console.error('Failed to save character - Full error object:', error)
+      console.error('Error stringified:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
+      
+      // Extract error message from various error formats
+      let errorMessage = 'Failed to save character. Please try again.'
+      
+      if (error?.message && typeof error.message === 'string') {
+        errorMessage = error.message
+      } else if (error?.status && error?.message) {
+        errorMessage = `Error ${error.status}: ${error.message || error.statusText || 'Unknown error'}`
+      } else if (error?.errors) {
+        // Handle validation errors
+        if (typeof error.errors === 'object') {
+          const validationErrors = Object.entries(error.errors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : String(messages)}`)
+            .join('\n')
+          errorMessage = `Validation errors:\n${validationErrors}`
+        } else {
+          errorMessage = String(error.errors)
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else {
+        // Try to extract any useful info
+        errorMessage = error?.toString() || 'Unknown error occurred'
+      }
+      
+      console.error('Error details extracted:', {
+        message: errorMessage,
+        status: error?.status,
+        code: error?.code,
+        errors: error?.errors,
+      })
+      
+      Alert.alert(
+        'Error Saving Character',
+        errorMessage,
+        [{ text: 'OK' }]
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const categories: { id: Category; label: string }[] = [
@@ -394,6 +532,7 @@ export default function CharacterCreator() {
                     key={category.id}
                     selected={selectedCategory === category.id}
                     onPress={() => {
+                      haptics.selection()
                       playPageFlipSound()
                       setSelectedCategory(category.id)
                     }}
@@ -564,7 +703,8 @@ export default function CharacterCreator() {
         <Button
           mode="contained"
           onPress={handleCreateCharacter}
-          disabled={!characterName.trim()}
+          disabled={!characterName.trim() || isSaving}
+          loading={isSaving}
           style={{ 
             marginBottom: 32,
             borderRadius: 12,
@@ -579,7 +719,7 @@ export default function CharacterCreator() {
             letterSpacing: 0.5,
           }}
         >
-          Begin Journey
+          {existingCharacterId ? 'Update Character' : 'Begin Journey'}
         </Button>
       </ScrollView>
     </View>

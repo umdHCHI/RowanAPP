@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from 'react-native-paper'
 import { Header } from '@/components/header'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { useHaptics } from '@/utils/useHaptics'
 import { GameButton } from '@/components/GameButton'
 
 export default function About() {
@@ -11,10 +12,11 @@ export default function About() {
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const playPageFlipSound = usePageFlipSound()
+  const haptics = useHaptics()
 
   return (
     <ImageBackground
-      source={require('../hauntedlibrary.png')}
+      source={require('../assets/UI/hauntedlibrary.png')}
       style={styles.background}
       resizeMode="cover"
     >
@@ -57,6 +59,7 @@ export default function About() {
             pressedImage={require('../assets/UI/buttons/blue/Button_05A_Pressed.png')}
             label="Return to Archive"
             onPress={() => {
+              haptics.lightImpact()
               playPageFlipSound()
               router.push('/hub')
             }}

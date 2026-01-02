@@ -4,15 +4,20 @@
 export type PassageType = 'narration' | 'dialogue' | 'decision' | 'ending' | 'action'
 
 /**
- * Story History Item - represents a passage or choice in the story history
+ * Story History Item - represents a passage, choice, or reward in the story history
  */
 export interface StoryHistoryItem {
-  type: 'passage' | 'choice'
+  type: 'passage' | 'choice' | 'reward'
   content: string
   id: string
   passageType?: PassageType
   speakerName?: string | null
   speakerImage?: string | null
+  rewardType?: 'journal_entry' | 'minigame' | 'power' | 'skill' | 'gear'
+  rewardTitle?: string
+  rewardSubtitle?: string
+  journalEntryId?: string
+  minigameLevel?: string
 }
 
 /**

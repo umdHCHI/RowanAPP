@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useStoryEngine } from '@/hooks/use-story-engine'
-import { useIntroductionStoryMusic } from '@/utils/useIntroductionStoryMusic'
+import { useStoryMusic } from '@/utils/useStoryMusic'
 import { useStoryHistory } from '@/hooks/use-story-history'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
@@ -15,6 +15,8 @@ import { StoryChoices } from './StoryChoices'
 import { useGameStore } from '@/stores/game-store'
 import { useStoryAutoAdvance } from '@/hooks/use-story-auto-advance'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
+import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage } from '@/utils/story-helpers'
+import { journalService } from '@/api/services/journal.service'
 import type { StoryChoice } from '@/types/story'
 
 interface StoryPageProps {
@@ -28,7 +30,7 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
-  const { textSpeed } = useGameStore()
+  const { textSpeed, markJournalRewardCollected, hasCollectedJournalReward, addMemory } = useGameStore()
 
   const {
     isLoading,
@@ -78,14 +80,138 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
     }
   }, [isLoading, currentPassage, error])
 
-  // Play background music for introduction story (looping, 50% volume)
-  // Only play when route is focused, story is active (visible), has loaded, and it's the introduction story
+  // Play background music for story (looping, 50% volume)
+  // Only play when route is focused, story is active (visible), and has loaded
   // Use storyHasLoaded instead of currentPassage to prevent restarting on passage changes
-  const isStoryActive = isRouteFocused && isActive && storyHasLoaded && isIntroduction
-  useIntroductionStoryMusic(isStoryActive)
+  // Pass storyId to determine which music to play (music will only play if configured for that story)
+  const isStoryActive = isRouteFocused && isActive && storyHasLoaded
+  useStoryMusic(storyId, isStoryActive)
 
-  // Manage story history
-  const { history, addChoice } = useStoryHistory({ currentPassage })
+  // Manage story history - must be defined before reward collection effect
+  const { history, addChoice, addReward } = useStoryHistory({ currentPassage })
+
+  // Track rewards shown in this session to avoid duplicates in history
+  const rewardsShownThisSession = React.useRef<Set<string>>(new Set())
+
+  // Collect journal rewards when passage changes
+  React.useEffect(() => {
+    if (!currentPassage || isLoading) return
+
+    // Store passage in const so TypeScript knows it's not null inside async function
+    const passage = currentPassage
+
+    async function collectJournalReward() {
+      const reward = getJournalEntryRewardFromPassage(passage)
+      if (!reward) {
+        return
+      }
+
+      // Check if already collected globally
+      const wasAlreadyCollected = hasCollectedJournalReward(reward.journalEntryId)
+      
+      // Check if we've shown this reward in history this session
+      const rewardKey = `${passage.passage_id}-${reward.journalEntryId}`
+      const shownThisSession = rewardsShownThisSession.current.has(rewardKey)
+
+      if (wasAlreadyCollected && shownThisSession) {
+        return
+      }
+
+      // Mark as collected globally (if not already)
+      if (!wasAlreadyCollected) {
+        markJournalRewardCollected(reward.journalEntryId)
+      }
+
+      // Mark as shown this session
+      rewardsShownThisSession.current.add(rewardKey)
+
+      // Fetch prompt details
+      let prompt = null
+      try {
+        prompt = await journalService.getJournalPromptById(reward.journalEntryId)
+        if (!prompt) {
+          console.warn(`[Reward Detection] Journal prompt ${reward.journalEntryId} not found, using fallback`)
+        }
+      } catch (error) {
+        console.error('[Reward Detection] Failed to fetch journal prompt:', error)
+      }
+
+      // Add reward to story history (even if prompt fetch failed)
+      const rewardTitle = prompt?.skill_category || 'Journal Prompt Unlocked'
+      const rewardSubtitle = prompt?.text?.trim().substring(0, 120) || undefined
+      
+      addReward({
+        id: `journal-reward-${reward.journalEntryId}-${passage.passage_id}`,
+        type: 'journal_entry',
+        title: rewardTitle,
+        subtitle: rewardSubtitle,
+        journalEntryId: reward.journalEntryId,
+      })
+
+      // Create memory entry (only if not already collected and prompt was found)
+      if (!wasAlreadyCollected && prompt) {
+        const memory = {
+          id: `journal-reward-${reward.journalEntryId}`,
+          type: 'JOURNAL_REWARD',
+          title: rewardTitle,
+          description: prompt.text.substring(0, 140).trim(),
+          modality: 'journal_reward' as const,
+          content: JSON.stringify({ journalEntryId: reward.journalEntryId, prompt }),
+          createdAt: new Date().toISOString(),
+        }
+
+        addMemory(memory)
+      }
+    }
+
+    collectJournalReward()
+  }, [currentPassage, isLoading, hasCollectedJournalReward, markJournalRewardCollected, addMemory, addReward])
+
+  // Collect minigame rewards when passage changes
+  React.useEffect(() => {
+    if (!currentPassage || isLoading) return
+
+    // Store passage in const so TypeScript knows it's not null inside async function
+    const passage = currentPassage
+
+    function collectMinigameReward() {
+      const reward = getMinigameRewardFromPassage(passage)
+      if (!reward) {
+        return
+      }
+
+      // Check if we've shown this reward in history this session
+      const rewardKey = `${passage.passage_id}-minigame-${reward.level}`
+      const shownThisSession = rewardsShownThisSession.current.has(rewardKey)
+
+      if (shownThisSession) {
+        return
+      }
+
+      // Mark as shown this session
+      rewardsShownThisSession.current.add(rewardKey)
+
+      // Determine title based on level
+      const levelTitles: Record<string, string> = {
+        levelOne: 'Thought Defender - Level One',
+        levelTwo: 'Thought Defender - Level Two',
+        levelThree: 'Thought Defender - Level Three',
+      }
+      const rewardTitle = levelTitles[reward.level] || `Thought Defender - ${reward.level}`
+      const rewardSubtitle = 'Practice reframing negative thoughts in this interactive challenge'
+
+      // Add reward to story history
+      addReward({
+        id: `minigame-reward-${reward.level}-${passage.passage_id}`,
+        type: 'minigame',
+        title: rewardTitle,
+        subtitle: rewardSubtitle,
+        minigameLevel: reward.level,
+      })
+    }
+
+    collectMinigameReward()
+  }, [currentPassage, isLoading, addReward])
 
   // Handle choice selection (with sound - user interaction)
   const handleChoice = useCallback(
@@ -195,7 +321,7 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#2D1B4E',
+    backgroundColor: 'transparent',
   },
   mainContainer: {
     flex: 1,

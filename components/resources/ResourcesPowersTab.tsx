@@ -1,7 +1,35 @@
-import React, { useMemo } from 'react'
-import { View, Text, Image, StyleSheet } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { CharacterAvatar } from '@/components/CharacterAvatar'
+import React, { useEffect, useMemo, useState } from 'react'
+import { View, Text, FlatList, StyleSheet, Image } from 'react-native'
+import { CharacterAvatar } from '@/components/character/CharacterAvatar'
+import { PowerCard } from './PowerCard'
+import { PowerDetailsModal } from './PowerDetailsModal'
+import { useGameStore, type Power } from '@/stores/game-store'
+import { attributeImages } from '@/utils/attribute-images'
+
+/**
+ * Power descriptions mapping
+ */
+const powerDescriptions: Record<string, string> = {
+  Exploration: 'Your capacity to venture into the unknown and discover new paths.',
+  Courage: 'The strength to face challenges and move forward despite fear.',
+  Connection: 'Your ability to form meaningful bonds with others and yourself.',
+  Fear: 'An awareness of what holds you back, and the first step toward understanding it.',
+}
+
+/**
+ * Map attribute value (0-20) to image level (1-5)
+ * Max is 20, with 5 images per attribute
+ * 0-4 = level 1, 5-8 = level 2, 9-12 = level 3, 13-16 = level 4, 17-20 = level 5
+ */
+function mapValueToImageLevel(value: number): number {
+  if (value <= 0) return 1
+  if (value <= 4) return 1
+  if (value <= 8) return 2
+  if (value <= 12) return 3
+  if (value <= 16) return 4
+  return 5
+}
+
 interface ResourcesPowersTabProps {
   attributes: Array<{
     label: string
@@ -10,51 +38,9 @@ interface ResourcesPowersTabProps {
   equippedGear: Array<any>
   characterName: string
   avatarConfig: string | null
-}
-
-/**
- * Map wellness value to level (1-5) for image selection
- */
-function mapValueToLevel(value: number): number {
-  if (value <= 0) return 1
-  const level = Math.round(value / 5)
-  if (level < 1) return 1
-  if (level > 5) return 5
-  return level
-}
-
-/**
- * Attribute images mapping
- */
-const attributeImages = {
-  Exploration: {
-    1: require('../../assets/attributes/exploration/explorationLv1.png'),
-    2: require('../../assets/attributes/exploration/explorationLv2.png'),
-    3: require('../../assets/attributes/exploration/explorationLv3.png'),
-    4: require('../../assets/attributes/exploration/explorationLv4.png'),
-    5: require('../../assets/attributes/exploration/explorationLv5.png'),
-  },
-  Courage: {
-    1: require('../../assets/attributes/courage/courageLv1.png'),
-    2: require('../../assets/attributes/courage/courageLv2.png'),
-    3: require('../../assets/attributes/courage/courageLv3.png'),
-    4: require('../../assets/attributes/courage/courageLv4.png'),
-    5: require('../../assets/attributes/courage/courageLv5.png'),
-  },
-  Connection: {
-    1: require('../../assets/attributes/connection/connectionLv1.png'),
-    2: require('../../assets/attributes/connection/connectionLv2.png'),
-    3: require('../../assets/attributes/connection/connectionLv3.png'),
-    4: require('../../assets/attributes/connection/connectionLv4.png'),
-    5: require('../../assets/attributes/connection/connectionLv5.png'),
-  },
-  Fear: {
-    1: require('../../assets/attributes/fear/fear1.png'),
-    2: require('../../assets/attributes/fear/fearLv2.png'),
-    3: require('../../assets/attributes/fear/fearLv3.png'),
-    4: require('../../assets/attributes/fear/fearLv4.png'),
-    5: require('../../assets/attributes/fear/fearLv5.png'),
-  },
+  powers: Array<Power & { isNew?: boolean }>
+  markPowersSeen: () => void
+  experience: number
 }
 
 export function ResourcesPowersTab({
@@ -62,239 +48,299 @@ export function ResourcesPowersTab({
   equippedGear,
   characterName,
   avatarConfig,
+  powers,
+  markPowersSeen,
+  experience,
 }: ResourcesPowersTabProps) {
-  const displayAttributes = useMemo(() => {
-    return attributes
-      .filter((stat) => attributeImages[stat.label as keyof typeof attributeImages])
-      .map((stat) => {
-        const level = mapValueToLevel(stat.value)
-        const images = attributeImages[stat.label as keyof typeof attributeImages]
-        return {
-          ...stat,
-          level,
-          image: images[level as keyof typeof images],
-        }
-      })
+  const setActivePower = useGameStore((state) => state.setActivePower)
+  const [selectedPower, setSelectedPower] = useState<Power & { isNew?: boolean; icon?: string | React.ReactNode } | null>(null)
+  const [modalVisible, setModalVisible] = useState(false)
+
+  // Mark powers as seen after mount (with delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      markPowersSeen()
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [markPowersSeen])
+
+  // Find strongest power (attribute with highest value)
+  const strongestPower = useMemo(() => {
+    if (!attributes || attributes.length === 0) return null
+    
+    const sorted = [...attributes].sort((a, b) => b.value - a.value)
+    const strongest = sorted[0]
+    
+    if (strongest.value <= 0) return null
+    
+    const imageLevel = mapValueToImageLevel(strongest.value)
+    const attrKey = strongest.label.toLowerCase() as keyof typeof attributeImages
+    
+    if (!attributeImages[attrKey]) return null
+    
+    const imageSource = attributeImages[attrKey][imageLevel as keyof typeof attributeImages[typeof attrKey]]
+    if (!imageSource) return null
+    
+    return {
+      label: strongest.label,
+      image: imageSource,
+    }
   }, [attributes])
 
+  // Convert attributes to powers with images
+  const powersFromAttributes = useMemo((): Array<Power & { isNew?: boolean; icon?: string | React.ReactNode }> => {
+    return attributes.map((attr) => {
+      const isUnlocked = attr.value > 0
+      const imageLevel = mapValueToImageLevel(attr.value)
+      const attrKey = attr.label.toLowerCase() as keyof typeof attributeImages
+
+      // Get the image if attribute exists in mapping
+      let icon: string | React.ReactNode = 'sparkles' // fallback icon
+      if (attributeImages[attrKey] && isUnlocked) {
+        const imageSource = attributeImages[attrKey][imageLevel as keyof typeof attributeImages[typeof attrKey]]
+        if (imageSource) {
+          icon = (
+            <Image
+              source={imageSource}
+              style={{ width: 32, height: 32 }}
+              resizeMode="contain"
+            />
+          )
+        }
+      }
+
+      // Find matching power from store to get isNew and isActive
+      const storePower = powers.find((p) => p.id === `power-${attr.label}` || p.title === attr.label)
+
+      return {
+        id: `power-${attr.label}`,
+        title: attr.label,
+        description: powerDescriptions[attr.label] || `Your ${attr.label.toLowerCase()} ability.`,
+        isUnlocked,
+        isNew: storePower?.isNew || false,
+        isActive: storePower?.isActive || false,
+        icon,
+      } as Power & { isNew?: boolean; icon?: string | React.ReactNode }
+    })
+  }, [attributes, powers])
+
+  function handlePowerPress(power: Power & { isNew?: boolean; icon?: string | React.ReactNode }) {
+    if (!power.isUnlocked) return
+
+    // Set as active power
+    setActivePower(power.id)
+
+    // Open power details modal
+    setSelectedPower(power)
+    setModalVisible(true)
+  }
+
+  function handleCloseModal() {
+    setModalVisible(false)
+    setSelectedPower(null)
+  }
+
+  function renderPowerCard({ item }: { item: Power & { isNew?: boolean; icon?: string | React.ReactNode } }) {
+    return (
+      <PowerCard
+        id={item.id}
+        title={item.title}
+        description={item.description}
+        isUnlocked={item.isUnlocked}
+        isNew={item.isNew || false}
+        isActive={item.isActive || false}
+        icon={item.icon || 'sparkles'}
+        onPress={() => handlePowerPress(item)}
+      />
+    )
+  }
+
   return (
-    <View style={styles.powersContainer}>
-      <View style={styles.identityContainer}>
-        <View style={styles.identityIcon}>
+    <View style={styles.container}>
+      {/* Profile Section */}
+      <View style={styles.profileSection}>
+        {/* Avatar */}
+        <View style={styles.avatarContainer}>
           {avatarConfig ? (
-            <CharacterAvatar avatarConfig={avatarConfig} size={120} />
+            <CharacterAvatar avatarConfig={avatarConfig} size={100} />
           ) : (
-            <MaterialCommunityIcons name="compass-outline" size={64} color="#ffffff" />
+            <View style={styles.avatarPlaceholder} />
           )}
         </View>
-        <Text style={styles.identityName}>{characterName}</Text>
-      </View>
-      
-      {/* Attributes Section */}
-      {displayAttributes.length > 0 && (
-        <View style={styles.powersListContainer}>
-          <Text style={styles.powersHeading}>YOUR POWERS</Text>
-          <View style={styles.powersGrid}>
-            {displayAttributes.map((attr) => (
-              <View key={`attr-${attr.label}`} style={styles.powerItem}>
-                <View style={styles.powerIconContainer}>
+
+        {/* Profile Info */}
+        <View style={styles.profileInfo}>
+          <Text style={styles.profileName}>{characterName}</Text>
+          <View style={styles.profileStats}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{experience}</Text>
+              <Text style={styles.statLabel}>Lumens Gathered = Experience</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              {strongestPower ? (
+                <>
                   <Image
-                    source={attr.image}
-                    style={styles.powerImage}
+                    source={strongestPower.image}
+                    style={styles.strongestPowerImage}
                     resizeMode="contain"
                   />
-                </View>
-                <Text style={styles.powerName}>{attr.label}</Text>
-                <Text style={styles.powerValue}>{attr.value}</Text>
-              </View>
-            ))}
+                  <Text style={styles.statLabel}>Strongest Power</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.statValue}>—</Text>
+                  <Text style={styles.statLabel}>Strongest Power</Text>
+                </>
+              )}
+            </View>
           </View>
+        </View>
+      </View>
+
+      {/* Header Section */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Powers</Text>
+        <Text style={styles.subtitle}>Abilities you uncover in The Archive.</Text>
+      </View>
+
+      {/* Powers List */}
+      {powersFromAttributes.length > 0 ? (
+        <FlatList
+          data={powersFromAttributes}
+          renderItem={renderPowerCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No powers unlocked yet.</Text>
+            </View>
+          }
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No powers available.</Text>
         </View>
       )}
 
-      {/* Gear Section */}
-      {equippedGear.length > 0 && (
-        <View style={styles.gearListContainer}>
-          <Text style={styles.gearHeading}>YOUR GEAR</Text>
-          <View style={styles.gearGrid}>
-            {equippedGear.map((gearItem: any) => {
-              const gearType = gearItem.gear_type || {}
-              const isEquipped = gearItem.is_equipped || false
-              
-              return (
-                <View key={`gear-${gearItem.id}`} style={styles.gearItem}>
-                  <View style={[
-                    styles.gearIconContainer,
-                    isEquipped && styles.gearIconContainerEquipped
-                  ]}>
-                    <Text style={styles.gearEmoji}>{gearType.emoji_icon || '🎁'}</Text>
-                    {isEquipped && (
-                      <View style={styles.equippedBadge}>
-                        <MaterialCommunityIcons name="check" size={16} color="#ffffff" />
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.gearName} numberOfLines={2}>
-                    {gearType.name || 'Unknown Gear'}
-                  </Text>
-                  {gearType.slot && (
-                    <Text style={styles.gearType}>{gearType.slot.toUpperCase()}</Text>
-                  )}
-                </View>
-              )
-            })}
-          </View>
-        </View>
+      {/* Power Details Modal */}
+      {selectedPower && (
+        <PowerDetailsModal
+          visible={modalVisible}
+          onClose={handleCloseModal}
+          title={selectedPower.title}
+          description={selectedPower.description}
+          icon={selectedPower.icon}
+          isActive={selectedPower.isActive}
+        />
       )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  powersContainer: {
-    alignItems: 'center',
-    paddingVertical: 24,
+  container: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
   },
-  identityContainer: {
+  profileSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 32,
+    padding: 20,
+    backgroundColor: 'rgba(26, 26, 46, 0.6)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
   },
-  identityIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+  avatarContainer: {
+    marginRight: 20,
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  identityName: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 32,
-    color: '#ffffff',
-  },
-  powersListContainer: {
-    width: '100%',
-    alignSelf: 'flex-start',
-  },
-  powersHeading: {
-    fontFamily: 'System',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: '#ffffff',
-    marginBottom: 20,
-  },
-  powersGrid: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  powerItem: {
-    alignItems: 'center',
+  profileInfo: {
     flex: 1,
   },
-  powerIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  profileName: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 28,
+    color: '#ffffff',
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    lineHeight: 32,
   },
-  powerName: {
-    fontFamily: 'System',
-    fontSize: 14,
-    color: '#ffffff',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  powerValue: {
-    fontFamily: 'System',
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  powerImage: {
-    width: 60,
-    height: 60,
-  },
-  gearListContainer: {
-    width: '100%',
-    marginTop: 40,
-    alignSelf: 'flex-start',
-  },
-  gearHeading: {
-    fontFamily: 'System',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: '#ffffff',
-    marginBottom: 20,
-  },
-  gearGrid: {
+  profileStats: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 16,
   },
-  gearItem: {
+  statItem: {
+    flex: 1,
     alignItems: 'center',
-    width: '30%',
-    minWidth: 100,
   },
-  gearIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    position: 'relative',
-  },
-  gearIconContainerEquipped: {
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderWidth: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  gearEmoji: {
-    fontSize: 36,
-  },
-  equippedBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  gearName: {
+  statValue: {
     fontFamily: 'System',
-    fontSize: 12,
-    color: '#ffffff',
-    textAlign: 'center',
-    marginTop: 4,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#D4AF37',
+    marginBottom: 4,
   },
-  gearType: {
+  statLabel: {
     fontFamily: 'System',
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-    marginTop: 2,
-    textTransform: 'uppercase',
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  strongestPowerImage: {
+    width: 48,
+    height: 48,
+    marginBottom: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  header: {
+    marginBottom: 32,
+  },
+  title: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 36,
+    color: '#ffffff',
+    marginBottom: 8,
+    lineHeight: 42,
+  },
+  subtitle: {
+    fontFamily: 'System',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 20,
+  },
+  listContent: {
+    paddingBottom: 24,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontFamily: 'System',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
   },
 })
 

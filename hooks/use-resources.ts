@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { useUserFullProfile, useStories } from '@/api'
-import { COLORS, type Color } from '@/utils/character-assets'
 import type { StoryResponse } from '@/api/types'
+import { useGameStore, type Power } from '@/stores/game-store'
+import { buildAvatarConfig } from '@/utils/character-avatar-config'
 
-const USER_ID = 3 // TODO: Get from auth context or store
+const USER_ID = 1 // TODO: Get from auth context or store
 
 export interface ResourceItem {
   id: string
@@ -20,6 +21,8 @@ export interface MemoryItem {
   title: string
   type: string
   description?: string
+  modality?: 'write' | 'draw' | 'voice' | 'journal_reward'
+  content?: string
 }
 
 export type TabType = 'powers' | 'resources' | 'memories'
@@ -94,40 +97,6 @@ const mockMemories: MemoryItem[] = [
   },
 ]
 
-/**
- * Map color indices to Color type
- */
-function getColorByIndex(index: number | undefined): Color {
-  if (index === undefined || index === null) return 'Brown'
-  const colorIndex = Math.max(0, Math.min(index, COLORS.length - 1))
-  return COLORS[colorIndex] || 'Brown'
-}
-
-/**
- * Build avatar config from character data
- */
-function buildAvatarConfig(character: any): string | null {
-  if (!character) return null
-  
-  const config = character.character_config || character
-  
-  const avatarConfig = {
-    baseIndex: (config.selected_base_model || 1) - 1,
-    backgroundColor: getColorByIndex(config.selected_background_color),
-    backgroundIndex: (config.selected_background_type || 1) - 1,
-    hairColor: getColorByIndex(config.selected_hair_color),
-    hairIndex: (config.selected_hair_style || 1) - 1,
-    clothesColor: getColorByIndex(config.selected_shirt_color),
-    clothesIndex: (config.selected_shirt_type || 1) - 1,
-    eyesColor: getColorByIndex(config.selected_eye_color),
-    eyesIndex: (config.selected_eye_type || 1) - 1,
-    eyebrowsColor: getColorByIndex(config.selected_eyebrow_color),
-    eyebrowsIndex: (config.selected_eyebrow_style || 1) - 1,
-    mouthIndex: (config.selected_mouth_type || 1) - 1,
-  }
-
-  return JSON.stringify(avatarConfig)
-}
 
 /**
  * Map wellness value to level (1-5) for image selection
@@ -143,9 +112,38 @@ function mapValueToLevel(value: number): number {
 /**
  * Hook for resources page data
  */
+// Fallback powers list (locked)
+const fallbackPowers: Power[] = [
+  {
+    id: 'power-grit',
+    title: 'Grit',
+    description: 'The resilience to persist through challenges.',
+    isUnlocked: false,
+    icon: 'shield-outline',
+  },
+  {
+    id: 'power-stillness',
+    title: 'Stillness',
+    description: 'Finding calm in the midst of chaos.',
+    isUnlocked: false,
+    icon: 'leaf-outline',
+  },
+  {
+    id: 'power-naming-the-storm',
+    title: 'Naming the Storm',
+    description: 'The power to recognize and name your emotions.',
+    isUnlocked: false,
+    icon: 'weather-lightning-outline',
+  },
+]
+
 export function useResources() {
   const { data: profileData, isLoading: isLoadingProfile } = useUserFullProfile(USER_ID)
   const { data: storiesData, isLoading: isLoadingStories } = useStories()
+  const storeMemories = useGameStore((state) => state.memories)
+  const storePowers = useGameStore((state) => state.powers)
+  const lastSeenPowerUnlockAt = useGameStore((state) => state.lastSeenPowerUnlockAt)
+  const markPowersSeen = useGameStore((state) => state.markPowersSeen)
 
   // Get user level from profile (default to 1 if not available)
   const userLevel = useMemo(() => {
@@ -160,7 +158,21 @@ export function useResources() {
     return storiesData.map((story) => mapStoryToResourceItem(story, userLevel))
   }, [storiesData, userLevel])
 
-  const memories = useMemo(() => mockMemories, [])
+  // Combine mock memories with stored memories (store memories take precedence)
+  const memories = useMemo(() => {
+    const storeMemoryIds = new Set(storeMemories.map((m) => m.id))
+    const filteredMockMemories = mockMemories.filter((m) => !storeMemoryIds.has(m.id))
+    // Convert store Memory format to MemoryItem format
+    const storeMemoryItems: MemoryItem[] = storeMemories.map((m) => ({
+      id: m.id,
+      title: m.title,
+      type: m.type,
+      description: m.description,
+      modality: m.modality,
+      content: m.content,
+    }))
+    return [...filteredMockMemories, ...storeMemoryItems]
+  }, [storeMemories])
   
   const isLoading = isLoadingProfile || isLoadingStories
 
@@ -181,6 +193,41 @@ export function useResources() {
     return buildAvatarConfig(profileData.character)
   }, [profileData])
 
+  const experience = useMemo(() => {
+    return profileData?.character?.experience || 0
+  }, [profileData])
+
+  // Compute powers for UI with isNew field
+  const powersForUi = useMemo((): Array<Power & { isNew?: boolean }> => {
+    // Use store powers if available, otherwise fallback
+    const powers = storePowers.length > 0 ? storePowers : fallbackPowers
+
+    // Sort: unlocked first (most recently unlocked first), then locked
+    const sorted = [...powers].sort((a, b) => {
+      if (a.isUnlocked && !b.isUnlocked) return -1
+      if (!a.isUnlocked && b.isUnlocked) return 1
+      if (a.isUnlocked && b.isUnlocked) {
+        const aTime = a.unlockedAt ? new Date(a.unlockedAt).getTime() : 0
+        const bTime = b.unlockedAt ? new Date(b.unlockedAt).getTime() : 0
+        return bTime - aTime // Most recent first
+      }
+      return 0
+    })
+
+    // Add isNew field
+    return sorted.map((power) => {
+      const isNew: boolean =
+        power.isUnlocked === true &&
+        !!power.unlockedAt &&
+        (!lastSeenPowerUnlockAt || new Date(power.unlockedAt) > new Date(lastSeenPowerUnlockAt))
+
+      return {
+        ...power,
+        isNew: isNew || undefined,
+      }
+    })
+  }, [storePowers, lastSeenPowerUnlockAt])
+
   return {
     isLoading,
     resources,
@@ -190,6 +237,9 @@ export function useResources() {
     characterName,
     avatarConfig,
     character: profileData?.character,
+    powers: powersForUi,
+    markPowersSeen,
+    experience,
   }
 }
 

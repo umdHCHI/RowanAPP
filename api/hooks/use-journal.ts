@@ -71,8 +71,9 @@ export function useCreateJournalEntry() {
       return response.data
     },
     onSuccess: () => {
-      // Invalidate journal entries list
+      // Invalidate journal entries list and all byPrompt queries
       queryClient.invalidateQueries({ queryKey: journalKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...journalKeys.all, 'byPrompt'] })
     },
   })
 }
@@ -92,9 +93,10 @@ export function useUpdateJournalEntry() {
       return response.data
     },
     onSuccess: (data) => {
-      // Invalidate both list and specific entry
+      // Invalidate both list, specific entry, and all byPrompt queries
       queryClient.invalidateQueries({ queryKey: journalKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: journalKeys.detail(data.id) })
+      queryClient.invalidateQueries({ queryKey: journalKeys.detail(String(data.id)) })
+      queryClient.invalidateQueries({ queryKey: [...journalKeys.all, 'byPrompt'] })
     },
   })
 }
@@ -129,5 +131,57 @@ export function useJournalPrompts() {
       return journalService.getPrompts()
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+/**
+ * Get a journal entry by prompt ID and optionally entry type
+ * Fetches all entries and finds the one matching the prompt ID and entry type
+ */
+export function useJournalEntryByPrompt(
+  promptId: number | null,
+  entryType: string | null = null
+) {
+  return useQuery({
+    queryKey: [...journalKeys.all, 'byPrompt', promptId, entryType],
+    queryFn: async () => {
+      if (!promptId) throw new Error('Prompt ID is required')
+      
+      try {
+        // Fetch all entries and find the one matching the prompt ID
+        // Using a high limit to get all entries (you may want to adjust this based on your needs)
+        const response = await journalService.getAll(1, 100)
+        
+        // Handle both wrapped and direct array responses
+        let entries: JournalEntryResponse[] = []
+        if (response && typeof response === 'object') {
+          if ('data' in response && Array.isArray(response.data)) {
+            entries = response.data
+          } else if ('success' in response && response.success && 'data' in response && Array.isArray(response.data)) {
+            entries = response.data
+          } else if (Array.isArray(response)) {
+            entries = response
+          }
+        }
+        
+        // Find entry with matching prompt ID and optionally entry type
+        // If entryType is provided, prefer exact match, otherwise return any entry for this prompt
+        if (entryType) {
+          const exactMatch = entries.find(
+            (e) => e.prompt === promptId && e.entry_type === entryType
+          )
+          if (exactMatch) return exactMatch
+        }
+        
+        // Fallback: find any entry with matching prompt ID
+        const anyMatch = entries.find((e) => e.prompt === promptId)
+        return anyMatch || null
+      } catch (error) {
+        console.error('Error fetching journal entry by prompt:', error)
+        return null
+      }
+    },
+    enabled: !!promptId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   })
 }

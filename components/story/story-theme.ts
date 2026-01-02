@@ -101,7 +101,7 @@ export const STORY_LAYOUT = {
   speakerAvatarSize: 48,
   choicesContainerMinHeight: 400,
   choicesContainerMaxHeightPercent: 0.5,
-  mainContainerPaddingTop: 100,
+  mainContainerPaddingTop: 50,
 } as const
 
 export const STORY_OPACITY = {

@@ -76,3 +76,86 @@ export function findNextStory(
   
   return null
 }
+
+/**
+ * Journal Entry Reward type
+ */
+export type JournalEntryReward = {
+  kind: 'journal_entry'
+  journalEntryId: string
+  sourcePassageId?: string
+}
+
+/**
+ * Minigame Reward type
+ */
+export type MinigameReward = {
+  kind: 'minigame'
+  level: string
+  sourcePassageId?: string
+}
+
+/**
+ * Extract journal entry reward from a passage
+ * Supports both story_effects (preferred) and effects (fallback)
+ * Handles string form (journal prompt id) and object form (keyed by trait)
+ */
+export function getJournalEntryRewardFromPassage(passage: any, primaryTrait?: string): JournalEntryReward | null {
+  const effects = passage?.story_effects && Object.keys(passage.story_effects).length > 0
+    ? passage.story_effects
+    : passage?.effects
+
+  if (!effects) return null
+  if (!effects.journal_entry) return null
+
+  const je = effects.journal_entry
+  // string form
+  if (typeof je === 'string') {
+    return { kind: 'journal_entry', journalEntryId: je, sourcePassageId: passage?.passage_id ?? passage?.id }
+  }
+
+  // object keyed by trait form
+  if (je && typeof je === 'object' && !Array.isArray(je) && primaryTrait) {
+    const key = primaryTrait.toLowerCase().trim()
+    const id = je[key]
+    if (typeof id === 'string') {
+      return { kind: 'journal_entry', journalEntryId: id, sourcePassageId: passage?.passage_id ?? passage?.id }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Extract minigame reward from a passage
+ * Supports both story_effects (preferred) and effects (fallback)
+ * Checks for minigame_levelOne or other minigame level keys
+ */
+export function getMinigameRewardFromPassage(passage: any): MinigameReward | null {
+  const effects = passage?.story_effects && Object.keys(passage.story_effects).length > 0
+    ? passage.story_effects
+    : passage?.effects
+
+  if (!effects) return null
+
+  // Check for minigame_levelOne or other minigame level keys
+  const minigameLevel = effects.minigame_levelOne || 
+                        effects.minigame_levelTwo || 
+                        effects.minigame_levelThree ||
+                        effects.minigame_level
+
+  if (!minigameLevel) return null
+
+  // Determine the level from the key found
+  let level = 'levelOne'
+  if (effects.minigame_levelOne) level = 'levelOne'
+  else if (effects.minigame_levelTwo) level = 'levelTwo'
+  else if (effects.minigame_levelThree) level = 'levelThree'
+  else if (effects.minigame_level) level = String(effects.minigame_level)
+
+  return { 
+    kind: 'minigame', 
+    level, 
+    sourcePassageId: passage?.passage_id ?? passage?.id 
+  }
+}

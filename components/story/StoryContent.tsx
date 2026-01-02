@@ -8,7 +8,9 @@ import { useHubStories } from '@/hooks/use-hub-stories'
 import { findNextStory } from '@/utils/story-helpers'
 import { StoryHistory } from './StoryHistory'
 import { StoryPassage } from './StoryPassage'
-import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_FONTS, STORY_BORDER_RADIUS } from './story-theme'
+import { StoryRewardMoment } from './StoryRewardMoment'
+import { getStoryImageUrl } from '@/utils/story-helpers'
+import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_FONTS, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
 import type { StoryHistoryItem, StoryPassage as StoryPassageType } from '@/types/story'
 
 interface StoryContentProps {
@@ -38,25 +40,53 @@ export function StoryContent({
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
   const { data: stories } = useHubStories()
+  const screenHeight = Dimensions.get('window').height
   
   // Calculate bottom padding to account for choice buttons
-  // The StoryChoices container is positioned absolutely at the bottom with maxHeight up to 50% of screen
-  // It's positioned at bottom: insets.bottom, so we need padding for:
-  // - Container max height (up to 50% of screen height, minimum 400px)
-  // - Safe area bottom inset (varies by device)
-  // - Extra buffer for spacing (24px)
-  const screenHeight = Dimensions.get('window').height
-  const buttonContainerMaxHeight = Math.max(400, screenHeight * 0.5)
+  // When choices are visible, we need to add padding equal to the choices container height
+  // This will push the content up so it scrolls above the choices
+  const choicesContainerHeight = hasChoices
+    ? Math.max(
+        STORY_LAYOUT.choicesContainerMinHeight,
+        screenHeight * STORY_LAYOUT.choicesContainerMaxHeightPercent
+      )
+    : 0
+  
   const bottomPadding = hasChoices
-    ? buttonContainerMaxHeight + insets.bottom + 24
-    : 24 // Standard padding when no buttons
+    ? choicesContainerHeight // Match the choices container height so content scrolls above it
+    : STORY_SPACING.xxl // Standard padding when no buttons
 
-  // Auto-scroll to bottom when new content is added or choices appear
+  // Track if user has manually scrolled away from bottom
+  const isNearBottomRef = useRef(true)
+  const previousHistoryLengthRef = useRef(history.length)
+  
+  // Track scroll position to detect if user is near bottom
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent
+    const paddingToBottom = 200 // Consider "near bottom" if within 200px
+    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y
+    isNearBottomRef.current = distanceFromBottom < paddingToBottom
+  }
+  
+  // Auto-scroll to bottom only if user is already near the bottom
+  // This prevents interrupting users who are reading earlier parts of the history
   useEffect(() => {
-    if (history.length > 0 || currentPassage) {
-      requestAnimationFrame(() => {
+    // Only auto-scroll if:
+    // 1. History length increased (new content added)
+    // 2. User was already near the bottom
+    const historyLengthIncreased = history.length > previousHistoryLengthRef.current
+    
+    if (historyLengthIncreased && isNearBottomRef.current) {
+      // Use a small delay to ensure the layout has updated with the new padding
+      const timeout = setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true })
-      })
+      }, 100)
+      
+      previousHistoryLengthRef.current = history.length
+      return () => clearTimeout(timeout)
+    } else if (historyLengthIncreased) {
+      // Update ref even if we don't scroll
+      previousHistoryLengthRef.current = history.length
     }
   }, [history.length, currentPassage, hasChoices])
 
@@ -105,6 +135,8 @@ export function StoryContent({
       ]}
       showsVerticalScrollIndicator={false}
       bounces={true}
+      onScroll={handleScroll}
+      scrollEventThrottle={100}
     >
       {/* Story Title */}
       {chapterTitle && (
@@ -116,12 +148,29 @@ export function StoryContent({
 
       {/* Current passage if not in history yet */}
       {currentPassage && !isCurrentPassageInHistory && (
-        <StoryPassage
-          content={currentPassage.content}
-          passageType={currentPassage.passage_type}
-          speakerName={currentPassage.speaker_name}
-          speakerImage={currentPassage.speaker_image}
-        />
+        // Render action passages as rewards, other passages normally
+        currentPassage.passage_type === 'action' ? (
+          (() => {
+            const imageUrl = getStoryImageUrl(currentPassage.speaker_image)
+            console.log('[StoryContent] Action scene - speaker_image:', currentPassage.speaker_image)
+            console.log('[StoryContent] Action scene - imageUrl:', imageUrl)
+            return (
+              <StoryRewardMoment
+                type="ACTION_SCENE"
+                title={currentPassage.content || 'Action Scene'}
+                subtitle={currentPassage.speaker_name || undefined}
+                imageUrl={imageUrl}
+              />
+            )
+          })()
+        ) : (
+          <StoryPassage
+            content={currentPassage.content}
+            passageType={currentPassage.passage_type}
+            speakerName={currentPassage.speaker_name}
+            speakerImage={currentPassage.speaker_image}
+          />
+        )
       )}
 
       {/* Error state */}

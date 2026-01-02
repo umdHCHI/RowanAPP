@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PaperProvider } from 'react-native-paper'
 import { useFonts } from 'expo-font'
@@ -64,32 +65,34 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PaperProvider theme={archiveTheme}>
-        <SafeAreaProvider>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen 
-              name="character-creator" 
-              options={{ 
-                contentStyle: { backgroundColor: '#000000' },
-                animation: 'fade',
-              }} 
-            />
-            <Stack.Screen name="hub" />
-            <Stack.Screen name="story" />
-            <Stack.Screen name="journal" />
-            <Stack.Screen name="thought-defender" />
-            <Stack.Screen name="profile" />
-            <Stack.Screen name="about" />
-            <Stack.Screen name="resources" />
-            <Stack.Screen name="story-overview" />
-            <Stack.Screen name="crisis-help" />
-            <Stack.Screen name="api-test" />
-          </Stack>
-        </SafeAreaProvider>
-      </PaperProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider theme={archiveTheme}>
+          <SafeAreaProvider>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen 
+                name="character-creator" 
+                options={{ 
+                  contentStyle: { backgroundColor: '#000000' },
+                  animation: 'fade',
+                }} 
+              />
+              <Stack.Screen name="hub" />
+              <Stack.Screen name="story" />
+              <Stack.Screen name="journal" />
+              <Stack.Screen name="thought-defender" />
+              <Stack.Screen name="profile" />
+              <Stack.Screen name="about" />
+              <Stack.Screen name="resources" />
+              <Stack.Screen name="story-overview" />
+              <Stack.Screen name="crisis-help" />
+              <Stack.Screen name="api-test" />
+            </Stack>
+          </SafeAreaProvider>
+        </PaperProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   )
 }
 

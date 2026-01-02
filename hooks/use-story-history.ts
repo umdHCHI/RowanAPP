@@ -49,6 +49,29 @@ export function useStoryHistory({ currentPassage }: UseStoryHistoryProps) {
     }
   }, [])
 
-  return { history, addChoice }
+  const addReward = useCallback((reward: { 
+    id: string
+    type: 'journal_entry' | 'minigame' | 'power' | 'skill' | 'gear'
+    title: string
+    subtitle?: string
+    journalEntryId?: string
+    minigameLevel?: string
+  }) => {
+    setHistory((prev) => [
+      ...prev,
+      {
+        type: 'reward',
+        content: reward.title,
+        id: reward.id,
+        rewardType: reward.type,
+        rewardTitle: reward.title,
+        rewardSubtitle: reward.subtitle,
+        journalEntryId: reward.journalEntryId,
+        minigameLevel: reward.minigameLevel,
+      },
+    ])
+  }, [])
+
+  return { history, addChoice, addReward }
 }
 

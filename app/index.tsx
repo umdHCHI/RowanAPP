@@ -2,7 +2,7 @@ import { View, Text, ImageBackground, Animated } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef } from 'react'
 import { useGameStore } from '@/stores/game-store'
-import { CharacterAvatar } from '@/components/CharacterAvatar'
+import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 
 export default function Index() {
   const router = useRouter()
@@ -31,7 +31,7 @@ export default function Index() {
 
   return (
     <ImageBackground
-      source={require('../hauntedlibrary.png')}
+      source={require('../assets/UI/hauntedlibrary.png')}
       style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
       resizeMode="cover"
     >

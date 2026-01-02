@@ -76,22 +76,67 @@ class ApiClient {
   private async handleError(response: Response): Promise<ApiError> {
     let errorData: ApiError
 
+    // Check content type to determine how to parse the response
+    const contentType = response.headers.get('content-type') || ''
+    const isHTML = contentType.includes('text/html')
+
     try {
-      const data = await response.json()
-      errorData = {
-        message: data.message || 'An error occurred',
-        code: data.code,
-        status: response.status,
-        errors: data.errors,
+      // Clone the response so we can read it multiple times if needed
+      const clonedResponse = response.clone()
+      
+      if (isHTML) {
+        // If it's HTML (like Django error page), extract text and look for error info
+        const text = await clonedResponse.text()
+        console.error('API Error Response (HTML):', text.substring(0, 500)) // Log first 500 chars
+        
+        // Try to extract error message from HTML (Django debug pages often have error info)
+        const errorMatch = text.match(/<pre[^>]*>([^<]+)<\/pre>/i) || 
+                          text.match(/<h1[^>]*>([^<]+)<\/h1>/i) ||
+                          text.match(/Error:\s*([^\n<]+)/i)
+        
+        const extractedMessage = errorMatch ? errorMatch[1].trim() : null
+        
+        errorData = {
+          message: extractedMessage || `HTTP ${response.status}: ${response.statusText || 'Internal Server Error'}`,
+          status: response.status,
+        }
+      } else {
+        // Try to parse as JSON
+        const data = await clonedResponse.json()
+        console.error('API Error Response Data (JSON):', JSON.stringify(data, null, 2))
+        
+        errorData = {
+          message: data.message || data.detail || data.error || data.error_message || `HTTP ${response.status}: ${response.statusText}`,
+          code: data.code,
+          status: response.status,
+          errors: data.errors || data.non_field_errors || data,
+        }
       }
-    } catch {
-      errorData = {
-        message: `HTTP ${response.status}: ${response.statusText}`,
-        status: response.status,
+    } catch (parseError) {
+      // If parsing fails, try to get text
+      try {
+        const clonedResponse = response.clone()
+        const text = await clonedResponse.text()
+        console.error('API Error Response Text (raw):', text.substring(0, 500))
+        console.error('Response headers:', Object.fromEntries(response.headers.entries()))
+        
+        errorData = {
+          message: `HTTP ${response.status}: ${response.statusText || 'Internal Server Error'}`,
+          status: response.status,
+        }
+      } catch (textError) {
+        console.error('Failed to read error response:', textError)
+        errorData = {
+          message: `HTTP ${response.status}: ${response.statusText || 'Internal Server Error'}`,
+          status: response.status,
+        }
       }
     }
 
-    return errorData
+    // Create a proper Error object with all the error data
+    const error = new Error(errorData.message) as Error & ApiError
+    Object.assign(error, errorData)
+    return error as ApiError
   }
 
   /**
@@ -147,6 +192,15 @@ class ApiClient {
         if (!response.ok) {
           const error = await this.handleError(response)
           lastError = error
+          
+          // Log error details for debugging
+          console.error('API Error Response:', {
+            url,
+            method,
+            status: response.status,
+            statusText: response.statusText,
+            error,
+          })
 
           // Don't retry on 4xx errors (client errors)
           if (response.status >= 400 && response.status < 500) {
@@ -224,7 +278,7 @@ class ApiClient {
   async put<T>(
     endpoint: string,
     body?: unknown,
-    options?: RequestOptions
+    options?: RequestOptions & { skipVersion?: boolean }
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, 'PUT', body, options)
   }
@@ -235,7 +289,7 @@ class ApiClient {
   async patch<T>(
     endpoint: string,
     body?: unknown,
-    options?: RequestOptions
+    options?: RequestOptions & { skipVersion?: boolean }
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, 'PATCH', body, options)
   }
@@ -243,7 +297,10 @@ class ApiClient {
   /**
    * DELETE request
    */
-  async delete<T>(endpoint: string, options?: RequestOptions): Promise<ApiResponse<T>> {
+  async delete<T>(
+    endpoint: string,
+    options?: RequestOptions & { skipVersion?: boolean }
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, 'DELETE', undefined, options)
   }
 

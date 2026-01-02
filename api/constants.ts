@@ -27,8 +27,8 @@ export const API_CONFIG = {
  */
 export const API_ENDPOINTS = {
   // Character endpoints
-  CHARACTERS: '/characters',
-  CHARACTER_BY_ID: (id: string) => `/characters/${id}`,
+  CHARACTERS: '/characters/',
+  CHARACTER_BY_ID: (id: string) => `/characters/${id}/`,
   
   // Story endpoints
   STORY: '/story',
@@ -45,11 +45,11 @@ export const API_ENDPOINTS = {
   ATTRIBUTES_UPDATE: '/attributes/update',
   
   // Journal endpoints
-  JOURNAL_ENTRY_BY_ID: (id: string) => `/journal/codex-entries/${id}`,
+  JOURNAL_ENTRY_BY_ID: (id: string) => `/journal/codex-entries/${id}/`,
   JOURNAL_PROMPTS: '/journal/journal-prompts/',
 
-  // Journal writing endpoints
-  JOURNAL_WRITING: 'journal/codex-entries/',
+  // Journal writing endpoints (codex-entries - no version prefix)
+  JOURNAL_WRITING: '/journal/codex-entries/',
 
   // User endpoints
   USER: '/user',

@@ -166,10 +166,9 @@ export function JournalExample() {
   const handleCreateEntry = async () => {
     try {
       await createEntry.mutateAsync({
-        title: 'My Journal Entry',
+        prompt: 'example-prompt-id',
+        entry_type: 'write',
         content: 'Today I learned about managing stress...',
-        tags: ['reflection', 'growth'],
-        mood: 'calm',
       })
     } catch (error) {
       console.error('Failed to create entry:', error)
@@ -187,7 +186,8 @@ export function JournalExample() {
       <Button title="New Entry" onPress={handleCreateEntry} />
       {entries.map((entry) => (
         <View key={entry.id}>
-          <Text>{entry.title}</Text>
+          <Text>Type: {entry.entry_type}</Text>
+          <Text>Prompt: {entry.prompt}</Text>
           <Text>{entry.content}</Text>
         </View>
       ))}

@@ -25,43 +25,36 @@ export function AttributesDisplay({ showImages = false, attributes: propsAttribu
   const attributes = propsAttributes ?? storeAttributes
   const theme = useTheme()
 
-  // Debug: Log what attributes we're using
-  if (propsAttributes) {
-    console.log('AttributesDisplay: Using props attributes:', propsAttributes)
-  } else {
-    console.log('AttributesDisplay: Using store attributes (fallback):', storeAttributes)
-  }
-
   const connectionImages: Record<number, any> = {
-    1: require('../assets/attributes/connection/connectionLv1.png'),
-    2: require('../assets/attributes/connection/connectionLv2.png'),
-    3: require('../assets/attributes/connection/connectionLv3.png'),
-    4: require('../assets/attributes/connection/connectionLv4.png'),
-    5: require('../assets/attributes/connection/connectionLv5.png'),
+    1: require('../../assets/attributes/connection/connectionLv1.png'),
+    2: require('../../assets/attributes/connection/connectionLv2.png'),
+    3: require('../../assets/attributes/connection/connectionLv3.png'),
+    4: require('../../assets/attributes/connection/connectionLv4.png'),
+    5: require('../../assets/attributes/connection/connectionLv5.png'),
   }
 
   const courageImages: Record<number, any> = {
-    1: require('../assets/attributes/courage/courageLv1.png'),
-    2: require('../assets/attributes/courage/courageLv2.png'),
-    3: require('../assets/attributes/courage/courageLv3.png'),
-    4: require('../assets/attributes/courage/courageLv4.png'),
-    5: require('../assets/attributes/courage/courageLv5.png'),
+    1: require('../../assets/attributes/courage/courageLv1.png'),
+    2: require('../../assets/attributes/courage/courageLv2.png'),
+    3: require('../../assets/attributes/courage/courageLv3.png'),
+    4: require('../../assets/attributes/courage/courageLv4.png'),
+    5: require('../../assets/attributes/courage/courageLv5.png'),
   }
 
   const explorationImages: Record<number, any> = {
-    1: require('../assets/attributes/exploration/explorationLv1.png'),
-    2: require('../assets/attributes/exploration/explorationLv2.png'),
-    3: require('../assets/attributes/exploration/explorationLv3.png'),
-    4: require('../assets/attributes/exploration/explorationLv4.png'),
-    5: require('../assets/attributes/exploration/explorationLv5.png'),
+    1: require('../../assets/attributes/exploration/explorationLv1.png'),
+    2: require('../../assets/attributes/exploration/explorationLv2.png'),
+    3: require('../../assets/attributes/exploration/explorationLv3.png'),
+    4: require('../../assets/attributes/exploration/explorationLv4.png'),
+    5: require('../../assets/attributes/exploration/explorationLv5.png'),
   }
 
   const fearImages: Record<number, any> = {
-    1: require('../assets/attributes/fear/fear1.png'),
-    2: require('../assets/attributes/fear/fearLv2.png'),
-    3: require('../assets/attributes/fear/fearLv3.png'),
-    4: require('../assets/attributes/fear/fearLv4.png'),
-    5: require('../assets/attributes/fear/fearLv5.png'),
+    1: require('../../assets/attributes/fear/fear1.png'),
+    2: require('../../assets/attributes/fear/fearLv2.png'),
+    3: require('../../assets/attributes/fear/fearLv3.png'),
+    4: require('../../assets/attributes/fear/fearLv4.png'),
+    5: require('../../assets/attributes/fear/fearLv5.png'),
   }
 
   const attributeConfig = [

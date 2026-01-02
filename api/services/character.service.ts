@@ -16,21 +16,34 @@ export const characterService = {
    * Get all characters for the current user
    */
   async getAll(): Promise<ApiResponse<CharacterResponse[]>> {
-    return apiClient.get<CharacterResponse[]>(API_ENDPOINTS.CHARACTERS)
+    return apiClient.get<CharacterResponse[]>(API_ENDPOINTS.CHARACTERS, { skipVersion: true })
   },
 
   /**
    * Get a character by ID
    */
   async getById(id: string): Promise<ApiResponse<CharacterResponse>> {
-    return apiClient.get<CharacterResponse>(API_ENDPOINTS.CHARACTER_BY_ID(id))
+    return apiClient.get<CharacterResponse>(API_ENDPOINTS.CHARACTER_BY_ID(id), { skipVersion: true })
   },
 
   /**
    * Create a new character
    */
   async create(data: CharacterCreateRequest): Promise<ApiResponse<CharacterResponse>> {
-    return apiClient.post<CharacterResponse>(API_ENDPOINTS.CHARACTERS, data)
+    const response = await apiClient.post<CharacterResponse>(API_ENDPOINTS.CHARACTERS, data, { skipVersion: true })
+    
+    // Backend returns character data directly, not wrapped in { success, data }
+    // Wrap it in ApiResponse format for consistency
+    if (response && typeof response === 'object' && 'id' in response) {
+      // Direct character object - wrap it
+      return {
+        success: true,
+        data: response as CharacterResponse,
+      }
+    }
+    
+    // If already wrapped, return as-is
+    return response as ApiResponse<CharacterResponse>
   },
 
   /**
@@ -40,7 +53,32 @@ export const characterService = {
     id: string,
     data: CharacterUpdateRequest
   ): Promise<ApiResponse<CharacterResponse>> {
-    return apiClient.patch<CharacterResponse>(API_ENDPOINTS.CHARACTER_BY_ID(id), data)
+    try {
+      const response = await apiClient.patch<CharacterResponse>(API_ENDPOINTS.CHARACTER_BY_ID(id), data, { skipVersion: true })
+      
+      console.log('Character update response:', {
+        hasId: response && typeof response === 'object' && 'id' in response,
+        hasSuccess: response && typeof response === 'object' && 'success' in response,
+        keys: response && typeof response === 'object' ? Object.keys(response) : null,
+      })
+      
+      // Backend returns character data directly, not wrapped in { success, data }
+      // Wrap it in ApiResponse format for consistency
+      if (response && typeof response === 'object' && 'id' in response && !('success' in response)) {
+        // Direct character object - wrap it
+        return {
+          success: true,
+          data: response as CharacterResponse,
+        }
+      }
+      
+      // If already wrapped, return as-is
+      return response as ApiResponse<CharacterResponse>
+    } catch (error: any) {
+      console.error('Character update error in service:', error)
+      // Re-throw to preserve error details
+      throw error
+    }
   },
 
   /**

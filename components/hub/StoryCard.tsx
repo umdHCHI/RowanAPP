@@ -48,13 +48,6 @@ export function StoryCard({ card }: StoryCardProps) {
   const isIntroduction = card.title.toLowerCase().includes('introduction') || card.title.toLowerCase() === 'introduction'
   const isStory2 = card.label === 'STORY 2'
 
-  // Debug: Log card data when modal opens
-  useEffect(() => {
-    if (isContentWarningVisible) {
-      console.log('StoryCard - card.revelations:', card.revelations)
-      console.log('StoryCard - full card:', card)
-    }
-  }, [isContentWarningVisible, card.revelations, card])
 
   return (
     <View style={styles.storyCardWrapper}>

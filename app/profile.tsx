@@ -1,23 +1,42 @@
 import { View, ScrollView, ImageBackground, Text as RNText } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useMemo } from 'react'
 import { useGameStore } from '@/stores/game-store'
-import { CharacterAvatar } from '@/components/CharacterAvatar'
-import { AttributesDisplay } from '@/components/attributes-display'
-import { EquipmentDisplay } from '@/components/equipment-display'
+import { CharacterAvatar } from '@/components/character/CharacterAvatar'
+import { AttributesDisplay } from '@/components/resources/attributes-display'
+import { EquipmentDisplay } from '@/components/profile/equipment-display'
 import { Text, Card, useTheme, Divider, IconButton } from 'react-native-paper'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { useHaptics } from '@/utils/useHaptics'
 import { GameButton } from '@/components/GameButton'
+import { useUserFullProfile } from '@/api/hooks/use-user'
+import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import '../global.css'
+
+const USER_ID = 1 // TODO: Get from auth context or store
 
 export default function Profile() {
   const router = useRouter()
   const theme = useTheme()
   const insets = useSafeAreaInsets()
-  const { character, resetGame, soundMuted, toggleSoundMute } = useGameStore()
+  const { resetGame, soundMuted, toggleSoundMute } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
+  const haptics = useHaptics()
+  const { data: profileData, isLoading } = useUserFullProfile(USER_ID)
+
+  // Get character data from backend
+  const characterName = useMemo(() => {
+    return profileData?.character?.name || 'Seeker'
+  }, [profileData])
+
+  const avatarConfig = useMemo(() => {
+    if (!profileData?.character) return null
+    return buildAvatarConfig(profileData.character)
+  }, [profileData])
 
   function handleReset() {
+    haptics.mediumImpact()
     playPageFlipSound()
     resetGame()
     router.replace('/character-creator')
@@ -25,7 +44,7 @@ export default function Profile() {
 
   return (
     <ImageBackground
-      source={require('../hauntedlibrary.png')}
+      source={require('../assets/UI/hauntedlibrary.png')}
       className="flex-1"
       resizeMode="cover"
     >
@@ -74,17 +93,18 @@ export default function Profile() {
                 iconColor={theme.colors.onSurface}
                 size={24}
                 onPress={() => {
+                  haptics.selection()
                   toggleSoundMute()
                   playPageFlipSound()
                 }}
                 style={{ margin: 0 }}
               />
             </View>
-            {character && (
+            {!isLoading && (
               <>
-                {character.avatar && (
+                {avatarConfig && (
                   <View className="items-center my-4">
-                    <CharacterAvatar avatarConfig={character.avatar} size={150} />
+                    <CharacterAvatar avatarConfig={avatarConfig} size={150} />
                   </View>
                 )}
                 <Divider className="my-4" />
@@ -96,7 +116,7 @@ export default function Profile() {
                     color: theme.colors.onSurfaceVariant,
                   }}
                 >
-                  {character.name}
+                  {characterName}
                 </Text>
               </>
             )}
@@ -120,6 +140,7 @@ export default function Profile() {
             pressedImage={require('../assets/UI/buttons/blue/Button_05A_Pressed.png')}
             label="Return to Archive"
             onPress={() => {
+              haptics.lightImpact()
               playPageFlipSound()
               router.push('/hub')
             }}

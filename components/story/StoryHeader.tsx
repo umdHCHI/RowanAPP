@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useGameStore } from '@/stores/game-store'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { useHaptics } from '@/utils/useHaptics'
 import { getTextSpeedLabel, getTextSpeedIcon } from '@/utils/story-speed'
 import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_LAYOUT } from './story-theme'
 
@@ -15,27 +16,32 @@ interface StoryHeaderProps {
 export function StoryHeader({ isPaused, onTogglePause }: StoryHeaderProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
+  const haptics = useHaptics()
   const { soundMuted, toggleSoundMute, textSpeed, cycleTextSpeed } = useGameStore()
 
   const speedLabel = getTextSpeedLabel(textSpeed)
   const speedIconName = getTextSpeedIcon(textSpeed)
 
   function handleClose() {
+    haptics.mediumImpact()
     playPageFlipSound()
     router.push('/hub')
   }
 
   function handleSoundToggle() {
+    haptics.lightImpact()
     toggleSoundMute()
     playPageFlipSound()
   }
 
   function handleSpeedToggle() {
+    haptics.lightImpact()
     cycleTextSpeed()
     playPageFlipSound()
   }
 
   function handlePauseToggle() {
+    haptics.lightImpact()
     onTogglePause()
     playPageFlipSound()
   }
@@ -81,6 +87,8 @@ export function StoryHeader({ isPaused, onTogglePause }: StoryHeaderProps) {
           />
         </TouchableOpacity>
       </View>
+      {/* Bottom divider */}
+      <View style={styles.divider} />
     </View>
   )
 }
@@ -94,6 +102,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: STORY_SPACING.xl,
+    paddingBottom: STORY_SPACING.md,
     zIndex: STORY_LAYOUT.headerZIndex,
   },
   headerButton: {
@@ -116,6 +125,14 @@ const styles = StyleSheet.create({
     color: STORY_COLORS.text,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  divider: {
+    position: 'absolute',
+    bottom: 0,
+    left: STORY_SPACING.xl,
+    right: STORY_SPACING.xl,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 })
 

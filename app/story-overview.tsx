@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useStories } from '@/api'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { useHaptics } from '@/utils/useHaptics'
 import type { StoryResponse } from '@/api/types'
 
 export default function StoryOverview() {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
+  const haptics = useHaptics()
   const params = useLocalSearchParams<{ storyId?: string }>()
   const storyId = params.storyId ? parseInt(params.storyId, 10) : undefined
 
@@ -22,6 +24,7 @@ export default function StoryOverview() {
   }, [storiesData, storyId])
 
   function handleBack() {
+    haptics.lightImpact()
     playPageFlipSound()
     router.back()
   }

@@ -69,10 +69,20 @@ export function StoryPassage({ content, passageType, speakerName, speakerImage }
         </View>
       )
     case 'action':
+      const actionImageUrl = getStoryImageUrl(speakerImage)
       return (
         <View style={styles.actionContainer}>
-          <View style={styles.actionIndicator} />
-          <RNText style={styles.actionText}>{content}</RNText>
+          {actionImageUrl && (
+            <Image
+              source={{ uri: actionImageUrl }}
+              style={styles.actionImage}
+              resizeMode="cover"
+            />
+          )}
+          <View style={styles.actionContent}>
+            <View style={styles.actionIndicator} />
+            <RNText style={styles.actionText}>{content}</RNText>
+          </View>
         </View>
       )
     case 'ending':
@@ -185,12 +195,20 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     backgroundColor: STORY_COLORS.actionContainer,
-    borderRadius: STORY_BORDER_RADIUS.md,
+    borderRadius: STORY_BORDER_RADIUS.lg,
+    marginVertical: STORY_SPACING.lg,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: STORY_COLORS.actionBorder,
+  },
+  actionImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  actionContent: {
     paddingVertical: STORY_SPACING.lg,
     paddingHorizontal: STORY_SPACING.xl,
-    marginVertical: STORY_SPACING.md,
-    borderLeftWidth: 4,
-    borderLeftColor: STORY_COLORS.actionBorder,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: STORY_SPACING.md,

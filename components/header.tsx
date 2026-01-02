@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { MenuOverlay } from './menu-overlay'
+import { MenuOverlay } from '@/components/hub/menu-overlay'
 import { useGameStore } from '@/stores/game-store'
 import { useHaptics } from '@/utils/useHaptics'
 
