@@ -1,26 +1,25 @@
+# The Archive Main Branch Summer 2025 Version 
 
-# The Archive - Gamified Mental Wellness Application
-# This is the final Prod version for Usability Testing. 
+## Please note that this version is under construction. Please see dev branches for up to date product. 
 
-A React Native/Expo application for **stress management research in college students** using narrative-based therapeutic interventions. Set in a mystical library overseen by "The Curator," this app delivers evidence-based mental health content through immersive RPG-style storytelling.
+
+Overview: A React Native/Expo application for **stress management research in college students** using narrative-based therapeutic interventions. Set in a mystical library overseen by "The Curator," this app delivers evidence-based mental health content through immersive RPG-style storytelling.
 
 [![React Native](https://img.shields.io/badge/React%20Native-0.79.5-61DAFB.svg)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-53.0.20-000020.svg)](https://expo.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-3178C6.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-Academic-blue.svg)]()
 
-## 📖 Project Overview
 
-**The Archive** is a **master's thesis research application** investigating the efficacy of narrative tools in digital therapeutic interventions for college student stress management. The app implements a **dual-path research design** to compare different user experience paradigms while delivering identical therapeutic content.
 
-### 🔬 Research Study Design
+### Initial Study Design
 
 - **Character Path (Research Group A)**: Full RPG experience with character creation, equipment systems, and traditional game progression mechanics
-- **Personality Path (Research Group B)**: Streamlined story experience tailored to Big Five personality traits with coping tool acquisition
+- **Personality Path (Research Group B)**: Streamlined story experience tailored to Big Five personality traits with coping tool acquisition (Ommited Future Work)
 - **Controlled Variables**: Both paths receive identical therapeutic content, story choices, and wellness interventions
 - **Primary Outcome**: Stress management skill acquisition and application in real-world scenarios
 
-### 🎨 Visual Design Philosophy
+###  Visual Design Philosophy
 
 **Mystical Library Aesthetic** - Ancient wisdom meets digital innovation:
 - **Color Palette**: Deep browns, burgundy, parchment whites with cyan/gold accents (`#4ee6e6`, `#d4af37`)
@@ -30,15 +29,13 @@ A React Native/Expo application for **stress management research in college stud
 
 ---
 
-## 🚀 Quick Start Guide
+##  Quick Start Guide
 
 ### Prerequisites
 
 - **Node.js** (v18+ recommended)
 - **npm** or **yarn**
 - **Expo CLI** (`npm install -g @expo/cli`)
-- **Android Studio** (for Android development)
-- **Xcode** (for iOS development - macOS only)
 
 ### Installation
 
@@ -81,7 +78,7 @@ A React Native/Expo application for **stress management research in college stud
 
 ---
 
-## 🏗️ Architecture Overview
+##  Architecture Overview (Not up to data)
 
 ### Dual Research Path System
 
