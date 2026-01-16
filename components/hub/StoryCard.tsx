@@ -1,43 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { View, Text as RNText, TouchableOpacity, Image, StyleSheet, Dimensions, Platform } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useVideoPlayer, VideoView } from 'expo-video'
 import type { StoryCard as StoryCardType } from '@/types/hub'
 import { useHaptics } from '@/utils/useHaptics'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { ContentWarningModal } from './ContentWarningModal'
 
-const { height } = Dimensions.get('window')
-
 interface StoryCardProps {
   card: StoryCardType
-}
-
-// Separate component for video background to avoid creating video player for all cards
-function StoryCardVideoBackground() {
-  const videoPlayer = useVideoPlayer(
-    require('../../assets/storyCardBackground/pages-flipping.mp4'),
-    (player) => {
-      player.muted = true
-      player.loop = true
-      player.play()
-    }
-  )
-
-  return (
-    <View style={styles.storyCardBackground}>
-      <VideoView
-        player={videoPlayer}
-        style={styles.storyCardBackground}
-        contentFit="cover"
-        nativeControls={false}
-        allowsPictureInPicture={false}
-      />
-      {/* Blur overlay effect */}
-      <BlurView intensity={40} style={StyleSheet.absoluteFill} tint="dark" />
-    </View>
-  )
 }
 
 export function StoryCard({ card }: StoryCardProps) {
@@ -45,18 +16,18 @@ export function StoryCard({ card }: StoryCardProps) {
   const playPageFlipSound = usePageFlipSound()
   const [isContentWarningVisible, setIsContentWarningVisible] = useState(false)
   const isCompleted = card.status === 'completed'
-  const isIntroduction = card.title.toLowerCase().includes('introduction') || card.title.toLowerCase() === 'introduction'
-  const isStory2 = card.label === 'STORY 2'
-
+  
+  // Use backend image URL if available
+  const hasBackendImage = !!card.imageUrl
 
   return (
     <View style={styles.storyCardWrapper}>
       <View style={styles.storyCard}>
-        {/* Background - Image for Introduction story */}
-        {isIntroduction && (
+        {/* Background - Backend image */}
+        {hasBackendImage && card.imageUrl && (
           <View style={styles.storyCardBackground}>
             <Image
-              source={require('../../assets/storyCardBackground/introStoryCard.jpg')}
+              source={{ uri: card.imageUrl }}
               style={styles.storyCardBackground}
               resizeMode="cover"
             />
@@ -64,9 +35,6 @@ export function StoryCard({ card }: StoryCardProps) {
             <BlurView intensity={40} style={StyleSheet.absoluteFill} tint="dark" />
           </View>
         )}
-
-        {/* Background - Video for Story 2 */}
-        {isStory2 && <StoryCardVideoBackground />}
 
         {/* Card content - needs to be above background */}
         <View style={styles.cardContent}>

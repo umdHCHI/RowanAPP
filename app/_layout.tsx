@@ -81,7 +81,7 @@ export default function RootLayout() {
               <Stack.Screen name="hub" />
               <Stack.Screen name="story" />
               <Stack.Screen name="journal" />
-              <Stack.Screen name="thought-defender" />
+              <Stack.Screen name="vantage" />
               <Stack.Screen name="profile" />
               <Stack.Screen name="about" />
               <Stack.Screen name="resources" />

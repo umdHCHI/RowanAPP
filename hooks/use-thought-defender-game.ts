@@ -1,6 +1,32 @@
-import { useState, useEffect, useRef } from 'react'
-import { GAME_CONFIG, DIFFICULTY_CONFIGS, type Difficulty } from '@/utils/thought-defender-constants'
-import { THOUGHT_PATTERNS, type ThoughtPattern } from '@/utils/thought-defender-helpers'
+/**
+ * Affective-DDA Loop & Fragment-Based Reframing System
+ * 
+ * stressSignal (pressureScore): Core input from DDA director, measures player pressure
+ *   - Derived from hit frequency, accuracy, and survival window
+ *   - High stressSignal = player struggling, needs gentler pacing
+ * 
+ * emotionalIntensity (EI): EMA-smoothed emotional intensity [0..1]
+ *   - Updated every 1s with EMA smoothing (alpha ~0.15)
+ *   - Therapeutic window behavior:
+ *     * When stressSignal is high: EI trends downward or is capped low
+ *     * When stressSignal is low: EI can rise gradually
+ *   - Drives wave pacing (spawn rate, movement speed, power-up frequency)
+ * 
+ * High stressSignal changes:
+ *   - Gentler pacing: slower spawns, slower movement, more power-ups
+ *   - More wellness fragments: wellnessProbability = 0.35 + 0.40 * stressSignal
+ *   - TimeScale slowdown: 0.60 at high stress, 0.85 at low stress (when fragments exist)
+ * 
+ * Fragment System:
+ *   - When negative thought is defeated: spawn 1-3 fragments at enemy position
+ *   - Fragments are tappable: wellness fragments log to conqueredThoughts (phrase + counterRecord)
+ *   - Negative fragments can be converted to wellness fragments on tap
+ *   - Fragments have TTL and fade out
+ */
+
+import { useState, useEffect, useRef, type MutableRefObject } from 'react'
+import { GAME_CONFIG, DIFFICULTY_CONFIGS, type Difficulty } from '@/utils/vantage-constants'
+import { THOUGHT_PATTERNS, type ThoughtPattern } from '@/utils/vantage-helpers'
 import type {
   Projectile,
   EnemyProjectile,
@@ -10,13 +36,20 @@ import type {
   Boss,
   ThoughtEcho,
   ConqueredThought,
+  Fragment,
 } from '@/types/game'
 
-interface UseThoughtDefenderGameOptions {
+interface UseVantageGameOptions {
   gameWidth: number
   gameHeight: number
   difficulty: Difficulty
   onGameOver: (score: number, won: boolean, bossDefeated: boolean) => void
+  ddaMetricsRef?: MutableRefObject<{
+    formationTickMultiplier: number // Multiplier for formation tick intervals (lower = faster)
+    moveSpeed: number // Velocity multiplier for thoughts and enemy projectiles
+    powerUpChance: number // Multiplier for power-up spawn chance
+    pressureScore: number // stressSignal for fragment wellness probability
+  } | undefined>
 }
 
 type Rect = { x: number; y: number; w: number; h: number }
@@ -30,19 +63,20 @@ function rectsIntersect(a: Rect, b: Rect): boolean {
   )
 }
 
-export function useThoughtDefenderGame({
+export function useVantageGame({
   gameWidth,
   gameHeight,
   difficulty,
   onGameOver,
-}: UseThoughtDefenderGameOptions) {
+  ddaMetricsRef,
+}: UseVantageGameOptions) {
   const difficultyConfig = DIFFICULTY_CONFIGS[difficulty]
-  const playerStartX = gameWidth / 2 - GAME_CONFIG.PLAYER_WIDTH / 2
+  const getPlayerStartX = () => gameWidth / 2 - GAME_CONFIG.PLAYER_WIDTH / 2
   const getPlayerY = () => gameHeight - GAME_CONFIG.PLAYER_BOTTOM_OFFSET - GAME_CONFIG.PLAYER_HEIGHT
   
-  const [playerX, setPlayerX] = useState<number>(playerStartX)
-  const playerXRef = useRef<number>(playerStartX)
-  const targetPlayerXRef = useRef<number>(playerStartX) // For smooth movement
+  const [playerX, setPlayerX] = useState<number>(getPlayerStartX())
+  const playerXRef = useRef<number>(getPlayerStartX())
+  const targetPlayerXRef = useRef<number>(getPlayerStartX()) // For smooth movement
   const velocityRef = useRef<number>(0)
   const [score, setScore] = useState<number>(GAME_CONFIG.INITIAL_SCORE)
   const [lives, setLives] = useState<number>(difficultyConfig.initialLives)
@@ -54,6 +88,8 @@ export function useThoughtDefenderGame({
   const [powerUps, setPowerUps] = useState<PowerUp[]>([])
   const [boss, setBoss] = useState<Boss | null>(null)
   const [bossIncoming, setBossIncoming] = useState<boolean>(false)
+  const [bossTelegraphActive, setBossTelegraphActive] = useState<boolean>(false)
+  const [bossTelegraphLabel, setBossTelegraphLabel] = useState<string | undefined>(undefined)
   const [playerLastHitAt, setPlayerLastHitAt] = useState<number>(0)
   const [playerHp, setPlayerHp] = useState<number>(difficultyConfig.initialLives)
   const [playerIFrameUntil, setPlayerIFrameUntil] = useState<number>(0)
@@ -64,6 +100,14 @@ export function useThoughtDefenderGame({
   const [debugHitboxes, setDebugHitboxes] = useState(false)
   const [thoughtEchoes, setThoughtEchoes] = useState<ThoughtEcho[]>([])
   const [conqueredThoughts, setConqueredThoughts] = useState<ConqueredThought[]>([])
+  const [fragments, setFragments] = useState<Fragment[]>([])
+
+  // DDA tracking
+  const projectilesSpawnedRef = useRef<number>(0)
+  const thoughtsDestroyedRef = useRef<number>(0)
+  
+  // Fragment TTL tracking
+  const fragmentTTLRef = useRef<Map<string, number>>(new Map())
 
   // Formation state (Space Invaders style)
   const [formationDir, setFormationDir] = useState<1 | -1>(1)
@@ -86,6 +130,10 @@ export function useThoughtDefenderGame({
   const headerPressCountRef = useRef<number>(0)
   const headerPressTimerRef = useRef<NodeJS.Timeout | null>(null)
   const lastDebugLogRef = useRef<number>(0)
+  const enemyFireTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const enemyNextFireAtRef = useRef<number>(0)
+  const thoughtEchoTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const thoughtEchoCooldownRef = useRef<Map<string, number>>(new Map()) // text -> lastSpawnAt
 
   // Refs for latest state (prevents stale closures in collision checks)
   const negativeThoughtsRef = useRef<NegativeThought[]>([])
@@ -93,11 +141,23 @@ export function useThoughtDefenderGame({
   const powerUpsRef = useRef<PowerUp[]>([])
   const bossRef = useRef<Boss | null>(null)
   const shieldActiveRef = useRef<boolean>(false)
+  const fragmentsRef = useRef<Fragment[]>([])
+  const thoughtEchoesRef = useRef<ThoughtEcho[]>([])
 
   // Sync refs with state
   useEffect(() => {
     playerXRef.current = playerX
   }, [playerX])
+
+  // Update player position when game dimensions change
+  useEffect(() => {
+    if (gameWidth > 0 && gameHeight > 0) {
+      const newX = getPlayerStartX()
+      playerXRef.current = newX
+      targetPlayerXRef.current = newX
+      setPlayerX(newX)
+    }
+  }, [gameWidth, gameHeight])
 
   useEffect(() => {
     negativeThoughtsRef.current = negativeThoughts
@@ -119,21 +179,32 @@ export function useThoughtDefenderGame({
     shieldActiveRef.current = shieldActive
   }, [shieldActive])
 
+  useEffect(() => {
+    fragmentsRef.current = fragments
+  }, [fragments])
+
+  useEffect(() => {
+    thoughtEchoesRef.current = thoughtEchoes
+  }, [thoughtEchoes])
+
   // Game loop using requestAnimationFrame
   useEffect(() => {
     if (isPlaying && !gameOver) {
       startGameLoop()
       startFormationLoop()
+      startEnemyFireLoop()
     } else {
       stopGameLoop()
       stopFormationLoop()
       stopBossFormationLoop()
+      stopEnemyFireLoop()
     }
 
     return () => {
       stopGameLoop()
       stopFormationLoop()
       stopBossFormationLoop()
+      stopEnemyFireLoop()
     }
   }, [isPlaying, gameOver, formationTickMs])
 
@@ -150,7 +221,15 @@ export function useThoughtDefenderGame({
 
       const deltaTime = currentTime - lastTime
       lastTime = currentTime
-      const deltaSeconds = deltaTime / 1000
+      
+      // Apply timeScale when fragments exist (gentler under stress)
+      const stressSignal = ddaMetricsRef?.current?.pressureScore ?? 0.5
+      const hasFragments = fragmentsRef.current.length > 0
+      const timeScale = hasFragments
+        ? 0.85 - (stressSignal * 0.25) // 0.85 at low stress, 0.60 at high stress
+        : 1.0
+      
+      const deltaSeconds = (deltaTime / 1000) * timeScale
 
       // Update player position based on velocity (for arrow buttons)
       if (velocityRef.current !== 0) {
@@ -190,6 +269,7 @@ export function useThoughtDefenderGame({
       )
 
       // Move enemy projectiles down (with optional horizontal movement)
+      // Note: vy already includes moveSpeedMultiplier from spawn time, so don't multiply again
       setEnemyProjectiles((prev) =>
         prev
           .map((p) => ({
@@ -201,13 +281,15 @@ export function useThoughtDefenderGame({
       )
 
       // Move falling thoughts (from boss attacks) down
+      // Apply DDA moveSpeed multiplier if available
+      const moveSpeedMultiplier = ddaMetricsRef?.current?.moveSpeed ?? 1
       setNegativeThoughts((prev) =>
         prev.map((thought) => {
           // Only move thoughts that have speed > 0 (falling thoughts from boss)
           if (thought.speed > 0) {
             return {
               ...thought,
-              y: thought.y + thought.speed * gameSpeed * deltaSeconds,
+              y: thought.y + thought.speed * gameSpeed * moveSpeedMultiplier * deltaSeconds,
             }
           }
           return thought // Formation invaders don't move here
@@ -229,6 +311,9 @@ export function useThoughtDefenderGame({
           }))
           .filter((p) => p.y < gameHeight + 100)
       )
+
+      // Update fragments (TTL and removal)
+      updateFragments(deltaTime)
 
       // Check collisions first (may update boss HP)
       checkCollisions()
@@ -265,11 +350,11 @@ export function useThoughtDefenderGame({
 
   function getAvailableThoughtPatternsForWave(monsterKey: string, waveNumber: number): ThoughtPattern[] {
     // Get all patterns for this monster
-    const allPatterns = THOUGHT_PATTERNS.filter((p) => p.monsterKey === monsterKey)
+    const allPatterns = THOUGHT_PATTERNS.filter((p: ThoughtPattern) => p.monsterKey === monsterKey)
     
     // For this wave, exclude patterns already used in this wave
     const availableForWave = allPatterns.filter(
-      (pattern) => !waveDefeatedPatterns.has(pattern.id)
+      (pattern: ThoughtPattern) => !waveDefeatedPatterns.has(pattern.id)
     )
 
     return availableForWave
@@ -291,14 +376,20 @@ export function useThoughtDefenderGame({
       // Reset wave defeated patterns for new wave
       setWaveDefeatedPatterns(new Set())
 
+      // Center the formation horizontally
+      const spacingX = GAME_CONFIG.THOUGHT_WIDTH + GAME_CONFIG.INVADER_H_GAP
+      const gridWidth = (GAME_CONFIG.INVADERS_COLS - 1) * spacingX + GAME_CONFIG.THOUGHT_WIDTH
+      const startX = Math.max(12, (gameWidth - gridWidth) / 2) // Center with minimum 12px padding
+      const startY = 60 // Start near top of playfield
+
       for (let row = 0; row < GAME_CONFIG.INVADERS_ROWS; row++) {
         for (let col = 0; col < GAME_CONFIG.INVADERS_COLS; col++) {
           const index = row * GAME_CONFIG.INVADERS_COLS + col
           const pattern = availablePatterns[index % availablePatterns.length]
 
           if (pattern) {
-            const x = GAME_CONFIG.INVADER_START_X + col * (GAME_CONFIG.THOUGHT_WIDTH + GAME_CONFIG.INVADER_H_GAP)
-            const y = GAME_CONFIG.INVADER_START_Y + row * (GAME_CONFIG.THOUGHT_HEIGHT + GAME_CONFIG.INVADER_V_GAP)
+            const x = startX + col * spacingX
+            const y = startY + row * (GAME_CONFIG.THOUGHT_HEIGHT + GAME_CONFIG.INVADER_V_GAP)
 
             invaders.push({
               id: `invader-${waveNumber}-${row}-${col}-${Date.now()}`,
@@ -351,6 +442,29 @@ export function useThoughtDefenderGame({
           return prev
         }
 
+        // Apply DDA to formation step sizes (calculate before wall checks)
+        const ddaStressSignal = ddaMetricsRef?.current?.pressureScore ?? 0.5
+        const ddaMoveSpeed = ddaMetricsRef?.current?.moveSpeed ?? 1.0
+        
+        // Formation horizontal speed multiplier
+        const formationSpeedMultiplier = ddaMoveSpeed < 1.0 
+          ? 0.5 + (ddaMoveSpeed * 0.4) // When slowed, scale 0.5-0.9
+          : 1.0 + ((ddaMoveSpeed - 1.0) * 0.3) // When sped up, scale 1.0-1.18
+        
+        // DDA stepY multiplier: directly scale vertical movement based on pressureScore
+        // High pressureScore (>0.7): slower downward movement (0.65x)
+        // Low pressureScore (<0.3): faster downward movement (1.05x)
+        let stepYMultiplier = 1.0
+        if (ddaStressSignal > 0.7) {
+          stepYMultiplier = 0.65 // Much slower when struggling
+        } else if (ddaStressSignal < 0.3) {
+          stepYMultiplier = 1.05 // Slightly faster when doing well
+        }
+        
+        // Calculate scaled step sizes
+        const scaledStepX = GAME_CONFIG.FORMATION_STEP_X * formationSpeedMultiplier
+        const scaledStepY = GAME_CONFIG.FORMATION_STEP_Y * stepYMultiplier
+
         // Calculate formation bounds
         let minX = Infinity
         let maxX = -Infinity
@@ -364,11 +478,11 @@ export function useThoughtDefenderGame({
         let newDir = currentDir
         let stepDown = false
 
-        // Check if formation hits wall
-        if (currentDir === 1 && maxX + GAME_CONFIG.FORMATION_STEP_X >= gameWidth) {
+        // Check if formation hits wall (using scaled step size)
+        if (currentDir === 1 && maxX + scaledStepX >= gameWidth) {
           newDir = -1
           stepDown = true
-        } else if (currentDir === -1 && minX - GAME_CONFIG.FORMATION_STEP_X <= 0) {
+        } else if (currentDir === -1 && minX - scaledStepX <= 0) {
           newDir = 1
           stepDown = true
         }
@@ -377,9 +491,13 @@ export function useThoughtDefenderGame({
           setFormationDir(newDir)
         }
 
-        // Move formation
-        const stepX = stepDown ? 0 : GAME_CONFIG.FORMATION_STEP_X * currentDir
-        const stepY = stepDown ? GAME_CONFIG.FORMATION_STEP_Y : 0
+        // Move formation with DDA-scaled step sizes
+        const stepX = stepDown 
+          ? 0 
+          : scaledStepX * currentDir
+        const stepY = stepDown 
+          ? scaledStepY
+          : 0
 
         const playerY = getPlayerY()
 
@@ -401,7 +519,10 @@ export function useThoughtDefenderGame({
         }))
       })
 
-      formationTimerRef.current = setTimeout(formationStep, formationTickMs)
+      // Apply DDA formationTickMultiplier: lower = faster spawns (lower tick interval)
+      const formationTickMultiplier = ddaMetricsRef?.current?.formationTickMultiplier ?? 1.0
+      const ddaAdjustedTick = formationTickMs * formationTickMultiplier
+      formationTimerRef.current = setTimeout(formationStep, ddaAdjustedTick)
     }
 
     formationStep()
@@ -487,6 +608,88 @@ export function useThoughtDefenderGame({
     }
   }
 
+  function startEnemyFireLoop() {
+    if (enemyFireTimerRef.current) return
+    
+    // Initialize first fire time
+    const baseInterval = 900 + Math.random() * 500 // 900-1400ms
+    enemyNextFireAtRef.current = Date.now() + baseInterval
+    
+    function enemyFireStep() {
+      if (!isPlaying || gameOver || boss) {
+        stopEnemyFireLoop()
+        return
+      }
+      
+      const now = Date.now()
+      const thoughtsNow = negativeThoughtsRef.current
+      
+      if (thoughtsNow.length === 0) {
+        // No enemies, schedule next check
+        enemyNextFireAtRef.current = now + 1000
+        enemyFireTimerRef.current = setTimeout(enemyFireStep, 1000)
+        return
+      }
+      
+      // Check if it's time to fire
+      if (now >= enemyNextFireAtRef.current) {
+        // Find bottom-most enemy (lowest y value = closest to player)
+        let bottomEnemy: NegativeThought | null = null
+        let lowestY = -Infinity
+        
+        for (const thought of thoughtsNow) {
+          if (thought.y > lowestY) {
+            lowestY = thought.y
+            bottomEnemy = thought
+          }
+        }
+        
+        if (bottomEnemy) {
+          // Spawn enemy projectile from bottom-most enemy
+          // Use pixels per second (similar to player projectiles at 400)
+          const enemyProjectileSpeed = 300 // pixels per second (slightly slower than player projectiles)
+          const moveSpeedMultiplier = ddaMetricsRef?.current?.moveSpeed ?? 1.0
+          const projectileSpeed = enemyProjectileSpeed * moveSpeedMultiplier
+          
+          const enemyProjectile: EnemyProjectile = {
+            id: `enemy-proj-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            x: bottomEnemy.x + GAME_CONFIG.THOUGHT_WIDTH / 2 - GAME_CONFIG.ENEMY_PROJECTILE_WIDTH / 2,
+            y: bottomEnemy.y + GAME_CONFIG.THOUGHT_HEIGHT,
+            vy: projectileSpeed,
+          }
+          
+          setEnemyProjectiles((prev) => [...prev, enemyProjectile])
+        }
+        
+        // Schedule next fire (with DDA scaling)
+        const stressSignal = ddaMetricsRef?.current?.pressureScore ?? 0.5
+        let intervalMultiplier = 1.0
+        if (stressSignal > 0.7) {
+          // High stress: longer interval (gentler)
+          intervalMultiplier = 1.3
+        } else if (stressSignal < 0.3) {
+          // Low stress: shorter interval (more intense)
+          intervalMultiplier = 0.8
+        }
+        
+        const baseInterval = (900 + Math.random() * 500) * intervalMultiplier
+        enemyNextFireAtRef.current = now + baseInterval
+      }
+      
+      // Schedule next check (check every 100ms)
+      enemyFireTimerRef.current = setTimeout(enemyFireStep, 100)
+    }
+    
+    enemyFireStep()
+  }
+
+  function stopEnemyFireLoop() {
+    if (enemyFireTimerRef.current) {
+      clearTimeout(enemyFireTimerRef.current)
+      enemyFireTimerRef.current = null
+    }
+  }
+
   // Boss firing - Space Invaders style bursts
   function updateBossCombat(deltaTime: number, currentTime: number) {
     const bossNow = bossRef.current
@@ -525,7 +728,7 @@ export function useThoughtDefenderGame({
             x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2,
             y: spawnY,
             vx,
-            vy: 6,
+            vy: 300, // pixels per second (consistent with regular enemy projectiles)
           }
           setEnemyProjectiles((prev) => [...prev, enemyProjectile])
         } else {
@@ -534,7 +737,7 @@ export function useThoughtDefenderGame({
             id: `enemy-proj-${Date.now()}-${bossBurstRemainingRef.current}`,
             x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2,
             y: spawnY,
-            vy: 5.5,
+            vy: 300, // pixels per second (consistent with regular enemy projectiles)
           }
           setEnemyProjectiles((prev) => [...prev, enemyProjectile])
         }
@@ -598,42 +801,33 @@ export function useThoughtDefenderGame({
       }
 
       if (hitThoughtIds.size > 0) {
-        // Create echoes for destroyed thoughts and track conquered patterns
-        const destroyedThoughts = thoughtsNow.filter((t) => hitThoughtIds.has(t.id))
-        destroyedThoughts.forEach((thought) => {
-          // Spawn floating echo (only shows phrase)
-          spawnThoughtEcho({
-            id: thought.id,
-            text: thought.text || '…',
-            x: thought.x,
-            y: thought.y,
-          })
+        // Track destroyed thoughts for DDA
+        thoughtsDestroyedRef.current += hitThoughtIds.size
 
-          // Track conquered thought if it has a pattern
+        // Spawn fragments only on meaningful events (wellness fragment events)
+        // Only spawn when a wellness fragment would be created (not for every kill)
+        const destroyedThoughts = thoughtsNow.filter((t) => hitThoughtIds.has(t.id))
+        
+        // Check if any destroyed thought should spawn a wellness fragment
+        destroyedThoughts.forEach((thought) => {
+          const stressSignal = ddaMetricsRef?.current?.pressureScore ?? 0.5
+          const wellnessProbability = 0.35 + 0.40 * stressSignal
+          
+          // Fragments disabled - removed from game
+          // if (Math.random() < wellnessProbability * 0.3) {
+          //   spawnFragments(thought)
+          // }
+
+          // Track conquered thought if it has a pattern (legacy - now handled by fragment taps)
+          // Keep this for backwards compatibility but fragments are the primary mechanism
           if (thought.patternId && !defeatedThoughtIdsRef.current.has(thought.patternId)) {
             defeatedThoughtIdsRef.current.add(thought.patternId)
             setWaveDefeatedPatterns((prev) => new Set([...prev, thought.patternId!]))
-            const pattern = THOUGHT_PATTERNS.find((p) => p.id === thought.patternId)
-            if (pattern) {
-              setConqueredThoughts((prev) => {
-                // Only add if not already present (unique by id)
-                if (prev.some((ct) => ct.id === pattern.id)) {
-                  return prev
-                }
-                return [
-                  ...prev,
-                  {
-                    id: pattern.id,
-                    phrase: pattern.phrase,
-                    counterRecord: pattern.counterRecord,
-                  },
-                ]
-              })
-            }
           }
 
-          // Spawn powerup from defeated invader (based on difficulty)
-          if (thought.speed === 0 && Math.random() < difficultyConfig.powerUpSpawnChance) {
+          // Spawn powerup from defeated invader (based on difficulty + DDA)
+          const powerUpSpawnChance = difficultyConfig.powerUpSpawnChance * (ddaMetricsRef?.current?.powerUpChance ?? 1)
+          if (thought.speed === 0 && Math.random() < powerUpSpawnChance) {
             const powerUpTypes: PowerUpType[] = [
               'slowTime',
               'multishot',
@@ -781,8 +975,8 @@ export function useThoughtDefenderGame({
         const projectileRect: Rect = {
           x: proj.x,
           y: proj.y,
-          w: GAME_CONFIG.PROJECTILE_WIDTH,
-          h: GAME_CONFIG.PROJECTILE_HEIGHT,
+          w: GAME_CONFIG.ENEMY_PROJECTILE_WIDTH,
+          h: GAME_CONFIG.ENEMY_PROJECTILE_HEIGHT,
         }
 
         if (rectsIntersect(playerRect, projectileRect)) {
@@ -856,6 +1050,9 @@ export function useThoughtDefenderGame({
       setShieldActive(false)
       return
     }
+
+    // Fragments disabled - removed from game
+    // spawnHitFragment()
 
     // Apply damage
     setPlayerHp((hp) => {
@@ -966,11 +1163,13 @@ export function useThoughtDefenderGame({
           y: currentPlayerY,
         },
       ]
+      projectilesSpawnedRef.current += newProjectiles.length
       setProjectiles((prev) => [...prev, ...newProjectiles])
     } else {
       // Only shoot if no projectiles on screen (limit to 1)
       setProjectiles((prev) => {
         if (prev.length >= 1) return prev
+        projectilesSpawnedRef.current += 1
         const newProjectile: Projectile = {
           id: `proj-${Date.now()}`,
           x:
@@ -1026,25 +1225,222 @@ export function useThoughtDefenderGame({
     }, 500)
   }
 
-  function spawnThoughtEcho(thought: { id: string; text: string; x: number; y: number }) {
-    setThoughtEchoes((prev) => {
-      const next: ThoughtEcho[] = [
-        ...prev,
-        {
-          id: `echo-${thought.id}-${Date.now()}`,
-          text: thought.text,
-          x: thought.x,
-          y: thought.y,
-          createdAt: Date.now(),
-        },
-      ]
-      // Cap to avoid clutter (max 6 active echoes)
-      return next.slice(-6)
+
+  // Fragment spawn cooldowns
+  const fragmentGlobalCooldownRef = useRef<number>(0) // Last spawn time
+  const fragmentPhraseCooldownRef = useRef<Map<string, number>>(new Map()) // phrase -> lastSpawnAt
+
+  function spawnFragments(thought: NegativeThought) {
+    const now = Date.now()
+    
+    // Hard cap: max 2 fragments visible at once
+    if (fragments.length >= 2) {
+      return
+    }
+    
+    // Global cooldown: do not spawn more often than once every 700ms
+    if (now - fragmentGlobalCooldownRef.current < 700) {
+      return
+    }
+    
+    // Choose a ThoughtPattern (prefer the one that the defeated enemy represents)
+    let pattern: ThoughtPattern | undefined
+    if (thought.patternId) {
+      pattern = THOUGHT_PATTERNS.find((p: ThoughtPattern) => p.id === thought.patternId)
+    }
+    
+    // If no pattern found, pick a random one from available patterns
+    if (!pattern) {
+      const availablePatterns = THOUGHT_PATTERNS.filter(
+        (p: ThoughtPattern) => p.monsterKey === 'void_eater'
+      )
+      if (availablePatterns.length > 0) {
+        pattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)]
+      }
+    }
+
+    if (!pattern) return // No pattern available
+
+    // Per-phrase cooldown: 2000ms to prevent repeats
+    const phraseKey = pattern.phrase
+    const lastSpawnAt = fragmentPhraseCooldownRef.current.get(phraseKey)
+    if (lastSpawnAt && now - lastSpawnAt < 2000) {
+      return
+    }
+
+    // Calculate wellness fragment probability based on stressSignal
+    const stressSignal = ddaMetricsRef?.current?.pressureScore ?? 0.5
+    const wellnessProbability = 0.35 + 0.40 * stressSignal // 0.35 at low stress, 0.75 at high stress
+
+    // Spawn only 1 fragment (rare event)
+    const isWellness = Math.random() < wellnessProbability
+    const kind: 'negative' | 'wellness' = isWellness ? 'wellness' : 'negative'
+    
+    // Fragment text based on kind
+    let text: string
+    if (kind === 'wellness') {
+      // Wellness fragment: short prompt or trimmed counterRecord
+      const counterText = pattern.counterRecord
+      text = counterText.length <= 40 
+        ? counterText 
+        : 'Try a kinder thought'
+    } else {
+      // Negative fragment: short piece of phrase
+      const phraseText = pattern.phrase
+      text = phraseText.length <= 30 
+        ? phraseText 
+        : phraseText.substring(0, 27) + '...'
+    }
+
+    // Position fragments in top third of playfield, not on top of formation
+    const bubbleMaxWidth = 220 // Smaller max width for readability
+    const playerY = getPlayerY()
+    
+    // Spawn in top third of playfield
+    let fragmentX = thought.x
+    let fragmentY = Math.max(60, Math.min(thought.y - 60, gameHeight * 0.35))
+    
+    // Clamp x inside playfield bounds (account for maxWidth)
+    fragmentX = Math.max(8, Math.min(fragmentX, gameWidth - bubbleMaxWidth - 8))
+
+    const fragment: Fragment = {
+      id: `fragment-${thought.id}-${Date.now()}`,
+      x: fragmentX,
+      y: fragmentY,
+      text,
+      ttlMs: 1000, // Short TTL: will be randomized below
+      kind,
+      patternId: pattern.id,
+      phrase: pattern.phrase,
+      counterRecord: pattern.counterRecord,
+    }
+
+    // Randomize TTL between 900-1100ms
+    fragment.ttlMs = 900 + Math.random() * 200
+    fragmentTTLRef.current.set(fragment.id, Date.now() + fragment.ttlMs)
+
+    // Update cooldowns
+    fragmentGlobalCooldownRef.current = now
+    fragmentPhraseCooldownRef.current.set(phraseKey, now)
+
+    setFragments((prev) => {
+      const next = [...prev, fragment]
+      // Hard cap to 2
+      return next.slice(-2)
+    })
+  }
+  
+  // Spawn a negative fragment when player is hit
+  function spawnHitFragment() {
+    const now = Date.now()
+    
+    // Hard cap: max 2 fragments visible at once
+    if (fragments.length >= 2) {
+      return
+    }
+    
+    // Global cooldown
+    if (now - fragmentGlobalCooldownRef.current < 700) {
+      return
+    }
+    
+    // Pick a random negative pattern
+    const availablePatterns = THOUGHT_PATTERNS.filter(
+      (p: ThoughtPattern) => p.monsterKey === 'void_eater'
+    )
+    if (availablePatterns.length === 0) return
+    
+    const pattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)]
+    const phraseKey = pattern.phrase
+    
+    // Per-phrase cooldown
+    const lastSpawnAt = fragmentPhraseCooldownRef.current.get(phraseKey)
+    if (lastSpawnAt && now - lastSpawnAt < 2000) {
+      return
+    }
+    
+    // Spawn negative fragment near player
+    const bubbleMaxWidth = 220
+    const playerY = getPlayerY()
+    const fragmentX = Math.max(8, Math.min(playerXRef.current, gameWidth - bubbleMaxWidth - 8))
+    const fragmentY = Math.max(60, Math.min(playerY - 80, gameHeight * 0.35))
+    
+    const fragment: Fragment = {
+      id: `fragment-hit-${Date.now()}`,
+      x: fragmentX,
+      y: fragmentY,
+      text: pattern.phrase.length <= 30 ? pattern.phrase : pattern.phrase.substring(0, 27) + '...',
+      ttlMs: 900 + Math.random() * 200, // 900-1100ms
+      kind: 'negative',
+      patternId: pattern.id,
+      phrase: pattern.phrase,
+      counterRecord: pattern.counterRecord,
+    }
+    
+    fragmentTTLRef.current.set(fragment.id, Date.now() + fragment.ttlMs)
+    fragmentGlobalCooldownRef.current = now
+    fragmentPhraseCooldownRef.current.set(phraseKey, now)
+    
+    setFragments((prev) => {
+      const next = [...prev, fragment]
+      return next.slice(-2)
     })
   }
 
-  function removeThoughtEcho(echoId: string) {
-    setThoughtEchoes((prev) => prev.filter((e) => e.id !== echoId))
+  function updateFragments(deltaTime: number) {
+    const now = Date.now()
+    
+    setFragments((prev) => {
+      return prev.filter((fragment) => {
+        const ttl = fragmentTTLRef.current.get(fragment.id)
+        if (ttl && now >= ttl) {
+          fragmentTTLRef.current.delete(fragment.id)
+          return false // Remove expired fragment
+        }
+        return true
+      })
+    })
+  }
+
+  function handleFragmentTap(fragmentId: string) {
+    const fragment = fragments.find((f) => f.id === fragmentId)
+    if (!fragment) return
+
+    if (fragment.kind === 'wellness') {
+      // Wellness fragment: append to conqueredThoughts
+      setConqueredThoughts((prev) => {
+        // Only add if not already present (unique by id)
+        if (prev.some((ct) => ct.id === fragment.patternId)) {
+          return prev
+        }
+        return [
+          ...prev,
+          {
+            id: fragment.patternId,
+            phrase: fragment.phrase,
+            counterRecord: fragment.counterRecord,
+          },
+        ]
+      })
+      // Remove the fragment
+      setFragments((prev) => prev.filter((f) => f.id !== fragmentId))
+      fragmentTTLRef.current.delete(fragmentId)
+    } else {
+      // Negative fragment: convert to wellness fragment in place
+      setFragments((prev) =>
+        prev.map((f) =>
+          f.id === fragmentId
+            ? {
+                ...f,
+                kind: 'wellness' as const,
+                text: f.counterRecord.length <= 40 
+                  ? f.counterRecord 
+                  : 'Try a kinder thought',
+              }
+            : f
+        )
+      )
+    }
   }
 
   function startGame() {
@@ -1061,6 +1457,8 @@ export function useThoughtDefenderGame({
     setBoss(null)
     setBossIncoming(false)
     setPlayerLastHitAt(0)
+    projectilesSpawnedRef.current = 0
+    thoughtsDestroyedRef.current = 0
     setBossTelegraphActive(false)
     setBossTelegraphLabel(undefined)
     bossNextFireAtRef.current = 0
@@ -1068,15 +1466,26 @@ export function useThoughtDefenderGame({
     bossNextBurstShotAtRef.current = 0
     bossBurstCountRef.current = 0
     stopBossFormationLoop()
+    stopEnemyFireLoop()
+    enemyNextFireAtRef.current = 0
     setThoughtEchoes([])
     setConqueredThoughts([])
+    setFragments([])
+    fragmentTTLRef.current.clear()
+    fragmentGlobalCooldownRef.current = 0
+    fragmentPhraseCooldownRef.current.clear()
+    enemyNextFireAtRef.current = 0
     defeatedThoughtIdsRef.current.clear()
+    // Clear all echo timers
+    thoughtEchoTimersRef.current.forEach((timer) => clearTimeout(timer))
+    thoughtEchoTimersRef.current.clear()
+    thoughtEchoCooldownRef.current.clear()
     setWaveDefeatedPatterns(new Set())
     setWave(1)
     setFormationDir(1)
     setFormationTickMs(difficultyConfig.formationTickMs)
     setGameSpeed(GAME_CONFIG.DEFAULT_GAME_SPEED)
-    const startX = gameWidth / 2 - GAME_CONFIG.PLAYER_WIDTH / 2
+    const startX = getPlayerStartX()
     playerXRef.current = startX
     targetPlayerXRef.current = startX
     setPlayerX(startX)
@@ -1111,6 +1520,8 @@ export function useThoughtDefenderGame({
       stopBossFormationLoop()
       powerUpTimersRef.current.forEach((timer) => clearTimeout(timer))
       powerUpTimersRef.current.clear()
+      thoughtEchoTimersRef.current.forEach((timer) => clearTimeout(timer))
+      thoughtEchoTimersRef.current.clear()
       if (headerPressTimerRef.current) {
         clearTimeout(headerPressTimerRef.current)
       }
@@ -1131,15 +1542,21 @@ export function useThoughtDefenderGame({
     powerUps,
     boss,
     bossIncoming,
+    bossTelegraphActive,
+    bossTelegraphLabel,
     playerLastHitAt,
-    thoughtEchoes,
     conqueredThoughts,
+    fragments,
     wave,
     gameSpeed,
     multishotActive,
     fastShootActive,
     shieldActive,
     debugHitboxes,
+    // DDA tracking
+    projectilesSpawned: projectilesSpawnedRef.current,
+    thoughtsDestroyed: thoughtsDestroyedRef.current,
+    gameStartTime: gameStartTimeRef.current,
     // Actions
     shoot,
     setVelocity,
@@ -1148,6 +1565,6 @@ export function useThoughtDefenderGame({
     startGame,
     endGame,
     handleHeaderPress,
-    removeThoughtEcho,
+    handleFragmentTap,
   }
 }

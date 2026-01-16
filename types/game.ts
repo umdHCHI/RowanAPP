@@ -37,6 +37,18 @@ export interface ThoughtEcho {
   createdAt: number
 }
 
+export interface Fragment {
+  id: string
+  x: number
+  y: number
+  text: string
+  ttlMs: number
+  kind: 'negative' | 'wellness'
+  patternId: string
+  phrase: string
+  counterRecord: string
+}
+
 export type PowerUpType = 'slowTime' | 'multishot' | 'fastShoot' | 'extraLife' | 'multiplier' | 'shield'
 
 export interface PowerUp {
@@ -58,7 +70,7 @@ export interface Boss {
   lastHitAt?: number // Timestamp of last hit for visual feedback
 }
 
-export interface ThoughtDefenderGameState {
+export interface VantageGameState {
   playerX: number
   score: number
   lives: number

@@ -1,5 +1,5 @@
 import { View, Image } from 'react-native'
-import { GAME_CONFIG } from '@/utils/thought-defender-constants'
+import { GAME_CONFIG } from '@/utils/vantage-constants'
 import type { NegativeThought } from '@/types/game'
 
 interface GameNegativeThoughtProps {
@@ -18,7 +18,7 @@ export function GameNegativeThought({ thought }: GameNegativeThoughtProps) {
       }}
     >
       <Image
-        source={require('../../assets/thoughtDefender/negativeThought.png')}
+        source={require('../../assets/Vantage/negativeThought.png')}
         style={{
           width: GAME_CONFIG.THOUGHT_WIDTH,
           height: GAME_CONFIG.THOUGHT_HEIGHT,

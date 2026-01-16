@@ -159,3 +159,31 @@ export function getMinigameRewardFromPassage(passage: any): MinigameReward | nul
     sourcePassageId: passage?.passage_id ?? passage?.id 
   }
 }
+
+/**
+ * Check if passage has minigame option enabled
+ * Returns true if story_effects.minigame or effects.minigame is true
+ */
+export function hasMinigameOption(passage: any): boolean {
+  const effects = passage?.story_effects && Object.keys(passage.story_effects).length > 0
+    ? passage.story_effects
+    : passage?.effects
+
+  if (!effects) return false
+  return effects.minigame === true
+}
+
+/**
+ * Normalize speaker name for display
+ * If speaker name starts with "Cur", replace it with "The Curator"
+ */
+export function normalizeSpeakerName(speakerName: string | null | undefined): string | null {
+  if (!speakerName) return null
+  
+  // Check if speaker name starts with "Cur" (case-insensitive)
+  if (speakerName.trim().toLowerCase().startsWith('cur')) {
+    return 'The Curator'
+  }
+  
+  return speakerName
+}

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { View, Image, Animated, Text, StyleSheet } from 'react-native'
-import { GAME_CONFIG } from '@/utils/thought-defender-constants'
+import { GAME_CONFIG } from '@/utils/vantage-constants'
 import type { Boss } from '@/types/game'
 
 interface GameBossProps {
@@ -8,13 +8,30 @@ interface GameBossProps {
   lastHitAt?: number
   telegraphActive?: boolean
   telegraphLabel?: string
+  difficultyLevel?: number // 1-10 from useGameDirector
 }
 
-export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel }: GameBossProps) {
+export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, difficultyLevel = 5 }: GameBossProps) {
   const flash = useRef(new Animated.Value(0)).current
   const shake = useRef(new Animated.Value(0)).current
   const telegraphGlow = useRef(new Animated.Value(0)).current
   const lastHitAtRef = useRef<number | undefined>(undefined)
+
+  // Calculate inverseDifficulty factor for adaptive pacing
+  // Lower difficultyLevel (1) = higher pressure = slower animations, more visible telegraph
+  // Higher difficultyLevel (10) = lower pressure = faster animations, less visible telegraph
+  const inverseDifficulty = (11 - difficultyLevel) * 0.2
+  const baseTelegraphDuration = 225
+  const adaptiveTelegraphDuration = baseTelegraphDuration * inverseDifficulty
+
+  // Telegraph opacity adjustment: Lower difficulty (high pressure) = more visible warning
+  // Base range: [0.1, 0.18], adjust based on difficulty
+  const opacityBoost = difficultyLevel <= 3 ? 0.08 : 0 // Boost opacity when difficulty is low (high pressure)
+  const telegraphOpacityMin = 0.1 + opacityBoost
+  const telegraphOpacityMax = 0.18 + opacityBoost
+
+  // Shake intensity: Lower difficulty = subtler shake
+  const shakeIntensity = Math.max(1, difficultyLevel * 0.4) // Range: 1 (difficulty 1-2) to 4 (difficulty 10)
 
   useEffect(() => {
     if (lastHitAt !== undefined && lastHitAt !== lastHitAtRef.current) {
@@ -55,20 +72,20 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel }: G
     }
   }, [lastHitAt, flash, shake])
 
-  // Telegraph glow animation
+  // Telegraph glow animation - adaptive timing based on difficulty
   useEffect(() => {
     if (telegraphActive) {
-      // Start pulsing animation
+      // Start pulsing animation with adaptive duration
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(telegraphGlow, {
             toValue: 1,
-            duration: 225,
+            duration: adaptiveTelegraphDuration,
             useNativeDriver: true,
           }),
           Animated.timing(telegraphGlow, {
             toValue: 0,
-            duration: 225,
+            duration: adaptiveTelegraphDuration,
             useNativeDriver: true,
           }),
         ])
@@ -83,16 +100,18 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel }: G
         useNativeDriver: true,
       }).start()
     }
-  }, [telegraphActive, telegraphGlow])
+  }, [telegraphActive, telegraphGlow, adaptiveTelegraphDuration])
 
+  // Adaptive shake intensity based on difficulty
   const shakeTranslateX = shake.interpolate({
     inputRange: [-1, 1],
-    outputRange: [-4, 4],
+    outputRange: [-shakeIntensity, shakeIntensity],
   })
 
+  // Adaptive telegraph opacity based on difficulty
   const telegraphOpacity = telegraphGlow.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.1, 0.18],
+    outputRange: [telegraphOpacityMin, telegraphOpacityMax],
   })
 
   return (
@@ -143,7 +162,7 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel }: G
         }}
       >
         <Image
-          source={require('../../assets/thoughtDefender/monsterArchive.png')}
+          source={require('../../assets/Vantage/monsterArchive.png')}
           style={{
             width: GAME_CONFIG.BOSS_WIDTH,
             height: GAME_CONFIG.BOSS_HEIGHT,

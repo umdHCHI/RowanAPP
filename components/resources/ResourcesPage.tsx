@@ -46,6 +46,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
     powers,
     markPowersSeen,
     experience,
+    resourceCounts,
   } = useResources()
 
   // Set initial scroll position when component mounts
@@ -128,7 +129,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
               style={styles.headerButton}
               onPress={() => {
                 playPageFlipSound()
-                router.push('/thought-defender')
+                router.push('/vantage')
               }}
             >
               <MaterialCommunityIcons name="gamepad-variant" size={24} color="#ffffff" />
@@ -209,6 +210,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
               powers={powers}
               markPowersSeen={markPowersSeen}
               experience={experience}
+              resourceCounts={resourceCounts}
             />
           )}
           </View>

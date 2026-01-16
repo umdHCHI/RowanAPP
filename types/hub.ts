@@ -11,7 +11,7 @@ export interface StoryCard {
   chapterId: number
   status: CardStatus
   hasResources: boolean
-  backgroundImage?: any // require() image
+  imageUrl?: string | null // Backend image URL
   revelations?: string[]
 }
 

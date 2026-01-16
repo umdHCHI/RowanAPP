@@ -1,5 +1,5 @@
 import { View, Image } from 'react-native'
-import { GAME_CONFIG } from '@/utils/thought-defender-constants'
+import { GAME_CONFIG } from '@/utils/vantage-constants'
 import type { EnemyProjectile } from '@/types/game'
 
 interface GameEnemyProjectileProps {
@@ -13,27 +13,39 @@ export function GameEnemyProjectile({ projectile }: GameEnemyProjectileProps) {
         position: 'absolute',
         left: projectile.x,
         top: projectile.y,
-        width: GAME_CONFIG.PROJECTILE_WIDTH,
-        height: GAME_CONFIG.PROJECTILE_HEIGHT,
+        width: GAME_CONFIG.ENEMY_PROJECTILE_WIDTH,
+        height: GAME_CONFIG.ENEMY_PROJECTILE_HEIGHT,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 200, // Above other game objects
       }}
     >
-      <Image
-        source={require('../../assets/thoughtDefender/projectile.png')}
+      {/* Solid bright red projectile - very visible */}
+      <View
         style={{
-          width: GAME_CONFIG.PROJECTILE_WIDTH,
-          height: GAME_CONFIG.PROJECTILE_HEIGHT,
+          width: GAME_CONFIG.ENEMY_PROJECTILE_WIDTH,
+          height: GAME_CONFIG.ENEMY_PROJECTILE_HEIGHT,
+          backgroundColor: '#FF4444',
+          borderRadius: 4,
+          borderWidth: 2,
+          borderColor: '#FF8888',
+          shadowColor: '#FF0000',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.8,
+          shadowRadius: 4,
+          elevation: 5, // Android shadow
         }}
-        resizeMode="contain"
       />
-      {/* Red tint overlay */}
+      {/* Inner bright core */}
       <View
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(255, 80, 80, 0.25)',
+          top: 2,
+          left: 2,
+          right: 2,
+          bottom: 2,
+          backgroundColor: '#FF6666',
+          borderRadius: 2,
         }}
         pointerEvents="none"
       />

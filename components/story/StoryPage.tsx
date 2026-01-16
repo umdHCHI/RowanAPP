@@ -15,7 +15,7 @@ import { StoryChoices } from './StoryChoices'
 import { useGameStore } from '@/stores/game-store'
 import { useStoryAutoAdvance } from '@/hooks/use-story-auto-advance'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
-import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage } from '@/utils/story-helpers'
+import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, hasMinigameOption } from '@/utils/story-helpers'
 import { journalService } from '@/api/services/journal.service'
 import type { StoryChoice } from '@/types/story'
 
@@ -218,6 +218,15 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
     async (choice: StoryChoice) => {
       haptics.mediumImpact()
       playPageFlipSound()
+      
+      // Check if this is the minigame choice
+      if (choice.target_id === 'minigame' || choice.id === 'minigame-choice') {
+        // Navigate to minigame instead of making a story choice
+        addChoice(choice)
+        router.push('/vantage')
+        return
+      }
+      
       addChoice(choice)
       
       // Check if this is a choice in an ending passage
@@ -269,6 +278,28 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
     onAutoAdvance: handleAutoAdvance,
   })
 
+  // Check if current passage has minigame option enabled
+  const hasMinigame = currentPassage ? hasMinigameOption(currentPassage) : false
+
+  // Create minigame choice if enabled
+  const minigameChoice: StoryChoice | null = hasMinigame
+    ? {
+        id: 'minigame-choice',
+        text: 'Practice Thought Reframing',
+        target_id: 'minigame', // Special target_id to identify minigame choice
+      }
+    : null
+
+  // Combine regular choices with minigame choice if available
+  const allChoices = React.useMemo(() => {
+    if (minigameChoice) {
+      return [...choices, minigameChoice]
+    }
+    return choices
+  }, [choices, minigameChoice])
+
+  const hasAnyChoices = allChoices.length > 0
+
   // Check if current passage is ending type
   const hasEndingPassage =
     currentPassage?.passage_type === 'ending' ||
@@ -288,13 +319,13 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
           error={error}
           isLoading={isLoading}
           isEnding={isEnding}
-          hasChoices={hasChoices}
+          hasChoices={hasAnyChoices}
           storyId={storyId}
         />
 
         {/* Choice buttons at bottom - show even for endings if there are choices */}
-        {hasChoices && (
-          <StoryChoices choices={choices} onChoicePress={handleChoice} />
+        {hasAnyChoices && (
+          <StoryChoices choices={allChoices} onChoicePress={handleChoice} />
         )}
 
         {/* Pause overlay - big button when paused */}

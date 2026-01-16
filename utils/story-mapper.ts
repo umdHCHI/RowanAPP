@@ -1,5 +1,6 @@
 import type { StoryData } from '@/stores/game-store'
 import type { StoryCard, CardStatus } from '@/types/hub'
+import { getStoryImageUrl } from '@/utils/story-helpers'
 
 /**
  * Truncate text to a maximum length, adding ellipsis if needed
@@ -52,6 +53,7 @@ export function mapStoriesToCards(stories: StoryData[]): StoryCard[] {
       chapterId: story.id,
       status,
       hasResources,
+      imageUrl: getStoryImageUrl(story.image),
       revelations: story.revelations || [],
     }
   }
@@ -66,38 +68,8 @@ export function mapStoriesToCards(stories: StoryData[]): StoryCard[] {
       (story) => !isIntroductionStory(story) && (!story.personality_focus || story.personality_focus.length === 0)
     )
     .sort((a, b) => {
-      // Extract chapter numbers from titles (e.g., "Chapter Two" -> 2, "Chapter Three" -> 3)
-      function extractChapterNumber(title: string): number | null {
-        const match = title.match(/Chapter\s+(One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|\d+)/i)
-        if (!match) return null
-        
-        const chapterText = match[1].toLowerCase()
-        const numberMap: Record<string, number> = {
-          'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-          'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
-        }
-        
-        return numberMap[chapterText] || parseInt(chapterText, 10)
-      }
-      
-      const aChapter = extractChapterNumber(a.title)
-      const bChapter = extractChapterNumber(b.title)
-      
-      // If both have chapter numbers, sort by chapter number
-      if (aChapter !== null && bChapter !== null) {
-        return aChapter - bChapter
-      }
-      
-      // If only one has a chapter number, the one without comes first (base story before numbered chapters)
-      if (aChapter === null && bChapter !== null) {
-        return -1
-      }
-      if (aChapter !== null && bChapter === null) {
-        return 1
-      }
-      
-      // If neither has chapter numbers, sort by ID descending (newer stories first)
-      return b.id - a.id
+      // Sort by ID ascending (28, 29, 30, etc.)
+      return a.id - b.id
     })
 
   // Map Introduction story to card (if found) - explicitly set hasResources to false
@@ -106,8 +78,9 @@ export function mapStoriesToCards(stories: StoryData[]): StoryCard[] {
     : null
 
   // Map other stories to cards
+  // Story numbering starts at 1 for the first non-introduction story
   const otherStoryCards: StoryCard[] = otherStories.map((story, index) =>
-    mapStoryToCard(story, index + 1, false)
+    mapStoryToCard(story, index, false)
   )
 
   // Return Introduction first, then other stories with empty personality_focus

@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native'
-import { GAME_CONFIG, DEBUG_HITBOXES } from '@/utils/thought-defender-constants'
+import { GAME_CONFIG, DEBUG_HITBOXES } from '@/utils/vantage-constants'
 import type { Projectile, NegativeThought, PowerUp } from '@/types/game'
 
 interface DebugHitboxesProps {

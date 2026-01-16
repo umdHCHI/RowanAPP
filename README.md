@@ -59,7 +59,7 @@ Assets are organized in the project root:
 - `attributes/` - Attribute level images (connection, courage, exploration, fear)
 - `equipment/` - Equipment items organized by type (weapons, armor, helmets, boots)
 - `thecurator/` - The Curator NPC character images with different emotions
-- `thoughtDefender/` - Minigame assets (player, projectiles, power-ups, etc.)
+- `Vantage/` - Minigame assets (player, projectiles, power-ups, etc.)
 - `hauntedlibrary.png` - Main background image for The Archive
 
 All assets are referenced using `require()` statements for proper bundling with Expo.
@@ -74,7 +74,7 @@ thearchive/
 │   ├── character-creator.tsx
 │   ├── story.tsx          # Main story progression
 │   ├── journal.tsx        # Reflection journal
-│   ├── thought-defender.tsx # Minigame
+│   ├── vantage.tsx # Minigame
 │   └── profile.tsx        # Character profile
 ├── components/            # Reusable components
 │   ├── the-curator.tsx   # NPC component
@@ -87,7 +87,7 @@ thearchive/
 ├── attributes/           # Attribute level images
 ├── equipment/            # Equipment/item images
 ├── thecurator/           # Curator NPC images
-├── thoughtDefender/      # Minigame assets
+├── Vantage/      # Minigame assets
 └── hauntedlibrary.png    # Background image
 ```
 

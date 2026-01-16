@@ -5,11 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { useHubStories } from '@/hooks/use-hub-stories'
-import { findNextStory } from '@/utils/story-helpers'
+import { findNextStory, getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
 import { StoryHistory } from './StoryHistory'
 import { StoryPassage } from './StoryPassage'
 import { StoryRewardMoment } from './StoryRewardMoment'
-import { getStoryImageUrl } from '@/utils/story-helpers'
 import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_FONTS, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
 import type { StoryHistoryItem, StoryPassage as StoryPassageType } from '@/types/story'
 
@@ -152,13 +151,14 @@ export function StoryContent({
         currentPassage.passage_type === 'action' ? (
           (() => {
             const imageUrl = getStoryImageUrl(currentPassage.speaker_image)
+            const normalizedSpeakerName = normalizeSpeakerName(currentPassage.speaker_name)
             console.log('[StoryContent] Action scene - speaker_image:', currentPassage.speaker_image)
             console.log('[StoryContent] Action scene - imageUrl:', imageUrl)
             return (
               <StoryRewardMoment
                 type="ACTION_SCENE"
                 title={currentPassage.content || 'Action Scene'}
-                subtitle={currentPassage.speaker_name || undefined}
+                subtitle={normalizedSpeakerName || undefined}
                 imageUrl={imageUrl}
               />
             )

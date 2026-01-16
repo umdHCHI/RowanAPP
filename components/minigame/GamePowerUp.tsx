@@ -1,6 +1,6 @@
 import { View, Image } from 'react-native'
-import { GAME_CONFIG } from '@/utils/thought-defender-constants'
-import { getPowerUpImageSource } from '@/utils/thought-defender-helpers'
+import { GAME_CONFIG } from '@/utils/vantage-constants'
+import { getPowerUpImageSource } from '@/utils/vantage-helpers'
 import type { PowerUp } from '@/types/game'
 
 interface GamePowerUpProps {

@@ -14,6 +14,14 @@ const powerDescriptions: Record<string, string> = {
   Courage: 'The strength to face challenges and move forward despite fear.',
   Connection: 'Your ability to form meaningful bonds with others and yourself.',
   Fear: 'An awareness of what holds you back, and the first step toward understanding it.',
+
+}
+
+const powerSubtitles: Record<string, string> = {
+  Exploration: 'Exploration is the pull toward the unknown stacks.\n\nIt appears as a shadowed figure with wide wings, not threatening, just unreadable. Exploration does not promise comfort. It asks what happens if you look anyway.\n\nWhen this power grows, the Archive opens paths that were easy to ignore before. Hidden rooms become visible. New questions surface. You are not rushing forward. You are choosing curiosity over avoidance.\n\nExploration is not about bravery. It is about letting yourself wonder.',
+  Courage: 'Courage burns steady and bright.\n\nIt shows itself as a living flame, shaped like a figure moving forward through heat rather than away from it. Courage does not erase fear. It moves with it.\n\nThis power rises when you act despite uncertainty. When you speak up. When you stay present instead of withdrawing. The Archive responds by stabilizing around you. Doors stop shaking. Choices become clearer.\n\nCourage is not loud confidence. It is continuing while your hands are still shaking.',
+  Connection: 'Connection is the softest presence, and often the hardest to hold.\n\nIt appears as a gentle figure with glowing wings, close to the ground, never looming. Connection exists between shelves, not above them.\n\nAs this power strengthens, the Archive feels less empty. Messages linger longer. Guides offer help more often. Reflections feel less isolating. You begin to notice how your story overlaps with others.\n\nConnection is not dependence. It is remembering that you are not navigating this place alone.',
+  Fear: 'Fear is always present.\n\nIt manifests as a flickering, unstable figure, half-formed, glowing in sharp purples and pinks. Fear reacts quickly. It fills space fast. It wants answers right now.\n\nWhen Fear grows unchecked, the Archive distorts. Paths loop. Text blurs. Decisions feel urgent even when they are not. Fear is not an enemy, but it is a poor guide.\n\nThis power does not need to be destroyed. It needs to be acknowledged, slowed, and placed back into proportion.\n\nFear tells you something matters. It does not get to decide everything.',
 }
 
 /**
@@ -41,6 +49,15 @@ interface ResourcesPowersTabProps {
   powers: Array<Power & { isNew?: boolean }>
   markPowersSeen: () => void
   experience: number
+  resourceCounts?: {
+    awareness: number
+    resilience: number
+    connection: number
+    balance: number
+    memoriesExplored: number
+    copingSkillsLearned: number
+    insightsDiscovered: number
+  } | null
 }
 
 export function ResourcesPowersTab({
@@ -51,9 +68,10 @@ export function ResourcesPowersTab({
   powers,
   markPowersSeen,
   experience,
+  resourceCounts,
 }: ResourcesPowersTabProps) {
   const setActivePower = useGameStore((state) => state.setActivePower)
-  const [selectedPower, setSelectedPower] = useState<Power & { isNew?: boolean; icon?: string | React.ReactNode } | null>(null)
+  const [selectedPower, setSelectedPower] = useState<Power & { isNew?: boolean; icon?: string | React.ReactNode; subtitle?: string } | null>(null)
   const [modalVisible, setModalVisible] = useState(false)
 
   // Mark powers as seen after mount (with delay)
@@ -87,8 +105,39 @@ export function ResourcesPowersTab({
     }
   }, [attributes])
 
+  /**
+   * Calculate power level from value (0-20 maps to 1-5)
+   * 0-4 = level 1, 5-8 = level 2, 9-12 = level 3, 13-16 = level 4, 17-20 = level 5
+   */
+  function calculatePowerLevel(value: number): number {
+    if (value <= 0) return 1
+    if (value <= 4) return 1
+    if (value <= 8) return 2
+    if (value <= 12) return 3
+    if (value <= 16) return 4
+    return 5
+  }
+
+  // Map power names to their resource value from backend
+  function getPowerResourceValue(powerTitle: string): number | null {
+    if (!resourceCounts) return null
+    
+    switch (powerTitle) {
+      case 'Exploration':
+        return resourceCounts.awareness
+      case 'Courage':
+        return resourceCounts.resilience
+      case 'Connection':
+        return resourceCounts.connection
+      case 'Fear':
+        return resourceCounts.balance
+      default:
+        return null
+    }
+  }
+
   // Convert attributes to powers with images
-  const powersFromAttributes = useMemo((): Array<Power & { isNew?: boolean; icon?: string | React.ReactNode }> => {
+  const powersFromAttributes = useMemo((): Array<Power & { isNew?: boolean; icon?: string | React.ReactNode; subtitle?: string; powerLevel?: number | null }> => {
     return attributes.map((attr) => {
       const isUnlocked = attr.value > 0
       const imageLevel = mapValueToImageLevel(attr.value)
@@ -112,19 +161,25 @@ export function ResourcesPowersTab({
       // Find matching power from store to get isNew and isActive
       const storePower = powers.find((p) => p.id === `power-${attr.label}` || p.title === attr.label)
 
+      // Get the power's resource value and calculate level
+      const resourceValue = getPowerResourceValue(attr.label)
+      const powerLevel = resourceValue !== null ? calculatePowerLevel(resourceValue) : null
+
       return {
         id: `power-${attr.label}`,
         title: attr.label,
         description: powerDescriptions[attr.label] || `Your ${attr.label.toLowerCase()} ability.`,
+        subtitle: powerSubtitles[attr.label] || undefined,
         isUnlocked,
         isNew: storePower?.isNew || false,
         isActive: storePower?.isActive || false,
         icon,
-      } as Power & { isNew?: boolean; icon?: string | React.ReactNode }
+        powerLevel,
+      } as Power & { isNew?: boolean; icon?: string | React.ReactNode; subtitle?: string; powerLevel?: number | null }
     })
-  }, [attributes, powers])
+  }, [attributes, powers, resourceCounts])
 
-  function handlePowerPress(power: Power & { isNew?: boolean; icon?: string | React.ReactNode }) {
+  function handlePowerPress(power: Power & { isNew?: boolean; icon?: string | React.ReactNode; subtitle?: string; powerLevel?: number | null }) {
     if (!power.isUnlocked) return
 
     // Set as active power
@@ -140,7 +195,7 @@ export function ResourcesPowersTab({
     setSelectedPower(null)
   }
 
-  function renderPowerCard({ item }: { item: Power & { isNew?: boolean; icon?: string | React.ReactNode } }) {
+  function renderPowerCard({ item }: { item: Power & { isNew?: boolean; icon?: string | React.ReactNode; subtitle?: string; powerLevel?: number | null } }) {
     return (
       <PowerCard
         id={item.id}
@@ -151,6 +206,7 @@ export function ResourcesPowersTab({
         isActive={item.isActive || false}
         icon={item.icon || 'sparkles'}
         onPress={() => handlePowerPress(item)}
+        powerLevel={item.powerLevel}
       />
     )
   }
@@ -174,7 +230,7 @@ export function ResourcesPowersTab({
           <View style={styles.profileStats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{experience}</Text>
-              <Text style={styles.statLabel}>Lumens Gathered = Experience</Text>
+              <Text style={styles.statLabel}>Lumens Gathered</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
@@ -231,6 +287,7 @@ export function ResourcesPowersTab({
           onClose={handleCloseModal}
           title={selectedPower.title}
           description={selectedPower.description}
+          subtitle={selectedPower.subtitle}
           icon={selectedPower.icon}
           isActive={selectedPower.isActive}
         />

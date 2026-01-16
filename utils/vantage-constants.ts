@@ -62,11 +62,14 @@ export const GAME_CONFIG = {
   PLAYER_WIDTH: 50,
   PLAYER_HEIGHT: 50,
   PLAYER_MOVE_SPEED: 300, // pixels per second
-  PLAYER_BOTTOM_OFFSET: 20,
+  PLAYER_BOTTOM_OFFSET: 80, // Increase this value to move player higher on screen
 
   // Projectiles
   PROJECTILE_WIDTH: 10,
   PROJECTILE_HEIGHT: 20,
+  // Enemy projectiles (larger and more visible)
+  ENEMY_PROJECTILE_WIDTH: 16,
+  ENEMY_PROJECTILE_HEIGHT: 32,
   PROJECTILE_SPEED: 400, // pixels per second
   SHOOT_COOLDOWN: 500, // ms
   FAST_SHOOT_COOLDOWN: 250, // ms

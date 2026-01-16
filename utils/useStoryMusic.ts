@@ -13,6 +13,8 @@ const STORY_MUSIC_MAP: Record<number | string, any> = {
   28: require('../assets/audio/introductionStory.mp3'),
   // Story 2 music (ID 29 - matches API)
   29: require('../assets/audio/storyOne.mp3'),
+  // Story 3 music (ID 30 - matches API)
+  30: require('../assets/audio/storyTwo.mp3'),
   // Add more story music files here as they become available
   // Example:
   // 3: require('../assets/audio/story3.mp3'),
@@ -60,7 +62,7 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
     if (!player) return
     
     try {
-      player.volume = 0.5
+      player.volume = 0.3
       player.loop = true
     } catch (error) {
       // Player might not be ready yet, ignore

@@ -117,6 +117,7 @@ export interface Power {
   id: string
   title: string
   description?: string
+  subtitle?: string
   isUnlocked: boolean
   unlockedAt?: string
   isActive?: boolean

@@ -1,4 +1,4 @@
-import { GAME_CONFIG } from './thought-defender-constants'
+import { GAME_CONFIG } from './vantage-constants'
 import type { PowerUp } from '@/types/game'
 
 export interface ThoughtPattern {
@@ -86,12 +86,12 @@ export const THOUGHT_PATTERNS: ThoughtPattern[] = [
 
 export function getPowerUpImageSource(type: PowerUp['type']) {
   const imageMap: Record<PowerUp['type'], any> = {
-    slowTime: require('../assets/thoughtDefender/slowTime.png'),
-    multishot: require('../assets/thoughtDefender/multishot.png'),
-    fastShoot: require('../assets/thoughtDefender/fastShoot.png'),
-    extraLife: require('../assets/thoughtDefender/extraLife.png'),
-    multiplier: require('../assets/thoughtDefender/multiplier.png'),
-    shield: require('../assets/thoughtDefender/shield.png'),
+    slowTime: require('../assets/Vantage/slowTime.png'),
+    multishot: require('../assets/Vantage/multishot.png'),
+    fastShoot: require('../assets/Vantage/fastShoot.png'),
+    extraLife: require('../assets/Vantage/extraLife.png'),
+    multiplier: require('../assets/Vantage/multiplier.png'),
+    shield: require('../assets/Vantage/shield.png'),
   }
   return imageMap[type]
 }

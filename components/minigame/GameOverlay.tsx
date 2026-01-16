@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import type { Difficulty } from '@/utils/thought-defender-constants'
+import type { Difficulty } from '@/utils/vantage-constants'
 import type { ConqueredThought } from '@/types/game'
 import { GameOverDialog } from './GameOverDialog'
 
@@ -155,11 +155,7 @@ export function GameOverlay({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.85)',

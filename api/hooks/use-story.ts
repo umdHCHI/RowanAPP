@@ -100,3 +100,19 @@ export function useStories() {
     staleTime: 10 * 60 * 1000, // 10 minutes (stories don't change often)
   })
 }
+
+/**
+ * Get a specific passage for a story
+ */
+export function useStoryPassage(storyId: number | null, passageId: string | null) {
+  return useQuery({
+    queryKey: [...storyKeys.all, 'passage', storyId, passageId],
+    queryFn: async () => {
+      if (!storyId || !passageId) throw new Error('Story ID and Passage ID are required')
+      const response = await storyService.getPassage(storyId, passageId)
+      return response
+    },
+    enabled: !!storyId && !!passageId,
+    staleTime: 10 * 60 * 1000, // 10 minutes (passages don't change)
+  })
+}

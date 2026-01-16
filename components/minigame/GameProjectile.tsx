@@ -1,5 +1,5 @@
 import { View, Image } from 'react-native'
-import { GAME_CONFIG } from '@/utils/thought-defender-constants'
+import { GAME_CONFIG } from '@/utils/vantage-constants'
 import type { Projectile } from '@/types/game'
 
 interface GameProjectileProps {
@@ -18,7 +18,7 @@ export function GameProjectile({ projectile }: GameProjectileProps) {
       }}
     >
       <Image
-        source={require('../../assets/thoughtDefender/projectile.png')}
+        source={require('../../assets/Vantage/projectile.png')}
         style={{
           width: GAME_CONFIG.PROJECTILE_WIDTH,
           height: GAME_CONFIG.PROJECTILE_HEIGHT,

@@ -1,6 +1,5 @@
 import { View, Image } from 'react-native'
-import { useTheme } from 'react-native-paper'
-import { GAME_CONFIG } from '@/utils/thought-defender-constants'
+import { GAME_CONFIG } from '@/utils/vantage-constants'
 
 interface GamePlayerProps {
   x: number
@@ -8,9 +7,9 @@ interface GamePlayerProps {
   shieldActive?: boolean
 }
 
-export function GamePlayer({ x, y, shieldActive = false }: GamePlayerProps) {
-  const theme = useTheme()
+const SHIELD_COLOR = 'rgba(212, 175, 55, 0.9)' // Gold color matching game theme
 
+export function GamePlayer({ x, y, shieldActive = false }: GamePlayerProps) {
   return (
     <View
       style={{
@@ -31,13 +30,13 @@ export function GamePlayer({ x, y, shieldActive = false }: GamePlayerProps) {
             height: GAME_CONFIG.PLAYER_HEIGHT + 10,
             borderRadius: (GAME_CONFIG.PLAYER_WIDTH + 10) / 2,
             borderWidth: 2,
-            borderColor: theme.colors.primary,
+            borderColor: SHIELD_COLOR,
             opacity: 0.6,
           }}
         />
       )}
       <Image
-        source={require('../../assets/thoughtDefender/user.png')}
+        source={require('../../assets/Vantage/user.png')}
         style={{
           width: GAME_CONFIG.PLAYER_WIDTH,
           height: GAME_CONFIG.PLAYER_HEIGHT,

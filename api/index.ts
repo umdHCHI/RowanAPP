@@ -39,6 +39,7 @@ export {
   useStoryChapters,
   useStoryChapter,
   useStories,
+  useStoryPassage,
   storyKeys,
 } from './hooks/use-story'
 

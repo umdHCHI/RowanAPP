@@ -12,6 +12,7 @@ interface PowerDetailsModalProps {
   onClose: () => void
   title: string
   description?: string
+  subtitle?: string
   icon?: string | React.ReactNode
   isActive?: boolean
 }
@@ -21,6 +22,7 @@ export function PowerDetailsModal({
   onClose, 
   title, 
   description, 
+  subtitle,
   icon,
   isActive 
 }: PowerDetailsModalProps) {
@@ -69,17 +71,6 @@ export function PowerDetailsModal({
             nestedScrollEnabled
           >
             <View style={styles.contentWrapper}>
-              {/* Icon */}
-              {icon && (
-                <View style={[styles.iconContainer, isActive && styles.iconContainerActive]}>
-                  {typeof icon === 'string' ? (
-                    <MaterialCommunityIcons name={icon as any} size={48} color="#D4AF37" />
-                  ) : (
-                    icon
-                  )}
-                </View>
-              )}
-
               {/* Title */}
               <Text style={styles.powerTitle}>{title}</Text>
 
@@ -90,11 +81,29 @@ export function PowerDetailsModal({
                 </View>
               )}
 
-              {/* Description */}
-              {description && (
-                <Text style={styles.descriptionText}>
-                  {description}
-                </Text>
+              {/* Icon and Subtitle Row */}
+              {(icon || subtitle) && (
+                <View style={styles.iconSubtitleRow}>
+                  {/* Icon */}
+                  {icon && (
+                    <View style={[styles.iconContainer, isActive && styles.iconContainerActive]}>
+                      {typeof icon === 'string' ? (
+                        <MaterialCommunityIcons name={icon as any} size={48} color="#D4AF37" />
+                      ) : (
+                        icon
+                      )}
+                    </View>
+                  )}
+
+                  {/* Subtitle (long description) */}
+                  {subtitle && (
+                    <View style={styles.subtitleContainer}>
+                      <Text style={styles.subtitleText}>
+                        {subtitle}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               )}
             </View>
           </ScrollView>
@@ -123,26 +132,28 @@ const styles = StyleSheet.create({
     height: height,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
   modalContainer: {
     width: '100%',
     maxWidth: 500,
-    maxHeight: '80%',
+    maxHeight: '85%',
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     backgroundColor: 'rgba(26, 26, 46, 0.95)',
-    padding: 24,
-    paddingTop: 20,
-    paddingBottom: 24,
+    padding: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
     flexDirection: 'column',
+    overflow: 'hidden',
+    minWidth: 0,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   headerSpacer: {
     width: 32,
@@ -161,23 +172,28 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   contentScrollView: {
-    flex: 1,
-    maxHeight: 400,
-    marginBottom: 16,
-    minHeight: 100,
+    maxHeight: 500,
+    marginBottom: 12,
   },
   contentContainer: {
-    paddingBottom: 8,
+    flexGrow: 0,
   },
   contentWrapper: {
     width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingHorizontal: 0,
+  },
+  iconSubtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    width: '100%',
+    gap: 16,
+    marginTop: 12,
+    paddingHorizontal: 4,
+    minWidth: 0,
   },
   iconContainer: {
     width: 80,
@@ -188,7 +204,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.2)',
-    marginBottom: 20,
+    flexShrink: 0,
   },
   iconContainerActive: {
     backgroundColor: 'rgba(212, 175, 55, 0.2)',
@@ -199,7 +215,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     color: '#ffffff',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
     lineHeight: 42,
   },
   activeBadge: {
@@ -209,7 +225,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(212, 175, 55, 0.2)',
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.4)',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   activeBadgeText: {
     fontFamily: 'System',
@@ -219,22 +235,28 @@ const styles = StyleSheet.create({
     color: '#D4AF37',
     textTransform: 'uppercase',
   },
-  descriptionText: {
+  subtitleContainer: {
+    flex: 1,
+    flexShrink: 1,
+    justifyContent: 'flex-start',
+    minWidth: 0,
+  },
+  subtitleText: {
     fontFamily: 'System',
     fontSize: 16,
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
+    textAlign: 'left',
     lineHeight: 24,
-    width: '100%',
+    flexWrap: 'wrap',
   },
   footer: {
-    paddingTop: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   closeButtonLarge: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',

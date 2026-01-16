@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text as RNText, StyleSheet, Image } from 'react-native'
 import { parseQuoteContent } from '@/utils/format-quote'
-import { getStoryImageUrl } from '@/utils/story-helpers'
+import { getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LINE_HEIGHTS, STORY_LAYOUT } from './story-theme'
 import type { PassageType } from '@/types/story'
 
@@ -41,6 +41,7 @@ export function StoryPassage({ content, passageType, speakerName, speakerImage }
       )
     case 'dialogue':
       const imageUrl = getStoryImageUrl(speakerImage)
+      const normalizedSpeakerName = normalizeSpeakerName(speakerName)
       return (
         <View style={styles.dialogueContainer}>
           {imageUrl && (
@@ -51,8 +52,8 @@ export function StoryPassage({ content, passageType, speakerName, speakerImage }
             />
           )}
           <View style={styles.dialogueBubble}>
-            {speakerName && (
-              <RNText style={styles.speakerNameText}>{speakerName}</RNText>
+            {normalizedSpeakerName && (
+              <RNText style={styles.speakerNameText}>{normalizedSpeakerName}</RNText>
             )}
             <RNText style={styles.dialogueText}>{content}</RNText>
           </View>

@@ -7,22 +7,26 @@ interface PowerCardProps {
   id: string
   title: string
   description?: string
+  subtitle?: string
   isUnlocked: boolean
   isNew?: boolean
   isActive?: boolean
   icon?: string | React.ReactNode
   onPress?: () => void
+  powerLevel?: number | null
 }
 
 export function PowerCard({
   id,
   title,
   description,
+  subtitle,
   isUnlocked,
   isNew = false,
   isActive = false,
   icon,
   onPress,
+  powerLevel,
 }: PowerCardProps) {
   const playPageFlipSound = usePageFlipSound()
 
@@ -90,6 +94,16 @@ export function PowerCard({
           )}
         </View>
       </View>
+
+      {/* Power Level */}
+      {isUnlocked && powerLevel !== null && powerLevel !== undefined && (
+        <View style={styles.powerLevelContainer}>
+          <View style={styles.powerLevelBadge}>
+            <Text style={styles.powerLevelLabel}>Level</Text>
+            <Text style={styles.powerLevelValue}>{powerLevel}</Text>
+          </View>
+        </View>
+      )}
 
       {/* Footer row */}
       <View style={styles.footerRow}>
@@ -247,6 +261,38 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#D4AF37',
     letterSpacing: 0.5,
+  },
+  powerLevelContainer: {
+    marginBottom: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  powerLevelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  powerLevelLabel: {
+    fontFamily: 'System',
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  powerLevelValue: {
+    fontFamily: 'System',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#D4AF37',
   },
 })
 

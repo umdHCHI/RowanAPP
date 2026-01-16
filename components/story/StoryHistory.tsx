@@ -6,7 +6,7 @@ import { StoryPassage } from './StoryPassage'
 import { StoryRewardMoment } from './StoryRewardMoment'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 import { useGameStore } from '@/stores/game-store'
-import { getStoryImageUrl } from '@/utils/story-helpers'
+import { getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LAYOUT, STORY_LINE_HEIGHTS } from './story-theme'
 import type { StoryHistoryItem } from '@/types/story'
 
@@ -27,7 +27,7 @@ export function StoryHistory({ history }: StoryHistoryProps) {
   }
 
   function handleMinigamePress() {
-    router.push('/thought-defender')
+    router.push('/vantage')
   }
 
   function getRewardType(type?: string): 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE' {
@@ -46,12 +46,13 @@ export function StoryHistory({ history }: StoryHistoryProps) {
         
         if (isActionPassage) {
           const actionImageUrl = getStoryImageUrl(item.speakerImage)
+          const normalizedSpeakerName = normalizeSpeakerName(item.speakerName)
           return (
             <View key={`${item.type}-${item.id}-${index}`} style={styles.historyItem}>
               <StoryRewardMoment
                 type="ACTION_SCENE"
                 title={item.content || 'Action Scene'}
-                subtitle={item.speakerName || undefined}
+                subtitle={normalizedSpeakerName || undefined}
                 imageUrl={actionImageUrl}
               />
             </View>

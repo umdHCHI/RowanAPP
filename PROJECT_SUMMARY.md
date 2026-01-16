@@ -1,6 +1,8 @@
 # The Archive - Project Summary
 
 ## Overview
+In this project, our design hinges on a robust multiphase process to develop The Archive. With the aim to help students through the stress appraisal process by providing digitally guided instruction to explore cognitive mental health processes.
+
 A React Native stress management application for college students, inspired by Betwixt. The app uses gamification and narrative storytelling to help students understand and manage stress through an engaging journey in "The Archive" - a mystical library that represents their emotional landscape.
 
 ## Core Features Implemented
@@ -53,13 +55,13 @@ A React Native stress management application for college students, inspired by B
 - Saves entries (currently local - can be extended to backend)
 
 ### 7. Thought Defender Minigame
-- **Location**: `app/thought-defender.tsx`
+- **Location**: `app/vantage.tsx`
 - Space invaders-style game for thought reframing practice
 - Mechanics:
   - Shoot positive projectiles at negative thoughts
   - Power-ups (slow time, multishot, extra life, etc.)
   - Score-based attribute rewards
-- Assets in `thoughtDefender/` folder
+- Assets in `Vantage/` folder
 
 ### 8. Profile Screen
 - **Location**: `app/profile.tsx`
@@ -84,7 +86,7 @@ A React Native stress management application for college students, inspired by B
   - `/character-creator` - Character creation
   - `/story` - Main story experience
   - `/journal` - Reflection journaling
-  - `/thought-defender` - Minigame
+  - `/vantage` - Minigame
   - `/profile` - Character profile and navigation hub
 
 ### Assets
@@ -92,7 +94,7 @@ All assets are organized in the project root:
 - `attributes/` - Attribute level images (connection, courage, exploration, fear)
 - `equipment/` - Equipment items by type
 - `thecurator/` - Curator NPC character images
-- `thoughtDefender/` - Minigame sprites
+- `Vantage/` - Minigame sprites
 - `hauntedlibrary.png` - Background image
 
 ### Styling
@@ -169,7 +171,7 @@ thearchive/
 │   ├── character-creator.tsx
 │   ├── story.tsx          # Main story
 │   ├── journal.tsx
-│   ├── thought-defender.tsx
+│   ├── vantage.tsx
 │   └── profile.tsx
 ├── components/            # Reusable components
 │   ├── the-curator.tsx

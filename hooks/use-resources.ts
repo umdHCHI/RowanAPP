@@ -23,6 +23,18 @@ export interface MemoryItem {
   description?: string
   modality?: 'write' | 'draw' | 'voice' | 'journal_reward'
   content?: string
+  // Story progress fields
+  storyId?: number
+  storyCategory?: string
+  progressPercentage?: number
+  isCompleted?: boolean
+  passagesVisitedCount?: number
+  choicesMadeCount?: number
+  startedAt?: string
+  lastPlayed?: string
+  completedAt?: string | null
+  // Passage IDs to fetch and display
+  passageIds?: string[]
 }
 
 export type TabType = 'powers' | 'resources' | 'memories'
@@ -67,35 +79,7 @@ function mapStoryToResourceItem(story: StoryResponse, userLevel: number = 1): Re
   }
 }
 
-/**
- * Mock memories data - replace with actual API data later
- */
-const mockMemories: MemoryItem[] = [
-  {
-    id: 'm1',
-    title: 'DREAM I REFLECTIONS',
-    type: 'REFLECTION',
-    description: 'LOG YOUR THOUGHTS',
-  },
-  {
-    id: 'm2',
-    title: "WHERE YOU'RE HEADED",
-    type: 'GOAL',
-    description: 'A calmer mind.',
-  },
-  {
-    id: 'm3',
-    title: 'ONE SMALL ACTION TO TAKE WHILE ON THIS PATH',
-    type: 'ACTION',
-    description: 'Check in with yourself and be more responsive to your needs.',
-  },
-  {
-    id: 'm4',
-    title: 'DREAM I VISION',
-    type: 'VISION',
-    description: "You saw an enormous tree, far away, its top lost in the clouds.",
-  },
-]
+
 
 
 /**
@@ -158,10 +142,68 @@ export function useResources() {
     return storiesData.map((story) => mapStoryToResourceItem(story, userLevel))
   }, [storiesData, userLevel])
 
-  // Combine mock memories with stored memories (store memories take precedence)
+  // Transform story progress into memory items
+  const storyProgressMemories = useMemo(() => {
+    if (!profileData?.story_progress) return []
+    
+    return profileData.story_progress.map((progress) => {
+      const statusText = progress.is_completed 
+        ? 'Completed' 
+        : `${Math.round(progress.progress_percentage)}% Complete`
+      
+      const description = progress.is_completed
+        ? `You completed this ${progress.story_category} story.`
+        : `You've explored ${progress.passages_visited_count} passages and made ${progress.choices_made_count} choices.`
+      
+      // Select 1-2 passages to display: first and last (or just first if only one)
+      const passageIds = progress.passages_visited || []
+      const selectedPassageIds: string[] = []
+      if (passageIds.length > 0) {
+        selectedPassageIds.push(passageIds[0]) // First passage
+        if (passageIds.length > 1) {
+          // Add the last passage if there's more than one
+          selectedPassageIds.push(passageIds[passageIds.length - 1])
+        }
+      }
+      
+      return {
+        id: `story-progress-${progress.id}`,
+        title: progress.story_title,
+        type: 'STORY_PROGRESS',
+        description,
+        storyId: progress.story,
+        storyCategory: progress.story_category,
+        progressPercentage: progress.progress_percentage,
+        isCompleted: progress.is_completed,
+        passagesVisitedCount: progress.passages_visited_count,
+        choicesMadeCount: progress.choices_made_count,
+        startedAt: progress.started_at,
+        lastPlayed: progress.last_played,
+        completedAt: progress.completed_at,
+        passageIds: selectedPassageIds,
+        content: JSON.stringify({
+          status: statusText,
+          progress: progress.progress_percentage,
+        }),
+      } as MemoryItem
+    }).sort((a, b) => {
+      // Sort by last played (most recent first), then by started date
+      const aTime = a.lastPlayed ? new Date(a.lastPlayed).getTime() : 0
+      const bTime = b.lastPlayed ? new Date(b.lastPlayed).getTime() : 0
+      if (aTime !== bTime) return bTime - aTime
+      
+      const aStarted = a.startedAt ? new Date(a.startedAt).getTime() : 0
+      const bStarted = b.startedAt ? new Date(b.startedAt).getTime() : 0
+      return bStarted - aStarted
+    })
+  }, [profileData])
+
+  // Combine story progress memories with stored memories and mock memories
   const memories = useMemo(() => {
     const storeMemoryIds = new Set(storeMemories.map((m) => m.id))
-    const filteredMockMemories = mockMemories.filter((m) => !storeMemoryIds.has(m.id))
+    const storyProgressIds = new Set(storyProgressMemories.map((m) => m.id))
+    
+    
     // Convert store Memory format to MemoryItem format
     const storeMemoryItems: MemoryItem[] = storeMemories.map((m) => ({
       id: m.id,
@@ -171,8 +213,10 @@ export function useResources() {
       modality: m.modality,
       content: m.content,
     }))
-    return [...filteredMockMemories, ...storeMemoryItems]
-  }, [storeMemories])
+    
+    // Combine: story progress first (most recent), then store memories, then mock
+    return [...storyProgressMemories, ...storeMemoryItems]
+  }, [storeMemories, storyProgressMemories])
   
   const isLoading = isLoadingProfile || isLoadingStories
 
@@ -195,6 +239,21 @@ export function useResources() {
 
   const experience = useMemo(() => {
     return profileData?.character?.experience || 0
+  }, [profileData])
+
+  // Extract resource counts from character profile
+  const resourceCounts = useMemo(() => {
+    if (!profileData?.character) return null
+    
+    return {
+      awareness: profileData.character.awareness || 0,
+      resilience: profileData.character.resilience || 0,
+      connection: profileData.character.connection || 0,
+      balance: profileData.character.balance || 0,
+      memoriesExplored: profileData.character.memories_explored || 0,
+      copingSkillsLearned: profileData.character.coping_skills_learned || 0,
+      insightsDiscovered: profileData.character.insights_discovered || 0,
+    }
   }, [profileData])
 
   // Compute powers for UI with isNew field
@@ -240,6 +299,7 @@ export function useResources() {
     powers: powersForUi,
     markPowersSeen,
     experience,
+    resourceCounts,
   }
 }
 
