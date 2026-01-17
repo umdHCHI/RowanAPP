@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react'
 import { View, StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useStories, useUserFullProfile } from '@/api'
+import { useStories, useUserFullProfile, useJournalEntries } from '@/api'
 import { StoryInformationCard } from './StoryInformationCard'
+import { JournalStatsCard } from './JournalStatsCard'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { StoryResponse } from '@/api/types'
@@ -19,6 +20,7 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
   const playPageFlipSound = usePageFlipSound()
   const { data: storiesData, isLoading: isLoadingStories } = useStories()
   const { data: profileData, isLoading: isLoadingProfile } = useUserFullProfile(USER_ID)
+  const { data: journalEntriesData, isLoading: isLoadingJournal } = useJournalEntries(1, 100)
 
   // Get completed stories when no storyId is provided
   const completedStories = useMemo(() => {
@@ -44,18 +46,48 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
       })
   }, [storiesData, profileData])
 
-  // Find the current story when storyId is provided
-  const currentStory = useMemo(() => {
-    if (!storiesData || !storyId) return null
-    return storiesData.find((story) => story.id === storyId) || null
-  }, [storiesData, storyId])
+  // Find the current story and its progress when storyId is provided
+  const currentStoryWithProgress = useMemo(() => {
+    if (!storiesData || !storyId || !profileData?.story_progress) return null
+    
+    const story = storiesData.find((s) => s.id === storyId) || null
+    if (!story) return null
+    
+    const progress = profileData.story_progress.find((p) => p.story === storyId)
+    
+    return { story, progress }
+  }, [storiesData, storyId, profileData])
+
+  // Get journal entries from the response
+  const journalEntries = useMemo(() => {
+    if (!journalEntriesData) return []
+    
+    // Handle different response structures
+    // If it's already an array, return it directly (API returns array directly)
+    if (Array.isArray(journalEntriesData)) {
+      return journalEntriesData
+    }
+    
+    // If wrapped in ApiResponse/PaginatedResponse with data field
+    if (journalEntriesData && typeof journalEntriesData === 'object') {
+      // Check for 'data' field (could be ApiResponse or PaginatedResponse)
+      if ('data' in journalEntriesData) {
+        const data = journalEntriesData.data
+        if (Array.isArray(data)) {
+          return data
+        }
+      }
+    }
+    
+    return []
+  }, [journalEntriesData])
 
   function handleViewOverview(storyId: number) {
     playPageFlipSound()
     router.push(`/story-overview?storyId=${storyId}`)
   }
 
-  const isLoading = isLoadingStories || isLoadingProfile
+  const isLoading = isLoadingStories || isLoadingProfile || isLoadingJournal
 
   if (isLoading) {
     return (
@@ -67,7 +99,7 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
 
   // If storyId is provided, show single story view
   if (storyId) {
-    if (!currentStory) {
+    if (!currentStoryWithProgress) {
       return (
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Story not found</Text>
@@ -82,7 +114,10 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.resourcesListContainer}>
-          <StoryInformationCard story={currentStory} />
+          <StoryInformationCard 
+            story={currentStoryWithProgress.story} 
+            progress={currentStoryWithProgress.progress}
+          />
           
           {/* View Full Overview Button */}
           <TouchableOpacity
@@ -96,6 +131,9 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
               <MaterialCommunityIcons name="chevron-right" size={24} color="#ffffff" />
             </View>
           </TouchableOpacity>
+
+          {/* Journal Stats Card */}
+          <JournalStatsCard entries={journalEntries} />
         </View>
       </ScrollView>
     )
@@ -119,7 +157,7 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
       <View style={styles.resourcesListContainer}>
         {completedStories.map(({ story, progress }) => (
           <View key={story.id} style={styles.storyCardWrapper}>
-            <StoryInformationCard story={story} />
+            <StoryInformationCard story={story} progress={progress} />
             
             {/* View Full Overview Button */}
             <TouchableOpacity
@@ -135,6 +173,9 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
             </TouchableOpacity>
           </View>
         ))}
+
+        {/* Journal Stats Card */}
+        <JournalStatsCard entries={journalEntries} />
       </View>
     </ScrollView>
   )

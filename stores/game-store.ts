@@ -107,7 +107,7 @@ export interface Memory {
   title: string
   description?: string
   type: string
-  modality?: 'write' | 'draw' | 'voice' | 'journal_reward'
+  modality?: 'journal' | 'draw' | 'voice' | 'journal_reward'
   content?: string // JSON string for drawings, text for write, URI for voice
   createdAt?: string
 }

@@ -1,7 +1,7 @@
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
-export type ReflectionMode = 'write' | 'draw' | 'voice'
+export type ReflectionMode = 'journal' | 'draw' | 'voice'
 
 interface JournalModeSelectorProps {
   mode: ReflectionMode
@@ -12,16 +12,16 @@ export function JournalModeSelector({ mode, onModeChange }: JournalModeSelectorP
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.modeButton, mode === 'write' && styles.modeButtonActive]}
-        onPress={() => onModeChange('write')}
+        style={[styles.modeButton, mode === 'journal' && styles.modeButtonActive]}
+        onPress={() => onModeChange('journal')}
       >
         <MaterialCommunityIcons
           name="pencil"
           size={20}
-          color={mode === 'write' ? '#FFD700' : 'rgba(255, 255, 255, 0.6)'}
+          color={mode === 'journal' ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'}
         />
-        <Text style={[styles.modeButtonText, mode === 'write' && styles.modeButtonTextActive]}>
-          Write
+        <Text style={[styles.modeButtonText, mode === 'journal' && styles.modeButtonTextActive]}>
+          journal
         </Text>
       </TouchableOpacity>
 
@@ -32,7 +32,7 @@ export function JournalModeSelector({ mode, onModeChange }: JournalModeSelectorP
         <MaterialCommunityIcons
           name="brush"
           size={20}
-          color={mode === 'draw' ? '#FFD700' : 'rgba(255, 255, 255, 0.6)'}
+          color={mode === 'draw' ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'}
         />
         <Text style={[styles.modeButtonText, mode === 'draw' && styles.modeButtonTextActive]}>
           Draw
@@ -46,7 +46,7 @@ export function JournalModeSelector({ mode, onModeChange }: JournalModeSelectorP
         <MaterialCommunityIcons
           name="microphone"
           size={20}
-          color={mode === 'voice' ? '#FFD700' : 'rgba(255, 255, 255, 0.6)'}
+          color={mode === 'voice' ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'}
         />
         <Text style={[styles.modeButtonText, mode === 'voice' && styles.modeButtonTextActive]}>
           Voice
@@ -71,23 +71,24 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 28,
+    backgroundColor: '#15111f',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   modeButtonActive: {
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    borderColor: 'rgba(255, 215, 0, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
   },
   modeButtonText: {
-    fontFamily: 'System',
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.6)',
+    fontFamily: 'FontTitle-White',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   modeButtonTextActive: {
-    color: '#FFD700',
+    color: '#ffffff',
     fontWeight: '600',
   },
 })

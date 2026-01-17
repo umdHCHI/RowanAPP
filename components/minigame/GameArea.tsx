@@ -117,7 +117,8 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
       })
       .minDistance(8)
   
-    // Tap gesture for shooting - use Race so fragments can intercept first
+    // Tap gesture for shooting - prioritize tap over pan for shooting
+    // Use Race so tap can fire even during pan if it's quick enough
     const tap = Gesture.Tap()
       .onTouchesDown((e) => {
         'worklet'
@@ -126,22 +127,26 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
           tapStartY.value = e.allTouches[0].y
         }
       })
-      .maxDistance(12)
-      .maxDuration(250)
+      .maxDistance(16) // Slightly more lenient for phone taps
+      .maxDuration(300) // Slightly longer duration for phone taps
       .onEnd((e) => {
         'worklet'
         if (!callbacksEnabled.value) return
-  
+
         const dx = Math.abs(e.x - tapStartX.value)
         const dy = Math.abs(e.y - tapStartY.value)
-        const movedTooMuch = dx > 12 || dy > 12
-  
-        if (!movedTooMuch && !panActive.value) {
+        const movedTooMuch = dx > 16 || dy > 16
+
+        // Only block if moved significantly (more than tap threshold) AND pan is definitely active
+        // Allow taps to fire even if pan started, as long as movement was minimal
+        if (!movedTooMuch) {
           runOnJS(handleShoot)()
         }
       })
-  
-    return Gesture.Simultaneous(pan, tap)
+
+    // Use Race so tap can fire immediately before pan activates
+    // This allows rapid taps to fire even during drag operations
+    return Gesture.Race(tap, pan)
   }, [
     handlePlayerMove,
     handleShoot,
@@ -231,18 +236,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     zIndex: 100,
   },
   hintText: {
-    fontFamily: 'Quicksand-Medium',
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.85)',
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 3,
+    color: '#ffffffcc',
   },
 })
 

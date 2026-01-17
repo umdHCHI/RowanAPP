@@ -51,9 +51,11 @@ const styles = StyleSheet.create({
     height: 32,
   },
   attributeValue: {
-    fontSize: 14,
+    fontFamily: 'FontTitle-White',
+    fontSize: 12,
     fontWeight: '600',
-    color: '#F5E6D3',
+    letterSpacing: 1.5,
+    color: '#ffffff',
   },
 })
 

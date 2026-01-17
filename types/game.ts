@@ -12,6 +12,7 @@ export interface EnemyProjectile {
   y: number
   vy: number
   vx?: number // Optional horizontal velocity for angled shots
+  isBoss?: boolean // Flag to differentiate boss projectiles
 }
 
 export interface NegativeThought {

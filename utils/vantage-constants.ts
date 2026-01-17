@@ -58,21 +58,21 @@ export const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
 }
 
 export const GAME_CONFIG = {
-  // Player
-  PLAYER_WIDTH: 50,
-  PLAYER_HEIGHT: 50,
+  // Player (increased size for better mobile navigation)
+  PLAYER_WIDTH: 70,
+  PLAYER_HEIGHT: 70,
   PLAYER_MOVE_SPEED: 300, // pixels per second
-  PLAYER_BOTTOM_OFFSET: 80, // Increase this value to move player higher on screen
+  PLAYER_BOTTOM_OFFSET: 120, // Increase this value to move player higher on screen
 
   // Projectiles
   PROJECTILE_WIDTH: 10,
   PROJECTILE_HEIGHT: 20,
-  // Enemy projectiles (larger and more visible)
-  ENEMY_PROJECTILE_WIDTH: 16,
-  ENEMY_PROJECTILE_HEIGHT: 32,
+  // Enemy projectiles (smaller, defeatable by player projectiles)
+  ENEMY_PROJECTILE_WIDTH: 12,
+  ENEMY_PROJECTILE_HEIGHT: 20,
   PROJECTILE_SPEED: 400, // pixels per second
-  SHOOT_COOLDOWN: 500, // ms
-  FAST_SHOOT_COOLDOWN: 250, // ms
+  SHOOT_COOLDOWN: 100, // ms - allow rapid tapping
+  FAST_SHOOT_COOLDOWN: 50, // ms - very fast for rapid tapping
 
   // Negative Thoughts (Invaders)
   THOUGHT_WIDTH: 40,
@@ -132,8 +132,8 @@ export const GAME_CONFIG = {
   // Boss Space Invaders style movement
   BOSS_SPEED: 2.2, // Pixels per movement tick
   BOSS_STEP_DOWN: 10, // Pixels to step down when bouncing
-  BOSS_FIRE_COOLDOWN_MS: 850, // Base cooldown between bursts
-  BOSS_BURST_COUNT: 3, // Number of shots per burst
+  BOSS_FIRE_COOLDOWN_MS: 1400, // Base cooldown between bursts (slower to prevent overwhelming)
+  BOSS_BURST_COUNT: 1, // Number of shots per burst
   BOSS_BURST_GAP_MS: 120, // Time between shots in a burst
 } as const
 

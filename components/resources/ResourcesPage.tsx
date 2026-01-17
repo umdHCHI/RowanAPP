@@ -15,15 +15,15 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useResources } from '@/hooks/use-resources'
-import { ResourcesPowersTab } from './ResourcesPowersTab'
+import { ResourcesSettingsTab } from './ResourcesSettingsTab'
 import { ResourcesResourcesTab } from './ResourcesResourcesTab'
 import { ResourcesMemoriesTab } from './ResourcesMemoriesTab'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
-type TabType = 'powers' | 'resources' | 'memories'
+type TabType = 'settings' | 'resources' | 'memories'
 
-const TABS: TabType[] = ['powers', 'resources', 'memories']
+const TABS: TabType[] = ['settings', 'resources', 'memories']
 
 interface ResourcesPageProps {
   storyId?: number
@@ -72,28 +72,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
     }
   }
 
-  function renderTabContent() {
-    switch (activeTab) {
-      case 'powers':
-        return (
-          <ResourcesPowersTab
-            attributes={attributes}
-            equippedGear={equippedGear}
-            characterName={characterName}
-            avatarConfig={avatarConfig}
-            powers={powers}
-            markPowersSeen={markPowersSeen}
-            experience={experience}
-          />
-        )
-      case 'resources':
-        return <ResourcesResourcesTab resources={resources} storyId={storyId} />
-      case 'memories':
-        return <ResourcesMemoriesTab memories={memories} />
-      default:
-        return null
-    }
-  }
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -155,13 +134,13 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
         {/* Tabs */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'powers' && styles.tabActive]}
-            onPress={() => handleTabChange('powers')}
+            style={[styles.tab, activeTab === 'settings' && styles.tabActive]}
+            onPress={() => handleTabChange('settings')}
           >
-            <Text style={[styles.tabText, activeTab === 'powers' && styles.tabTextActive]}>
-              POWERS
+            <Text style={[styles.tabText, activeTab === 'settings' && styles.tabTextActive]}>
+              SETTINGS
             </Text>
-            {activeTab === 'powers' && <View style={styles.tabUnderline} />}
+            {activeTab === 'settings' && <View style={styles.tabUnderline} />}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -195,24 +174,15 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
           scrollEventThrottle={16}
           style={styles.horizontalScrollView}
         >
-          {/* Powers Tab */}
+          {/* Settings Tab */}
           <View style={[styles.tabContainer, { width: SCREEN_WIDTH }]}>
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <Text style={styles.loadingText}>Loading...</Text>
               </View>
-          ) : (
-            <ResourcesPowersTab
-              attributes={attributes}
-              equippedGear={equippedGear}
-              characterName={characterName}
-              avatarConfig={avatarConfig}
-              powers={powers}
-              markPowersSeen={markPowersSeen}
-              experience={experience}
-              resourceCounts={resourceCounts}
-            />
-          )}
+            ) : (
+              <ResourcesSettingsTab />
+            )}
           </View>
 
           {/* Resources Tab */}

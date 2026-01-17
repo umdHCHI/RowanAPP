@@ -20,7 +20,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useGameStore } from '@/stores/game-store'
 import { Text, useTheme } from 'react-native-paper'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import { GameButton } from '@/components/GameButton'
 import { useCreateJournalEntry, useUpdateJournalEntry, useJournalPrompts, useJournalEntryByPrompt } from '@/api/hooks/use-journal'
 import { journalService } from '@/api/services/journal.service'
 import { useQueryClient } from '@tanstack/react-query'
@@ -33,6 +32,7 @@ import type { ReflectionMode } from './JournalModeSelector'
 import { DrawingCanvas, type Stroke } from './DrawingCanvas'
 import { VoiceMemoRecorder } from './VoiceMemoRecorder'
 import type { JournalContent } from '@/types/journal'
+import { useHaptics } from '@/utils/useHaptics'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 
@@ -47,7 +47,7 @@ export function JournalPage() {
   const responseAreaYRef = useRef<number>(0)
   
   // Mode and content state
-  const [mode, setMode] = useState<ReflectionMode>('write')
+  const [mode, setMode] = useState<ReflectionMode>('journal')
   const [text, setText] = useState('')
   const [drawing, setDrawing] = useState<Stroke[]>([])
   const [audioUri, setAudioUri] = useState<string | null>(null)
@@ -63,6 +63,8 @@ export function JournalPage() {
   const queryClient = useQueryClient()
   const createJournalEntry = useCreateJournalEntry()
   const updateJournalEntry = useUpdateJournalEntry()
+  const haptics = useHaptics()
+   
   
   // Fetch journal prompts from API
   const { data: apiPrompts, isLoading: isLoadingPrompts, error: promptsError } = useJournalPrompts()
@@ -76,7 +78,7 @@ export function JournalPage() {
   
   // Map mode to category (API uses "journal" for writing prompts)
   const modeToCategory: Record<ReflectionMode, string[]> = {
-    'write': ['journal', 'write'],
+    'journal': ['journal', 'journal'],
     'draw': ['draw'],
     'voice': ['voice'],
   }
@@ -96,7 +98,8 @@ export function JournalPage() {
   // Fetch existing entry for current prompt and mode (if prompt is available)
   const { data: existingEntry, isLoading: isLoadingEntry } = useJournalEntryByPrompt(
     currentPrompt?.id || null,
-    mode
+    mode,
+    currentPrompt?.prompt_id || null
   )
   
   // Handle promptId query parameter - find and set the prompt if it exists
@@ -108,8 +111,8 @@ export function JournalPage() {
         // Set mode based on the prompt's category
         const promptCategory = activePrompts[targetPromptIndex].category.toLowerCase()
         // Map API category to mode (API uses "journal" for writing prompts)
-        if (promptCategory === 'journal' || promptCategory === 'write') {
-          setMode('write')
+        if (promptCategory === 'journal' || promptCategory === 'journal') {
+          setMode('journal')
         } else if (promptCategory === 'draw') {
           setMode('draw')
         } else if (promptCategory === 'voice') {
@@ -142,7 +145,7 @@ export function JournalPage() {
   useEffect(() => {
     if (existingEntry && currentPrompt && existingEntry.entry_type === mode) {
       // Load existing content for current mode
-      if (mode === 'write') {
+      if (mode === 'journal') {
         setText(existingEntry.content)
         setDrawing([])
         setAudioUri(null)
@@ -179,7 +182,7 @@ export function JournalPage() {
     } else {
       // Reset content when mode changes or no existing entry
       setIsDrawing(false)
-      if (mode === 'write') {
+      if (mode === 'journal') {
         setText('')
         setDrawing([])
         setAudioUri(null)
@@ -201,7 +204,7 @@ export function JournalPage() {
 
   // Handle keyboard visibility to scroll to input
   useEffect(() => {
-    if (mode !== 'write') return
+    if (mode !== 'journal') return
 
     const keyboardShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
@@ -223,26 +226,19 @@ export function JournalPage() {
   }
 
 
-  function handleNewEntry() {
-    playPageFlipSound()
-    setIsSaved(false)
-    setText('')
-    setDrawing([])
-    setAudioUri(null)
-    
-    // Advance to next prompt
-    if (currentPromptIndex < activePrompts.length - 1) {
-      setCurrentPromptIndex(currentPromptIndex + 1)
-    } else {
-      // Loop back to first prompt
-      setCurrentPromptIndex(0)
-    }
-  }
+
 
   function handleViewHistory() {
     playPageFlipSound()
     // TODO: Navigate to resources with memories tab selected when tab parameter support is added
     router.push('/resources')
+  }
+
+  function matchesCurrentPrompt(entry: { prompt?: number | string; prompt_id?: string } | null) {
+    if (!entry || !currentPrompt) return false
+    if (entry.prompt != null && String(entry.prompt) === String(currentPrompt.id)) return true
+    if (entry.prompt_id && entry.prompt_id === currentPrompt.prompt_id) return true
+    return false
   }
 
   async function handleSave() {
@@ -254,8 +250,8 @@ export function JournalPage() {
     }
 
     // Validate based on mode
-    if (mode === 'write' && !text.trim()) {
-      Alert.alert('Empty Entry', 'Please write something before saving your journal entry.')
+    if (mode === 'journal' && !text.trim()) {
+      Alert.alert('Empty Entry', 'Please journal something before saving your journal entry.')
       return
     }
 
@@ -274,7 +270,7 @@ export function JournalPage() {
 
     // Prepare content based on mode
     let content = ''
-    if (mode === 'write') {
+    if (mode === 'journal') {
       content = text.trim()
     } else if (mode === 'draw') {
       content = JSON.stringify(drawing)
@@ -286,7 +282,7 @@ export function JournalPage() {
     const memory = {
       id: `reflection-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title: currentPrompt.skill_category || `Reflection - ${new Date().toLocaleDateString()}`,
-      description: mode === 'write' ? content.substring(0, 100) : undefined,
+      description: mode === 'journal' ? content.substring(0, 100) : undefined,
       type: 'REFLECTION',
       modality: mode,
       content: content,
@@ -296,27 +292,54 @@ export function JournalPage() {
     // Immediately add to store so it appears in Memories tab
     addMemory(memory)
 
+    let didSave = false
+    let resolvedExistingEntry = existingEntry
+
+    // If the query hasn't returned yet, do a quick lookup to avoid duplicate create
+    if (!resolvedExistingEntry) {
+      try {
+        const entriesResponse = await journalService.getAll(1, 100)
+        let entries: any[] = []
+
+        if (entriesResponse && typeof entriesResponse === 'object') {
+          if ('data' in entriesResponse && Array.isArray(entriesResponse.data)) {
+            entries = entriesResponse.data
+          } else if (Array.isArray(entriesResponse)) {
+            entries = entriesResponse
+          }
+        }
+
+        const existingEntryForPrompt = entries.find((e) => matchesCurrentPrompt(e))
+        if (existingEntryForPrompt) {
+          resolvedExistingEntry = existingEntryForPrompt
+        }
+      } catch (lookupError) {
+        console.warn('Failed to pre-check existing entry:', lookupError)
+      }
+    }
+
     try {
       // Check if we should update existing entry or create new one
       // If we have an existing entry for this prompt, update it (even if entry_type is different)
-      if (existingEntry && existingEntry.id) {
+      if (resolvedExistingEntry && resolvedExistingEntry.id) {
         console.log('Updating existing journal entry:', {
-          id: existingEntry.id,
-          prompt: existingEntry.prompt,
-          currentEntryType: existingEntry.entry_type,
+          id: resolvedExistingEntry.id,
+          prompt: resolvedExistingEntry.prompt,
+          currentEntryType: resolvedExistingEntry.entry_type,
           newEntryType: mode,
         })
         
         // Update existing entry
         await updateJournalEntry.mutateAsync({
-          id: String(existingEntry.id),
+          id: String(resolvedExistingEntry.id),
           data: {
-            content: mode === 'write' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
+            content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
             entry_type: mode,
           },
         })
         // Invalidate queries to refetch the entry
         queryClient.invalidateQueries({ queryKey: journalKeys.all })
+        didSave = true
       } else {
         console.log('Creating new journal entry:', {
           prompt: currentPrompt.id,
@@ -327,19 +350,23 @@ export function JournalPage() {
         await createJournalEntry.mutateAsync({
           prompt: currentPrompt.id,
           entry_type: mode,
-          content: mode === 'write' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
+          content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
         })
+        didSave = true
       }
     } catch (error: any) {
-      // Check if error is about duplicate entry and try to update instead
-      if (error?.message?.includes('already completed') || error?.status === 400) {
-        console.log('Got duplicate entry error, attempting to find and update existing entry...')
-        
-        // Try to fetch the entry again and update it
+      const errorMessage = String(error?.message || '')
+      const isDuplicatePrompt = errorMessage.includes('already completed') || error?.status === 400
+      const isDuplicateProgress = errorMessage.includes('game_playerprogress') || errorMessage.includes('duplicate key')
+
+      // Check if error is about duplicate entry or progress and try to update or confirm existence
+      if (isDuplicatePrompt || isDuplicateProgress) {
+        console.log('Got duplicate-related error, attempting to find existing entry...')
+
         try {
           const entriesResponse = await journalService.getAll(1, 100)
           let entries: any[] = []
-          
+
           if (entriesResponse && typeof entriesResponse === 'object') {
             if ('data' in entriesResponse && Array.isArray(entriesResponse.data)) {
               entries = entriesResponse.data
@@ -347,29 +374,44 @@ export function JournalPage() {
               entries = entriesResponse
             }
           }
-          
-          const existingEntryForPrompt = entries.find((e) => e.prompt === currentPrompt.id)
-          
+
+          const existingEntryForPrompt = entries.find((e) => matchesCurrentPrompt(e))
+
           if (existingEntryForPrompt?.id) {
-            console.log('Found existing entry, updating instead:', existingEntryForPrompt.id)
+            // If it already exists, treat as saved to avoid blocking the user
+            console.log('Found existing entry after error, marking as saved:', existingEntryForPrompt.id)
+            queryClient.invalidateQueries({ queryKey: journalKeys.all })
+            didSave = true
+            return
+          }
+
+          // If entry doesn't exist, try a last-chance update when we have a known entry id
+          if (existingEntry?.id) {
+            console.log('Attempting last-chance update with existing entry id:', existingEntry.id)
             await updateJournalEntry.mutateAsync({
-              id: String(existingEntryForPrompt.id),
+              id: String(existingEntry.id),
               data: {
-                content: mode === 'write' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
+                content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
                 entry_type: mode,
               },
             })
-            // Invalidate queries to refetch the entry
             queryClient.invalidateQueries({ queryKey: journalKeys.all })
-            return // Success, exit early
+            didSave = true
+            return
           }
         } catch (updateError) {
-          console.error('Failed to update existing entry:', updateError)
+          console.error('Failed to confirm or update existing entry:', updateError)
         }
       }
-      
+
       // If update attempt failed or entry not found, log the original error
       console.error('Failed to save to backend:', error)
+    }
+
+    if (!didSave) {
+      setIsSaving(false)
+      Alert.alert('Save Failed', 'We could not save this entry. Please try again.')
+      return
     }
 
     // Note: API prompts don't have attributeChanges, so we skip that logic
@@ -403,7 +445,7 @@ export function JournalPage() {
   }
 
   function renderModeContent() {
-    if (mode === 'write') {
+    if (mode === 'journal') {
       return (
         <JournalEntryCard
           value={text}
@@ -445,7 +487,7 @@ export function JournalPage() {
     >
       <View
         className="absolute inset-0"
-        style={{ backgroundColor: theme.colors.surface }}
+        style={{ backgroundColor: 'rgba(21, 17, 31, 0.92)' }}
       />
       
       <View className="flex-1" style={{ paddingTop: insets.top }}>
@@ -453,7 +495,7 @@ export function JournalPage() {
         <View className="flex-row justify-between items-center px-8 pb-8 pt-8 pr-4">
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <View style={styles.backButtonCircle}>
-              <MaterialCommunityIcons name="close" size={20} color="#000000" />
+              <MaterialCommunityIcons name="close" size={20} color="#ffffff" />
             </View>
           </TouchableOpacity>
           
@@ -486,8 +528,8 @@ export function JournalPage() {
               style={[
                 styles.title,
                 {
-                  color: theme.colors.primary,
-                  textShadowColor: theme.colors.primaryContainer,
+                  color: '#ffffff',
+                  textShadowColor: 'rgba(0, 0, 0, 0.6)',
                   textShadowOffset: { width: 0, height: 2 },
                   textShadowRadius: 8,
                 },
@@ -507,18 +549,18 @@ export function JournalPage() {
           {/* Tabs */}
           <View style={styles.tabsContainer}>
             <TouchableOpacity
-              style={[styles.tab, mode === 'write' && styles.tabActive]}
+              style={[styles.tab, mode === 'journal' && styles.tabActive]}
               onPress={() => {
-                if (mode !== 'write') {
+                if (mode !== 'journal') {
                   playPageFlipSound()
-                  setMode('write')
+                  setMode('journal')
                 }
               }}
             >
-              <RNText style={[styles.tabText, mode === 'write' && styles.tabTextActive]}>
+              <RNText style={[styles.tabText, mode === 'journal' && styles.tabTextActive]}>
                 JOURNAL
               </RNText>
-              {mode === 'write' && <View style={styles.tabUnderline} />}
+              {mode === 'journal' && <View style={styles.tabUnderline} />}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -582,38 +624,13 @@ export function JournalPage() {
                 isSaved={isSaved}
                 isSaving={isSaving}
                 onPress={handleSave}
+                haptics={haptics.selection}
+                pageFlipSound={playPageFlipSound}
               />
             </View>
           )}
 
-            {/* Bottom Buttons (always visible) */}
-            <View className="flex-row px-5 pt-4 gap-4" style={{ paddingBottom: insets.bottom + 16 }}>
-              <TouchableOpacity
-                className="flex-1 py-3.5 px-6 rounded-xl items-center justify-center"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
-                }}
-                onPress={handleNewEntry}
-                activeOpacity={0.8}
-                >
-                <RNText style={styles.bottomButtonText}>New entry</RNText>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                className="flex-1 py-3.5 px-6 rounded-xl items-center justify-center"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
-                }}
-                onPress={handleViewHistory}
-                activeOpacity={0.8}
-                >
-                <RNText style={styles.bottomButtonText}>View history</RNText>
-              </TouchableOpacity>
-            </View>
+
                 </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -634,16 +651,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#15111f',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   topBarLabel: {
-    fontFamily: 'System',
+    fontFamily: 'FontTitle-White',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 2,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.75)',
   },
   topBarSpacer: {
     width: 40,
@@ -681,11 +700,11 @@ const styles = StyleSheet.create({
     // Active state handled by underline
   },
   tabText: {
-    fontFamily: 'System',
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 1,
-    color: 'rgba(255, 255, 255, 0.6)',
+    fontFamily: 'FontTitle-White',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: 'rgba(255, 255, 255, 0.65)',
   },
   tabTextActive: {
     color: '#ffffff',
@@ -716,14 +735,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   savedText: {
-    color: '#FFD700',
+    fontFamily: 'FontTitle-White',
+    letterSpacing: 1.5,
+    color: '#ffffff',
     textAlign: 'center',
   },
   bottomButtonText: {
-    fontFamily: 'System',
+    fontFamily: 'FontTitle-White',
     fontSize: 14,
     fontWeight: '600',
-    letterSpacing: 1,
+    letterSpacing: 2,
     color: '#ffffff',
   },
 })

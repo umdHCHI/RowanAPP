@@ -15,13 +15,17 @@ export interface UseGameDirectorOptions {
   projectilesSpawned: number // Total projectiles spawned (tracked externally)
   thoughtsDestroyed: number // Total thoughts destroyed (tracked externally)
   gameStartTime: number // When the game started (performance.now())
+  lastShotAt?: number // Timestamp of last player shot
+  lastEnemyDestroyedAt?: number // Timestamp of last enemy destroyed
 }
 
 const DDA_CONFIG = {
   // Pressure calculation weights (0-1)
-  HIT_FREQUENCY_WEIGHT: 0.4,
-  ACCURACY_WEIGHT: 0.35,
-  SURVIVAL_WINDOW_WEIGHT: 0.25,
+  HIT_FREQUENCY_WEIGHT: 0.25,
+  ACCURACY_WEIGHT: 0.25,
+  SURVIVAL_WINDOW_WEIGHT: 0.15,
+  SHOOT_ACTIVITY_WEIGHT: 0.15, // Time since last shot (inactivity = pressure)
+  KILL_ACTIVITY_WEIGHT: 0.20, // Time since last enemy killed (no kills = pressure)
 
   // Pressure thresholds
   HIGH_PRESSURE_THRESHOLD: 0.7, // If pressure > 0.7, player is struggling
@@ -41,6 +45,14 @@ const DDA_CONFIG = {
   // Minimum time window for calculations (in ms)
   MIN_EVALUATION_WINDOW: 3000, // Need at least 3 seconds of data
 
+  // Activity thresholds (in ms)
+  SHOOT_INACTIVITY_THRESHOLD: 3000, // 3 seconds without shooting = high pressure
+  KILL_INACTIVITY_THRESHOLD: 5000, // 5 seconds without killing = high pressure
+
+  // Stress decay when player is doing well
+  STRESS_DECAY_RATE: 0.02, // Stress decays at 2% per evaluation when no recent hits
+  STRESS_DECAY_THRESHOLD: 5000, // If no hits for 5 seconds, start decay
+
   // Emotional Intensity (EI) smoothing
   EI_UPDATE_INTERVAL_MS: 1000, // Update EI every 1 second for smoother transitions
   EI_EMA_ALPHA: 0.15, // EMA smoothing factor (0-1, lower = smoother)
@@ -54,6 +66,8 @@ export function useGameDirector({
   projectilesSpawned,
   thoughtsDestroyed,
   gameStartTime,
+  lastShotAt = 0,
+  lastEnemyDestroyedAt = 0,
 }: UseGameDirectorOptions): GameDirectorMetrics {
   const [difficultyLevel, setDifficultyLevel] = useState(5) // Start at middle difficulty
   const [pressureScore, setPressureScore] = useState(0.5) // Start neutral (this is stressSignal)
@@ -67,6 +81,9 @@ export function useGameDirector({
   const lastDifficultyLevelRef = useRef<number>(5)
   const lastEIUpdateTimeRef = useRef<number>(0)
   const currentEIRef = useRef<number>(0.5) // Track EI for EMA smoothing
+  const lastPressureScoreRef = useRef<number>(0.5) // Track last pressure for decay calculation
+  const lastMoveSpeedRef = useRef<number>(1.0) // Track last moveSpeed for smooth transitions
+  const lastFormationTickMultiplierRef = useRef<number>(1.0) // Track last formationTickMultiplier for smooth transitions
 
   // Initialize evaluation time
   useEffect(() => {
@@ -101,6 +118,9 @@ export function useGameDirector({
       setEmotionalIntensity(0.5)
       lastDifficultyLevelRef.current = 5
       currentEIRef.current = 0.5
+      lastPressureScoreRef.current = 0.5
+      lastMoveSpeedRef.current = 1.0
+      lastFormationTickMultiplierRef.current = 1.0
     }
   }, [isPlaying])
 
@@ -165,11 +185,66 @@ export function useGameDirector({
         survivalWindowPressure = 0
       }
 
-      // Weighted pressure score
-      const calculatedPressure =
+      // Calculate shoot activity pressure (time since last shot)
+      // Longer time without shooting = higher pressure (player overwhelmed/defensive)
+      let shootActivityPressure = 0
+      if (lastShotAt > 0) {
+        const timeSinceLastShot = now - lastShotAt
+        // Normalize: 0 pressure at 0ms, max pressure (1.0) at threshold
+        shootActivityPressure = Math.min(1, timeSinceLastShot / DDA_CONFIG.SHOOT_INACTIVITY_THRESHOLD)
+      } else {
+        // No shots fired yet = neutral (game just started)
+        shootActivityPressure = 0.3
+      }
+
+      // Calculate kill activity pressure (time since last enemy destroyed)
+      // Longer time without kills = higher pressure (player struggling to hit)
+      // Reward successful kills: if recently destroyed enemy, immediately reduce pressure
+      let killActivityPressure = 0
+      if (lastEnemyDestroyedAt > 0) {
+        const timeSinceLastKill = now - lastEnemyDestroyedAt
+        // If enemy was destroyed very recently (< 500ms), give bonus - player is doing well!
+        if (timeSinceLastKill < 500) {
+          killActivityPressure = -0.2 // Negative pressure = reward for recent kill
+        } else {
+          // Normalize: 0 pressure at 0ms, max pressure (1.0) at threshold
+          killActivityPressure = Math.min(1, timeSinceLastKill / DDA_CONFIG.KILL_INACTIVITY_THRESHOLD)
+        }
+      } else {
+        // No kills yet = neutral (game just started)
+        killActivityPressure = 0.3
+      }
+
+      // Calculate base weighted pressure score
+      // Note: killActivityPressure can be negative (reward for recent kills)
+      let calculatedPressure =
         normalizedHitFrequency * DDA_CONFIG.HIT_FREQUENCY_WEIGHT +
         accuracyPressure * DDA_CONFIG.ACCURACY_WEIGHT +
-        survivalWindowPressure * DDA_CONFIG.SURVIVAL_WINDOW_WEIGHT
+        survivalWindowPressure * DDA_CONFIG.SURVIVAL_WINDOW_WEIGHT +
+        shootActivityPressure * DDA_CONFIG.SHOOT_ACTIVITY_WEIGHT +
+        Math.max(-0.2, killActivityPressure) * DDA_CONFIG.KILL_ACTIVITY_WEIGHT // Allow negative for recent kills
+
+      // Apply stress decay when player hasn't been hit recently
+      // Gradually reduce pressure if player is doing well (no hits for a while)
+      const lastHitTime = hitHistoryRef.current.length > 0 
+        ? Math.max(...hitHistoryRef.current)
+        : 0
+      const timeSinceLastHit = lastHitTime > 0 ? now - lastHitTime : Infinity
+      
+      if (timeSinceLastHit > DDA_CONFIG.STRESS_DECAY_THRESHOLD) {
+        // Player hasn't been hit for a while - gradually reduce pressure
+        // Use last pressure score from ref for smooth decay calculation
+        const currentPressure = lastPressureScoreRef.current || 0.5
+        const decayedPressure = Math.max(0, currentPressure - DDA_CONFIG.STRESS_DECAY_RATE)
+        // Smoothly transition towards decayed value (70% new calculation, 30% decay)
+        calculatedPressure = calculatedPressure * 0.7 + decayedPressure * 0.3
+      }
+      
+      // Update ref for next calculation
+      lastPressureScoreRef.current = calculatedPressure
+
+      // Clamp pressure to [0, 1]
+      calculatedPressure = Math.max(0, Math.min(1, calculatedPressure))
 
       setPressureScore(calculatedPressure)
 
@@ -293,23 +368,39 @@ export function useGameDirector({
 
     // Director scalers based on EI and stressSignal (therapeutic window behavior)
     // Formation pacing: as EI rises, move faster; when stressSignal is high, move slower
+    // Make slowness MORE NOTICEABLE with extreme values
+    // ENHANCED: More aggressive difficulty increase when player is doing well
     let formationTickScaler = 1.0
     if (stressSignal > DDA_CONFIG.HIGH_PRESSURE_THRESHOLD) {
       // High stress: increase tick multiplier (slower movement, gentler pacing)
-      formationTickScaler = 0.7 + (1 - stressSignal) * 0.3 // 0.7 to 1.0, slower when stress is higher
+      // More extreme: 0.5 to 1.0 range (at max stress 1.0, multiplier is 0.5 = much slower)
+      formationTickScaler = 0.5 + (1 - stressSignal) * 0.5 // 0.5 (max stress) to 1.0 (threshold)
+    } else if (stressSignal < DDA_CONFIG.LOW_PRESSURE_THRESHOLD) {
+      // LOW STRESS (player doing well): SIGNIFICANTLY decrease tick multiplier (MUCH faster movement)
+      // Player is dominating - ramp up difficulty aggressively
+      // At stressSignal 0.0, scaler = 0.4 (very fast), at 0.3 threshold, scaler = 0.7
+      const lowStressFactor = 1 - (stressSignal / DDA_CONFIG.LOW_PRESSURE_THRESHOLD) // 1.0 at 0 stress, 0.0 at threshold
+      formationTickScaler = 0.4 + lowStressFactor * 0.3 // 0.4 (very fast at 0 stress) to 0.7 (threshold)
     } else {
-      // Normal/low stress: decrease tick multiplier as EI rises (faster movement)
+      // Normal stress: moderate scaling based on EI
       formationTickScaler = 0.8 + EI * 0.4 // 0.8 to 1.2, faster when EI is higher (inverted: lower = faster)
     }
 
     // Movement pacing: as EI rises, move slightly faster; when stressSignal is high, slow down
-    // Make effects more visible with wider range
+    // Make slowness VERY NOTICEABLE - extreme slowdown when struggling
+    // ENHANCED: More aggressive speed increase when player is doing well
     let moveScaler = 1.0
     if (stressSignal > DDA_CONFIG.HIGH_PRESSURE_THRESHOLD) {
-      // High stress: slow down movement significantly (gentler pacing, more noticeable)
-      moveScaler = 0.5 + (1 - stressSignal) * 0.4 // 0.5 to 0.9, much slower when stress is higher
+      // High stress: slow down movement DRAMATICALLY (gentler pacing, very noticeable)
+      // More extreme range: 0.25 (max stress) to 0.75 (threshold) - can go as slow as 25% speed!
+      moveScaler = 0.25 + (1 - stressSignal) * 0.5 // 0.25 (max stress 1.0) to 0.75 (threshold 0.7)
+    } else if (stressSignal < DDA_CONFIG.LOW_PRESSURE_THRESHOLD) {
+      // LOW STRESS (player dominating): SIGNIFICANTLY increase speed
+      // At stressSignal 0.0, scaler = 1.3 (very fast), at 0.3 threshold, scaler = 1.1
+      const lowStressFactor = 1 - (stressSignal / DDA_CONFIG.LOW_PRESSURE_THRESHOLD) // 1.0 at 0 stress, 0.0 at threshold
+      moveScaler = 1.1 + lowStressFactor * 0.2 // 1.1 (threshold) to 1.3 (very fast at 0 stress)
     } else {
-      // Normal/low stress: slightly faster as EI rises
+      // Normal stress: slightly faster as EI rises
       moveScaler = 0.85 + EI * 0.25 // 0.85 to 1.1, faster when EI is higher
     }
 
@@ -326,13 +417,29 @@ export function useGameDirector({
     // Apply scalers to baselines
     // Note: formationTickMultiplier is inverted - lower value = faster movement
     // So we invert the scaler: when we want slower, we multiply by > 1
-    const formationTickMultiplier = baselineFormationTickMultiplier * (1 / formationTickScaler)
-    const moveSpeed = baselineMoveSpeed * moveScaler
+    const rawFormationTickMultiplier = baselineFormationTickMultiplier * (1 / formationTickScaler)
+    const rawMoveSpeed = baselineMoveSpeed * moveScaler
     const powerUpChance = baselinePowerUpChance * powerUpScaler
 
+    // Apply EMA smoothing to moveSpeed and formationTickMultiplier for gradual transitions
+    // This makes changes feel smooth and gradual over time, not instant
+    const smoothingAlpha = 0.15 // How fast to transition (lower = slower/smoother)
+    
+    // Smooth formationTickMultiplier
+    const smoothedFormationTickMultiplier = 
+      smoothingAlpha * rawFormationTickMultiplier + 
+      (1 - smoothingAlpha) * (lastFormationTickMultiplierRef.current || rawFormationTickMultiplier)
+    lastFormationTickMultiplierRef.current = smoothedFormationTickMultiplier
+
+    // Smooth moveSpeed
+    const smoothedMoveSpeed = 
+      smoothingAlpha * rawMoveSpeed + 
+      (1 - smoothingAlpha) * (lastMoveSpeedRef.current || rawMoveSpeed)
+    lastMoveSpeedRef.current = smoothedMoveSpeed
+
     return {
-      formationTickMultiplier: Math.max(0.3, Math.min(2.5, formationTickMultiplier)),
-      moveSpeed: Math.max(0.5, Math.min(1.6, moveSpeed)),
+      formationTickMultiplier: Math.max(0.3, Math.min(2.5, smoothedFormationTickMultiplier)),
+      moveSpeed: Math.max(0.2, Math.min(1.6, smoothedMoveSpeed)), // Allow slower speeds (0.2 = 20% speed)
       powerUpChance: Math.max(0.2, Math.min(2.3, powerUpChance)),
       difficultyLevel,
       pressureScore: stressSignal,

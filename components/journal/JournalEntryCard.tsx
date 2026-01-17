@@ -1,4 +1,5 @@
-import { Card, Text, TextInput, useTheme } from 'react-native-paper'
+import { Text as RNText, StyleSheet } from 'react-native'
+import { Card, TextInput } from 'react-native-paper'
 
 interface JournalEntryCardProps {
   value: string
@@ -7,22 +8,16 @@ interface JournalEntryCardProps {
 }
 
 export function JournalEntryCard({ value, onChangeText, disabled }: JournalEntryCardProps) {
-  const theme = useTheme()
-
   return (
     <Card
       className="mb-6 border"
-      style={{
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.outline,
-        borderRadius: theme.roundness * 1.33,
-      }}
+      style={styles.card}
       elevation={2}
     >
       <Card.Content className="p-5">
-        <Text variant="labelLarge" className="mb-3">
+        <RNText style={styles.labelText}>
           Reflect on your journey
-        </Text>
+        </RNText>
         <TextInput
           mode="outlined"
           multiline
@@ -31,19 +26,39 @@ export function JournalEntryCard({ value, onChangeText, disabled }: JournalEntry
           value={value}
           onChangeText={onChangeText}
           className="min-h-[200px]"
-          style={{
-            backgroundColor: theme.colors.surfaceVariant,
-          }}
+          style={styles.input}
           contentStyle={{
-            color: theme.colors.onSurface,
+            color: '#ffffff',
             lineHeight: 24,
+            fontSize: 16,
           }}
-          outlineColor={theme.colors.outline}
-          activeOutlineColor={theme.colors.primary}
+          outlineColor="rgba(255, 255, 255, 0.2)"
+          activeOutlineColor="#ffffff"
+          textColor="#ffffff"
+          placeholderTextColor="rgba(255, 255, 255, 0.6)"
           disabled={disabled}
         />
       </Card.Content>
     </Card>
   )
 }
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#1a1a2e',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
+  },
+  labelText: {
+    fontFamily: 'FontTitle-White',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: '#ffffff',
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+})
 

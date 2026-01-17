@@ -28,9 +28,21 @@ export function useJournalEntries(page = 1, limit = 20) {
     queryKey: journalKeys.list(page, limit),
     queryFn: async () => {
       const response = await journalService.getAll(page, limit)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch journal entries')
+      
+      // Handle case where API returns array directly
+      if (Array.isArray(response)) {
+        return response
       }
+      
+      // Handle wrapped response (ApiResponse/PaginatedResponse)
+      if (response && typeof response === 'object' && 'success' in response) {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to fetch journal entries')
+        }
+        return response
+      }
+      
+      // Return as-is if structure is unexpected
       return response
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -65,10 +77,14 @@ export function useCreateJournalEntry() {
   return useMutation({
     mutationFn: async (data: JournalEntryCreateRequest) => {
       const response = await journalService.create(data)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to create journal entry')
+      if (response && typeof response === 'object' && 'success' in response) {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to create journal entry')
+        }
+        return response.data
       }
-      return response.data
+      // Handle direct object response (no ApiResponse wrapper)
+      return response as JournalEntryResponse
     },
     onSuccess: () => {
       // Invalidate journal entries list and all byPrompt queries
@@ -87,10 +103,14 @@ export function useUpdateJournalEntry() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: JournalEntryUpdateRequest }) => {
       const response = await journalService.update(id, data)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to update journal entry')
+      if (response && typeof response === 'object' && 'success' in response) {
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to update journal entry')
+        }
+        return response.data
       }
-      return response.data
+      // Handle direct object response (no ApiResponse wrapper)
+      return response as JournalEntryResponse
     },
     onSuccess: (data) => {
       // Invalidate both list, specific entry, and all byPrompt queries
@@ -140,12 +160,13 @@ export function useJournalPrompts() {
  */
 export function useJournalEntryByPrompt(
   promptId: number | null,
-  entryType: string | null = null
+  entryType: string | null = null,
+  promptKey: string | null = null
 ) {
   return useQuery({
-    queryKey: [...journalKeys.all, 'byPrompt', promptId, entryType],
+    queryKey: [...journalKeys.all, 'byPrompt', promptId, entryType, promptKey],
     queryFn: async () => {
-      if (!promptId) throw new Error('Prompt ID is required')
+      if (!promptId && !promptKey) throw new Error('Prompt ID is required')
       
       try {
         // Fetch all entries and find the one matching the prompt ID
@@ -164,24 +185,30 @@ export function useJournalEntryByPrompt(
           }
         }
         
-        // Find entry with matching prompt ID and optionally entry type
+        const matchesPrompt = (e: JournalEntryResponse) => {
+          if (promptId != null && String(e.prompt) === String(promptId)) return true
+          if (promptKey && e.prompt_id === promptKey) return true
+          return false
+        }
+
+        // Find entry with matching prompt and optionally entry type
         // If entryType is provided, prefer exact match, otherwise return any entry for this prompt
         if (entryType) {
           const exactMatch = entries.find(
-            (e) => e.prompt === promptId && e.entry_type === entryType
+            (e) => matchesPrompt(e) && e.entry_type === entryType
           )
           if (exactMatch) return exactMatch
         }
-        
-        // Fallback: find any entry with matching prompt ID
-        const anyMatch = entries.find((e) => e.prompt === promptId)
+
+        // Fallback: find any entry with matching prompt
+        const anyMatch = entries.find((e) => matchesPrompt(e))
         return anyMatch || null
       } catch (error) {
         console.error('Error fetching journal entry by prompt:', error)
         return null
       }
     },
-    enabled: !!promptId,
+    enabled: !!promptId || !!promptKey,
     staleTime: 2 * 60 * 1000, // 2 minutes
   })
 }

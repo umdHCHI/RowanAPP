@@ -22,8 +22,6 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { label: 'About The Archive', route: '/about' },
-  { label: 'Resources', route: '/resources' },
-  { label: 'Profile', route: '/profile' },
   { label: 'Start a new story', route: '/hub' },
   { label: 'Crisis help', route: '/crisis-help' },
   { label: 'Report a bug', action: () => {
@@ -76,17 +74,7 @@ export function MenuOverlay({ visible, onClose }: MenuOverlayProps) {
 
             <Text style={styles.menuTitle}>Menu</Text>
 
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => {
-                haptics.lightImpact()
-                playPageFlipSound()
-                // TODO: Navigate to settings
-              }}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons name="cog" size={24} color="#ffffff" />
-            </TouchableOpacity>
+
           </View>
 
           {/* Divider */}

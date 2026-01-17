@@ -12,13 +12,7 @@ interface AttributeDisplayProps {
  * Convert raw attribute value to level (1-5)
  * Divides by 5 and rounds, clamping to 1-5 range
  */
-function mapValueToLevel(value: number): number {
-  if (value <= 0) return 1
-  const level = Math.round(value / 5)
-  if (level < 1) return 1
-  if (level > 5) return 5
-  return level
-}
+
 
 export function AttributesDisplay({ showImages = false, attributes: propsAttributes }: AttributeDisplayProps) {
   const { attributes: storeAttributes } = useGameStore()

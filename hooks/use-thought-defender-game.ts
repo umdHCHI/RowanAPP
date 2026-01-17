@@ -100,29 +100,38 @@ export function useVantageGame({
   const [debugHitboxes, setDebugHitboxes] = useState(false)
   const [thoughtEchoes, setThoughtEchoes] = useState<ThoughtEcho[]>([])
   const [conqueredThoughts, setConqueredThoughts] = useState<ConqueredThought[]>([])
+  const [defeatedNegativeThoughts, setDefeatedNegativeThoughts] = useState<ConqueredThought[]>([])
   const [fragments, setFragments] = useState<Fragment[]>([])
 
   // DDA tracking
   const projectilesSpawnedRef = useRef<number>(0)
   const thoughtsDestroyedRef = useRef<number>(0)
+  const lastEnemyDestroyedAtRef = useRef<number>(0) // Track when last enemy was destroyed
+  const bossHitsRef = useRef<number[]>([]) // Track timestamps of boss hits for rapid-fire detection
+  const lastBossHitAtRef = useRef<number>(0) // Track when boss was last hit
   
   // Fragment TTL tracking
   const fragmentTTLRef = useRef<Map<string, number>>(new Map())
 
   // Formation state (Space Invaders style)
-  const [formationDir, setFormationDir] = useState<1 | -1>(1)
+  // Use ref for direction to avoid stale closure issues in setTimeout callbacks
+  const formationDirRef = useRef<1 | -1>(1)
   const [formationTickMs, setFormationTickMs] = useState<number>(difficultyConfig.formationTickMs)
   const [wave, setWave] = useState(1)
   const [waveDefeatedPatterns, setWaveDefeatedPatterns] = useState<Set<string>>(new Set())
+  const projectilesClearedForWaveRef = useRef<number>(0) // Track which wave we last cleared projectiles for
 
   const animationFrameRef = useRef<number | null>(null)
   const defeatedThoughtIdsRef = useRef<Set<string>>(new Set())
   const lastShotAtRef = useRef<number>(0)
   const gameStartTimeRef = useRef<number>(0)
+  const playerHpFractionRef = useRef<number>(0) // Track fractional HP damage accumulation
   const formationTimerRef = useRef<NodeJS.Timeout | null>(null)
   const bossAttackTimerRef = useRef<NodeJS.Timeout | null>(null)
   const powerUpTimersRef = useRef<Map<PowerUpType, NodeJS.Timeout>>(new Map())
   const bossFormationTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const bossVelocityXRef = useRef<number>(3) // Diagonal movement velocity X (pixels per frame)
+  const bossVelocityYRef = useRef<number>(2) // Diagonal movement velocity Y (pixels per frame)
   const bossNextFireAtRef = useRef<number>(0)
   const bossBurstRemainingRef = useRef<number>(0)
   const bossNextBurstShotAtRef = useRef<number>(0)
@@ -138,6 +147,7 @@ export function useVantageGame({
   // Refs for latest state (prevents stale closures in collision checks)
   const negativeThoughtsRef = useRef<NegativeThought[]>([])
   const projectilesRef = useRef<Projectile[]>([])
+  const enemyProjectilesRef = useRef<EnemyProjectile[]>([])
   const powerUpsRef = useRef<PowerUp[]>([])
   const bossRef = useRef<Boss | null>(null)
   const shieldActiveRef = useRef<boolean>(false)
@@ -166,6 +176,10 @@ export function useVantageGame({
   useEffect(() => {
     projectilesRef.current = projectiles
   }, [projectiles])
+
+  useEffect(() => {
+    enemyProjectilesRef.current = enemyProjectiles
+  }, [enemyProjectiles])
 
   useEffect(() => {
     powerUpsRef.current = powerUps
@@ -269,20 +283,27 @@ export function useVantageGame({
       )
 
       // Move enemy projectiles down (with optional horizontal movement)
-      // Note: vy already includes moveSpeedMultiplier from spawn time, so don't multiply again
+      // Apply DDA moveSpeed dynamically so projectiles adjust in real-time when DDA changes
+      const moveSpeedMultiplier = ddaMetricsRef?.current?.moveSpeed ?? 1.0
       setEnemyProjectiles((prev) =>
         prev
-          .map((p) => ({
-            ...p,
-            x: p.x + (p.vx ?? 0) * gameSpeed * deltaSeconds,
-            y: p.y + p.vy * gameSpeed * deltaSeconds,
-          }))
+          .map((p) => {
+            // Base projectile speed (vy stores base speed, we apply multiplier here)
+            // This allows projectiles to adjust speed dynamically when DDA changes
+            const baseVy = p.vy || 300 // Fallback to 300 if not set
+            const adjustedVy = baseVy * moveSpeedMultiplier
+            
+            return {
+              ...p,
+              x: p.x + (p.vx ?? 0) * gameSpeed * moveSpeedMultiplier * deltaSeconds,
+              y: p.y + adjustedVy * gameSpeed * deltaSeconds,
+            }
+          })
           .filter((p) => p.y < gameHeight + 40 && p.x > -40 && p.x < gameWidth + 40)
       )
 
       // Move falling thoughts (from boss attacks) down
-      // Apply DDA moveSpeed multiplier if available
-      const moveSpeedMultiplier = ddaMetricsRef?.current?.moveSpeed ?? 1
+      // Apply DDA moveSpeed multiplier (already declared above for projectiles)
       setNegativeThoughts((prev) =>
         prev.map((thought) => {
           // Only move thoughts that have speed > 0 (falling thoughts from boss)
@@ -316,7 +337,8 @@ export function useVantageGame({
       updateFragments(deltaTime)
 
       // Check collisions first (may update boss HP)
-      checkCollisions()
+      // Pass currentTime for consistent timestamp usage
+      checkCollisions(currentTime)
 
       // Update boss attacks (only during boss phase) - movement handled by formation loop
       // Runs after collisions so phase is accurate
@@ -362,19 +384,25 @@ export function useVantageGame({
 
   function spawnInvaderWave(monsterKey: string, waveNumber: number) {
     try {
-      const availablePatterns = getAvailableThoughtPatternsForWave(monsterKey, waveNumber)
+      // Reset wave defeated patterns for new wave BEFORE checking available patterns
+      // This ensures we start fresh for each wave
+      setWaveDefeatedPatterns(new Set())
+      
+      // Get all patterns for this monster (ignoring waveDefeatedPatterns since we just reset it)
+      // We check directly against THOUGHT_PATTERNS to avoid stale state issues
+      const allPatterns = THOUGHT_PATTERNS.filter((p: ThoughtPattern) => p.monsterKey === monsterKey)
       
       // Safety check: if no patterns available, don't crash
-      if (availablePatterns.length === 0) {
-        console.warn('No available patterns for wave', waveNumber)
+      if (allPatterns.length === 0) {
+        console.warn('No available patterns for wave', waveNumber, 'monster:', monsterKey)
         return
       }
 
       const totalInvaders = GAME_CONFIG.INVADERS_ROWS * GAME_CONFIG.INVADERS_COLS
       const invaders: NegativeThought[] = []
 
-      // Reset wave defeated patterns for new wave
-      setWaveDefeatedPatterns(new Set())
+      // Use all patterns (they'll cycle if needed via modulo)
+      const availablePatterns = allPatterns
 
       // Center the formation horizontally
       const spacingX = GAME_CONFIG.THOUGHT_WIDTH + GAME_CONFIG.INVADER_H_GAP
@@ -420,6 +448,14 @@ export function useVantageGame({
 
       setNegativeThoughts((prev) => {
         if (prev.length === 0) {
+          // Wave cleared - clear all projectiles immediately for seamless transition
+          // Only clear once per wave to avoid multiple clears during formation step loop
+          if (projectilesClearedForWaveRef.current !== wave) {
+            projectilesClearedForWaveRef.current = wave
+            setProjectiles([])
+            setEnemyProjectiles([])
+          }
+          
           // Wave cleared - check for next wave or boss
           // Only trigger boss if boss doesn't already exist
           if (wave < difficultyConfig.wavesBeforeBoss) {
@@ -452,13 +488,17 @@ export function useVantageGame({
           : 1.0 + ((ddaMoveSpeed - 1.0) * 0.3) // When sped up, scale 1.0-1.18
         
         // DDA stepY multiplier: directly scale vertical movement based on pressureScore
+        // ENHANCED: More aggressive speed increase when player is doing well
         // High pressureScore (>0.7): slower downward movement (0.65x)
-        // Low pressureScore (<0.3): faster downward movement (1.05x)
+        // Low pressureScore (<0.3): MUCH faster downward movement
         let stepYMultiplier = 1.0
         if (ddaStressSignal > 0.7) {
           stepYMultiplier = 0.65 // Much slower when struggling
         } else if (ddaStressSignal < 0.3) {
-          stepYMultiplier = 1.05 // Slightly faster when doing well
+          // Player is dominating - make enemies advance faster toward player
+          // At 0 stress: 1.25x speed, at 0.3 threshold: 1.1x speed
+          const lowStressFactor = 1 - (ddaStressSignal / 0.3) // 1.0 at 0 stress, 0.0 at 0.3
+          stepYMultiplier = 1.1 + lowStressFactor * 0.15 // 1.1 (threshold) to 1.25 (very fast at 0 stress)
         }
         
         // Calculate scaled step sizes
@@ -474,21 +514,26 @@ export function useVantageGame({
           maxX = Math.max(maxX, invader.x + GAME_CONFIG.THOUGHT_WIDTH)
         })
 
-        const currentDir = formationDir
+        // Read current direction from ref (always current, no stale closure)
+        const currentDir = formationDirRef.current
         let newDir = currentDir
         let stepDown = false
 
         // Check if formation hits wall (using scaled step size)
+        // Move right (1): check right edge, move left (-1): check left edge
         if (currentDir === 1 && maxX + scaledStepX >= gameWidth) {
+          // Hit right wall: reverse direction and step down
           newDir = -1
           stepDown = true
         } else if (currentDir === -1 && minX - scaledStepX <= 0) {
+          // Hit left wall: reverse direction and step down
           newDir = 1
           stepDown = true
         }
 
+        // Update direction ref immediately (synchronous update for next step)
         if (stepDown) {
-          setFormationDir(newDir)
+          formationDirRef.current = newDir
         }
 
         // Move formation with DDA-scaled step sizes
@@ -536,9 +581,19 @@ export function useVantageGame({
   }
 
   function triggerBoss() {
+    // Clear all projectiles when boss spawns
+    setProjectiles([])
+    setEnemyProjectiles([])
+    
     setBossIncoming(true)
     setTimeout(() => {
       setBossIncoming(false)
+      // Initialize boss velocity with random diagonal direction for variety
+      const initialVelX = Math.random() > 0.5 ? 3 : -3
+      const initialVelY = Math.random() > 0.5 ? 2 : -2
+      bossVelocityXRef.current = initialVelX
+      bossVelocityYRef.current = initialVelY
+      
       const newBoss: Boss = {
         id: 'boss',
         x: gameWidth / 2 - GAME_CONFIG.BOSS_WIDTH / 2,
@@ -546,7 +601,7 @@ export function useVantageGame({
         hp: difficultyConfig.bossHp,
         maxHp: difficultyConfig.bossHp,
         phase: 'active',
-        direction: 1, // For Space Invaders movement
+        direction: initialVelX > 0 ? 1 : -1, // Set initial direction based on velocity
       }
       setBoss(newBoss)
       // Initialize boss combat state
@@ -554,8 +609,11 @@ export function useVantageGame({
       bossBurstRemainingRef.current = 0
       bossNextBurstShotAtRef.current = 0
       bossBurstCountRef.current = 0
-      // Start boss movement loop (Space Invaders style)
-      startBossFormationLoop()
+      // Small delay before starting movement to ensure initial render is stable
+      setTimeout(() => {
+        // Start boss movement loop (diagonal screensaver style)
+        startBossFormationLoop()
+      }, 50) // 50ms delay to let initial render settle
     }, 1500)
   }
 
@@ -571,31 +629,51 @@ export function useVantageGame({
       setBoss((prev) => {
         if (!prev || prev.phase !== 'active') return prev
 
-        const currentDir = prev.direction || 1
-        let newX = prev.x + GAME_CONFIG.BOSS_SPEED * currentDir
-        let newDir = currentDir
-        let newY = prev.y
+        // Get current velocities
+        let vx = bossVelocityXRef.current
+        let vy = bossVelocityYRef.current
 
-        // Check if boss hits wall - bounce and step down
-        if (newX + GAME_CONFIG.BOSS_WIDTH >= gameWidth) {
-          newX = gameWidth - GAME_CONFIG.BOSS_WIDTH
-          newDir = -1
-          newY = Math.min(prev.y + GAME_CONFIG.BOSS_STEP_DOWN, gameHeight * 0.45)
-        } else if (newX <= 0) {
+        // Calculate new position (diagonal movement)
+        let newX = prev.x + vx
+        let newY = prev.y + vy
+
+        // Bounce off walls (screensaver style)
+        // Left wall
+        if (newX <= 0) {
           newX = 0
-          newDir = 1
-          newY = Math.min(prev.y + GAME_CONFIG.BOSS_STEP_DOWN, gameHeight * 0.45)
+          vx = -vx // Reverse X velocity
         }
+        // Right wall
+        else if (newX + GAME_CONFIG.BOSS_WIDTH >= gameWidth) {
+          newX = gameWidth - GAME_CONFIG.BOSS_WIDTH
+          vx = -vx // Reverse X velocity
+        }
+
+        // Top wall - keep boss within playable area (start from top)
+        if (newY <= 0) {
+          newY = 0
+          vy = -vy // Reverse Y velocity
+        }
+        // Bottom wall - prevent boss from going too low (max 60% of screen height)
+        else if (newY + GAME_CONFIG.BOSS_HEIGHT >= gameHeight * 0.6) {
+          newY = gameHeight * 0.6 - GAME_CONFIG.BOSS_HEIGHT
+          vy = -vy // Reverse Y velocity
+        }
+
+        // Update velocity refs
+        bossVelocityXRef.current = vx
+        bossVelocityYRef.current = vy
 
         return {
           ...prev,
           x: newX,
           y: newY,
-          direction: newDir,
+          direction: vx > 0 ? 1 : -1, // Keep direction for backwards compatibility
         }
       })
 
-      bossFormationTimerRef.current = setTimeout(bossFormationStep, formationTickMs * 0.8) // Faster than formation
+      // Use faster update interval for smooth diagonal movement (every 16ms ≈ 60fps)
+      bossFormationTimerRef.current = setTimeout(bossFormationStep, 16)
     }
 
     bossFormationStep()
@@ -633,43 +711,56 @@ export function useVantageGame({
       
       // Check if it's time to fire
       if (now >= enemyNextFireAtRef.current) {
-        // Find bottom-most enemy (lowest y value = closest to player)
-        let bottomEnemy: NegativeThought | null = null
-        let lowestY = -Infinity
+        // Find bottom row enemies (highest y values = closest to player)
+        // Use row height tolerance to group enemies by row
+        const rowHeightTolerance = GAME_CONFIG.THOUGHT_HEIGHT + GAME_CONFIG.INVADER_V_GAP
         
+        // Find the maximum y value (bottom row)
+        let maxY = -Infinity
         for (const thought of thoughtsNow) {
-          if (thought.y > lowestY) {
-            lowestY = thought.y
-            bottomEnemy = thought
+          if (thought.y > maxY) {
+            maxY = thought.y
           }
         }
         
-        if (bottomEnemy) {
-          // Spawn enemy projectile from bottom-most enemy
-          // Use pixels per second (similar to player projectiles at 400)
-          const enemyProjectileSpeed = 300 // pixels per second (slightly slower than player projectiles)
-          const moveSpeedMultiplier = ddaMetricsRef?.current?.moveSpeed ?? 1.0
-          const projectileSpeed = enemyProjectileSpeed * moveSpeedMultiplier
+        // Find all enemies on the bottom row (within tolerance of maxY)
+        const bottomRowEnemies = thoughtsNow.filter((thought) => 
+          Math.abs(thought.y - maxY) <= rowHeightTolerance / 2
+        )
+        
+        // Pick a random enemy from the bottom row
+        if (bottomRowEnemies.length > 0) {
+          const randomIndex = Math.floor(Math.random() * bottomRowEnemies.length)
+          const firingEnemy = bottomRowEnemies[randomIndex]
+          
+          // Spawn enemy projectile from random bottom row enemy
+          // Store base speed (300), DDA multiplier will be applied dynamically during movement
+          const baseEnemyProjectileSpeed = 300 // pixels per second (slightly slower than player projectiles)
           
           const enemyProjectile: EnemyProjectile = {
             id: `enemy-proj-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            x: bottomEnemy.x + GAME_CONFIG.THOUGHT_WIDTH / 2 - GAME_CONFIG.ENEMY_PROJECTILE_WIDTH / 2,
-            y: bottomEnemy.y + GAME_CONFIG.THOUGHT_HEIGHT,
-            vy: projectileSpeed,
+            x: firingEnemy.x + GAME_CONFIG.THOUGHT_WIDTH / 2 - GAME_CONFIG.ENEMY_PROJECTILE_WIDTH / 2,
+            y: firingEnemy.y + GAME_CONFIG.THOUGHT_HEIGHT,
+            vy: baseEnemyProjectileSpeed, // Store base speed, DDA applied in movement loop
           }
           
           setEnemyProjectiles((prev) => [...prev, enemyProjectile])
         }
         
-        // Schedule next fire (with DDA scaling)
+        // Schedule next fire (with ENHANCED DDA scaling for difficulty increase)
         const stressSignal = ddaMetricsRef?.current?.pressureScore ?? 0.5
         let intervalMultiplier = 1.0
         if (stressSignal > 0.7) {
           // High stress: longer interval (gentler)
           intervalMultiplier = 1.3
         } else if (stressSignal < 0.3) {
-          // Low stress: shorter interval (more intense)
-          intervalMultiplier = 0.8
+          // LOW STRESS (player doing well): MUCH shorter interval (more shots fired)
+          // Scale more aggressively - at 0 stress, fire almost twice as fast
+          const lowStressFactor = 1 - (stressSignal / 0.3) // 1.0 at 0 stress, 0.0 at 0.3 threshold
+          intervalMultiplier = 0.5 + lowStressFactor * 0.3 // 0.5 (very fast at 0 stress) to 0.8 (threshold)
+        } else {
+          // Normal stress: standard interval
+          intervalMultiplier = 1.0
         }
         
         const baseInterval = (900 + Math.random() * 500) * intervalMultiplier
@@ -698,10 +789,45 @@ export function useVantageGame({
     const now = Date.now()
 
     // Start a new burst if cooldown is ready and no burst is active
+    // ENHANCED: Adjust boss fire rate based on IMMEDIATE player activity (rapid firing at boss)
     if (now >= bossNextFireAtRef.current && bossBurstRemainingRef.current === 0) {
       bossBurstRemainingRef.current = GAME_CONFIG.BOSS_BURST_COUNT
       bossNextBurstShotAtRef.current = now
-      bossNextFireAtRef.current = now + GAME_CONFIG.BOSS_FIRE_COOLDOWN_MS
+      
+      let bossFireCooldown = GAME_CONFIG.BOSS_FIRE_COOLDOWN_MS
+      
+      // IMMEDIATE RESPONSE: Check for rapid boss hits (within last 2 seconds)
+      const recentBossHits = bossHitsRef.current.filter((hitTime) => now - hitTime < 2000)
+      const timeSinceLastBossHit = now - lastBossHitAtRef.current
+      
+      // Rapid firing at boss = many hits in short time = boss fires faster IMMEDIATELY
+      // MUCH MORE CONSERVATIVE: Only respond to very extreme rapid firing
+      if (recentBossHits.length >= 8 || timeSinceLastBossHit < 200) {
+        // Player is EXTREMELY rapidly hitting boss - boss responds with slightly faster firing
+        // 8+ hits in 2 seconds OR hit within last 200ms = very mild response
+        const rapidFireFactor = 0.8 // Only 20% faster (much more conservative)
+        bossFireCooldown = GAME_CONFIG.BOSS_FIRE_COOLDOWN_MS * rapidFireFactor // ~1120ms (vs 1400ms base)
+        bossFireCooldown = Math.max(1100, bossFireCooldown) // Minimum 1100ms (much slower than before)
+      } else if (recentBossHits.length >= 6) {
+        // Very rapid firing - only slightly faster
+        bossFireCooldown = GAME_CONFIG.BOSS_FIRE_COOLDOWN_MS * 0.9 // ~1260ms (only 10% faster)
+      } else {
+        // Normal firing - use base cooldown or DDA-based adjustment
+        // Also check DDA stress signal for general player performance
+        const stressSignal = ddaMetricsRef?.current?.pressureScore ?? 0.5
+        if (stressSignal < 0.25) {
+          // Player is dominating significantly - boss fires slightly more frequently
+          const lowStressFactor = 1 - (stressSignal / 0.25) // 1.0 at 0 stress, 0.0 at 0.25
+          const cooldownReduction = 100 * lowStressFactor // Up to 100ms reduction at 0 stress (very mild)
+          bossFireCooldown = Math.max(1200, GAME_CONFIG.BOSS_FIRE_COOLDOWN_MS - cooldownReduction) // Minimum 1200ms
+        } else if (stressSignal > 0.7) {
+          // Player struggling - boss fires slower (gentler)
+          bossFireCooldown = GAME_CONFIG.BOSS_FIRE_COOLDOWN_MS * 1.2 // 20% slower (more supportive)
+        }
+        // Otherwise use base 1400ms cooldown - no adjustment
+      }
+      
+      bossNextFireAtRef.current = now + bossFireCooldown
       bossBurstCountRef.current += 1
     }
 
@@ -714,6 +840,9 @@ export function useVantageGame({
 
         // Every 4th burst, fire an aimed shot instead
         const isAimedBurst = bossBurstCountRef.current % 4 === 0 && bossBurstRemainingRef.current === GAME_CONFIG.BOSS_BURST_COUNT
+
+        // Base projectile speed for boss (will be adjusted by DDA in movement loop)
+        const baseBossProjectileSpeed = 300 // pixels per second
 
         if (isAimedBurst) {
           // Aimed shot at player
@@ -728,7 +857,8 @@ export function useVantageGame({
             x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2,
             y: spawnY,
             vx,
-            vy: 300, // pixels per second (consistent with regular enemy projectiles)
+            vy: baseBossProjectileSpeed, // Store base speed, DDA applied in movement loop
+            isBoss: true,
           }
           setEnemyProjectiles((prev) => [...prev, enemyProjectile])
         } else {
@@ -737,7 +867,8 @@ export function useVantageGame({
             id: `enemy-proj-${Date.now()}-${bossBurstRemainingRef.current}`,
             x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2,
             y: spawnY,
-            vy: 300, // pixels per second (consistent with regular enemy projectiles)
+            vy: baseBossProjectileSpeed, // Store base speed, DDA applied in movement loop
+            isBoss: true,
           }
           setEnemyProjectiles((prev) => [...prev, enemyProjectile])
         }
@@ -748,7 +879,7 @@ export function useVantageGame({
     }
   }
 
-  function checkCollisions() {
+  function checkCollisions(currentTime: number = performance.now()) {
     const currentPlayerX = playerXRef.current
     const currentPlayerY = getPlayerY()
 
@@ -803,6 +934,7 @@ export function useVantageGame({
       if (hitThoughtIds.size > 0) {
         // Track destroyed thoughts for DDA
         thoughtsDestroyedRef.current += hitThoughtIds.size
+        lastEnemyDestroyedAtRef.current = currentTime // Update last enemy destroyed timestamp (performance.now())
 
         // Spawn fragments only on meaningful events (wellness fragment events)
         // Only spawn when a wellness fragment would be created (not for every kill)
@@ -813,10 +945,31 @@ export function useVantageGame({
           const stressSignal = ddaMetricsRef?.current?.pressureScore ?? 0.5
           const wellnessProbability = 0.35 + 0.40 * stressSignal
           
-          // Fragments disabled - removed from game
-          // if (Math.random() < wellnessProbability * 0.3) {
-          //   spawnFragments(thought)
-          // }
+          // Track defeated negative thought for game over display
+          if (thought.patternId) {
+            const pattern = THOUGHT_PATTERNS.find((p: ThoughtPattern) => p.id === thought.patternId)
+            if (pattern) {
+              setDefeatedNegativeThoughts((prev) => {
+                // Only add if not already present (unique by id)
+                if (prev.some((ct) => ct.id === thought.patternId)) {
+                  return prev
+                }
+                return [
+                  ...prev,
+                  {
+                    id: pattern.id,
+                    phrase: pattern.phrase,
+                    counterRecord: pattern.counterRecord,
+                  },
+                ]
+              })
+            }
+          }
+
+          // Spawn fragments when enemy is defeated
+          if (thought.speed === 0) {
+            spawnFragments(thought)
+          }
 
           // Track conquered thought if it has a pattern (legacy - now handled by fragment taps)
           // Keep this for backwards compatibility but fragments are the primary mechanism
@@ -855,7 +1008,55 @@ export function useVantageGame({
       return remainingProjs
     })
 
-    // --- 2) Projectiles vs boss ---
+    // --- 2) Player projectiles vs enemy projectiles ---
+    // Player projectiles can destroy enemy projectiles
+    const enemyProjectilesNow = enemyProjectilesRef.current
+    setProjectiles((projs) => {
+      if (projs.length === 0 || enemyProjectilesNow.length === 0) return projs
+
+      const hitEnemyProjectileIds = new Set<string>()
+      const remainingProjs: Projectile[] = []
+
+      for (const proj of projs) {
+        const projectileRect: Rect = {
+          x: proj.x,
+          y: proj.y,
+          w: GAME_CONFIG.PROJECTILE_WIDTH,
+          h: GAME_CONFIG.PROJECTILE_HEIGHT,
+        }
+
+        let hit = false
+        for (const enemyProj of enemyProjectilesNow) {
+          if (hitEnemyProjectileIds.has(enemyProj.id)) continue
+
+          const enemyProjectileRect: Rect = {
+            x: enemyProj.x,
+            y: enemyProj.y,
+            w: GAME_CONFIG.ENEMY_PROJECTILE_WIDTH,
+            h: GAME_CONFIG.ENEMY_PROJECTILE_HEIGHT,
+          }
+
+          if (rectsIntersect(projectileRect, enemyProjectileRect)) {
+            hitEnemyProjectileIds.add(enemyProj.id)
+            hit = true
+            break
+          }
+        }
+
+        if (!hit) remainingProjs.push(proj)
+      }
+
+      // Remove hit enemy projectiles
+      if (hitEnemyProjectileIds.size > 0) {
+        setEnemyProjectiles((prev) =>
+          prev.filter((ep) => !hitEnemyProjectileIds.has(ep.id))
+        )
+      }
+
+      return remainingProjs
+    })
+
+    // --- 3) Projectiles vs boss ---
     // Use bossRef snapshot for hit test, then setBoss functional update for HP.
     if (bossNow && bossNow.phase === 'active') {
       const bossRect: Rect = {
@@ -888,6 +1089,13 @@ export function useVantageGame({
 
         if (bossHits > 0) {
           const hitTimestamp = Date.now()
+          // Track boss hits for rapid-fire detection (keep last 10 hits)
+          bossHitsRef.current.push(hitTimestamp)
+          if (bossHitsRef.current.length > 10) {
+            bossHitsRef.current = bossHitsRef.current.slice(-10)
+          }
+          lastBossHitAtRef.current = hitTimestamp
+          
           setBoss((prev) => {
             if (!prev) return null
             const prevHp = prev.hp
@@ -917,7 +1125,7 @@ export function useVantageGame({
       })
     }
 
-    // --- 3) Player vs negative thoughts + thoughts reaching bottom ---
+    // --- 4) Player vs negative thoughts + thoughts reaching bottom ---
     // Do this in ONE setNegativeThoughts pass so we do not multi-hit in a single frame.
     setNegativeThoughts((prev) => {
       if (prev.length === 0) return prev
@@ -964,7 +1172,7 @@ export function useVantageGame({
       return remaining
     })
 
-    // --- 4) Enemy projectiles vs player ---
+    // --- 5) Enemy projectiles vs player ---
     const now = Date.now()
     setEnemyProjectiles((prev) => {
       if (prev.length === 0) return prev
@@ -987,7 +1195,9 @@ export function useVantageGame({
             // Projectile is consumed, don't add to remaining
           } else if (now >= playerIFrameUntil) {
             // Only apply damage if not in iFrames
-            handlePlayerHit()
+            // Boss projectiles deal 0.5 damage, regular enemy projectiles deal 0.25 damage
+            const damage = proj.isBoss ? 0.5 : 0.25
+            handlePlayerHit(damage)
             // Projectile is consumed, don't add to remaining
           } else {
             // In iFrames - projectile still consumed but no damage
@@ -1001,7 +1211,7 @@ export function useVantageGame({
       return remaining
     })
 
-    // --- 5) Player vs power-ups ---
+    // --- 6) Player vs power-ups ---
     // Make pickup deterministic and always based on the current playerRect.
     setPowerUps((prev) => {
       if (prev.length === 0) return prev
@@ -1037,7 +1247,7 @@ export function useVantageGame({
     })
   }
 
-  function handlePlayerHit() {
+  function handlePlayerHit(damage: number = 1.0) {
     const now = Date.now()
     
     // Check iFrames - ignore damage if still invulnerable
@@ -1054,27 +1264,46 @@ export function useVantageGame({
     // Fragments disabled - removed from game
     // spawnHitFragment()
 
-    // Apply damage
-    setPlayerHp((hp) => {
-      const newHp = hp - 1
-      if (newHp <= 0) {
-        endGame(false, false)
-        return 0
-      }
-      // Set iFrames and hit flash only when damage applies
-      setPlayerIFrameUntil(now + 900)
-      setPlayerLastHitAt(now)
-      return newHp
-    })
+    // Accumulate fractional damage
+    playerHpFractionRef.current += damage
     
-    // Also update lives for compatibility
-    setLives((l) => {
-      if (l <= 1) {
-        endGame(false, false)
-        return 0
-      }
-      return l - 1
-    })
+    // Use unique timestamp for each hit to ensure DDA tracks all hits correctly
+    // Add small offset to prevent identical timestamps when multiple projectiles hit simultaneously
+    const uniqueHitTimestamp = now + Math.random() * 0.1 // 0-0.1ms offset to ensure uniqueness
+    
+    // Only apply full HP/lives reduction when accumulated damage reaches or exceeds 1.0
+    const fullDamage = Math.floor(playerHpFractionRef.current)
+    if (fullDamage >= 1) {
+      playerHpFractionRef.current -= fullDamage
+      
+      // Apply damage (full damage units)
+      setPlayerHp((hp) => {
+        const newHp = hp - fullDamage
+        if (newHp <= 0) {
+          endGame(false, false)
+          return 0
+        }
+        // Set iFrames and hit flash only when full damage applies
+        setPlayerIFrameUntil(now + 900)
+        setPlayerLastHitAt(uniqueHitTimestamp)
+        return newHp
+      })
+      
+      // Also update lives for compatibility
+      setLives((l) => {
+        const newLives = l - fullDamage
+        if (newLives <= 0) {
+          endGame(false, false)
+          return 0
+        }
+        return newLives
+      })
+    } else {
+      // Partial damage applied but not enough for full HP loss
+      // Always record hit timestamp for DDA tracking (even partial damage hits should be counted)
+      // This ensures DDA correctly tracks hit frequency with reduced damage values
+      setPlayerLastHitAt(uniqueHitTimestamp)
+    }
   }
 
   function handlePowerUp(type: PowerUpType) {
@@ -1166,9 +1395,8 @@ export function useVantageGame({
       projectilesSpawnedRef.current += newProjectiles.length
       setProjectiles((prev) => [...prev, ...newProjectiles])
     } else {
-      // Only shoot if no projectiles on screen (limit to 1)
+      // Allow multiple projectiles on screen for continuous tapping
       setProjectiles((prev) => {
-        if (prev.length >= 1) return prev
         projectilesSpawnedRef.current += 1
         const newProjectile: Projectile = {
           id: `proj-${Date.now()}`,
@@ -1292,15 +1520,12 @@ export function useVantageGame({
         : phraseText.substring(0, 27) + '...'
     }
 
-    // Position fragments in top third of playfield, not on top of formation
-    const bubbleMaxWidth = 220 // Smaller max width for readability
-    const playerY = getPlayerY()
+    // Position fragments at enemy position - they'll fall from there
+    const bubbleMaxWidth = 200
+    let fragmentX = thought.x + GAME_CONFIG.THOUGHT_WIDTH / 2
+    let fragmentY = thought.y // Start at enemy position
     
-    // Spawn in top third of playfield
-    let fragmentX = thought.x
-    let fragmentY = Math.max(60, Math.min(thought.y - 60, gameHeight * 0.35))
-    
-    // Clamp x inside playfield bounds (account for maxWidth)
+    // Clamp x inside playfield bounds
     fragmentX = Math.max(8, Math.min(fragmentX, gameWidth - bubbleMaxWidth - 8))
 
     const fragment: Fragment = {
@@ -1315,8 +1540,8 @@ export function useVantageGame({
       counterRecord: pattern.counterRecord,
     }
 
-    // Randomize TTL between 900-1100ms
-    fragment.ttlMs = 900 + Math.random() * 200
+    // Randomize TTL between 4000-6000ms for slow, leaf-like falling animation
+    fragment.ttlMs = 4000 + Math.random() * 2000
     fragmentTTLRef.current.set(fragment.id, Date.now() + fragment.ttlMs)
 
     // Update cooldowns
@@ -1450,6 +1675,7 @@ export function useVantageGame({
     setLives(difficultyConfig.initialLives)
     setPlayerHp(difficultyConfig.initialLives)
     setPlayerIFrameUntil(0)
+    playerHpFractionRef.current = 0 // Reset fractional damage accumulation
     setProjectiles([])
     setEnemyProjectiles([])
     setNegativeThoughts([])
@@ -1459,6 +1685,9 @@ export function useVantageGame({
     setPlayerLastHitAt(0)
     projectilesSpawnedRef.current = 0
     thoughtsDestroyedRef.current = 0
+    lastEnemyDestroyedAtRef.current = 0
+    bossHitsRef.current = []
+    lastBossHitAtRef.current = 0
     setBossTelegraphActive(false)
     setBossTelegraphLabel(undefined)
     bossNextFireAtRef.current = 0
@@ -1471,6 +1700,7 @@ export function useVantageGame({
     setThoughtEchoes([])
     setConqueredThoughts([])
     setFragments([])
+    setDefeatedNegativeThoughts([])
     fragmentTTLRef.current.clear()
     fragmentGlobalCooldownRef.current = 0
     fragmentPhraseCooldownRef.current.clear()
@@ -1482,7 +1712,8 @@ export function useVantageGame({
     thoughtEchoCooldownRef.current.clear()
     setWaveDefeatedPatterns(new Set())
     setWave(1)
-    setFormationDir(1)
+    projectilesClearedForWaveRef.current = 0 // Reset projectile clear tracking
+    formationDirRef.current = 1
     setFormationTickMs(difficultyConfig.formationTickMs)
     setGameSpeed(GAME_CONFIG.DEFAULT_GAME_SPEED)
     const startX = getPlayerStartX()
@@ -1546,6 +1777,7 @@ export function useVantageGame({
     bossTelegraphLabel,
     playerLastHitAt,
     conqueredThoughts,
+    defeatedNegativeThoughts,
     fragments,
     wave,
     gameSpeed,
@@ -1557,6 +1789,8 @@ export function useVantageGame({
     projectilesSpawned: projectilesSpawnedRef.current,
     thoughtsDestroyed: thoughtsDestroyedRef.current,
     gameStartTime: gameStartTimeRef.current,
+    lastShotAt: lastShotAtRef.current,
+    lastEnemyDestroyedAt: lastEnemyDestroyedAtRef.current,
     // Actions
     shoot,
     setVelocity,

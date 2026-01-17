@@ -158,15 +158,6 @@ class ApiClient {
       ...fetchOptions.headers,
     }
 
-    // Debug: Log auth header for full_profile requests
-    if (endpoint.includes('full_profile')) {
-      console.log('Full profile request:', {
-        url,
-        hasAuth: !!authHeader,
-        authHeader: authHeader ? `${authHeader.substring(0, 20)}...` : 'none',
-      })
-    }
-
     const config: RequestInit = {
       method,
       headers,
@@ -220,17 +211,6 @@ class ApiClient {
 
         // Parse successful response
         const data = await response.json()
-        
-        // Debug: Log response for full_profile endpoint to see actual structure
-        if (endpoint.includes('full_profile')) {
-          console.log('Full profile API response:', {
-            endpoint,
-            status: response.status,
-            dataKeys: Object.keys(data),
-            hasCharacter: !!data.character,
-            characterKeys: data.character ? Object.keys(data.character) : null,
-          })
-        }
         
         return data
       } catch (error) {

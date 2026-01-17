@@ -41,15 +41,12 @@ export default function RootLayout() {
   // Configure audio mode on app start - this is critical for audio playback
   useEffect(() => {
     async function configureAudio() {
-      try {
+   
         await setAudioModeAsync({
           playsInSilentMode: true, // Allow audio to play even when device is in silent mode (iOS)
           allowsRecording: false, // We're not recording, so set to false
         })
-        console.log('🎵 Audio mode configured successfully')
-      } catch (error) {
-        console.error('❌ Error configuring audio mode:', error)
-      }
+ 
     }
     configureAudio()
   }, [])

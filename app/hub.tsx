@@ -22,11 +22,6 @@ export default function Hub() {
   const voidClarity = story.voidClarity
   const libraryOpacity = Math.min(1, voidClarity / 100 + 0.3)
 
-  // Debug: Log sound state on mount
-  React.useEffect(() => {
-    console.log('🔊 Hub mounted - soundMuted state:', soundMuted)
-  }, [soundMuted])
-  
   const [activeIndex, setActiveIndex] = useState(0)
   const horizontalScrollRef = useRef<ScrollView>(null)
 

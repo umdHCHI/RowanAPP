@@ -16,8 +16,8 @@ export function StoryCard({ card }: StoryCardProps) {
   const playPageFlipSound = usePageFlipSound()
   const [isContentWarningVisible, setIsContentWarningVisible] = useState(false)
   const isCompleted = card.status === 'completed'
-  
-  // Use backend image URL if available
+
+
   const hasBackendImage = !!card.imageUrl
 
   return (

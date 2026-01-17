@@ -64,7 +64,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: '#15111f',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -74,8 +76,10 @@ const styles = StyleSheet.create({
     height: 20,
   },
   attributeChangeText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'FontTitle-White',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
 })
 

@@ -1,4 +1,5 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet, Modal } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import type { ConqueredThought } from '@/types/game'
 
@@ -8,6 +9,7 @@ interface GameOverDialogProps {
   won: boolean
   bossDefeated: boolean
   conqueredThoughts: ConqueredThought[]
+  defeatedNegativeThoughts?: ConqueredThought[]
   onDismiss: () => void
   onPlayAgain: () => void
   onBackToHub: () => void
@@ -19,13 +21,13 @@ export function GameOverDialog({
   won,
   bossDefeated,
   conqueredThoughts,
+  defeatedNegativeThoughts = [],
   onDismiss,
   onPlayAgain,
   onBackToHub,
 }: GameOverDialogProps) {
   const playPageFlipSound = usePageFlipSound()
-
-  if (!visible) return null
+  const insets = useSafeAreaInsets()
 
   function handlePlayAgain() {
     playPageFlipSound()
@@ -43,9 +45,15 @@ export function GameOverDialog({
   }
 
   return (
-    <View style={styles.overlay}>
-      <Pressable style={styles.backdrop} onPress={handleDismiss} />
-      <View style={styles.card}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleDismiss}
+    >
+      <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <Pressable style={styles.backdrop} onPress={handleDismiss} />
+        <View style={styles.card}>
         <Text style={styles.title}>{won ? 'Victory!' : 'Game Over'}</Text>
         {won && bossDefeated && (
           <Text style={styles.subtitle}>You've sealed the breach.</Text>
@@ -59,15 +67,42 @@ export function GameOverDialog({
         {bossDefeated && (
           <Text style={styles.bossText}>Boss Defeated!</Text>
         )}
-        {conqueredThoughts.length > 0 && (
+        {(conqueredThoughts.length > 0 || defeatedNegativeThoughts.length > 0) && (
           <View style={styles.archiveSection}>
             <Text style={styles.archiveTitle}>Archive Record</Text>
-            {conqueredThoughts.slice(0, 3).map((thought) => (
-              <View key={thought.id} style={styles.thoughtRecord}>
-                <Text style={styles.thoughtPhrase}>"{thought.phrase}"</Text>
-                <Text style={styles.counterRecord}>{thought.counterRecord}</Text>
-              </View>
-            ))}
+            
+            {/* Positive thoughts (conquered/reframed) */}
+            {conqueredThoughts.length > 0 && (
+              <>
+                {conqueredThoughts.length > 0 && (
+                  <Text style={styles.thoughtCategoryTitle}>Reframed Thoughts</Text>
+                )}
+                {conqueredThoughts.slice(0, 5).map((thought) => (
+                  <View key={`positive-${thought.id}`} style={styles.thoughtRecord}>
+                    <Text style={styles.thoughtPhrase}>"{thought.phrase}"</Text>
+                    <Text style={styles.counterRecord}>{thought.counterRecord}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+            
+            {/* Negative thoughts (defeated) */}
+            {defeatedNegativeThoughts.length > 0 && (
+              <>
+                {conqueredThoughts.length > 0 && defeatedNegativeThoughts.length > 0 && (
+                  <View style={styles.thoughtDivider} />
+                )}
+                {defeatedNegativeThoughts.length > 0 && (
+                  <Text style={styles.thoughtCategoryTitle}>Defeated Thoughts</Text>
+                )}
+                {defeatedNegativeThoughts.slice(0, 5).map((thought) => (
+                  <View key={`negative-${thought.id}`} style={styles.thoughtRecord}>
+                    <Text style={styles.thoughtPhrase}>"{thought.phrase}"</Text>
+                    <Text style={styles.counterRecord}>{thought.counterRecord}</Text>
+                  </View>
+                ))}
+              </>
+            )}
           </View>
         )}
         <View style={styles.buttonRow}>
@@ -89,38 +124,30 @@ export function GameOverDialog({
             ]}
             onPress={handlePlayAgain}
           >
-            <Text style={styles.primaryButtonText}>Play Again</Text>
+            <Text style={styles.secondaryButtonText}>Play Again</Text>
           </Pressable>
         </View>
       </View>
     </View>
+    </Modal>
   )
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2000,
   },
   backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
   },
   card: {
-    backgroundColor: 'rgba(26, 26, 46, 0.95)',
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
+    backgroundColor: '#1a1a2e',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     padding: 24,
     maxWidth: 340,
     width: '90%',
@@ -129,33 +156,35 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'BeyondWonderland',
     fontSize: 32,
-    color: 'rgba(255, 255, 255, 0.92)',
+    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
-    fontFamily: 'CrimsonPro-Medium-Italic',
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontFamily: 'VT323-Regular',
+    fontSize: 24,
+    color: '#ffffff',
     textAlign: 'center',
-    fontStyle: 'italic',
     marginBottom: 16,
+    opacity: 0.9,
   },
   scoreText: {
-    fontFamily: 'Quicksand-SemiBold',
-    fontSize: 20,
-    color: 'rgba(212, 175, 55, 0.9)',
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 3,
+    color: '#ffffffcc',
     textAlign: 'center',
     marginBottom: 8,
-    fontWeight: '600',
   },
   bossText: {
-    fontFamily: 'Quicksand-SemiBold',
-    fontSize: 14,
-    color: 'rgba(212, 175, 55, 0.8)',
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 3,
+    color: '#ffffffcc',
     textAlign: 'center',
     marginBottom: 20,
-    fontWeight: '600',
   },
   archiveSection: {
     width: '100%',
@@ -163,38 +192,52 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(212, 175, 55, 0.2)',
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   archiveTitle: {
-    fontFamily: 'Quicksand-SemiBold',
-    fontSize: 12,
-    color: 'rgba(212, 175, 55, 0.7)',
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 3,
+    color: '#ffffffcc',
     textAlign: 'center',
     marginBottom: 12,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   thoughtRecord: {
     marginBottom: 16,
     paddingHorizontal: 8,
   },
   thoughtPhrase: {
-    fontFamily: 'CrimsonPro-Medium-Italic',
-    fontSize: 15,
-    color: 'rgba(245, 245, 245, 0.92)',
-    fontStyle: 'italic',
+    fontFamily: 'VT323-Regular',
+    fontSize: 24,
+    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 6,
-    lineHeight: 20,
+    lineHeight: 24,
+    opacity: 0.9,
   },
   counterRecord: {
-    fontFamily: 'CrimsonPro-Medium-Italic',
+    fontFamily: 'System',
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontStyle: 'italic',
+    color: '#ffffffaa',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  thoughtCategoryTitle: {
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 3,
+    color: '#ffffffcc',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  thoughtDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginVertical: 12,
+    marginHorizontal: 8,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -204,33 +247,48 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 3,
     alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
   },
   primaryButton: {
-    borderColor: 'rgba(212, 175, 55, 0.6)',
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    borderColor: '#ffffff',
+    backgroundColor: '#15111f',
   },
   secondaryButton: {
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: '#15111f',
   },
   buttonPressed: {
     opacity: 0.7,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   primaryButtonText: {
-    fontFamily: 'Quicksand-SemiBold',
+    fontFamily: 'FontTitle-White',
     fontSize: 14,
-    color: 'rgba(212, 175, 55, 0.9)',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    letterSpacing: 1,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   secondaryButtonText: {
-    fontFamily: 'Quicksand-SemiBold',
+    fontFamily: 'FontTitle-White',
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    letterSpacing: 1,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 })

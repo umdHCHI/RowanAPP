@@ -1,29 +1,38 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, StyleSheet, Text, Platform } from 'react-native'
-import type { StoryResponse } from '@/api/types'
+import type { StoryResponse, UserFullProfileResponse } from '@/api/types'
 
 interface StoryInformationCardProps {
   story: StoryResponse
+  progress?: UserFullProfileResponse['story_progress'][0]
 }
 
 /**
  * Story Information Card Component
  * Displays detailed information about a story in a card format
  */
-export function StoryInformationCard({ story }: StoryInformationCardProps) {
-  function formatDuration(minutes: number | undefined): string {
-    if (!minutes) return 'N/A'
-    if (minutes < 60) return `${minutes} min`
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
-  }
-
+export function StoryInformationCard({ story, progress }: StoryInformationCardProps) {
   // Determine label based on category
   const isIntroduction = story.title.toLowerCase().includes('introduction')
   const label = story.category === 'main' 
     ? (isIntroduction ? 'INTRODUCTION' : `STORY ${story.id}`)
     : story.category.toUpperCase()
+
+  // Calculate NPC interactions from choices (count choices that involve NPCs like The Curator)
+  const npcInteractions = useMemo(() => {
+    if (!progress?.choices_made) return 0
+    // Count choices that involve NPC interactions (e.g., curator, dialogue choices)
+    return progress.choices_made.filter(choice => {
+      const choiceId = choice.choice_id.toLowerCase()
+      const choiceText = choice.choice_text.toLowerCase()
+      // Check for NPC-related choice IDs or text
+      return choiceId.includes('curator') || 
+             choiceId.includes('npc') || 
+             choiceText.includes('curator') ||
+             choiceText.includes('talk to') ||
+             choiceText.includes('speak with')
+    }).length
+  }, [progress?.choices_made])
 
   return (
     <View style={styles.card}>
@@ -43,50 +52,34 @@ export function StoryInformationCard({ story }: StoryInformationCardProps) {
         </View>
       )}
 
-      {/* Story Details Grid */}
-      <View style={styles.detailsGrid}>
-        {/* Estimated Time */}
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Estimated Time</Text>
-          <Text style={styles.detailValue}>
-            {formatDuration(story.estimated_time_minutes)}
-          </Text>
-        </View>
-
-        {/* Category */}
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Category</Text>
-          <Text style={styles.detailValue}>{story.category.toUpperCase()}</Text>
-        </View>
-
-        {/* Difficulty */}
-        {story.difficulty && (
+      {/* Progress Stats Grid */}
+      {progress && (
+        <View style={styles.detailsGrid}>
+          {/* Total Story Passages */}
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Difficulty</Text>
-            <Text style={styles.detailValue}>{story.difficulty.toUpperCase()}</Text>
+            <Text style={styles.detailLabel}>Total Story Passages</Text>
+            <Text style={styles.detailValue}>
+              {story.total_passages || 0}
+            </Text>
           </View>
-        )}
 
-        {/* Rarity */}
-        {story.rarity && (
+          {/* NPC Interactions */}
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Rarity</Text>
-            <Text style={styles.detailValue}>{story.rarity.toUpperCase()}</Text>
+            <Text style={styles.detailLabel}>NPC Interactions</Text>
+            <Text style={styles.detailValue}>
+              {npcInteractions}
+            </Text>
           </View>
-        )}
 
-        {/* Chapters */}
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Chapters</Text>
-          <Text style={styles.detailValue}>{story.chapter_count || story.chapters?.length || 0}</Text>
+          {/* Decisions Made */}
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Decisions Made</Text>
+            <Text style={styles.detailValue}>
+              {progress.choices_made?.length || 0}
+            </Text>
+          </View>
         </View>
-
-        {/* Total Passages */}
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Total Passages</Text>
-          <Text style={styles.detailValue}>{story.total_passages || 0}</Text>
-        </View>
-      </View>
+      )}
 
       {/* Atmosphere */}
       {story.atmosphere && (

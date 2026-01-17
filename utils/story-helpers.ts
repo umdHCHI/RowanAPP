@@ -22,7 +22,11 @@ export function getStoryImageUrl(imagePath: string | null | undefined): string |
 
   // Ensure path starts with /
   const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`
-  return `${serverBaseUrl}${cleanPath}`
+
+  // Backend media lives under /media, so add the segment when callers omit it
+  const normalizedPath = cleanPath.startsWith('/media/') ? cleanPath : `/media${cleanPath}`
+
+  return `${serverBaseUrl}${normalizedPath}`
 }
 
 /**

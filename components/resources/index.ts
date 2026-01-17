@@ -1,5 +1,5 @@
 export { ResourcesPage } from './ResourcesPage'
-export { ResourcesPowersTab } from './ResourcesPowersTab'
+export { ResourcesSettingsTab } from './ResourcesSettingsTab'
 export { ResourcesResourcesTab } from './ResourcesResourcesTab'
 export { ResourcesMemoriesTab } from './ResourcesMemoriesTab'
 export { ResourceItemCard } from './ResourceItemCard'

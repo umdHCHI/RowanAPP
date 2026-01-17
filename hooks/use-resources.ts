@@ -21,7 +21,7 @@ export interface MemoryItem {
   title: string
   type: string
   description?: string
-  modality?: 'write' | 'draw' | 'voice' | 'journal_reward'
+  modality?: 'journal' | 'draw' | 'voice' | 'journal_reward'
   content?: string
   // Story progress fields
   storyId?: number

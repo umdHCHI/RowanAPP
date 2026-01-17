@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { View, Image, Animated, Text, StyleSheet } from 'react-native'
 import { GAME_CONFIG } from '@/utils/vantage-constants'
 import type { Boss } from '@/types/game'
@@ -15,7 +15,9 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
   const flash = useRef(new Animated.Value(0)).current
   const shake = useRef(new Animated.Value(0)).current
   const telegraphGlow = useRef(new Animated.Value(0)).current
+  const fadeIn = useRef(new Animated.Value(0)).current
   const lastHitAtRef = useRef<number | undefined>(undefined)
+  const hasAnimatedInRef = useRef(false)
 
   // Calculate inverseDifficulty factor for adaptive pacing
   // Lower difficultyLevel (1) = higher pressure = slower animations, more visible telegraph
@@ -32,6 +34,18 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
 
   // Shake intensity: Lower difficulty = subtler shake
   const shakeIntensity = Math.max(1, difficultyLevel * 0.4) // Range: 1 (difficulty 1-2) to 4 (difficulty 10)
+
+  // Fade in on first render to prevent double-render flash
+  useEffect(() => {
+    if (!hasAnimatedInRef.current) {
+      hasAnimatedInRef.current = true
+      Animated.timing(fadeIn, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start()
+    }
+  }, [fadeIn])
 
   useEffect(() => {
     if (lastHitAt !== undefined && lastHitAt !== lastHitAtRef.current) {
@@ -124,6 +138,7 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
         height: GAME_CONFIG.BOSS_HEIGHT,
         alignItems: 'center',
         justifyContent: 'center',
+        opacity: fadeIn,
         transform: [{ translateX: shakeTranslateX }],
       }}
     >
@@ -144,7 +159,7 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
           style={{
             width: `${(boss.hp / boss.maxHp) * 100}%`,
             height: '100%',
-            backgroundColor: 'rgba(212, 175, 55, 0.85)',
+            backgroundColor: '#ffffff',
           }}
         />
       </View>
@@ -155,9 +170,9 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
           width: GAME_CONFIG.BOSS_WIDTH,
           height: GAME_CONFIG.BOSS_HEIGHT,
           borderWidth: 1,
-          borderColor: 'rgba(212, 175, 55, 0.25)',
+          borderColor: 'rgba(255, 255, 255, 0.2)',
           backgroundColor: 'rgba(0, 0, 0, 0.15)',
-          borderRadius: 14,
+          borderRadius: 24,
           overflow: 'hidden',
         }}
       >
@@ -179,7 +194,7 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
             right: 0,
             bottom: 0,
             backgroundColor: 'rgba(255, 60, 60, 0.25)',
-            borderRadius: 14,
+            borderRadius: 24,
             opacity: flash,
           }}
           pointerEvents="none"
@@ -193,8 +208,8 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(212, 175, 55, 0.18)',
-            borderRadius: 14,
+            backgroundColor: 'rgba(255, 255, 255, 0.18)',
+            borderRadius: 24,
             opacity: telegraphOpacity,
           }}
           pointerEvents="none"
@@ -221,14 +236,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   captionText: {
-    fontFamily: 'Quicksand-Medium',
-    fontSize: 11,
-    color: 'rgba(212, 175, 55, 0.9)',
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 3,
+    color: '#ffffffcc',
     textAlign: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     overflow: 'hidden',
   },
 })

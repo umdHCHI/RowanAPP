@@ -14,6 +14,7 @@ import {
   GameProjectile,
   GameEnemyProjectile,
   GameNegativeThought,
+  GameFragment,
   GamePowerUp,
   GameBoss,
   GameOverlay,
@@ -133,6 +134,8 @@ export default function Vantage() {
     projectilesSpawned: game.projectilesSpawned,
     thoughtsDestroyed: game.thoughtsDestroyed,
     gameStartTime: game.gameStartTime,
+    lastShotAt: game.lastShotAt,
+    lastEnemyDestroyedAt: game.lastEnemyDestroyedAt,
   })
 
   // Update DDA metrics ref so game hook can access them
@@ -177,6 +180,11 @@ export default function Vantage() {
 
   function handleBackToHub() {
     router.replace('/hub')
+  }
+
+  function handleBackToResources() {
+    playPageFlipSound()
+    router.push('/resources')
   }
 
 
@@ -267,6 +275,15 @@ export default function Vantage() {
               {game.enemyProjectiles.map((proj) => (
                 <GameEnemyProjectile key={proj.id} projectile={proj} />
               ))}
+              {game.fragments?.map((fragment) => (
+                <GameFragment
+                  key={fragment.id}
+                  fragment={fragment}
+                  onTap={game.handleFragmentTap}
+                  gameHeight={gameHeight}
+                  gameWidth={gameWidth}
+                />
+              ))}
               <GamePlayer x={game.playerX} y={game.playerY} shieldActive={game.shieldActive} />
 
 
@@ -288,30 +305,25 @@ export default function Vantage() {
 
       {/* Start Screen Overlay - Outside GameArea to ensure it's always visible */}
       {!game.isPlaying && !game.gameOver && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 1000,
-            elevation: 1000,
-          }}
-          pointerEvents="box-none"
-        >
-          <GameOverlay 
-            type="start" 
-            difficulty={difficulty}
-            onStart={handleStartGame}
-            onDifficultyChange={setDifficulty}
-          />
-        </View>
+        <GameOverlay 
+          type="start" 
+          difficulty={difficulty}
+          onStart={handleStartGame}
+          onDifficultyChange={setDifficulty}
+          onDismiss={handleBackToResources}
+        />
       )}
 
       {/* Victory Overlay */}
       {game.gameOver && gameWon && (
-        <GameOverlay type="victory" score={game.score} />
+        <GameOverlay 
+          type="victory" 
+          score={game.score}
+          conqueredThoughts={game.conqueredThoughts || []}
+          defeatedNegativeThoughts={game.defeatedNegativeThoughts || []}
+          onPlayAgain={handlePlayAgain}
+          onBackToHub={handleBackToHub}
+        />
       )}
 
       {/* Game Over Overlay - This internally renders GameOverDialog, so we don't need a separate one */}
@@ -321,7 +333,8 @@ export default function Vantage() {
           score={game.score}
           won={gameWon}
           bossDefeated={bossDefeated}
-          conqueredThoughts={[]}
+          conqueredThoughts={game.conqueredThoughts || []}
+          defeatedNegativeThoughts={game.defeatedNegativeThoughts || []}
           onDismiss={() => {}}
           onPlayAgain={handlePlayAgain}
           onBackToHub={handleBackToHub}
