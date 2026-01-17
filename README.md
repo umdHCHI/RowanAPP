@@ -1,27 +1,25 @@
-# The Archive
+# The Archive - Newest Spring Working Version taking the Expert Study Into Account
 
-A React Native stress management app for college students, inspired by Betwixt. Navigate through "The Archive" - a mystical library that reveals itself as you gain understanding of stress and learn to manage it.
+Here we make changes to the original application and implement the expert findings into this application. 
 
 ## Features
 
-### 🎮 Core Gameplay
+###  Core Gameplay - Mimics What we had before
 - **Character Creation**: Create your unique avatar to journey through The Archive
 - **Story Progression**: Experience a narrative that starts in "the void" and gradually reveals The Archive library
 - **Choice-Based Narrative**: Make decisions that affect your attributes and story progression
-- **Attribute System**: Build four core attributes through your choices:
+- **Attribute System**: Build four core attributes through your choices: - Not sure how to implement
   - **Connection**: Your ability to connect with others and seek support
   - **Courage**: Your bravery in facing challenges
   - **Exploration**: Your curiosity and willingness to explore new solutions
   - **Fear**: Your awareness and understanding of fear
 
-### 🎯 Game Mechanics
-- **Visual Progression**: The void gradually clears to reveal The Archive as you progress
-- **Equipment System**: Unlock gear and items throughout your journey
+###  Game Mechanics
 - **The Curator**: Guided by a mysterious hooded cat NPC with various emotional states
 
-### 📝 End Game Features
+###  Story Game Features
 - **Journal**: Reflect on your journey with guided prompts
-- **Thought Defender**: A space-invaders style minigame for practicing thought reframing
+- **Vantage**: A space-invaders style minigame for practicing thought reframing
 
 ## Getting Started
 
@@ -91,36 +89,15 @@ thearchive/
 └── hauntedlibrary.png    # Background image
 ```
 
-## Design Principles
-
-This app follows the **Mechanics, Dynamics, Aesthetics (MDA)** framework:
-
-### Mechanics
-- Choice-based story progression
-- Attribute system that responds to player choices
-- Equipment unlocking through narrative progress
-- Score-based minigame mechanics
-
-### Dynamics
-- Player agency through meaningful choices
-- Progressive revelation of the world
-- Risk/reward in decision making
-- Skill development through practice (minigame)
-
-### Aesthetics
-- **Fantasy**: Whimsical library setting
-- **Discovery**: Unveiling The Archive through progression
-- **Expression**: Character creation and customization
-- **Challenge**: Managing attributes and minigame skill
-- **Narrative**: Engaging story with The Curator
-
-## Technologies
+## Technologies used
 
 - **React Native** with **Expo** - Cross-platform mobile development
 - **Expo Router** - File-based routing
 - **TypeScript** - Type safety
 - **Zustand** - State management with persistence
 - **Zod** - Schema validation
+
+- This is expanding slowly 
 
 ## Contributing
 
