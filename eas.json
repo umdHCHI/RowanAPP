@@ -1,0 +1,44 @@
+{
+  "cli": {
+    "version": ">= 16.20.1",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "production": {
+      "releaseChannel": "prod",
+      "developmentClient": false,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "${EXPO_PUBLIC_API_URL}",
+        "EXPO_PUBLIC_API_TOKEN": "${EXPO_PUBLIC_API_TOKEN}"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "${EXPO_PUBLIC_API_URL}",
+        "EXPO_PUBLIC_API_TOKEN": "${EXPO_PUBLIC_API_TOKEN}"
+      }
+    },
+    "android-simulator": {
+      "extends": "development",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "ios-simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

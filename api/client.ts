@@ -5,9 +5,10 @@ import type { ApiResponse, ApiError } from './types'
  * Get Authorization header
  */
 function getAuthHeader(): string {
-  if (API_CONFIG.AUTH_TOKEN) {
+  const token = API_CONFIG.AUTH_TOKEN
+  if (token && token.trim()) {
     // Using Token authentication (common for Django REST Framework)
-    return `Token ${API_CONFIG.AUTH_TOKEN}`
+    return `Token ${token}`
   }
   return ''
 }
@@ -35,7 +36,21 @@ class ApiClient {
   private maxRetries: number
 
   constructor() {
-    this.baseURL = API_CONFIG.BASE_URL
+    // Validate env vars on client creation - provide helpful error if missing
+    if (!API_CONFIG.BASE_URL || !API_CONFIG.AUTH_TOKEN) {
+      const missing = []
+      if (!API_CONFIG.BASE_URL) missing.push('EXPO_PUBLIC_API_URL')
+      if (!API_CONFIG.AUTH_TOKEN) missing.push('EXPO_PUBLIC_API_TOKEN')
+      
+      console.error(
+        `Missing required environment variables: ${missing.join(', ')}\n` +
+        `Please ensure your .env file exists at:\n` +
+        `C:\\dev\\coding\\react_native\\betwixtclone\\thearchive\\.env\n\n` +
+        `After creating/updating .env, restart the Expo dev server with: npm start -- --clear`
+      )
+    }
+    
+    this.baseURL = API_CONFIG.BASE_URL || ''
     this.timeout = API_CONFIG.TIMEOUT
     this.maxRetries = API_CONFIG.MAX_RETRIES
   }
@@ -148,6 +163,14 @@ class ApiClient {
     body?: unknown,
     options: RequestOptions & { skipVersion?: boolean } = {}
   ): Promise<ApiResponse<T>> {
+    // Validate configuration before making request
+    if (!this.baseURL) {
+      throw new Error(
+        'API base URL is not configured. Please set EXPO_PUBLIC_API_URL in your .env file.\n' +
+        'Location: C:\\dev\\coding\\react_native\\betwixtclone\\thearchive\\.env'
+      )
+    }
+    
     const { timeout = this.timeout, retries = this.maxRetries, skipVersion = false, ...fetchOptions } = options
 
     const url = this.getUrl(endpoint, skipVersion)

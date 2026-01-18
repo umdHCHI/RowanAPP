@@ -179,11 +179,28 @@ export async function getStartingPassageId(
 
 /**
  * Normalize passage state from API response
+ * Backend already provides speaker_image, speaker_name, passage_type, passage_id
  */
 export function normalizePassageState(state: any, chapterTitle?: string, chapterNumber?: number) {
   // Normalize choices
   if (state.passage?.choices && Array.isArray(state.passage.choices)) {
     state.passage.choices = normalizeChoices(state.passage.choices)
+  }
+
+  // Debug: Log passage data for action and decision types to see what fields are available
+  if (__DEV__ && state.passage) {
+    const passage = state.passage
+    if (passage.passage_type === 'action' || passage.passage_type === 'decision') {
+      console.log(`[normalizePassageState] ${passage.passage_type} passage:`, {
+        passage_id: passage.passage_id,
+        passage_type: passage.passage_type,
+        speaker_image: passage.speaker_image,
+        speaker_name: passage.speaker_name,
+        speaker: passage.speaker,
+        // Log all keys to see what else might be available
+        allKeys: Object.keys(passage),
+      })
+    }
   }
 
   // Override chapter info if provided

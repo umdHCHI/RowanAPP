@@ -1,5 +1,4 @@
 import { Text as RNText, StyleSheet } from 'react-native'
-import { Text } from 'react-native-paper'
 
 interface JournalHeaderProps {
   characterName?: string | null
@@ -14,9 +13,9 @@ export function JournalHeader({ characterName }: JournalHeaderProps) {
       >
         Your Journal
       </RNText>
-      <Text variant="bodyMedium" style={styles.subtitle}>
+      <RNText style={styles.subtitle}>
         Welcome back, {characterName || 'Scholar'}
-      </Text>
+      </RNText>
     </>
   )
 }

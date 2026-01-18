@@ -75,3 +75,13 @@ export {
   useUserFullProfile,
   userKeys,
 } from './hooks/use-user'
+
+// Hooks - Auth
+export {
+  useAuthUserId,
+  useIsAuthenticated,
+  useCurrentUser,
+  useCurrentUserFullProfile,
+  useAuthActions,
+  useRequiredAuthUserId,
+} from './hooks/use-auth'

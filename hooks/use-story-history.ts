@@ -51,11 +51,12 @@ export function useStoryHistory({ currentPassage }: UseStoryHistoryProps) {
 
   const addReward = useCallback((reward: { 
     id: string
-    type: 'journal_entry' | 'minigame' | 'power' | 'skill' | 'gear'
+    type: 'journal_entry' | 'minigame' | 'power' | 'skill' | 'gear' | 'lumens'
     title: string
     subtitle?: string
     journalEntryId?: string
     minigameLevel?: string
+    lumensAmount?: number
   }) => {
     setHistory((prev) => [
       ...prev,
@@ -68,6 +69,7 @@ export function useStoryHistory({ currentPassage }: UseStoryHistoryProps) {
         rewardSubtitle: reward.subtitle,
         journalEntryId: reward.journalEntryId,
         minigameLevel: reward.minigameLevel,
+        lumensAmount: reward.lumensAmount,
       },
     ])
   }, [])

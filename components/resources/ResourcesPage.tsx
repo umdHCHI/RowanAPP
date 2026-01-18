@@ -108,7 +108,8 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
               style={styles.headerButton}
               onPress={() => {
                 playPageFlipSound()
-                router.push('/vantage')
+                const vantageUrl = storyId ? `/vantage?storyId=${storyId}` : '/vantage'
+                router.push(vantageUrl)
               }}
             >
               <MaterialCommunityIcons name="gamepad-variant" size={24} color="#ffffff" />

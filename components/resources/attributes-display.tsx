@@ -1,7 +1,6 @@
 import React from 'react'
-import { View, Image } from 'react-native'
+import { View, Image, Text, StyleSheet } from 'react-native'
 import { useGameStore, type AttributeLevel } from '@/stores/game-store'
-import { Card, Text, useTheme } from 'react-native-paper'
 
 interface AttributeDisplayProps {
   showImages?: boolean
@@ -17,7 +16,6 @@ interface AttributeDisplayProps {
 export function AttributesDisplay({ showImages = false, attributes: propsAttributes }: AttributeDisplayProps) {
   const { attributes: storeAttributes } = useGameStore()
   const attributes = propsAttributes ?? storeAttributes
-  const theme = useTheme()
 
   const connectionImages: Record<number, any> = {
     1: require('../../assets/attributes/connection/connectionLv1.png'),
@@ -83,11 +81,10 @@ export function AttributesDisplay({ showImages = false, attributes: propsAttribu
             flex: 1,
             height: 8,
             backgroundColor: isFilled
-              ? theme.colors.primary
-              : theme.colors.surfaceVariant,
+              ? '#D4A574'
+              : 'rgba(0, 0, 0, 0.4)',
             borderRadius: 4,
           }
-          // @ts-expect-error - key is a valid React prop but TypeScript doesn't recognize it on View
           return <View key={`bar-${index}`} style={style} />
         })}
       </View>
@@ -96,31 +93,17 @@ export function AttributesDisplay({ showImages = false, attributes: propsAttribu
 
   return (
     <View style={{ paddingHorizontal: 24 }}>
-      {/* @ts-expect-error - children are present but TypeScript checks props before seeing JSX children */}
-      <Text
-        variant="titleLarge"
-        style={{
-          color: theme.colors.onSurface,
-          marginBottom: 20,
-          letterSpacing: 0.5,
-          paddingHorizontal: 8,
-        }}
-      >
+      <Text style={styles.title}>
         Your Attributes
       </Text>
       {attributeConfig.map((attr) => {
         const level = attributes[attr.key]
         return (
-          // @ts-expect-error - children (Card.Content) are present but TypeScript checks props before seeing JSX children
-          <Card
+          <View
             key={attr.key}
-            style={{
-              backgroundColor: theme.colors.surface,
-              marginBottom: 16,
-            }}
+            style={styles.card}
           >
-            {/* @ts-expect-error - children are present but TypeScript checks props before seeing JSX children */}
-            <Card.Content style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
+            <View style={styles.cardContent}>
               {showImages && attr.images[level] && (
                 <Image
                   source={attr.images[level]}
@@ -136,33 +119,58 @@ export function AttributesDisplay({ showImages = false, attributes: propsAttribu
                     marginBottom: 8,
                   }}
                 >
-                  {/* @ts-expect-error - children are present but TypeScript checks props before seeing JSX children */}
-                  <Text
-                    variant="bodyLarge"
-                    style={{
-                      color: theme.colors.onSurface,
-                      letterSpacing: 0.3,
-                    }}
-                  >
+                  <Text style={styles.attributeLabel}>
                     {attr.label}
                   </Text>
-                  {/* @ts-expect-error - children are present but TypeScript checks props before seeing JSX children */}
-                  <Text
-                    variant="bodyLarge"
-                    style={{
-                      color: theme.colors.primary,
-                      fontWeight: '500',
-                    }}
-                  >
+                  <Text style={styles.attributeValue}>
                     {level}/5
                   </Text>
                 </View>
                 {renderAttributeBar(level)}
               </View>
-            </Card.Content>
-          </Card>
+            </View>
+          </View>
         )
       })}
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  title: {
+    fontFamily: 'System',
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#F5E6D3',
+    marginBottom: 20,
+    letterSpacing: 0.5,
+    paddingHorizontal: 8,
+  },
+  card: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  cardContent: {
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  attributeLabel: {
+    fontFamily: 'System',
+    fontSize: 16,
+    color: '#F5E6D3',
+    letterSpacing: 0.3,
+  },
+  attributeValue: {
+    fontFamily: 'System',
+    fontSize: 16,
+    color: '#D4A574',
+    fontWeight: '500',
+  },
+})

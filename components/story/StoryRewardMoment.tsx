@@ -5,7 +5,7 @@ import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LINE_HEIGHTS } from './story-theme'
 
-export type RewardType = 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE'
+export type RewardType = 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE' | 'LUMENS'
 
 interface StoryRewardMomentProps {
   type: RewardType
@@ -14,6 +14,7 @@ interface StoryRewardMomentProps {
   icon?: React.ReactNode
   imageUrl?: string | null
   onPress?: () => void
+  lumensAmount?: number
   theme?: {
     primary: string
     background: string
@@ -28,12 +29,14 @@ export function StoryRewardMoment({
   icon,
   imageUrl,
   onPress,
+  lumensAmount,
   theme,
 }: StoryRewardMomentProps) {
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const fadeAnim = useRef(new Animated.Value(0)).current
   const scaleAnim = useRef(new Animated.Value(0.9)).current
+  const lumensGlowAnim = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
     Animated.parallel([
@@ -51,9 +54,34 @@ export function StoryRewardMoment({
     ]).start()
   }, [fadeAnim, scaleAnim])
 
-  const primaryColor = theme?.primary || '#FFD700'
+  // Animate lumens glow effect
+  useEffect(() => {
+    if (type === 'LUMENS') {
+      const glowAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(lumensGlowAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(lumensGlowAnim, {
+            toValue: 0,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      )
+      glowAnimation.start()
+      return () => glowAnimation.stop()
+    }
+  }, [type, lumensGlowAnim])
+
+  // Use golden/yellow for lumens, default gold for others
+  const primaryColor = theme?.primary || (type === 'LUMENS' ? '#FFD700' : '#FFD700')
   const textColor = theme?.text || 'rgba(255, 255, 255, 0.9)'
-  const accentColor = `rgba(255, 215, 0, 0.3)`
+  const accentColor = type === 'LUMENS' 
+    ? `rgba(255, 215, 0, 0.5)` // Brighter for lumens to visualize light
+    : `rgba(255, 215, 0, 0.3)`
 
   function handlePress() {
     if (onPress) {
@@ -109,6 +137,16 @@ export function StoryRewardMoment({
       )
     }
 
+    if (type === 'LUMENS') {
+      return (
+        <MaterialCommunityIcons 
+          name="lightbulb-on" 
+          size={32} 
+          color={primaryColor} 
+        />
+      )
+    }
+
     return (
       <MaterialCommunityIcons 
         name="gift" 
@@ -130,6 +168,8 @@ export function StoryRewardMoment({
         return 'NEW ITEM UNLOCKED'
       case 'ACTION_SCENE':
         return 'ACTION SCENE'
+      case 'LUMENS':
+        return 'LUMENS EARNED'
       default:
         return 'REWARD UNLOCKED'
     }
@@ -175,8 +215,49 @@ export function StoryRewardMoment({
       <View style={styles.dividerContainer}>
         <View style={[styles.divider, { backgroundColor: accentColor }]} />
         <View style={styles.iconContainer}>
-          {/* Glow effect behind icon */}
-          <View style={[styles.glow, { backgroundColor: `${primaryColor}20` }]} />
+          {/* Enhanced glow effect for lumens to visualize light */}
+          {type === 'LUMENS' ? (
+            <>
+              <Animated.View 
+                style={[
+                  styles.lumensGlowOuter, 
+                  { 
+                    backgroundColor: `${primaryColor}15`,
+                    opacity: lumensGlowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.6, 1],
+                    }),
+                  }
+                ]} 
+              />
+              <Animated.View 
+                style={[
+                  styles.lumensGlowMiddle, 
+                  { 
+                    backgroundColor: `${primaryColor}30`,
+                    opacity: lumensGlowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.7, 1],
+                    }),
+                  }
+                ]} 
+              />
+              <Animated.View 
+                style={[
+                  styles.lumensGlowInner, 
+                  { 
+                    backgroundColor: `${primaryColor}50`,
+                    opacity: lumensGlowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  }
+                ]} 
+              />
+            </>
+          ) : (
+            <View style={[styles.glow, { backgroundColor: `${primaryColor}20` }]} />
+          )}
           <View style={[styles.iconWrapper, { borderColor: accentColor }]}>
             {renderIcon()}
           </View>
@@ -191,7 +272,9 @@ export function StoryRewardMoment({
 
       {/* Title */}
       <RNText style={[styles.title, { color: primaryColor }]}>
-        {title}
+        {type === 'LUMENS' && lumensAmount !== undefined
+          ? `+${lumensAmount} Lumens`
+          : title}
       </RNText>
 
       {/* Subtitle */}
@@ -242,6 +325,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   glow: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    opacity: 0.6,
+  },
+  lumensGlowOuter: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    opacity: 0.8,
+  },
+  lumensGlowMiddle: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    opacity: 0.7,
+  },
+  lumensGlowInner: {
     position: 'absolute',
     width: 60,
     height: 60,

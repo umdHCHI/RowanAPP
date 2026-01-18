@@ -1,5 +1,4 @@
-import { Text as RNText, StyleSheet } from 'react-native'
-import { Card, TextInput } from 'react-native-paper'
+import { Text as RNText, TextInput, View, StyleSheet } from 'react-native'
 
 interface JournalEntryCardProps {
   value: string
@@ -9,37 +8,23 @@ interface JournalEntryCardProps {
 
 export function JournalEntryCard({ value, onChangeText, disabled }: JournalEntryCardProps) {
   return (
-    <Card
-      className="mb-6 border"
-      style={styles.card}
-      elevation={2}
-    >
-      <Card.Content className="p-5">
+    <View style={styles.card}>
+      <View style={styles.cardContent}>
         <RNText style={styles.labelText}>
           Reflect on your journey
         </RNText>
         <TextInput
-          mode="outlined"
           multiline
           numberOfLines={8}
           placeholder="Write your thoughts here..."
           value={value}
           onChangeText={onChangeText}
-          className="min-h-[200px]"
           style={styles.input}
-          contentStyle={{
-            color: '#ffffff',
-            lineHeight: 24,
-            fontSize: 16,
-          }}
-          outlineColor="rgba(255, 255, 255, 0.2)"
-          activeOutlineColor="#ffffff"
-          textColor="#ffffff"
           placeholderTextColor="rgba(255, 255, 255, 0.6)"
-          disabled={disabled}
+          editable={!disabled}
         />
-      </Card.Content>
-    </Card>
+      </View>
+    </View>
   )
 }
 
@@ -47,7 +32,17 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#1a1a2e',
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
     borderRadius: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  cardContent: {
+    padding: 20,
   },
   labelText: {
     fontFamily: 'FontTitle-White',
@@ -59,6 +54,16 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    padding: 16,
+    minHeight: 200,
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: 'System',
+    textAlignVertical: 'top',
   },
 })
 

@@ -12,10 +12,9 @@ import {
 
 interface VoiceMemoRecorderProps {
   onSave: (audioUri: string) => void
-  theme?: any
 }
 
-export function VoiceMemoRecorder({ onSave, theme }: VoiceMemoRecorderProps) {
+export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
   const [recordedUri, setRecordedUri] = useState<string | null>(null)
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {

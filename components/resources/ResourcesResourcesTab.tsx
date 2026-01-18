@@ -1,14 +1,12 @@
 import React, { useMemo } from 'react'
 import { View, StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useStories, useUserFullProfile, useJournalEntries } from '@/api'
+import { useStories, useCurrentUserFullProfile, useJournalEntries } from '@/api'
 import { StoryInformationCard } from './StoryInformationCard'
 import { JournalStatsCard } from './JournalStatsCard'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { StoryResponse } from '@/api/types'
-
-const USER_ID = 1 // TODO: Get from auth context or store
 
 interface ResourcesResourcesTabProps {
   resources: any[] // Keep for compatibility but not used
@@ -19,7 +17,7 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
   const { data: storiesData, isLoading: isLoadingStories } = useStories()
-  const { data: profileData, isLoading: isLoadingProfile } = useUserFullProfile(USER_ID)
+  const { data: profileData, isLoading: isLoadingProfile } = useCurrentUserFullProfile()
   const { data: journalEntriesData, isLoading: isLoadingJournal } = useJournalEntries(1, 100)
 
   // Get completed stories when no storyId is provided

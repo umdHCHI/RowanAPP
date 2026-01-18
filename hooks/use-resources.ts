@@ -1,10 +1,8 @@
 import { useMemo } from 'react'
-import { useUserFullProfile, useStories } from '@/api'
+import { useCurrentUserFullProfile, useStories } from '@/api'
 import type { StoryResponse } from '@/api/types'
 import { useGameStore, type Power } from '@/stores/game-store'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
-
-const USER_ID = 1 // TODO: Get from auth context or store
 
 export interface ResourceItem {
   id: string
@@ -122,7 +120,7 @@ const fallbackPowers: Power[] = [
 ]
 
 export function useResources() {
-  const { data: profileData, isLoading: isLoadingProfile } = useUserFullProfile(USER_ID)
+  const { data: profileData, isLoading: isLoadingProfile } = useCurrentUserFullProfile()
   const { data: storiesData, isLoading: isLoadingStories } = useStories()
   const storeMemories = useGameStore((state) => state.memories)
   const storePowers = useGameStore((state) => state.powers)

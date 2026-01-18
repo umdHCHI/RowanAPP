@@ -13,11 +13,12 @@ export interface StoryHistoryItem {
   passageType?: PassageType
   speakerName?: string | null
   speakerImage?: string | null
-  rewardType?: 'journal_entry' | 'minigame' | 'power' | 'skill' | 'gear'
+  rewardType?: 'journal_entry' | 'minigame' | 'power' | 'skill' | 'gear' | 'lumens'
   rewardTitle?: string
   rewardSubtitle?: string
   journalEntryId?: string
   minigameLevel?: string
+  lumensAmount?: number
 }
 
 /**

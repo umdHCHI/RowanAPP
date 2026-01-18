@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { View, Text, useWindowDimensions } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useGameStore } from '@/stores/game-store'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
@@ -25,7 +25,9 @@ import {
 
 export default function Vantage() {
   const router = useRouter()
-  const { updateAttribute, addMemory } = useGameStore()
+  const params = useLocalSearchParams<{ storyId?: string }>()
+  const storyId = params.storyId
+  const { updateAttribute, addMemory, character } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
@@ -87,7 +89,7 @@ export default function Vantage() {
       )
 
       // Defer memory save and attribute updates to avoid state update during render
-      setTimeout(() => {
+      setTimeout(async () => {
         // Save memory
         const memory = {
           id: `vantage-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -108,6 +110,9 @@ export default function Vantage() {
           createdAt: new Date().toISOString(),
         }
         addMemory(memory)
+        
+        // Note: Experience is tracked on the backend via the VANTAGE_RUN endpoint if needed
+        // The score is displayed as lumens in the game over dialog, which pulls from user experience
         
         // Reward based on score
         if (score >= 200) {
@@ -184,7 +189,8 @@ export default function Vantage() {
 
   function handleBackToResources() {
     playPageFlipSound()
-    router.push('/resources')
+    const resourcesUrl = storyId ? `/resources?storyId=${storyId}` : '/resources'
+    router.push(resourcesUrl)
   }
 
 

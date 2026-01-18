@@ -5,10 +5,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useGameStore } from '@/stores/game-store'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
-import { useUserFullProfile } from '@/api'
+import { useCurrentUserFullProfile } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
-
-const USER_ID = 1 // TODO: Get from auth context or store
 
 interface ResourcesSettingsTabProps {
   // Placeholder for future settings props
@@ -21,13 +19,16 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
   const toggleSoundMute = useGameStore((state) => state.toggleSoundMute)
   const textSpeed = useGameStore((state) => state.textSpeed)
   const cycleTextSpeed = useGameStore((state) => state.cycleTextSpeed)
-  const { data: profileData } = useUserFullProfile(USER_ID)
+  const { data: profileData } = useCurrentUserFullProfile()
 
   // Get avatar config from profile
   const avatarConfig = useMemo(() => {
     if (!profileData?.character) return null
     return buildAvatarConfig(profileData.character)
   }, [profileData])
+
+  // Get experience (lumens) from profile
+  const lumens = profileData?.character?.experience ?? 0
 
   function handleChangeCharacter() {
     playPageFlipSound()
@@ -95,6 +96,26 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
           <Text style={styles.title}>Settings</Text>
           <Text style={styles.subtitle}>Manage your preferences and account.</Text>
         </View>
+
+        {/* Profile Section */}
+        {avatarConfig && (
+          <View style={styles.profileCard}>
+            <CharacterAvatar avatarConfig={avatarConfig} size={80} />
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>
+                {profileData?.character?.name || 'Your Character'}
+              </Text>
+              <View style={styles.lumensContainer}>
+                <MaterialCommunityIcons 
+                  name="lightbulb-on" 
+                  size={20} 
+                  color="#FFD700" 
+                />
+                <Text style={styles.lumensText}>{lumens} Lumens</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Settings Sections */}
         <View style={styles.settingsList}>
@@ -224,6 +245,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
+  },
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    marginBottom: 24,
+    gap: 16,
+  },
+  profileInfo: {
+    flex: 1,
+    gap: 8,
+  },
+  profileName: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 24,
+    color: '#ffffff',
+    lineHeight: 28,
+  },
+  lumensContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  lumensText: {
+    fontFamily: 'System',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFD700',
+    letterSpacing: 0.5,
   },
   settingsList: {
     gap: 24,

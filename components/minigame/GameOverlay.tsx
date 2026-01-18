@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { View, Text, Pressable, StyleSheet, Modal, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
@@ -36,6 +37,7 @@ export function GameOverlay({
   onPlayAgain,
   onBackToHub,
 }: GameOverlayProps) {
+  const [visible, setVisible] = useState(true)
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
@@ -53,9 +55,9 @@ export function GameOverlay({
   function handleClose() {
     haptics.lightImpact()
     playPageFlipSound()
-    if (onDismiss) {
-      onDismiss()
-    } else if (onBackToHub) {
+    setVisible(false)
+    onDismiss?.()
+    if (!onDismiss && onBackToHub) {
       onBackToHub()
     }
   }
@@ -63,10 +65,10 @@ export function GameOverlay({
   if (type === 'start') {
     return (
       <Modal
-        visible={true}
+        visible={visible}
         transparent
         animationType="fade"
-        onRequestClose={() => {}} // Prevent back button from closing
+        onRequestClose={handleClose}
       >
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} pointerEvents="box-none">
           <View style={styles.card} pointerEvents="auto">
@@ -161,28 +163,30 @@ export function GameOverlay({
 
   function handlePlayAgain() {
     playPageFlipSound()
+    setVisible(false)
     onPlayAgain?.()
   }
 
   function handleBackToHub() {
     playPageFlipSound()
+    setVisible(false)
     onBackToHub?.()
   }
 
   if (type === 'victory') {
     return (
       <Modal
-        visible={true}
+        visible={visible}
         transparent
         animationType="fade"
-        onRequestClose={() => {}}
+        onRequestClose={handleBackToHub}
       >
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} pointerEvents="box-none">
           <View style={styles.card} pointerEvents="auto">
             <Text style={styles.title}>Victory!</Text>
             <Text style={styles.subtitle}>You've sealed the breach.</Text>
             {score !== undefined && (
-              <Text style={styles.scoreText}>Final Score: {score}</Text>
+              <Text style={styles.lumensText}>Lumens Gathered: {score}</Text>
             )}
             {(conqueredThoughts.length > 0 || defeatedNegativeThoughts.length > 0) && (
               <View style={styles.archiveSection}>
@@ -312,6 +316,18 @@ const styles = StyleSheet.create({
     color: '#ffffffcc',
     textAlign: 'center',
     marginTop: 8,
+  },
+  lumensText: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFD700',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+    textShadowColor: 'rgba(255, 215, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
   caption: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',

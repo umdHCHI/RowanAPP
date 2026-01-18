@@ -10,25 +10,63 @@ import type { StoryData } from '@/stores/game-store'
 export function getStoryImageUrl(imagePath: string | null | undefined): string | null {
   if (!imagePath) return null
 
-  // If it's already a full URL (starts with http:// or https://), return as is
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath
+  // Full URL already
+  if (/^https?:\/\//i.test(imagePath)) return imagePath
+
+  // Normalize slashes
+  const trimmed = imagePath.trim()
+
+  // If API base isn't set, we can't build a full URL
+  if (!API_CONFIG.BASE_URL) return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+
+  // Derive origin from API base (works even if BASE_URL changes)
+  // Wrap in try-catch to handle invalid URLs (OSStatus error -50 on iOS/React Native)
+  let origin: string
+  try {
+    // Ensure BASE_URL is an absolute URL before constructing URL object
+    const baseUrl = API_CONFIG.BASE_URL.trim()
+    if (!/^https?:\/\//i.test(baseUrl)) {
+      // BASE_URL is relative, can't build full URL - return relative path
+      const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+      const looksLikeMedia =
+        !path.startsWith('/media/') &&
+        !path.startsWith('/static') &&
+        !path.startsWith('/assets') &&
+        !path.startsWith('/uploads')
+      return looksLikeMedia ? `/media${path}` : path
+    }
+
+    const apiUrl = new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`)
+    origin = apiUrl.origin
+  } catch (error) {
+    // URL construction failed (e.g., invalid URL, OSStatus error -50)
+    // Return relative path as fallback
+    const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+    const looksLikeMedia =
+      !path.startsWith('/media/') &&
+      !path.startsWith('/static') &&
+      !path.startsWith('/assets') &&
+      !path.startsWith('/uploads')
+    return looksLikeMedia ? `/media${path}` : path
   }
 
-  // If it's a relative path, construct full URL
-  // Media files are served from server root, so extract base domain from API URL
-  const apiBaseUrl = API_CONFIG.BASE_URL.replace(/\/$/, '') // Remove trailing slash
-  const serverBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '') // Remove /api/ from end
+  // Normalize to leading slash
+  let path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
 
-  // Ensure path starts with /
-  const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`
+  // If caller forgot /media but it's clearly a media file path, add it.
+  // (Only do this when it's NOT already under /media or /static)
+  const looksLikeMedia =
+    !path.startsWith('/media/') &&
+    !path.startsWith('/static') &&
+    !path.startsWith('/assets') &&
+    !path.startsWith('/uploads')
 
-  // Backend media lives under /media, so add the segment when callers omit it
-  const normalizedPath = cleanPath.startsWith('/media/') ? cleanPath : `/media${cleanPath}`
+  if (looksLikeMedia) {
+    path = `/media${path}`
+  }
 
-  return `${serverBaseUrl}${normalizedPath}`
+  return `${origin}${path}`
 }
-
 /**
  * Normalize choices from API response to StoryChoice format
  * Handles various API response formats
@@ -175,6 +213,41 @@ export function hasMinigameOption(passage: any): boolean {
 
   if (!effects) return false
   return effects.minigame === true
+}
+
+/**
+ * Experience/Lumens Reward type
+ */
+export type ExperienceReward = {
+  kind: 'experience' | 'lumens'
+  amount: number
+  sourcePassageId?: string
+}
+
+/**
+ * Extract experience/lumens reward from a passage
+ * Supports both story_effects (preferred) and effects (fallback)
+ * Checks for experience, lumens, or exp keys
+ */
+export function getExperienceRewardFromPassage(passage: any): ExperienceReward | null {
+  const effects = passage?.story_effects && Object.keys(passage.story_effects).length > 0
+    ? passage.story_effects
+    : passage?.effects
+
+  if (!effects) return null
+
+  // Check for experience, lumens, or exp keys
+  const experienceAmount = effects.experience || effects.lumens || effects.exp || effects.lumen
+
+  if (!experienceAmount || typeof experienceAmount !== 'number' || experienceAmount <= 0) {
+    return null
+  }
+
+  return {
+    kind: 'lumens', // Use 'lumens' as the display name
+    amount: experienceAmount,
+    sourcePassageId: passage?.passage_id ?? passage?.id,
+  }
 }
 
 /**

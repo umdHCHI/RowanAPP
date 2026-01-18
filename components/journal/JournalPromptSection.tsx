@@ -1,5 +1,4 @@
 import { View, Text as RNText, StyleSheet, ActivityIndicator } from 'react-native'
-import { Text, useTheme } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { JournalPrompt } from '@/stores/game-store'
 
@@ -14,15 +13,13 @@ export function JournalPromptSection({
   isLoading,
   error,
 }: JournalPromptSectionProps) {
-  const theme = useTheme()
-
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-        <Text variant="bodyMedium" style={styles.loadingText}>
+        <ActivityIndicator size="small" color="#D4A574" />
+        <RNText style={styles.loadingText}>
           Loading prompts...
-        </Text>
+        </RNText>
       </View>
     )
   }
@@ -30,9 +27,9 @@ export function JournalPromptSection({
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text variant="bodyMedium" style={styles.errorText}>
+        <RNText style={styles.errorText}>
           Failed to load prompts. Please try again.
-        </Text>
+        </RNText>
       </View>
     )
   }
@@ -40,9 +37,9 @@ export function JournalPromptSection({
   if (!currentPrompt) {
     return (
       <View style={styles.emptyContainer}>
-        <Text variant="bodyMedium" style={styles.emptyText}>
+        <RNText style={styles.emptyText}>
           No prompts available at this time.
-        </Text>
+        </RNText>
       </View>
     )
   }

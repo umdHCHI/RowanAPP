@@ -63,7 +63,7 @@ export function GameOverDialog({
             You've practiced reframing negative thoughts!
           </Text>
         )}
-        <Text style={styles.scoreText}>Final Score: {score}</Text>
+        <Text style={styles.lumensText}>Lumens Gathered: {score}</Text>
         {bossDefeated && (
           <Text style={styles.bossText}>Boss Defeated!</Text>
         )}
@@ -176,6 +176,17 @@ const styles = StyleSheet.create({
     color: '#ffffffcc',
     textAlign: 'center',
     marginBottom: 8,
+  },
+  lumensText: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFD700',
+    textAlign: 'center',
+    marginBottom: 16,
+    textShadowColor: 'rgba(255, 215, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
   bossText: {
     fontFamily: 'System',

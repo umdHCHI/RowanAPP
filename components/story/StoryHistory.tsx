@@ -30,11 +30,12 @@ export function StoryHistory({ history }: StoryHistoryProps) {
     router.push('/vantage')
   }
 
-  function getRewardType(type?: string): 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE' {
+  function getRewardType(type?: string): 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE' | 'LUMENS' {
     if (type === 'journal_entry') return 'JOURNAL_REWARD'
     if (type === 'minigame') return 'MINIGAME'
     if (type === 'power' || type === 'skill') return 'POWER'
     if (type === 'action_scene') return 'ACTION_SCENE'
+    if (type === 'lumens') return 'LUMENS'
     return 'ITEM'
   }
   
@@ -73,6 +74,7 @@ export function StoryHistory({ history }: StoryHistoryProps) {
               type={getRewardType(item.rewardType)}
               title={item.rewardTitle || item.content || 'Reward Unlocked'}
               subtitle={item.rewardSubtitle}
+              lumensAmount={item.lumensAmount}
               onPress={
                 item.rewardType === 'journal_entry' 
                   ? () => handleRewardPress(item.journalEntryId)

@@ -1,7 +1,6 @@
 import { View, ScrollView, ImageBackground, Text as RNText, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useTheme } from 'react-native-paper'
 import { Header } from '@/components/header'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
@@ -9,7 +8,6 @@ import { GameButton } from '@/components/GameButton'
 
 export default function About() {
   const router = useRouter()
-  const theme = useTheme()
   const insets = useSafeAreaInsets()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
@@ -20,7 +18,7 @@ export default function About() {
       style={styles.background}
       resizeMode="cover"
     >
-      <View style={[styles.overlay, { backgroundColor: theme.colors.surface }]} />
+      <View style={styles.overlay} />
 
       <Header />
 
@@ -78,6 +76,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     opacity: 0.9,
   },
   scrollView: {

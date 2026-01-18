@@ -2,12 +2,10 @@ import { Stack } from 'expo-router'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { PaperProvider } from 'react-native-paper'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import { setAudioModeAsync } from 'expo-audio'
-import { archiveTheme } from '../theme/paper-theme'
 import '../global.css'
 
 // Configure React Query with sensible defaults
@@ -64,30 +62,26 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <PaperProvider theme={archiveTheme}>
-          <SafeAreaProvider>
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen 
-                name="character-creator" 
-                options={{ 
-                  contentStyle: { backgroundColor: '#000000' },
-                  animation: 'fade',
-                }} 
-              />
-              <Stack.Screen name="hub" />
-              <Stack.Screen name="story" />
-              <Stack.Screen name="journal" />
-              <Stack.Screen name="vantage" />
-              <Stack.Screen name="profile" />
-              <Stack.Screen name="about" />
-              <Stack.Screen name="resources" />
-              <Stack.Screen name="story-overview" />
-              <Stack.Screen name="crisis-help" />
-              <Stack.Screen name="api-test" />
-            </Stack>
-          </SafeAreaProvider>
-        </PaperProvider>
+        <SafeAreaProvider>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen 
+              name="character-creator" 
+              options={{ 
+                contentStyle: { backgroundColor: '#000000' },
+                animation: 'fade',
+              }} 
+            />
+            <Stack.Screen name="hub" />
+            <Stack.Screen name="story" />
+            <Stack.Screen name="journal" />
+            <Stack.Screen name="vantage" />
+            <Stack.Screen name="about" />
+            <Stack.Screen name="resources" />
+            <Stack.Screen name="story-overview" />
+            <Stack.Screen name="crisis-help" />
+          </Stack>
+        </SafeAreaProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   )

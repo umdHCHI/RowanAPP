@@ -15,7 +15,7 @@ import { StoryChoices } from './StoryChoices'
 import { useGameStore } from '@/stores/game-store'
 import { useStoryAutoAdvance } from '@/hooks/use-story-auto-advance'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
-import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, hasMinigameOption } from '@/utils/story-helpers'
+import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, getExperienceRewardFromPassage, hasMinigameOption } from '@/utils/story-helpers'
 import { journalService } from '@/api/services/journal.service'
 import type { StoryChoice } from '@/types/story'
 
@@ -211,6 +211,52 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
     }
 
     collectMinigameReward()
+  }, [currentPassage, isLoading, addReward])
+
+  // Collect experience/lumens rewards when passage changes
+  React.useEffect(() => {
+    if (!currentPassage || isLoading) return
+
+    // Store passage in const so TypeScript knows it's not null inside async function
+    const passage = currentPassage
+
+    function collectExperienceReward() {
+      const reward = getExperienceRewardFromPassage(passage)
+      if (!reward) {
+        return
+      }
+
+      // Log for debugging - experience reward detected
+      if (__DEV__) {
+        console.log('[Experience Reward] Detected:', {
+          passageId: passage.passage_id,
+          amount: reward.amount,
+          storyEffects: passage.story_effects,
+        })
+      }
+
+      // Check if we've shown this reward in history this session
+      const rewardKey = `${passage.passage_id}-lumens-${reward.amount}`
+      const shownThisSession = rewardsShownThisSession.current.has(rewardKey)
+
+      if (shownThisSession) {
+        return
+      }
+
+      // Mark as shown this session
+      rewardsShownThisSession.current.add(rewardKey)
+
+      // Add reward to story history
+      addReward({
+        id: `lumens-reward-${reward.amount}-${passage.passage_id}`,
+        type: 'lumens',
+        title: `${reward.amount} Lumens Earned`,
+        subtitle: 'Light gathered from your journey',
+        lumensAmount: reward.amount,
+      })
+    }
+
+    collectExperienceReward()
   }, [currentPassage, isLoading, addReward])
 
   // Handle choice selection (with sound - user interaction)

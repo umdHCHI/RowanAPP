@@ -1,10 +1,7 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, ImageBackground, StyleSheet } from 'react-native'
-import { Card } from 'react-native-paper'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { ResourceItem } from '@/hooks/use-resources'
-
-const StyledCard = Card as React.ComponentType<any>
 
 interface ResourceItemCardProps {
   item: ResourceItem
@@ -19,39 +16,39 @@ export function ResourceItemCard({ item, onPress }: ResourceItemCardProps) {
       disabled={item.isLocked}
       onPress={onPress}
     >
-      <StyledCard 
+      <View 
         style={[
           styles.resourceCard,
           item.isLocked && styles.resourceCardLocked
-        ]} 
-        elevation={3} 
-        mode="elevated"
+        ]}
       >
-        <ImageBackground
-          source={item.backgroundImage || require('../../assets/UI/cards/libraryResource.jpg')}
-          style={styles.resourceCardBackground}
-          resizeMode="contain"
-          imageStyle={styles.resourceCardImage}
-        >
-          <View style={styles.resourceCardOverlay} />
-          <View style={styles.resourceCardContent}>
-            <View style={styles.resourceCardTop}>
-              <Text style={styles.resourceTitle}>{item.title}</Text>
-              <Text style={styles.resourceType}>{item.type}</Text>
+        <View style={styles.resourceCardContentWrapper}>
+          <ImageBackground
+            source={item.backgroundImage || require('../../assets/UI/cards/libraryResource.jpg')}
+            style={styles.resourceCardBackground}
+            resizeMode="contain"
+            imageStyle={styles.resourceCardImage}
+          >
+            <View style={styles.resourceCardOverlay} />
+            <View style={styles.resourceCardContent}>
+              <View style={styles.resourceCardTop}>
+                <Text style={styles.resourceTitle}>{item.title}</Text>
+                <Text style={styles.resourceType}>{item.type}</Text>
+              </View>
+              {item.isLocked && (
+                <View style={styles.lockIconContainer}>
+                  <MaterialCommunityIcons name="lock-outline" size={48} color="#ffffff" />
+                </View>
+              )}
+              {item.description && (
+                <View style={styles.resourceCardBottom}>
+                  <Text style={styles.resourceDescription}>{item.description}</Text>
+                </View>
+              )}
             </View>
-            {item.isLocked && (
-              <View style={styles.lockIconContainer}>
-                <MaterialCommunityIcons name="lock-outline" size={48} color="#ffffff" />
-              </View>
-            )}
-            {item.description && (
-              <View style={styles.resourceCardBottom}>
-                <Text style={styles.resourceDescription}>{item.description}</Text>
-              </View>
-            )}
-          </View>
-        </ImageBackground>
-      </StyledCard>
+          </ImageBackground>
+        </View>
+      </View>
     </TouchableOpacity>
   )
 }
@@ -66,12 +63,22 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 200,
     borderRadius: 16,
-    overflow: 'hidden',
     backgroundColor: '#1a1a2e',
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     padding: 0,
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  resourceCardContentWrapper: {
+    overflow: 'hidden',
+    borderRadius: 16,
+    flex: 1,
+    minHeight: 200,
   },
   resourceCardLocked: {
     borderColor: 'rgba(255, 255, 255, 0.08)',

@@ -1,26 +1,30 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import {
   View,
   ScrollView,
   StatusBar,
   StyleSheet,
   Alert,
+  Text as RNText,
+  TextInput,
+  TouchableOpacity,
+  Platform,
+  Dimensions,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useVideoPlayer, VideoView } from 'expo-video'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useGameStore } from '@/stores/game-store'
 import { CharacterPreview } from '@/components/character/CharacterPreview'
 import { COLORS, Color, BASE_COUNT, BG_COUNT, HAIR_COUNT, CLOTHES_COUNT, EYES_COUNT, EYEBROWS_COUNT, MOUTH_COUNT } from '@/utils/character-assets'
-import { TextInput, Text, Button, Card, useTheme, IconButton, Chip } from 'react-native-paper'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { useCreateCharacter, useUpdateCharacter } from '@/api/hooks/use-character'
-import { useUserFullProfile, userKeys } from '@/api/hooks/use-user'
+import { useCurrentUserFullProfile, useRequiredAuthUserId, userKeys } from '@/api'
 import { convertToBackendConfig, buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useQueryClient } from '@tanstack/react-query'
 import { characterKeys } from '@/api/hooks/use-character'
-
-const USER_ID = 1 // TODO: Get from auth context or store
 
 type Category = 'base' | 'background' | 'hair' | 'clothes' | 'eyes' | 'eyebrows' | 'mouth'
 
@@ -41,7 +45,7 @@ interface CharacterConfig {
 
 export default function CharacterCreator() {
   const router = useRouter()
-  const theme = useTheme()
+  const insets = useSafeAreaInsets()
   const { setCharacter } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
@@ -50,7 +54,8 @@ export default function CharacterCreator() {
   const [isSaving, setIsSaving] = useState(false)
   
   const queryClient = useQueryClient()
-  const { data: profileData } = useUserFullProfile(USER_ID)
+  const userId = useRequiredAuthUserId()
+  const { data: profileData } = useCurrentUserFullProfile()
   const createCharacter = useCreateCharacter()
   const updateCharacter = useUpdateCharacter()
   
@@ -278,7 +283,7 @@ export default function CharacterCreator() {
       }
 
       // Invalidate user profile query to refresh data
-      queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(USER_ID) })
+      queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) })
       queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
 
       // Also update local game store for backwards compatibility
@@ -369,358 +374,166 @@ export default function CharacterCreator() {
       {/* Content Layer */}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ padding: 20, paddingTop: 60, paddingBottom: 40 }}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 60, paddingBottom: Math.max(40, insets.bottom + 20) }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Title with custom font */}
-        <Text
-          style={{
-            fontFamily: 'BeyondWonderland',
-            fontSize: 32,
-            textAlign: 'center',
-            color: theme.colors.primary,
-            marginBottom: 8,
-            letterSpacing: 2,
-            textShadowColor: 'rgba(212, 165, 116, 0.5)',
-            textShadowOffset: { width: 0, height: 2 },
-            textShadowRadius: 8,
-          }}
-        >
+        <RNText style={styles.title}>
           Create Your Character
-        </Text>
-        <Text
-          variant="bodyMedium"
-          style={{
-            textAlign: 'center',
-            color: theme.colors.onSurfaceVariant,
-            marginBottom: 40,
-            fontStyle: 'italic',
-            letterSpacing: 1,
-            fontSize: 16,
-          }}
-        >
+        </RNText>
+        <RNText style={styles.subtitle}>
           Begin your journey through The Archive
-        </Text>
+        </RNText>
 
-        <Card 
-          style={{ 
-            backgroundColor: theme.colors.surface, 
-            marginBottom: 24,
-            borderWidth: 1,
-            borderColor: theme.colors.outline,
-            borderRadius: 16,
-            elevation: 4,
-          }}
-        >
-          <Card.Content style={{ padding: 20 }}>
-            <Text
-              variant="labelLarge"
-              style={{
-                fontFamily: 'Quicksand-Bold',
-                color: theme.colors.onSurface,
-                marginBottom: 12,
-                letterSpacing: 0.5,
-                fontWeight: '700',
-              }}
-            >
-              Character Name
-            </Text>
-            <TextInput
-              mode="outlined"
-              placeholder="Enter your name"
-              value={characterName}
-              onChangeText={setCharacterName}
-              maxLength={20}
-              style={{ 
-                backgroundColor: theme.colors.surfaceVariant,
-              }}
-              contentStyle={{ 
-                color: theme.colors.onSurface,
-                fontSize: 16,
-              }}
-              outlineColor={theme.colors.outline}
-              activeOutlineColor={theme.colors.primary}
+        {/* Character Name Card */}
+        <View style={styles.card}>
+          <RNText style={styles.cardLabel}>
+            Character Name
+          </RNText>
+          <TextInput
+            placeholder="Enter your name"
+            placeholderTextColor="#ffffff88"
+            value={characterName}
+            onChangeText={setCharacterName}
+            maxLength={20}
+            style={styles.textInput}
+          />
+        </View>
+
+        {/* Character Preview Card */}
+        <View style={styles.card}>
+          <RNText style={styles.cardLabel}>
+            Preview
+          </RNText>
+          <View style={styles.previewContainer}>
+            <CharacterPreview
+              baseIndex={config.baseIndex}
+              backgroundColor={config.backgroundColor}
+              backgroundIndex={config.backgroundIndex}
+              hairColor={config.hairColor}
+              hairIndex={config.hairIndex}
+              clothesColor={config.clothesColor}
+              clothesIndex={config.clothesIndex}
+              eyesColor={config.eyesColor}
+              eyesIndex={config.eyesIndex}
+              eyebrowsColor={config.eyebrowsColor}
+              eyebrowsIndex={config.eyebrowsIndex}
+              mouthIndex={config.mouthIndex}
+              size={200}
             />
-          </Card.Content>
-        </Card>
+          </View>
+        </View>
 
-        {/* Character Preview */}
-        <Card
-          style={{
-            backgroundColor: theme.colors.surface,
-            marginBottom: 24,
-            borderWidth: 1,
-            borderColor: theme.colors.outline,
-            borderRadius: 16,
-            elevation: 4,
-            overflow: 'hidden',
-          }}
-        >
-          <Card.Content style={{ padding: 24, alignItems: 'center' }}>
-            <Text
-              variant="labelLarge"
-              style={{
-                fontFamily: 'Quicksand-Bold',
-                color: theme.colors.onSurface,
-                marginBottom: 16,
-                letterSpacing: 0.5,
-                fontWeight: '700',
-              }}
-            >
-              Preview
-            </Text>
-            <View 
-              style={{
-                backgroundColor: theme.colors.surfaceVariant,
-                borderRadius: 12,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: theme.colors.outline,
-              }}
-            >
-              <CharacterPreview
-                baseIndex={config.baseIndex}
-                backgroundColor={config.backgroundColor}
-                backgroundIndex={config.backgroundIndex}
-                hairColor={config.hairColor}
-                hairIndex={config.hairIndex}
-                clothesColor={config.clothesColor}
-                clothesIndex={config.clothesIndex}
-                eyesColor={config.eyesColor}
-                eyesIndex={config.eyesIndex}
-                eyebrowsColor={config.eyebrowsColor}
-                eyebrowsIndex={config.eyebrowsIndex}
-                mouthIndex={config.mouthIndex}
-                size={200}
-              />
-            </View>
-          </Card.Content>
-        </Card>
+        {/* Category Selector Card */}
+        <View style={styles.card}>
+          <RNText style={styles.cardLabel}>
+            Category
+          </RNText>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipContainer}
+          >
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                onPress={() => {
+                  haptics.selection()
+                  playPageFlipSound()
+                  setSelectedCategory(category.id)
+                }}
+                style={[
+                  styles.chip,
+                  selectedCategory === category.id && styles.chipSelected
+                ]}
+                activeOpacity={0.7}
+              >
+                <RNText style={[
+                  styles.chipText,
+                  selectedCategory === category.id && styles.chipTextSelected
+                ]}>
+                  {category.label}
+                </RNText>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-        {/* Category Selector */}
-        <Card 
-          style={{ 
-            backgroundColor: theme.colors.surface, 
-            marginBottom: 24,
-            borderWidth: 1,
-            borderColor: theme.colors.outline,
-            borderRadius: 16,
-            elevation: 4,
-          }}
-        >
-          <Card.Content style={{ padding: 20 }}>
-            <Text
-              variant="labelLarge"
-              style={{
-                fontFamily: 'Quicksand-Bold',
-                color: theme.colors.onSurface,
-                marginBottom: 16,
-                letterSpacing: 0.5,
-                fontWeight: '700',
-              }}
-            >
-              Category
-            </Text>
+        {/* Color Selector Card */}
+        {needsColor() && (
+          <View style={styles.card}>
+            <RNText style={styles.cardLabel}>
+              Color
+            </RNText>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 4 }}
+              contentContainerStyle={styles.chipContainer}
             >
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {categories.map((category) => (
-                  <Chip
-                    key={category.id}
-                    selected={selectedCategory === category.id}
-                    onPress={() => {
-                      haptics.selection()
-                      playPageFlipSound()
-                      setSelectedCategory(category.id)
-                    }}
-                    style={{
-                      backgroundColor:
-                        selectedCategory === category.id
-                          ? theme.colors.primaryContainer
-                          : theme.colors.surfaceVariant,
-                      borderWidth: selectedCategory === category.id ? 1 : 0,
-                      borderColor: theme.colors.primary,
-                    }}
-                    textStyle={{
-                      color: selectedCategory === category.id
-                        ? theme.colors.onPrimaryContainer
-                        : theme.colors.onSurfaceVariant,
-                      fontWeight: selectedCategory === category.id ? '600' : '400',
-                    }}
-                  >
-                    {category.label}
-                  </Chip>
-                ))}
-              </View>
+              {COLORS.map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  onPress={() => handleColorChange(color)}
+                  style={[
+                    styles.chip,
+                    getCurrentColor() === color && styles.chipSelected
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <RNText style={[
+                    styles.chipText,
+                    getCurrentColor() === color && styles.chipTextSelected
+                  ]}>
+                    {color}
+                  </RNText>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
-          </Card.Content>
-        </Card>
-
-        {/* Color Selector */}
-        {needsColor() && (
-          <Card 
-            style={{ 
-              backgroundColor: theme.colors.surface, 
-              marginBottom: 24,
-              borderWidth: 1,
-              borderColor: theme.colors.outline,
-              borderRadius: 16,
-              elevation: 4,
-            }}
-          >
-            <Card.Content style={{ padding: 20 }}>
-              <Text
-                variant="labelLarge"
-                style={{
-                  fontFamily: 'Quicksand-Bold',
-                  color: theme.colors.onSurface,
-                  marginBottom: 16,
-                  letterSpacing: 0.5,
-                  fontWeight: '700',
-                }}
-              >
-                Color
-              </Text>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 4 }}
-              >
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {COLORS.map((color) => (
-                    <Chip
-                      key={color}
-                      selected={getCurrentColor() === color}
-                      onPress={() => handleColorChange(color)}
-                      style={{
-                        backgroundColor:
-                          getCurrentColor() === color
-                            ? theme.colors.primaryContainer
-                            : theme.colors.surfaceVariant,
-                        borderWidth: getCurrentColor() === color ? 1 : 0,
-                        borderColor: theme.colors.primary,
-                      }}
-                      textStyle={{
-                        color: getCurrentColor() === color
-                          ? theme.colors.onPrimaryContainer
-                          : theme.colors.onSurfaceVariant,
-                        fontWeight: getCurrentColor() === color ? '600' : '400',
-                      }}
-                    >
-                      {color}
-                    </Chip>
-                  ))}
-                </View>
-              </ScrollView>
-            </Card.Content>
-          </Card>
+          </View>
         )}
 
-        {/* Style Controls */}
-        <Card 
-          style={{ 
-            backgroundColor: theme.colors.surface, 
-            marginBottom: 24,
-            borderWidth: 1,
-            borderColor: theme.colors.outline,
-            borderRadius: 16,
-            elevation: 4,
-          }}
-        >
-          <Card.Content style={{ padding: 20 }}>
-            <Text
-              variant="labelLarge"
-              style={{
-                fontFamily: 'Quicksand-Bold',
-                color: theme.colors.onSurface,
-                marginBottom: 20,
-                letterSpacing: 0.5,
-                fontWeight: '700',
-              }}
+        {/* Style Controls Card */}
+        <View style={styles.card}>
+          <RNText style={styles.cardLabel}>
+            Style
+          </RNText>
+          <View style={styles.styleControls}>
+            <TouchableOpacity
+              onPress={handlePrevious}
+              style={styles.iconButton}
+              activeOpacity={0.7}
             >
-              Style
-            </Text>
-            <View 
-              style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: 16,
-              }}
-            >
-              <IconButton
-                icon="chevron-left"
-                size={36}
-                iconColor={theme.colors.onSurface}
-                onPress={handlePrevious}
-                style={{ 
-                  backgroundColor: theme.colors.surfaceVariant,
-                  borderWidth: 1,
-                  borderColor: theme.colors.outline,
-                }}
-              />
-              <View
-                style={{
-                  backgroundColor: theme.colors.surfaceVariant,
-                  paddingHorizontal: 20,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: theme.colors.outline,
-                  minWidth: 100,
-                }}
-              >
-                <Text
-                  variant="bodyLarge"
-                  style={{
-                    color: theme.colors.onSurface,
-                    textAlign: 'center',
-                    fontWeight: '600',
-                    fontSize: 16,
-                  }}
-                >
-                  {getCurrentIndex() + 1} / {getMaxCount()}
-                </Text>
-              </View>
-              <IconButton
-                icon="chevron-right"
-                size={36}
-                iconColor={theme.colors.onSurface}
-                onPress={handleNext}
-                style={{ 
-                  backgroundColor: theme.colors.surfaceVariant,
-                  borderWidth: 1,
-                  borderColor: theme.colors.outline,
-                }}
-              />
+              <MaterialCommunityIcons name="chevron-left" size={36} color="#ffffff" />
+            </TouchableOpacity>
+            <View style={styles.indexDisplay}>
+              <RNText style={styles.indexText}>
+                {getCurrentIndex() + 1} / {getMaxCount()}
+              </RNText>
             </View>
-          </Card.Content>
-        </Card>
+            <TouchableOpacity
+              onPress={handleNext}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="chevron-right" size={36} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-        <Button
-          mode="contained"
+        {/* Save Button */}
+        <TouchableOpacity
           onPress={handleCreateCharacter}
           disabled={!characterName.trim() || isSaving}
-          loading={isSaving}
-          style={{ 
-            marginBottom: 32,
-            borderRadius: 12,
-            elevation: 4,
-          }}
-          contentStyle={{ 
-            paddingVertical: 12,
-          }}
-          labelStyle={{
-            fontSize: 18,
-            fontWeight: '600',
-            letterSpacing: 0.5,
-          }}
+          style={[
+            styles.saveButton,
+            (!characterName.trim() || isSaving) && styles.saveButtonDisabled
+          ]}
+          activeOpacity={0.9}
         >
-          {existingCharacterId ? 'Update Character' : 'Begin Journey'}
-        </Button>
+          <RNText style={styles.saveButtonText}>
+            {isSaving ? 'Saving...' : (existingCharacterId ? 'Update Character' : 'Begin Journey')}
+          </RNText>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   )
@@ -760,5 +573,165 @@ const styles = StyleSheet.create({
     flex: 1,
     zIndex: 10,
     backgroundColor: 'transparent',
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  title: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 42,
+    textAlign: 'center',
+    color: '#ffffff',
+    marginBottom: 8,
+    lineHeight: 48,
+  },
+  subtitle: {
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 3,
+    textAlign: 'center',
+    color: '#ffffffcc',
+    marginBottom: 40,
+    opacity: 0.9,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#1a1a2e',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 24,
+    marginBottom: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  cardLabel: {
+    fontFamily: 'System',
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 3,
+    color: '#ffffffcc',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  textInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontSize: 16,
+    fontFamily: 'System',
+  },
+  previewContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  chip: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  chipSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  chipText: {
+    fontFamily: 'System',
+    fontSize: 14,
+    color: '#ffffffaa',
+    fontWeight: '400',
+  },
+  chipTextSelected: {
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  styleControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  iconButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  indexDisplay: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    minWidth: 100,
+  },
+  indexText: {
+    fontFamily: 'System',
+    fontSize: 16,
+    color: '#ffffff',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  saveButton: {
+    width: '100%',
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#15111f',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveButtonText: {
+    fontFamily: 'FontTitle-White',
+    fontSize: 16,
+    color: '#ffffff',
   },
 })

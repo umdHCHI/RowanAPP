@@ -18,7 +18,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useGameStore } from '@/stores/game-store'
-import { Text, useTheme } from 'react-native-paper'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useCreateJournalEntry, useUpdateJournalEntry, useJournalPrompts, useJournalEntryByPrompt } from '@/api/hooks/use-journal'
 import { journalService } from '@/api/services/journal.service'
@@ -39,7 +38,6 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 export function JournalPage() {
   const router = useRouter()
   const searchParams = useLocalSearchParams<{ promptId?: string }>()
-  const theme = useTheme()
   const insets = useSafeAreaInsets()
   const playPageFlipSound = usePageFlipSound()
   const scrollViewRef = useRef<ScrollView>(null)
@@ -471,7 +469,7 @@ export function JournalPage() {
     if (mode === 'voice') {
       return (
         <View style={styles.voiceContainer}>
-          <VoiceMemoRecorder onSave={(uri) => setAudioUri(uri || null)} theme={theme} />
+          <VoiceMemoRecorder onSave={(uri) => setAudioUri(uri || null)} />
         </View>
       )
     }
@@ -609,12 +607,9 @@ export function JournalPage() {
               {/* Saved confirmation */}
               {isSaved && (
                 <View style={styles.savedContainer}>
-                  <Text
-                    variant="bodyMedium"
-                    style={styles.savedText}
-                  >
+                  <RNText style={styles.savedText}>
                     ✓ Entry saved!
-                  </Text>
+                  </RNText>
                   <JournalAttributeChanges changes={savedAttributeChanges} attributes={attributes} />
                 </View>
               )}

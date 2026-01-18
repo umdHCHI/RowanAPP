@@ -1,5 +1,4 @@
-import { View, Image, StyleSheet } from 'react-native'
-import { Text } from 'react-native-paper'
+import { View, Image, Text, StyleSheet } from 'react-native'
 import { attributeImages } from '@/utils/attribute-images'
 import type { AttributeLevel } from '@/stores/game-store'
 
