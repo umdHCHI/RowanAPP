@@ -236,8 +236,13 @@ export function getExperienceRewardFromPassage(passage: any): ExperienceReward |
 
   if (!effects) return null
 
-  // Check for experience, lumens, or exp keys
-  const experienceAmount = effects.experience || effects.lumens || effects.exp || effects.lumen
+  // Check for experience, lumens, or exp keys (support legacy misspelling "expierence")
+  const experienceAmount =
+    effects.experience ||
+    effects.expierence ||
+    effects.lumens ||
+    effects.exp ||
+    effects.lumen
 
   if (!experienceAmount || typeof experienceAmount !== 'number' || experienceAmount <= 0) {
     return null

@@ -60,16 +60,8 @@ export function StoryPassage({ content, passageType, speakerName, speakerImage }
         </View>
       )
     case 'decision':
-      const decisionImageUrl = getStoryImageUrl(speakerImage)
       return (
         <View style={styles.decisionContainer}>
-          {decisionImageUrl && (
-            <Image
-              source={{ uri: decisionImageUrl }}
-              style={styles.decisionImage}
-              resizeMode="cover"
-            />
-          )}
           <View style={styles.decisionHeader}>
             <RNText style={styles.decisionLabel}>DECISION</RNText>
           </View>
@@ -201,13 +193,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     letterSpacing: 0.5,
-  },
-  decisionImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    marginBottom: STORY_SPACING.md,
-    borderRadius: STORY_BORDER_RADIUS.md,
   },
   actionContainer: {
     backgroundColor: STORY_COLORS.actionContainer,

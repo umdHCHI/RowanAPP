@@ -1,13 +1,12 @@
 import React from 'react'
 import { View, Text as RNText, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { StoryPassage } from './StoryPassage'
 import { StoryRewardMoment } from './StoryRewardMoment'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 import { useGameStore } from '@/stores/game-store'
 import { getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
-import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LAYOUT, STORY_LINE_HEIGHTS } from './story-theme'
+import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS } from './story-theme'
 import type { StoryHistoryItem } from '@/types/story'
 
 interface StoryHistoryProps {
@@ -54,7 +53,7 @@ export function StoryHistory({ history }: StoryHistoryProps) {
                 type="ACTION_SCENE"
                 title={item.content || 'Action Scene'}
                 subtitle={normalizedSpeakerName || undefined}
-                imageUrl={actionImageUrl}
+                imageSource={actionImageUrl ? { uri: actionImageUrl } : undefined}
               />
             </View>
           )
@@ -75,6 +74,7 @@ export function StoryHistory({ history }: StoryHistoryProps) {
               title={item.rewardTitle || item.content || 'Reward Unlocked'}
               subtitle={item.rewardSubtitle}
               lumensAmount={item.lumensAmount}
+              imageSource={item.rewardType === 'lumens' ? { uri: 'https://backend.131.212.41.8.nip.io/media/npc_portraits/lumen_golden.png' } : undefined}
               onPress={
                 item.rewardType === 'journal_entry' 
                   ? () => handleRewardPress(item.journalEntryId)

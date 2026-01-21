@@ -152,12 +152,14 @@ export function StoryContent({
           (() => {
             const imageUrl = getStoryImageUrl(currentPassage.speaker_image)
             const normalizedSpeakerName = normalizeSpeakerName(currentPassage.speaker_name)
+            console.log('[StoryContent] Action scene - speaker_image:', currentPassage.speaker_image)
+            console.log('[StoryContent] Action scene - imageUrl:', imageUrl)
             return (
               <StoryRewardMoment
                 type="ACTION_SCENE"
                 title={currentPassage.content || 'Action Scene'}
                 subtitle={normalizedSpeakerName || undefined}
-                imageUrl={imageUrl}
+                imageSource={imageUrl ? { uri: imageUrl } : undefined}
               />
             )
           })()

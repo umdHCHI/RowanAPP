@@ -1,5 +1,6 @@
 import 'dotenv/config'
 
+const appVersion = '2.0.0'
 const isEasBuild = process.env.EAS_BUILD === 'true'
 const profile = process.env.EAS_BUILD_PROFILE || process.env.EXPO_PUBLIC_EAS_BUILD_PROFILE
 const isDevBuild = profile === 'development'
@@ -8,7 +9,7 @@ export default {
   expo: {
     name: 'The Archive',
     slug: 'thearchive',
-    version: '2.0.0',
+    version: appVersion,
     orientation: 'portrait',
     userInterfaceStyle: 'dark',
     icon: './assets/splashscreen/icon.png',
@@ -59,9 +60,7 @@ export default {
       checkAutomatically: 'ON_ERROR_RECOVERY', // Only check for updates after errors, not on startup
       fallbackToCacheTimeout: 0,
     },
-    runtimeVersion: {
-      policy: 'appVersion',
-    },
+    runtimeVersion: appVersion,
     extra: {
       router: {},
       eas: {

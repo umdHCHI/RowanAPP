@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { View, Text as RNText, StyleSheet, Pressable, Animated, Image } from 'react-native'
+import { View, Text as RNText, StyleSheet, Pressable, Animated, Image, ImageSourcePropType } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
@@ -7,14 +7,18 @@ import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STO
 
 export type RewardType = 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE' | 'LUMENS'
 
+const DEFAULT_LUMENS_IMAGE: ImageSourcePropType = {
+  uri: 'https://backend.131.212.41.8.nip.io/media/npc_portraits/lumen_golden.png',
+}
+
 interface StoryRewardMomentProps {
   type: RewardType
   title: string
   subtitle?: string
   icon?: React.ReactNode
-  imageUrl?: string | null
-  onPress?: () => void
+  imageSource?: ImageSourcePropType | null
   lumensAmount?: number
+  onPress?: () => void
   theme?: {
     primary: string
     background: string
@@ -27,16 +31,15 @@ export function StoryRewardMoment({
   title,
   subtitle,
   icon,
-  imageUrl,
-  onPress,
+  imageSource,
   lumensAmount,
+  onPress,
   theme,
 }: StoryRewardMomentProps) {
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const fadeAnim = useRef(new Animated.Value(0)).current
   const scaleAnim = useRef(new Animated.Value(0.9)).current
-  const lumensGlowAnim = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
     Animated.parallel([
@@ -54,34 +57,9 @@ export function StoryRewardMoment({
     ]).start()
   }, [fadeAnim, scaleAnim])
 
-  // Animate lumens glow effect
-  useEffect(() => {
-    if (type === 'LUMENS') {
-      const glowAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(lumensGlowAnim, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(lumensGlowAnim, {
-            toValue: 0,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-        ])
-      )
-      glowAnimation.start()
-      return () => glowAnimation.stop()
-    }
-  }, [type, lumensGlowAnim])
-
-  // Use golden/yellow for lumens, default gold for others
-  const primaryColor = theme?.primary || (type === 'LUMENS' ? '#FFD700' : '#FFD700')
+  const primaryColor = theme?.primary || '#FFD700'
   const textColor = theme?.text || 'rgba(255, 255, 255, 0.9)'
-  const accentColor = type === 'LUMENS' 
-    ? `rgba(255, 215, 0, 0.5)` // Brighter for lumens to visualize light
-    : `rgba(255, 215, 0, 0.3)`
+  const accentColor = `rgba(255, 215, 0, 0.3)`
 
   function handlePress() {
     if (onPress) {
@@ -139,10 +117,10 @@ export function StoryRewardMoment({
 
     if (type === 'LUMENS') {
       return (
-        <Image
-          source={require('../../assets/attributes/lumens/Lumen.png')}
-          style={styles.lumensIcon}
-          resizeMode="contain"
+        <MaterialCommunityIcons 
+          name="star-four-points" 
+          size={32} 
+          color={primaryColor} 
         />
       )
     }
@@ -175,6 +153,11 @@ export function StoryRewardMoment({
     }
   }
 
+  const shouldShowImage = type === 'ACTION_SCENE' || type === 'LUMENS'
+  const resolvedImageSource = imageSource || (type === 'LUMENS' ? DEFAULT_LUMENS_IMAGE : null)
+  const isLumensReward = type === 'LUMENS' && typeof lumensAmount === 'number'
+  const displayTitle = isLumensReward ? `+${lumensAmount} Lumens` : title
+
   const content = (
     <Animated.View
       style={[
@@ -186,16 +169,17 @@ export function StoryRewardMoment({
       ]}
     >
       {/* Action Scene Image */}
-      {type === 'ACTION_SCENE' && (
+      {shouldShowImage && (
         <View style={styles.actionImageContainer}>
-          {imageUrl ? (
+          {resolvedImageSource ? (
             <>
               <Image
-                source={{ uri: imageUrl }}
+                source={resolvedImageSource}
                 style={styles.actionImage}
                 resizeMode="cover"
-                onError={() => {}}
-                onLoad={() => {}}
+                onError={(error) => {
+                  console.warn('[StoryRewardMoment] Failed to load reward image', error)
+                }}
               />
               <View style={styles.actionImageOverlay} />
             </>
@@ -211,69 +195,11 @@ export function StoryRewardMoment({
       <View style={styles.dividerContainer}>
         <View style={[styles.divider, { backgroundColor: accentColor }]} />
         <View style={styles.iconContainer}>
-          {/* Enhanced glow effect for lumens to visualize light */}
-          {type === 'LUMENS' ? (
-            <>
-              <Animated.View 
-                style={[
-                  styles.lumensGlowOuter, 
-                  { 
-                    backgroundColor: `${primaryColor}15`,
-                    opacity: lumensGlowAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.6, 1],
-                    }),
-                  }
-                ]} 
-              />
-              <Animated.View 
-                style={[
-                  styles.lumensGlowMiddle, 
-                  { 
-                    backgroundColor: `${primaryColor}30`,
-                    opacity: lumensGlowAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.7, 1],
-                    }),
-                  }
-                ]} 
-              />
-              <Animated.View 
-                style={[
-                  styles.lumensGlowInner, 
-                  { 
-                    backgroundColor: `${primaryColor}50`,
-                    opacity: lumensGlowAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.8, 1],
-                    }),
-                  }
-                ]} 
-              />
-            </>
-          ) : (
-            <View style={[styles.glow, { backgroundColor: `${primaryColor}20` }]} />
-          )}
-          {type === 'LUMENS' ? (
-            <Animated.View 
-              style={[
-                styles.iconWrapper, 
-                { 
-                  borderColor: accentColor,
-                  backgroundColor: lumensGlowAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['rgba(255, 215, 0, 0.3)', 'rgba(255, 215, 0, 0.6)'],
-                  }),
-                }
-              ]}
-            >
-              {renderIcon()}
-            </Animated.View>
-          ) : (
-            <View style={[styles.iconWrapper, { borderColor: accentColor }]}>
-              {renderIcon()}
-            </View>
-          )}
+          {/* Glow effect behind icon */}
+          <View style={[styles.glow, { backgroundColor: `${primaryColor}20` }]} />
+          <View style={[styles.iconWrapper, { borderColor: accentColor }]}>
+            {renderIcon()}
+          </View>
         </View>
         <View style={[styles.divider, { backgroundColor: accentColor }]} />
       </View>
@@ -285,10 +211,15 @@ export function StoryRewardMoment({
 
       {/* Title */}
       <RNText style={[styles.title, { color: primaryColor }]}>
-        {type === 'LUMENS' && lumensAmount !== undefined
-          ? `+${lumensAmount} Lumens`
-          : title}
+        {displayTitle}
       </RNText>
+
+      {isLumensReward && (
+        <View style={styles.lumensBadge}>
+          <RNText style={styles.lumensBadgeValue}>+{lumensAmount}</RNText>
+          <RNText style={styles.lumensBadgeLabel}>Lumens</RNText>
+        </View>
+      )}
 
       {/* Subtitle */}
       {subtitle && (
@@ -344,27 +275,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     opacity: 0.6,
   },
-  lumensGlowOuter: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    opacity: 0.8,
-  },
-  lumensGlowMiddle: {
-    position: 'absolute',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    opacity: 0.7,
-  },
-  lumensGlowInner: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    opacity: 0.6,
-  },
   iconWrapper: {
     width: 56,
     height: 56,
@@ -374,10 +284,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
-  },
-  lumensIcon: {
-    width: 64,
-    height: 64,
   },
   label: {
     fontFamily: STORY_FONTS.system,
@@ -403,6 +309,29 @@ const styles = StyleSheet.create({
     lineHeight: STORY_LINE_HEIGHTS.md,
     opacity: 0.7,
     paddingHorizontal: STORY_SPACING.xl,
+  },
+  lumensBadge: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    alignSelf: 'center',
+    gap: STORY_SPACING.xs,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    borderRadius: STORY_BORDER_RADIUS.md,
+    paddingHorizontal: STORY_SPACING.md,
+    paddingVertical: STORY_SPACING.xs,
+    marginTop: STORY_SPACING.sm,
+  },
+  lumensBadgeValue: {
+    fontFamily: STORY_FONTS.beyondWonderland,
+    fontSize: STORY_FONT_SIZES.lg,
+    color: STORY_COLORS.text,
+  },
+  lumensBadgeLabel: {
+    fontFamily: STORY_FONTS.system,
+    fontSize: STORY_FONT_SIZES.sm,
+    letterSpacing: 1,
+    color: STORY_COLORS.textSecondary,
+    textTransform: 'uppercase',
   },
   actionImageContainer: {
     width: '100%',
