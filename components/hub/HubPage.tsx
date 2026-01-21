@@ -16,9 +16,9 @@ interface HubPageProps {
 
 export function HubPage({ card, isLast, onResourcePress }: HubPageProps) {
   const insets = useSafeAreaInsets()
-  const isIntroduction = card.title.toLowerCase().includes('introduction') || card.title.toLowerCase() === 'introduction'
-  // Introduction should never show resources, regardless of hasResources value
-  const showResources = !isIntroduction && card.hasResources
+  const isPrologue = card.title.toLowerCase().includes('prologue') || card.title.toLowerCase() === 'prologue'
+  // Prologue should never show resources, regardless of hasResources value
+  const showResources = !isPrologue && card.hasResources
 
   // Calculate header height: safe area top + header min height (60) + some padding
   const headerHeight = insets.top + 80
@@ -33,7 +33,7 @@ export function HubPage({ card, isLast, onResourcePress }: HubPageProps) {
         {/* Main story card */}
         <StoryCard card={card} />
 
-        {/* Progress indicator and resource card - never show for Introduction */}
+        {/* Progress indicator and resource card - never show for Prologue */}
         {showResources && (
           <>
             <View style={styles.resourceSection}>
