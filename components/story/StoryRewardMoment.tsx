@@ -139,10 +139,10 @@ export function StoryRewardMoment({
 
     if (type === 'LUMENS') {
       return (
-        <MaterialCommunityIcons 
-          name="lightbulb-on" 
-          size={32} 
-          color={primaryColor} 
+        <Image
+          source={require('../../assets/attributes/lumens/Lumen.png')}
+          style={styles.lumensIcon}
+          resizeMode="contain"
         />
       )
     }
@@ -258,9 +258,26 @@ export function StoryRewardMoment({
           ) : (
             <View style={[styles.glow, { backgroundColor: `${primaryColor}20` }]} />
           )}
-          <View style={[styles.iconWrapper, { borderColor: accentColor }]}>
-            {renderIcon()}
-          </View>
+          {type === 'LUMENS' ? (
+            <Animated.View 
+              style={[
+                styles.iconWrapper, 
+                { 
+                  borderColor: accentColor,
+                  backgroundColor: lumensGlowAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['rgba(255, 215, 0, 0.3)', 'rgba(255, 215, 0, 0.6)'],
+                  }),
+                }
+              ]}
+            >
+              {renderIcon()}
+            </Animated.View>
+          ) : (
+            <View style={[styles.iconWrapper, { borderColor: accentColor }]}>
+              {renderIcon()}
+            </View>
+          )}
         </View>
         <View style={[styles.divider, { backgroundColor: accentColor }]} />
       </View>
@@ -361,6 +378,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
+  },
+  lumensIcon: {
+    width: 64,
+    height: 64,
   },
   label: {
     fontFamily: STORY_FONTS.system,

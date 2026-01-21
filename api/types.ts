@@ -255,6 +255,7 @@ export const UserCreateSchema = z.object({
 export const UserUpdateSchema = z.object({
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
+  notifications_enabled: z.boolean().optional(),
 })
 
 export const UserResponseSchema = z.object({
@@ -304,6 +305,7 @@ export const UserProfileCoreSchema = z.object({
   has_completed_onboarding: z.boolean(),
   completion_type: z.string(),
   completion_data_id: z.number(),
+  notifications_enabled: z.boolean().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 })

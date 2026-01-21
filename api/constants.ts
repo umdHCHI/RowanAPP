@@ -104,33 +104,30 @@ export function apiUrl(path: string): string {
 /**
  * API Endpoints (aligned to nova/urls.py)
  *
+ * Authentication: DRF Token Authentication
+ * Format: Authorization: Token <token>
+ * 
  * nova/urls.py:
  *   /api/                -> users.urls + characters.urls
  *   /api/story/          -> story.urls
  *   /api/journal/        -> journal.urls
  *   /api/game/           -> game.urls
  *   /api/personality/    -> personality.urls
- *   /api/token/          -> JWT obtain (if you use it)
  */
 export const API_ENDPOINTS = {
-  // --- Auth (you currently appear to be using DRF Token auth, but JWT endpoints exist too) ---
-  JWT_OBTAIN: '/token/',
-  JWT_REFRESH: '/token/refresh/',
+  // --- Authentication (DRF Token Auth) ---
+  USER_LOGIN: 'auth/login/',
+  USER_LOGOUT: 'auth/logout/',
 
   // --- Characters (included at /api/...) ---
   CHARACTERS: '/characters/',
   CHARACTER_BY_ID: (id: string | number) => `/characters/${id}/`,
 
   // --- Users (included at /api/...) ---
-  // NOTE: your actual users endpoints depend on users.urls; keep these only if they match.
   USER_FULL_PROFILE: (id: string | number) => `/users/${id}/full_profile/`,
   USER: '/user',
-  USER_BY_ID: (id: string | number) => `/user/${id}`,
+  USER_BY_ID: (id: string | number) => `/users/${id}/`,
   USER_CREATE: '/user/create',
-  USER_UPDATE: (id: string | number) => `/user/${id}/update`,
-  USER_DELETE: (id: string | number) => `/user/${id}/delete`,
-  USER_LOGIN: '/user/login',
-  USER_LOGOUT: '/user/logout',
   USER_VERIFY_EMAIL: '/user/verify-email',
   USER_RESET_PASSWORD: '/user/reset-password',
   USER_FORGOT_PASSWORD: '/user/forgot-password',

@@ -2,14 +2,35 @@ import { API_CONFIG } from './constants'
 import type { ApiResponse, ApiError } from './types'
 
 /**
- * Get Authorization header
+ * Get Authorization header for DRF Token Authentication
+ * Backend format: Authorization: Token <token>
+ * 
+ * Priority:
+ * 1. Token from auth store (user logged in)
+ * 2. Config token (development fallback)
  */
 function getAuthHeader(): string {
+  // Try to get token from auth store first (user logged in)
+  try {
+    // Dynamic import to avoid circular dependency
+    const { useAuthStore } = require('../stores/auth-store')
+    const authState = useAuthStore.getState()
+    
+    if (authState.token && authState.token.trim()) {
+      // Using DRF Token authentication
+      return `Token ${authState.token}`
+    }
+  } catch (error) {
+    // If store is not available, fall back to config token
+  }
+  
+  // Fallback to config token (for development/backward compatibility)
   const token = API_CONFIG.AUTH_TOKEN
   if (token && token.trim()) {
-    // Using Token authentication (common for Django REST Framework)
+    // Using DRF Token authentication
     return `Token ${token}`
   }
+  
   return ''
 }
 
@@ -37,13 +58,10 @@ class ApiClient {
 
   constructor() {
     // Validate env vars on client creation - provide helpful error if missing
-    if (!API_CONFIG.BASE_URL || !API_CONFIG.AUTH_TOKEN) {
-      const missing = []
-      if (!API_CONFIG.BASE_URL) missing.push('EXPO_PUBLIC_API_URL')
-      if (!API_CONFIG.AUTH_TOKEN) missing.push('EXPO_PUBLIC_API_TOKEN')
-      
+    // Note: AUTH_TOKEN is now optional if using JWT login
+    if (!API_CONFIG.BASE_URL) {
       console.error(
-        `Missing required environment variables: ${missing.join(', ')}\n` +
+        `Missing required environment variable: EXPO_PUBLIC_API_URL\n` +
         `Please ensure your .env file exists at:\n` +
         `C:\\dev\\coding\\react_native\\betwixtclone\\thearchive\\.env\n\n` +
         `After creating/updating .env, restart the Expo dev server with: npm start -- --clear`
@@ -67,11 +85,9 @@ class ApiClient {
       ? this.baseURL.slice(0, -1) 
       : this.baseURL
     
-    // Construct URL with or without version
-    if (skipVersion) {
-      return `${baseUrl}/${cleanEndpoint}`
-    }
-    return `${baseUrl}/${API_CONFIG.VERSION}/${cleanEndpoint}`
+    // Construct URL - skip version by default since API_CONFIG.VERSION doesn't exist
+    // If versioning is needed in the future, add VERSION to API_CONFIG
+    return `${baseUrl}/${cleanEndpoint}`
   }
 
   /**

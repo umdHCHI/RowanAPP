@@ -40,15 +40,27 @@ export default {
           imageWidth: 200,
         },
       ],
+      [
+        'expo-notifications',
+        {
+          icon: './assets/splashscreen/icon.png',
+          color: '#000000',
+          sounds: [],
+        },
+      ],
     ],
     scheme: 'thearchive',
     // Updates configuration
     // Note: Updates are automatically disabled in development builds (expo start)
     // They only work in production builds created with EAS Build
     updates: {
+      url: 'https://u.expo.dev/3b487e69-4650-42e9-90e1-126402429650',
       enabled: isEasBuild,
       checkAutomatically: 'ON_ERROR_RECOVERY', // Only check for updates after errors, not on startup
       fallbackToCacheTimeout: 0,
+    },
+    runtimeVersion: {
+      policy: 'appVersion',
     },
     extra: {
       router: {},

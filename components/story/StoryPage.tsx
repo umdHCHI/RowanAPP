@@ -268,8 +268,9 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
       // Check if this is the minigame choice
       if (choice.target_id === 'minigame' || choice.id === 'minigame-choice') {
         // Navigate to minigame instead of making a story choice
+        // Pass tutorial=true to start at level 0 (tutorial level)
         addChoice(choice)
-        router.push('/vantage')
+        router.push('/vantage?tutorial=true')
         return
       }
       

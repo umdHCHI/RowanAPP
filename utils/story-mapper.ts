@@ -1,6 +1,7 @@
 import type { StoryData } from '@/stores/game-store'
 import type { StoryCard, CardStatus } from '@/types/hub'
 import { getStoryImageUrl } from '@/utils/story-helpers'
+import { isStoryUnlocked } from '@/utils/story-constants'
 
 /**
  * Truncate text to a maximum length, adding ellipsis if needed
@@ -22,8 +23,14 @@ function isIntroductionStory(story: StoryData): boolean {
 
 /**
  * Map API stories to StoryCard format for the hub
+ * 
+ * @param stories - Array of story data from API
+ * @param userCreatedAt - User creation date for daily unlock calculation (optional)
  */
-export function mapStoriesToCards(stories: StoryData[]): StoryCard[] {
+export function mapStoriesToCards(
+  stories: StoryData[],
+  userCreatedAt?: string | Date | null
+): StoryCard[] {
   if (!stories || stories.length === 0) {
     return []
   }
@@ -32,7 +39,17 @@ export function mapStoriesToCards(stories: StoryData[]): StoryCard[] {
   function mapStoryToCard(story: StoryData, index: number, isIntroduction = false): StoryCard {
     // Determine status based on story data and user progress
     let status: CardStatus = 'available'
-    if (story.min_level > 1) {
+    
+    // Check daily unlock system first (for non-introduction stories)
+    if (!isIntroduction) {
+      const isUnlocked = isStoryUnlocked(story.id, userCreatedAt)
+      if (!isUnlocked) {
+        status = 'locked'
+      }
+    }
+    
+    // Also check level requirement (legacy check)
+    if (story.min_level > 1 && status !== 'locked') {
       // Check if user meets level requirement (you can enhance this)
       status = 'locked'
     }
@@ -63,6 +80,7 @@ export function mapStoriesToCards(stories: StoryData[]): StoryCard[] {
 
   // Filter stories: only show those with empty personality_focus array (no personality focus)
   // Also exclude Introduction from this list
+  // Note: We still include locked stories in the list so users can see what's coming
   const otherStories = stories
     .filter(
       (story) => !isIntroductionStory(story) && (!story.personality_focus || story.personality_focus.length === 0)

@@ -38,17 +38,15 @@ export default function Hub() {
       return
     }
 
-    // Extract story ID from card.id (format: "story-{id}")
-    const storyId = card.id.replace('story-', '')
-    router.push(`/story?storyId=${storyId}`)
+    // Use chapterId directly (this is the story ID)
+    router.push(`/story?storyId=${card.chapterId}`)
   }
 
   function handleResourceAction(card: StoryCard) {
     haptics.lightImpact()
     playPageFlipSound()
-    // Extract story ID from card.id (format: "story-{id}")
-    const storyId = card.id.replace('story-', '')
-    router.push(`/resources?storyId=${storyId}`)
+    // Use chapterId directly (this is the story ID)
+    router.push(`/resources?storyId=${card.chapterId}`)
   }
 
   function goToNextDream() {

@@ -7,18 +7,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
  * Manages the current logged-in user's ID and authentication state
  * 
  * TODO: Implement login page and replace hardcoded default user ID with
- * actual authentication flow (login, token management, etc.)
+ * actual authentication flow 
  */
 
 interface AuthState {
   // Current user ID (null when not authenticated)
   userId: number | null
   
-  // Authentication token (for future use with login)
+  // DRF Token (for API requests)
+  // Backend uses: Authorization: Token <token>
   token: string | null
   
   // Actions
-  setUser: (userId: number, token?: string) => void
+  setUser: (userId: number, token: string) => void
   clearAuth: () => void
   isAuthenticated: () => boolean
 }
@@ -30,12 +31,15 @@ const DEFAULT_USER_ID = 1
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      // Default to user ID 1 for now (admin user)
+      // Default to user ID 1 for now (admin user) - remove once login is implemented
       userId: DEFAULT_USER_ID,
       token: null,
 
       setUser: (userId, token) => {
-        set({ userId, token: token || null })
+        set({ 
+          userId, 
+          token: token || null
+        })
       },
 
       clearAuth: () => {
@@ -43,7 +47,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       isAuthenticated: () => {
-        return get().userId !== null
+        const state = get()
+        return state.userId !== null && state.token !== null
       },
     }),
     {

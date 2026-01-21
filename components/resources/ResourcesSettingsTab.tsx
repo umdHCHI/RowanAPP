@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native'
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
@@ -7,9 +7,10 @@ import { useGameStore } from '@/stores/game-store'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 import { useCurrentUserFullProfile } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
+import { useNotifications } from '@/hooks/use-notifications'
 
 interface ResourcesSettingsTabProps {
-  // Placeholder for future settings props
+  // Placeholder for future settings props -- Might ommit? 
 }
 
 export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
@@ -20,6 +21,7 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
   const textSpeed = useGameStore((state) => state.textSpeed)
   const cycleTextSpeed = useGameStore((state) => state.cycleTextSpeed)
   const { data: profileData } = useCurrentUserFullProfile()
+  const { notificationsEnabled, requestPermissions, cancelAllNotifications, sendTestNotification } = useNotifications()
 
   // Get avatar config from profile
   const avatarConfig = useMemo(() => {
@@ -78,6 +80,25 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
     )
   }
 
+  async function handleNotificationToggle() { // Notifications might need to have expanded backend 
+    playPageFlipSound()
+    
+    if (notificationsEnabled) {
+      // Disable notifications
+      await cancelAllNotifications()
+    } else {
+      // Enable notifications - request permissions first
+      const granted = await requestPermissions()
+      if (!granted) {
+        Alert.alert(
+          'Permission Required',
+          'Please enable notifications in your device settings to receive daily reminders.',
+          [{ text: 'OK' }]
+        )
+      }
+    }
+  }
+
   function handleSettingPress(settingName: string) {
     playPageFlipSound()
     // TODO: Implement individual setting handlers
@@ -106,10 +127,10 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
                 {profileData?.character?.name || 'Your Character'}
               </Text>
               <View style={styles.lumensContainer}>
-                <MaterialCommunityIcons 
-                  name="lightbulb-on" 
-                  size={20} 
-                  color="#FFD700" 
+                <Image
+                  source={{ uri: 'https://backend.131.212.41.8.nip.io/media/npc_portraits/lumen_golden.png' }}
+                  style={styles.lumenImage}
+                  resizeMode="contain"
                 />
                 <Text style={styles.lumensText}>{lumens} Lumens</Text>
               </View>
@@ -143,15 +164,43 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
 
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={() => handleSettingPress('Notifications')}
+              onPress={handleNotificationToggle}
               activeOpacity={0.7}
             >
               <View style={styles.settingItemContent}>
-                <MaterialCommunityIcons name="bell-outline" size={24} color="#ffffff" />
+                <MaterialCommunityIcons 
+                  name={notificationsEnabled ? "bell" : "bell-off-outline"} 
+                  size={24} 
+                  color="#ffffff" 
+                />
                 <Text style={styles.settingItemText}>Notifications</Text>
               </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255, 255, 255, 0.5)" />
+              <Text style={styles.settingItemValue}>
+                {notificationsEnabled ? 'On' : 'Off'}
+              </Text>
             </TouchableOpacity>
+
+            {notificationsEnabled && (
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={async () => {
+                  playPageFlipSound()
+                  await sendTestNotification()
+                  Alert.alert('Test Sent', 'A test notification has been sent!')
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.settingItemContent}>
+                  <MaterialCommunityIcons 
+                    name="bell-ring-outline" 
+                    size={24} 
+                    color="#ffffff" 
+                  />
+                  <Text style={styles.settingItemText}>Test Notification</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255, 255, 255, 0.5)" />
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.settingItem}
@@ -271,6 +320,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  lumenImage: {
+    width: 20,
+    height: 20,
   },
   lumensText: {
     fontFamily: 'System',

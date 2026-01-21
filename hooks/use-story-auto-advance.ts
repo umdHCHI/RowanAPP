@@ -31,8 +31,11 @@ export function useStoryAutoAdvance({
 
       if (continueChoice) {
         const contentLength = currentPassage.content?.length || 0
-        const { charDelay, minDelay, maxDelay } = AUTO_ADVANCE_SPEED[textSpeed]
-        const delay = Math.min(Math.max(contentLength * charDelay, minDelay), maxDelay)
+        // Estimate word count: average English word is ~5 characters (including space)
+        const estimatedWordCount = Math.max(1, Math.ceil(contentLength / 5))
+        const { wordDelay, minDelay, maxDelay } = AUTO_ADVANCE_SPEED[textSpeed]
+        // Calculate delay based on word count, then clamp between min and max
+        const delay = Math.min(Math.max(estimatedWordCount * wordDelay, minDelay), maxDelay)
 
         const timer = setTimeout(() => {
           onAutoAdvance(continueChoice)

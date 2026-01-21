@@ -12,9 +12,10 @@ interface GameAreaProps {
   onPlayerMove?: (x: number) => void
   onShoot?: () => void
   playerLastHitAt?: number
+  isTutorial?: boolean
 }
 
-export function GameArea({ width, height, children, onPlayerMove, onShoot, playerLastHitAt }: GameAreaProps) {
+export function GameArea({ width, height, children, onPlayerMove, onShoot, playerLastHitAt, isTutorial = false }: GameAreaProps) {
   // Use shared values for gesture state (no re-renders)
   const panActive = useSharedValue(false)
   const panStartX = useSharedValue(0)
@@ -50,9 +51,111 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
   const hitFlashOpacity = useMemo(() => new Animated.Value(0), [])
   const lastHitAtRef = useRef<number>(0)
 
-  // Fade out hint after 3 seconds
+  // Tutorial hints for level 0
+  const tutorialHints = useMemo(() => [
+    'Drag anywhere on the screen to move the bow',
+    'Tap anywhere on the screen to shoot the enemies',
+    'Shoot the bullets to destroy obstacles',
+    'Destroy enemy targets to collect powerups and explore thought patterns',
+    'Destroy the incoming waves to help clear The Archive and deal the breach.',
+    'Gather Lumens to help you repair the rifts.',
+  ], [])
+  const [currentTutorialHintIndex, setCurrentTutorialHintIndex] = useState(0)
+  const [showTutorialHint, setShowTutorialHint] = useState(false)
+  const tutorialHintOpacity = useMemo(() => new Animated.Value(0), [])
+  const tutorialTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const tutorialActiveRef = useRef<boolean>(false)
+
+  // Memoized function to show tutorial hints in sequence
+  const showTutorialHintAtIndex = useCallback((index: number) => {
+    // Check if tutorial is still active before proceeding
+    if (!tutorialActiveRef.current) return
+
+    if (index >= tutorialHints.length) {
+      // All hints shown, fade out
+      Animated.timing(tutorialHintOpacity, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowTutorialHint(false)
+      })
+      return
+    }
+
+    setCurrentTutorialHintIndex(index)
+    
+    // Fade in
+    Animated.timing(tutorialHintOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      // Check again before setting timer
+      if (!tutorialActiveRef.current) return
+
+      // Show for 5 seconds, then fade out
+      const showTimer = setTimeout(() => {
+        if (!tutorialActiveRef.current) return
+        Animated.timing(tutorialHintOpacity, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }).start(() => {
+          // Check again before showing next hint
+          if (!tutorialActiveRef.current) return
+          // Show next hint after fade out
+          const nextTimer = setTimeout(() => {
+            if (tutorialActiveRef.current) {
+              showTutorialHintAtIndex(index + 1)
+            }
+          }, 200)
+          tutorialTimerRef.current = nextTimer
+        })
+      }, 5000)
+      tutorialTimerRef.current = showTimer
+    })
+  }, [tutorialHints.length, tutorialHintOpacity])
+
+  // Show tutorial hints in sequence when tutorial mode is active
   useEffect(() => {
-    if (showHint) {
+    if (!isTutorial) {
+      // Clean up if tutorial mode is disabled
+      tutorialActiveRef.current = false
+      if (tutorialTimerRef.current) {
+        clearTimeout(tutorialTimerRef.current)
+        tutorialTimerRef.current = null
+      }
+      setShowTutorialHint(false)
+      setCurrentTutorialHintIndex(0)
+      tutorialHintOpacity.setValue(0)
+      return
+    }
+
+    // Mark tutorial as active
+    tutorialActiveRef.current = true
+
+    // Start showing tutorial hints after a short delay
+    const startTimer = setTimeout(() => {
+      if (tutorialActiveRef.current) {
+        setShowTutorialHint(true)
+        showTutorialHintAtIndex(0)
+      }
+    }, 1000)
+    tutorialTimerRef.current = startTimer
+
+    return () => {
+      tutorialActiveRef.current = false
+      if (tutorialTimerRef.current) {
+        clearTimeout(tutorialTimerRef.current)
+        tutorialTimerRef.current = null
+      }
+    }
+  }, [isTutorial, tutorialHintOpacity, showTutorialHintAtIndex])
+
+  // Fade out regular hint after 3 seconds (only if not in tutorial mode)
+  useEffect(() => {
+    if (showHint && !isTutorial) {
       const timer = setTimeout(() => {
         Animated.timing(hintOpacity, {
           toValue: 0,
@@ -62,7 +165,7 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
       }, 3000)
       return () => clearTimeout(timer)
     }
-  }, [showHint, hintOpacity])
+  }, [showHint, hintOpacity, isTutorial])
 
   // Handle player hit flash
   useEffect(() => {
@@ -188,8 +291,8 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
         }}
       />
       
-      {/* Hint pill */}
-      {showHint && (onPlayerMove || onShoot) && (
+      {/* Regular hint pill (only show if not in tutorial mode) */}
+      {showHint && (onPlayerMove || onShoot) && !isTutorial && (
         <Animated.View
           style={[
             styles.hintPill,
@@ -200,6 +303,25 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
           pointerEvents="none"
         >
           <Text style={styles.hintText}>Drag to move • Tap to shoot</Text>
+        </Animated.View>
+      )}
+
+      {/* Tutorial hints (centered, shown in sequence) */}
+      {showTutorialHint && isTutorial && (
+        <Animated.View
+          style={[
+            styles.tutorialHintContainer,
+            {
+              opacity: tutorialHintOpacity,
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <View style={styles.tutorialHintCard}>
+            <Text style={styles.tutorialHintText}>
+              {tutorialHints[currentTutorialHintIndex]}
+            </Text>
+          </View>
         </Animated.View>
       )}
       
@@ -250,6 +372,35 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 3,
     color: '#ffffffcc',
+  },
+  tutorialHintContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 200,
+  },
+  tutorialHintCard: {
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    paddingHorizontal: 32,
+    paddingVertical: 24,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    maxWidth: '85%',
+    minWidth: 280,
+  },
+  tutorialHintText: {
+    fontFamily: 'System',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    color: '#ffffff',
+    textAlign: 'center',
+    lineHeight: 24,
   },
 })
 

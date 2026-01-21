@@ -25,8 +25,9 @@ import {
 
 export default function Vantage() {
   const router = useRouter()
-  const params = useLocalSearchParams<{ storyId?: string }>()
+  const params = useLocalSearchParams<{ storyId?: string; tutorial?: string }>()
   const storyId = params.storyId
+  const isTutorial = params.tutorial === 'true'
   const { updateAttribute, addMemory, character } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
@@ -250,6 +251,7 @@ export default function Vantage() {
                 onPlayerMove={game.isPlaying && !game.gameOver ? handlePlayerMove : undefined}
                 onShoot={game.isPlaying && !game.gameOver ? handleShootWithHaptics : undefined}
                 playerLastHitAt={game.playerLastHitAt}
+                isTutorial={isTutorial && game.isPlaying}
               >
               {game.debugHitboxes && (
                 <>

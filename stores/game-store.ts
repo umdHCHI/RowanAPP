@@ -159,6 +159,7 @@ interface GameState {
   // Settings
   soundMuted: boolean
   textSpeed: TextSpeed
+  notificationsEnabled: boolean
   
   // Actions
   setCharacter: (character: Character) => void
@@ -180,6 +181,7 @@ interface GameState {
   toggleSoundMute: () => void
   setTextSpeed: (speed: TextSpeed) => void
   cycleTextSpeed: () => void
+  setNotificationsEnabled: (enabled: boolean) => void
   setAttributes: (attributes: AttributeLevel) => void
   resetGame: () => void
 }
@@ -225,6 +227,7 @@ export const useGameStore = create<GameState>()(
       lastSeenPowerUnlockAt: undefined,
       soundMuted: false,
       textSpeed: 'normal',
+      notificationsEnabled: true,
 
       setCharacter: (character) =>
         set({ character, hasCreatedCharacter: true }),
@@ -370,6 +373,9 @@ export const useGameStore = create<GameState>()(
           return { textSpeed: nextSpeed }
         }),
 
+      setNotificationsEnabled: (enabled) =>
+        set({ notificationsEnabled: enabled }),
+
       setAttributes: (attributes) =>
         set(() => ({
           attributes,
@@ -392,6 +398,7 @@ export const useGameStore = create<GameState>()(
           lastSeenPowerUnlockAt: undefined,
           soundMuted: false,
           textSpeed: 'normal',
+          notificationsEnabled: true,
         }),
     }),
     {
