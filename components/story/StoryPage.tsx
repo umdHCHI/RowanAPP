@@ -129,9 +129,6 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
       let prompt = null
       try {
         prompt = await journalService.getJournalPromptById(reward.journalEntryId)
-        if (!prompt) {
-          console.warn(`[Reward Detection] Journal prompt ${reward.journalEntryId} not found, using fallback`)
-        }
       } catch (error) {
         console.error('[Reward Detection] Failed to fetch journal prompt:', error)
       }
@@ -227,14 +224,6 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
       }
 
       // Log for debugging - experience reward detected
-      if (__DEV__) {
-        console.log('[Experience Reward] Detected:', {
-          passageId: passage.passage_id,
-          amount: reward.amount,
-          storyEffects: passage.story_effects,
-        })
-      }
-
       // Check if we've shown this reward in history this session
       const rewardKey = `${passage.passage_id}-lumens-${reward.amount}`
       const shownThisSession = rewardsShownThisSession.current.has(rewardKey)

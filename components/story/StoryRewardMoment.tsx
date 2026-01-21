@@ -194,12 +194,8 @@ export function StoryRewardMoment({
                 source={{ uri: imageUrl }}
                 style={styles.actionImage}
                 resizeMode="cover"
-                onError={(error) => {
-                  console.warn('[StoryRewardMoment] Failed to load action scene image:', imageUrl, error)
-                }}
-                onLoad={() => {
-                  console.log('[StoryRewardMoment] Successfully loaded action scene image:', imageUrl)
-                }}
+                onError={() => {}}
+                onLoad={() => {}}
               />
               <View style={styles.actionImageOverlay} />
             </>

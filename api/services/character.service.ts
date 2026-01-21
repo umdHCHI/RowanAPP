@@ -38,7 +38,7 @@ export const characterService = {
       // Direct character object - wrap it
       return {
         success: true,
-        data: response as CharacterResponse,
+        data: response as unknown as CharacterResponse,
       }
     }
     
@@ -56,26 +56,19 @@ export const characterService = {
     try {
       const response = await apiClient.patch<CharacterResponse>(API_ENDPOINTS.CHARACTER_BY_ID(id), data, { skipVersion: true })
       
-      console.log('Character update response:', {
-        hasId: response && typeof response === 'object' && 'id' in response,
-        hasSuccess: response && typeof response === 'object' && 'success' in response,
-        keys: response && typeof response === 'object' ? Object.keys(response) : null,
-      })
-      
       // Backend returns character data directly, not wrapped in { success, data }
       // Wrap it in ApiResponse format for consistency
       if (response && typeof response === 'object' && 'id' in response && !('success' in response)) {
         // Direct character object - wrap it
         return {
           success: true,
-          data: response as CharacterResponse,
+          data: response as unknown as CharacterResponse,
         }
       }
       
       // If already wrapped, return as-is
       return response as ApiResponse<CharacterResponse>
     } catch (error: any) {
-      console.error('Character update error in service:', error)
       // Re-throw to preserve error details
       throw error
     }

@@ -1,12 +1,15 @@
 import { View, Text, ImageBackground, Animated } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef } from 'react'
-import { useGameStore } from '@/stores/game-store'
+import { useCurrentUserFullProfile, useIsAuthenticated } from '@/api'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
+import { useGameStore } from '@/stores/game-store'
 
 export default function Index() {
   const router = useRouter()
-  const { hasCreatedCharacter, character } = useGameStore()
+  const isAuthenticated = useIsAuthenticated()
+  const { data: profileData, isLoading: isLoadingProfile } = useCurrentUserFullProfile()
+  const { character } = useGameStore()
   const fadeAnim = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
@@ -17,17 +20,20 @@ export default function Index() {
       useNativeDriver: true,
     }).start()
 
-    // Navigate based on game state
+    // Navigate based on auth state first
     const timer = setTimeout(() => {
-      if (hasCreatedCharacter) {
-        router.replace('/hub')
-      } else {
-        router.replace('/character-creator')
+      if (!isAuthenticated) {
+        router.replace('/login')
+        return
       }
-    }, 2500)
+
+      // If authenticated, route based on whether the user has a character yet
+      const hasCharacter = !!profileData?.character
+      router.replace(hasCharacter ? '/hub' : '/character-creator')
+    }, 800)
 
     return () => clearTimeout(timer)
-  }, [hasCreatedCharacter, router, fadeAnim])
+  }, [isAuthenticated, profileData?.character, router, fadeAnim])
 
   return (
     <ImageBackground
@@ -46,7 +52,7 @@ export default function Index() {
           </View>
         )}
         <Text style={{ fontSize: 18, color: 'rgba(196, 181, 253, 0.7)', fontStyle: 'italic' }}>
-          Your journey begins in the void...
+          {isAuthenticated ? (isLoadingProfile ? 'Reading your file...' : 'Welcome back...') : 'Sign in to continue...'}
         </Text>
       </Animated.View>
     </ImageBackground>

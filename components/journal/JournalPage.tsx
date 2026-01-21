@@ -157,7 +157,6 @@ export function JournalPage() {
           }
         } catch (e) {
           // If parsing fails, leave drawing empty
-          console.warn('Failed to parse drawing content:', e)
           setDrawing([])
         }
         setText('')
@@ -312,7 +311,6 @@ export function JournalPage() {
           resolvedExistingEntry = existingEntryForPrompt
         }
       } catch (lookupError) {
-        console.warn('Failed to pre-check existing entry:', lookupError)
       }
     }
 
@@ -320,13 +318,6 @@ export function JournalPage() {
       // Check if we should update existing entry or create new one
       // If we have an existing entry for this prompt, update it (even if entry_type is different)
       if (resolvedExistingEntry && resolvedExistingEntry.id) {
-        console.log('Updating existing journal entry:', {
-          id: resolvedExistingEntry.id,
-          prompt: resolvedExistingEntry.prompt,
-          currentEntryType: resolvedExistingEntry.entry_type,
-          newEntryType: mode,
-        })
-        
         // Update existing entry
         await updateJournalEntry.mutateAsync({
           id: String(resolvedExistingEntry.id),
@@ -339,11 +330,6 @@ export function JournalPage() {
         queryClient.invalidateQueries({ queryKey: journalKeys.all })
         didSave = true
       } else {
-        console.log('Creating new journal entry:', {
-          prompt: currentPrompt.id,
-          entry_type: mode,
-        })
-        
         // Create new entry
         await createJournalEntry.mutateAsync({
           prompt: currentPrompt.id,
@@ -359,8 +345,6 @@ export function JournalPage() {
 
       // Check if error is about duplicate entry or progress and try to update or confirm existence
       if (isDuplicatePrompt || isDuplicateProgress) {
-        console.log('Got duplicate-related error, attempting to find existing entry...')
-
         try {
           const entriesResponse = await journalService.getAll(1, 100)
           let entries: any[] = []
@@ -377,7 +361,6 @@ export function JournalPage() {
 
           if (existingEntryForPrompt?.id) {
             // If it already exists, treat as saved to avoid blocking the user
-            console.log('Found existing entry after error, marking as saved:', existingEntryForPrompt.id)
             queryClient.invalidateQueries({ queryKey: journalKeys.all })
             didSave = true
             return
@@ -385,7 +368,6 @@ export function JournalPage() {
 
           // If entry doesn't exist, try a last-chance update when we have a known entry id
           if (existingEntry?.id) {
-            console.log('Attempting last-chance update with existing entry id:', existingEntry.id)
             await updateJournalEntry.mutateAsync({
               id: String(existingEntry.id),
               data: {

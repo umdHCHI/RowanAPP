@@ -46,8 +46,10 @@ export function useLogin() {
       // Store token and user ID in auth store
       setUser(userId, token)
 
-      // Navigate to hub (you can customize this)
-      router.replace('/hub')
+      // Decide where to send the user next based on whether they have a character yet
+      const fullProfile = await userService.getFullProfile(userId)
+      const hasCharacter = !!fullProfile?.character
+      router.replace(hasCharacter ? '/hub' : '/character-creator')
 
       return { success: true, userId, user }
     } catch (err) {

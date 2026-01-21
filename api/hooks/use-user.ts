@@ -21,7 +21,7 @@ export const userKeys = {
  */
 export function useUser(id: string | number | null) {
   return useQuery({
-    queryKey: userKeys.detail(id!),
+    queryKey: userKeys.detail(id ?? 'missing'),
     queryFn: async () => {
       if (!id) throw new Error('User ID is required')
       const response = await userService.getById(id)
@@ -40,7 +40,7 @@ export function useUser(id: string | number | null) {
  */
 export function useUserFullProfile(id: string | number | null) {
   return useQuery<UserFullProfileResponse>({
-    queryKey: userKeys.fullProfile(id!),
+    queryKey: userKeys.fullProfile(id ?? 'missing'),
     queryFn: async () => {
       if (!id) throw new Error('User ID is required')
       // full_profile endpoint returns the raw profile object, not an ApiResponse wrapper

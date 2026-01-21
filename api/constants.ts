@@ -9,29 +9,51 @@
  *
  * Your backend base should be:
  *   https://backend.131.212.41.8.nip.io/api/
+ *
+ * NOTE:
+ * - Most endpoints live under /api/...
+ * - Auth endpoints live at the root (no /api): /auth/login/, /auth/logout/
  */
 
 type ApiConfig = {
+  /**
+   * API base URL (should include /api/)
+   * Example: https://backend...nip.io/api/
+   */
   BASE_URL: string
+  /**
+   * Root URL (no /api/)
+   * Example: https://backend...nip.io/
+   */
+  ROOT_URL: string
   AUTH_TOKEN: string
   TIMEOUT: number
   MAX_RETRIES: number
   RETRY_DELAY: number
 }
 
-function normalizeBaseUrl(url: string): string {
+function normalizeUrl(url: string): string {
   if (!url) return ''
   let u = url.trim()
 
-  // If they provided just host, try to help
-  // e.g. https://backend...nip.io  -> https://backend...nip.io/api/
   if (!u.endsWith('/')) u += '/'
-
-  // If they provided /api (no trailing slash) -> /api/
-  if (u.endsWith('/api')) u += '/'
-
-  // If they provided something else, we won’t guess beyond adding slash.
   return u
+}
+
+function ensureApiBaseUrl(url: string): string {
+  if (!url) return ''
+  const normalized = normalizeUrl(url)
+  if (normalized.endsWith('/api/')) return normalized
+  if (normalized.endsWith('/api')) return `${normalized}/`
+  return `${normalized}api/`
+}
+
+function deriveRootUrl(url: string): string {
+  if (!url) return ''
+  const normalized = normalizeUrl(url)
+  if (normalized.endsWith('/api/')) return normalized.slice(0, -'api/'.length)
+  if (normalized.endsWith('/api')) return normalized.slice(0, -'api'.length)
+  return normalized
 }
 
 function safeGetExpoExtra(): { apiUrl?: string; apiToken?: string } {
@@ -67,27 +89,12 @@ const rawBaseUrl = getConfigValue('apiUrl')
 const rawToken = getConfigValue('apiToken')
 
 export const API_CONFIG: ApiConfig = {
-  BASE_URL: normalizeBaseUrl(rawBaseUrl), // e.g. https://.../api/
+  BASE_URL: ensureApiBaseUrl(rawBaseUrl), // e.g. https://.../api/
+  ROOT_URL: deriveRootUrl(rawBaseUrl), // e.g. https://.../
   AUTH_TOKEN: rawToken,
   TIMEOUT: 30000,
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000,
-}
-
-// Optional: enable debug logs only in dev
-if (__DEV__) {
-  // eslint-disable-next-line no-console
-  console.log('=== API CONFIG DEBUG ===')
-  // eslint-disable-next-line no-console
-  console.log('API_CONFIG.BASE_URL =', API_CONFIG.BASE_URL)
-  // eslint-disable-next-line no-console
-  console.log('API_CONFIG.AUTH_TOKEN =', API_CONFIG.AUTH_TOKEN ? 'set' : 'missing')
-  // eslint-disable-next-line no-console
-  console.log('Expected BASE_URL =', 'https://backend.131.212.41.8.nip.io/api/')
-  // eslint-disable-next-line no-console
-  console.log('Matches expected?', API_CONFIG.BASE_URL === 'https://backend.131.212.41.8.nip.io/api/')
-  // eslint-disable-next-line no-console
-  console.log('========================')
 }
 
 /**
@@ -116,8 +123,9 @@ export function apiUrl(path: string): string {
  */
 export const API_ENDPOINTS = {
   // --- Authentication (DRF Token Auth) ---
-  USER_LOGIN: 'auth/login/',
-  USER_LOGOUT: 'auth/logout/',
+  // Some deployments mount auth under /api/, others at root; client can fall back automatically.
+  USER_LOGIN: '/auth/login/',
+  USER_LOGOUT: '/auth/logout/',
 
   // --- Characters (included at /api/...) ---
   CHARACTERS: '/characters/',

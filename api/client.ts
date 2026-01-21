@@ -45,6 +45,9 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 interface RequestOptions extends RequestInit {
   timeout?: number
   retries?: number
+  skipAuth?: boolean
+  useRootBase?: boolean
+  suppressErrorLog?: boolean // Suppress error logging for expected errors (e.g., 404s on optional endpoints)
 }
 
 /**
@@ -52,7 +55,8 @@ interface RequestOptions extends RequestInit {
  * Handles all HTTP requests with error handling, retries, and timeout
  */
 class ApiClient {
-  private baseURL: string
+  private apiBaseURL: string
+  private rootBaseURL: string
   private timeout: number
   private maxRetries: number
 
@@ -68,7 +72,8 @@ class ApiClient {
       )
     }
     
-    this.baseURL = API_CONFIG.BASE_URL || ''
+    this.apiBaseURL = API_CONFIG.BASE_URL || ''
+    this.rootBaseURL = API_CONFIG.ROOT_URL || ''
     this.timeout = API_CONFIG.TIMEOUT
     this.maxRetries = API_CONFIG.MAX_RETRIES
   }
@@ -76,14 +81,17 @@ class ApiClient {
   /**
    * Get full URL for endpoint
    */
-  private getUrl(endpoint: string, skipVersion = false): string {
+  private getUrl(endpoint: string, skipVersion = false, useRootBase = false): string {
+    if (/^https?:\/\//i.test(endpoint)) return endpoint
+
     // Remove leading slash if present to avoid double slashes
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
     
     // Handle base URL with or without trailing slash
-    const baseUrl = this.baseURL.endsWith('/') 
-      ? this.baseURL.slice(0, -1) 
-      : this.baseURL
+    const selectedBase = useRootBase ? this.rootBaseURL : this.apiBaseURL
+    const baseUrl = selectedBase.endsWith('/')
+      ? selectedBase.slice(0, -1)
+      : selectedBase
     
     // Construct URL - skip version by default since API_CONFIG.VERSION doesn't exist
     // If versioning is needed in the future, add VERSION to API_CONFIG
@@ -180,17 +188,25 @@ class ApiClient {
     options: RequestOptions & { skipVersion?: boolean } = {}
   ): Promise<ApiResponse<T>> {
     // Validate configuration before making request
-    if (!this.baseURL) {
+    if (!this.apiBaseURL) {
       throw new Error(
         'API base URL is not configured. Please set EXPO_PUBLIC_API_URL in your .env file.\n' +
         'Location: C:\\dev\\coding\\react_native\\betwixtclone\\thearchive\\.env'
       )
     }
     
-    const { timeout = this.timeout, retries = this.maxRetries, skipVersion = false, ...fetchOptions } = options
+    const {
+      timeout = this.timeout,
+      retries = this.maxRetries,
+      skipVersion = false,
+      skipAuth = false,
+      useRootBase = false,
+      suppressErrorLog = false,
+      ...fetchOptions
+    } = options
 
-    const url = this.getUrl(endpoint, skipVersion)
-    const authHeader = getAuthHeader()
+    const url = this.getUrl(endpoint, skipVersion, useRootBase)
+    const authHeader = skipAuth ? '' : getAuthHeader()
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...(authHeader && { Authorization: authHeader }),
@@ -223,14 +239,16 @@ class ApiClient {
           const error = await this.handleError(response)
           lastError = error
           
-          // Log error details for debugging
-          console.error('API Error Response:', {
-            url,
-            method,
-            status: response.status,
-            statusText: response.statusText,
-            error,
-          })
+          // Log error details for debugging (unless suppressed for expected errors)
+          if (!suppressErrorLog) {
+            console.error('API Error Response:', {
+              url,
+              method,
+              status: response.status,
+              statusText: response.statusText,
+              error,
+            })
+          }
 
           // Don't retry on 4xx errors (client errors)
           if (response.status >= 400 && response.status < 500) {
@@ -248,9 +266,21 @@ class ApiClient {
           throw error
         }
 
-        // Parse successful response
+        // Parse successful response (some endpoints return 204 No Content)
+        if (response.status === 204) {
+          return { success: true, data: null } as unknown as ApiResponse<T>
+        }
+
+        const contentType = response.headers.get('content-type') || ''
+        const hasJson = contentType.includes('application/json')
+
+        // If server didn't send JSON, return a minimal success wrapper
+        if (!hasJson) {
+          const text = await response.text()
+          return ({ success: true, data: text } as unknown) as ApiResponse<T>
+        }
+
         const data = await response.json()
-        
         return data
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
@@ -327,7 +357,7 @@ class ApiClient {
    * Update base URL (useful for testing or dynamic configuration)
    */
   setBaseURL(url: string): void {
-    this.baseURL = url
+    this.apiBaseURL = url
   }
 }
 

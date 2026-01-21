@@ -5,9 +5,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useGameStore } from '@/stores/game-store'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
-import { useCurrentUserFullProfile } from '@/api'
+import { useAuthActions, useCurrentUserFullProfile, userService } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useNotifications } from '@/hooks/use-notifications'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface ResourcesSettingsTabProps {
   // Placeholder for future settings props -- Might ommit? 
@@ -15,11 +16,14 @@ interface ResourcesSettingsTabProps {
 
 export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const playPageFlipSound = usePageFlipSound()
   const soundMuted = useGameStore((state) => state.soundMuted)
   const toggleSoundMute = useGameStore((state) => state.toggleSoundMute)
   const textSpeed = useGameStore((state) => state.textSpeed)
   const cycleTextSpeed = useGameStore((state) => state.cycleTextSpeed)
+  const resetGame = useGameStore((state) => state.resetGame)
+  const { clearAuth } = useAuthActions()
   const { data: profileData } = useCurrentUserFullProfile()
   const { notificationsEnabled, requestPermissions, cancelAllNotifications, sendTestNotification } = useNotifications()
 
@@ -68,12 +72,27 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement logout logic when auth is ready
-            // For now, just navigate to a login/start screen
-            console.log('Logout pressed - auth not yet implemented')
-            // router.replace('/login') // Uncomment when auth is ready
-          },
+          onPress: async () => {
+            // Make navigation immediate; do slow/best-effort cleanup in the background
+            queryClient.clear()
+            resetGame()
+            clearAuth()
+            router.replace('/login')
+
+            void (async () => {
+              try {
+                await userService.logout()
+              } catch {
+                // ignore network/logout errors
+              }
+
+              try {
+                await cancelAllNotifications()
+              } catch {
+                // ignore notification errors (Expo Go / backend sync)
+              }
+            })()
+          }
         },
       ],
       { cancelable: true }
@@ -101,8 +120,7 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
 
   function handleSettingPress(settingName: string) {
     playPageFlipSound()
-    // TODO: Implement individual setting handlers
-    console.log(`${settingName} pressed - settings not yet implemented`)
+    Alert.alert('Coming Soon', `${settingName} settings are not implemented yet.`, [{ text: 'OK' }])
   }
 
   return (

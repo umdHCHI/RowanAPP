@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { View, ScrollView, ImageBackground, Text as RNText, Dimensions, StyleSheet, TouchableOpacity, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useGameStore } from '@/stores/game-store'
+import { useIsAuthenticated } from '@/api'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { Header } from '@/components/header'
@@ -13,14 +14,29 @@ import type { StoryCard } from '@/types/hub'
 
 const { width } = Dimensions.get('window')
 
+function LoginRedirect() {
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace('/login')
+  }, [router])
+
+  return null
+}
+
 export default function Hub() {
   const router = useRouter()
+  const isAuthenticated = useIsAuthenticated()
   const insets = useSafeAreaInsets()
   const { story, soundMuted, toggleSoundMute } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const voidClarity = story.voidClarity
   const libraryOpacity = Math.min(1, voidClarity / 100 + 0.3)
+
+  if (!isAuthenticated) {
+    return <LoginRedirect />
+  }
 
   const [activeIndex, setActiveIndex] = useState(0)
   const horizontalScrollRef = useRef<ScrollView>(null)

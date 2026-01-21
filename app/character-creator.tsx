@@ -21,12 +21,22 @@ import { COLORS, Color, BASE_COUNT, BG_COUNT, HAIR_COUNT, CLOTHES_COUNT, EYES_CO
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { useCreateCharacter, useUpdateCharacter } from '@/api/hooks/use-character'
-import { useCurrentUserFullProfile, useRequiredAuthUserId, userKeys } from '@/api'
+import { useCurrentUserFullProfile, useIsAuthenticated, useRequiredAuthUserId, userKeys } from '@/api'
 import { convertToBackendConfig, buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useQueryClient } from '@tanstack/react-query'
 import { characterKeys } from '@/api/hooks/use-character'
 
 type Category = 'base' | 'background' | 'hair' | 'clothes' | 'eyes' | 'eyebrows' | 'mouth'
+
+function LoginRedirect() {
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace('/login')
+  }, [router])
+
+  return null
+}
 
 interface CharacterConfig {
   baseIndex: number
@@ -45,6 +55,7 @@ interface CharacterConfig {
 
 export default function CharacterCreator() {
   const router = useRouter()
+  const isAuthenticated = useIsAuthenticated()
   const insets = useSafeAreaInsets()
   const { setCharacter } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
@@ -54,16 +65,16 @@ export default function CharacterCreator() {
   const [isSaving, setIsSaving] = useState(false)
   
   const queryClient = useQueryClient()
+  if (!isAuthenticated) {
+    return <LoginRedirect />
+  }
   const userId = useRequiredAuthUserId()
   const { data: profileData } = useCurrentUserFullProfile()
   const createCharacter = useCreateCharacter()
   const updateCharacter = useUpdateCharacter()
   
   const existingCharacter = profileData?.character
-  // Character ID from backend can be number or string
-  // TODO: Use actual character ID from profile once login/auth is implemented
-  // For now, use ID 1 as default if we have a character (until login/auth is implemented)
-  const existingCharacterId = existingCharacter ? '5' : undefined
+  const existingCharacterId = existingCharacter?.id ? String(existingCharacter.id) : undefined
   
   // Simple video player with auto-loop
   const player = useVideoPlayer(require('../assets/UI/thevoid.mp4'), (player) => {

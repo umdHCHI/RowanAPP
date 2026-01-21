@@ -1,6 +1,9 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, ImageBackground } from 'react-native'
 import { useLogin } from '@/api/hooks/use-login'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { useHaptics } from '@/utils/useHaptics'
+import { usePageFlipSound } from '@/utils/usePageFlipSound'
 
 /**
  * Login Page
@@ -20,6 +23,9 @@ export default function LoginPage() {
   const { login, isLoading, error } = useLogin()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const haptics = useHaptics()
+  const playPageFlipSound = usePageFlipSound()
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
@@ -28,6 +34,8 @@ export default function LoginPage() {
     }
 
     try {
+      haptics.mediumImpact()
+      playPageFlipSound()
       await login(email.trim(), password)
       // Navigation is handled by the useLogin hook
     } catch (error) {
@@ -41,52 +49,99 @@ export default function LoginPage() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>The Archive</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+      <ImageBackground
+        source={require('../assets/UI/hauntedlibrary.png')}
+        style={styles.backgroundContainer}
+        resizeMode="cover"
+      >
+        <View style={styles.backgroundOverlay} />
+      </ImageBackground>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            editable={!isLoading}
-          />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>The Archive</Text>
+            <Text style={styles.subtitle}>Sign in to continue</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#666"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password"
-            editable={!isLoading}
-          />
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#666"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+                editable={!isLoading}
+                returnKeyType="next"
+              />
 
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
+              <View style={styles.passwordField}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#666"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!isPasswordVisible}
+                  autoCapitalize="none"
+                  autoComplete="password"
+                  editable={!isLoading}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
 
-          {error && (
-            <Text style={styles.errorText}>{error}</Text>
-          )}
-        </View>
-      </View>
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => {
+                    haptics.lightImpact()
+                    playPageFlipSound()
+                    setIsPasswordVisible((prev) => !prev)
+                  }}
+                  disabled={isLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+                  accessibilityState={{ disabled: isLoading }}
+                  hitSlop={10}
+                  activeOpacity={0.8}
+                >
+                  <MaterialCommunityIcons
+                    name={isPasswordVisible ? 'book-open-variant' : 'book'}
+                    size={22}
+                    color="#ffffffcc"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, isLoading && styles.buttonDisabled]}
+                onPress={handleLogin}
+                disabled={isLoading}
+                activeOpacity={0.9}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Sign In</Text>
+                )}
+              </TouchableOpacity>
+
+              {error && (
+                <Text style={styles.errorText}>{error}</Text>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   )
 }
@@ -94,7 +149,20 @@ export default function LoginPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#000000',
+  },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  backgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -104,34 +172,49 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
+    fontFamily: 'BeyondWonderland',
     fontSize: 48,
-    fontWeight: 'bold',
-    color: '#C4B5FD',
+    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 8,
     letterSpacing: 2,
   },
   subtitle: {
     fontSize: 18,
-    color: 'rgba(196, 181, 253, 0.7)',
+    color: '#ffffffcc',
     textAlign: 'center',
     marginBottom: 32,
   },
   form: {
     gap: 16,
   },
+  passwordField: {
+    position: 'relative',
+  },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#15111f',
     borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 8,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
     padding: 16,
+    paddingRight: 52,
     fontSize: 16,
     color: '#fff',
   },
+  passwordToggle: {
+    position: 'absolute',
+    right: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 36,
+  },
   button: {
-    backgroundColor: '#C4B5FD',
-    borderRadius: 8,
+    backgroundColor: '#15111f',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
@@ -140,9 +223,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#000',
+    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'FontTitle-White',
   },
   errorText: {
     color: '#ff6b6b',

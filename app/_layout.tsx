@@ -67,6 +67,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="login" />
             <Stack.Screen 
               name="character-creator" 
               options={{ 
