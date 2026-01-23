@@ -1,24 +1,28 @@
 import React, { useMemo } from 'react'
 import { View, StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useStories, useCurrentUserFullProfile, useJournalEntries } from '@/api'
 import { StoryInformationCard } from './StoryInformationCard'
 import { JournalStatsCard } from './JournalStatsCard'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import type { StoryResponse } from '@/api/types'
+import type { StoryResponse, UserFullProfileResponse, JournalEntryResponse } from '@/api/types'
 
 interface ResourcesResourcesTabProps {
   resources: any[] // Keep for compatibility but not used
   storyId?: number
+  profileData?: UserFullProfileResponse | null
+  storiesData?: StoryResponse[] | null
+  journalEntries?: JournalEntryResponse[]
 }
 
-export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
+export function ResourcesResourcesTab({ 
+  storyId,
+  profileData,
+  storiesData,
+  journalEntries = [],
+}: ResourcesResourcesTabProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
-  const { data: storiesData, isLoading: isLoadingStories } = useStories()
-  const { data: profileData, isLoading: isLoadingProfile } = useCurrentUserFullProfile()
-  const { data: journalEntriesData, isLoading: isLoadingJournal } = useJournalEntries(1, 100)
 
   // Get completed stories when no storyId is provided
   const completedStories = useMemo(() => {
@@ -56,43 +60,9 @@ export function ResourcesResourcesTab({ storyId }: ResourcesResourcesTabProps) {
     return { story, progress }
   }, [storiesData, storyId, profileData])
 
-  // Get journal entries from the response
-  const journalEntries = useMemo(() => {
-    if (!journalEntriesData) return []
-    
-    // Handle different response structures
-    // If it's already an array, return it directly (API returns array directly)
-    if (Array.isArray(journalEntriesData)) {
-      return journalEntriesData
-    }
-    
-    // If wrapped in ApiResponse/PaginatedResponse with data field
-    if (journalEntriesData && typeof journalEntriesData === 'object') {
-      // Check for 'data' field (could be ApiResponse or PaginatedResponse)
-      if ('data' in journalEntriesData) {
-        const data = journalEntriesData.data
-        if (Array.isArray(data)) {
-          return data
-        }
-      }
-    }
-    
-    return []
-  }, [journalEntriesData])
-
   function handleViewOverview(storyId: number) {
     playPageFlipSound()
     router.push(`/story-overview?storyId=${storyId}`)
-  }
-
-  const isLoading = isLoadingStories || isLoadingProfile || isLoadingJournal
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading stories...</Text>
-      </View>
-    )
   }
 
   // If storyId is provided, show single story view

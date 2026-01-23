@@ -9,7 +9,7 @@ export function usePageFlipSound() {
   const soundMuted = useGameStore((state) => state.soundMuted)
 
   // Helper to safely check if player is playing
-  const isPlayerPlaying = (): boolean => {
+  const isPlayerPlaying = (): boolean => { //appears to be a debugging thing. Remove if not needed.
     try {
       return player.playing
     } catch {
@@ -32,7 +32,7 @@ export function usePageFlipSound() {
       return
     }
 
-    // Helper to attempt playback
+    // Helper to attempt playback - used to play the page flip sound.
     const attemptPlay = () => {
       try {
         // Check if audio is loaded (has duration)

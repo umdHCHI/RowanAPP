@@ -9,6 +9,7 @@ import { useGameStore } from '@/stores/game-store'
  * Story IDs should match the IDs returned from the API
  */
 const STORY_MUSIC_MAP: Record<number | string, any> = {
+  // Add new stories by adding entries here
   // Introduction story music (ID 28 - matches API)
   28: require('../assets/audio/introductionStory.mp3'),
   // Story 2 music (ID 29 - matches API)

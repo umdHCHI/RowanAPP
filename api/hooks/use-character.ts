@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { characterService } from '../services/character.service'
+import { useCurrentUserFullProfile } from './use-auth'
+import { userKeys } from './use-user'
+import { useGameStore } from '@/stores/game-store'
+import { mapProfileToLumen } from '@/utils/profile-mapper'
 import type {
   CharacterResponse,
   CharacterCreateRequest,
@@ -130,6 +134,76 @@ export function useDeleteCharacter() {
     onSuccess: () => {
       // Invalidate characters list
       queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
+    },
+  })
+}
+
+/**
+ * Award experience (lumens) to the current user's character
+ * This hook automatically fetches the current character and increments experience
+ */
+export function useAwardExperience() {
+  const queryClient = useQueryClient()
+  const { data: profileData } = useCurrentUserFullProfile()
+  const setLumen = useGameStore((state) => state.setLumen)
+
+  return useMutation({
+    mutationFn: async (amount: number = 1) => {
+      if (!profileData?.character?.id) {
+        throw new Error('No character found. Please create a character first.')
+      }
+
+      const characterId = String(profileData.character.id)
+      const currentExperience = profileData.character.experience || 0
+      const newExperience = currentExperience + amount
+
+      // Optimistically update the game store immediately
+      if (profileData) {
+        const updatedProfile = {
+          ...profileData,
+          character: {
+            ...profileData.character,
+            experience: newExperience,
+          },
+        }
+        const mappedLumen = mapProfileToLumen(updatedProfile)
+        if (mappedLumen) {
+          setLumen(mappedLumen)
+        }
+      }
+
+      // Update character with new experience on backend
+      const response = await characterService.update(characterId, {
+        experience: newExperience,
+      } as CharacterUpdateRequest)
+
+      if (!response.success) {
+        // Rollback optimistic update on error
+        if (profileData) {
+          const mappedLumen = mapProfileToLumen(profileData)
+          if (mappedLumen) {
+            setLumen(mappedLumen)
+          }
+        }
+        throw new Error(response.message || 'Failed to award experience')
+      }
+
+      return newExperience
+    },
+    onSuccess: () => {
+      // Delay invalidation to prevent flashing/re-renders during confirmation displays
+      // The caller should handle immediate UI updates, and we'll refresh data after a delay
+      setTimeout(() => {
+        if (profileData?.character?.id) {
+          queryClient.invalidateQueries({ queryKey: characterKeys.detail(String(profileData.character.id)) })
+        }
+        queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
+        
+        // Invalidate user profile to refresh experience display
+        if (profileData?.id) {
+          queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(profileData.id) })
+        }
+      }, 2000) // Delay to allow confirmation UI to display
     },
   })
 }

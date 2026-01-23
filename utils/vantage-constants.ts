@@ -1,4 +1,4 @@
-export type Difficulty = 'easy' | 'normal' | 'hard'
+export type Difficulty = 'easy' | 'normal' | 'hard' // If Proposal to HCII get approved this structure needs to change to themes of stress. 
 
 export interface DifficultyConfig {
   // Formation speed

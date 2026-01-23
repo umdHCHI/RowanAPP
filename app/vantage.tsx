@@ -8,6 +8,7 @@ import { useHaptics } from '@/utils/useHaptics'
 import { useVantageGame } from '@/hooks/use-thought-defender-game'
 import { useGameDirector } from '@/hooks/use-game-director'
 import { GAME_CONFIG, type Difficulty } from '@/utils/vantage-constants'
+import { useAwardExperience } from '@/api'
 import {
   GameArea,
   GamePlayer,
@@ -28,10 +29,11 @@ export default function Vantage() {
   const params = useLocalSearchParams<{ storyId?: string; tutorial?: string }>()
   const storyId = params.storyId
   const isTutorial = params.tutorial === 'true'
-  const { updateAttribute, addMemory, character } = useGameStore()
+  const { addMemory, character } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
+  const awardExperience = useAwardExperience()
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [gameWon, setGameWon] = useState(false)
   const [bossDefeated, setBossDefeated] = useState(false)
@@ -112,15 +114,20 @@ export default function Vantage() {
         }
         addMemory(memory)
         
-        // Note: Experience is tracked on the backend via the VANTAGE_RUN endpoint if needed
-        // The score is displayed as lumens in the game over dialog, which pulls from user experience
+        // Award 1 lumen for completing the mini game
+        try {
+          await awardExperience.mutateAsync(1)
+        } catch (error) {
+          // Log error but don't block the game completion
+          console.error('Failed to award experience:', error)
+        }
         
         // Reward based on score
         if (score >= 200) {
-          updateAttribute('courage', 1)
+          updateLumen( 1)
         }
         if (score >= 100) {
-          updateAttribute('exploration', 1)
+          updateLumen( 1)
         }
       }, 0)
     },

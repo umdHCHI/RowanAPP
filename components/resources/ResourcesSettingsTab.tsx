@@ -5,16 +5,17 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useGameStore } from '@/stores/game-store'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
-import { useAuthActions, useCurrentUserFullProfile, userService } from '@/api'
+import { useAuthActions, userService } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useQueryClient } from '@tanstack/react-query'
+import type { UserFullProfileResponse } from '@/api/types'
 
 interface ResourcesSettingsTabProps {
-  // Placeholder for future settings props -- Might ommit? 
+  profileData?: UserFullProfileResponse | null
 }
 
-export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
+export function ResourcesSettingsTab({ profileData }: ResourcesSettingsTabProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const playPageFlipSound = usePageFlipSound()
@@ -23,8 +24,8 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
   const textSpeed = useGameStore((state) => state.textSpeed)
   const cycleTextSpeed = useGameStore((state) => state.cycleTextSpeed)
   const resetGame = useGameStore((state) => state.resetGame)
+  const lumens = useGameStore((state) => state.lumens.lumens)
   const { clearAuth } = useAuthActions()
-  const { data: profileData } = useCurrentUserFullProfile()
   const { notificationsEnabled, requestPermissions, cancelAllNotifications, sendTestNotification } = useNotifications()
 
   // Get avatar config from profile
@@ -32,9 +33,6 @@ export function ResourcesSettingsTab({}: ResourcesSettingsTabProps) {
     if (!profileData?.character) return null
     return buildAvatarConfig(profileData.character)
   }, [profileData])
-
-  // Get experience (lumens) from profile
-  const lumens = profileData?.character?.experience ?? 0
 
   function handleChangeCharacter() {
     playPageFlipSound()

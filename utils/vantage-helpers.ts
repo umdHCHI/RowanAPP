@@ -1,4 +1,3 @@
-import { GAME_CONFIG } from './vantage-constants'
 import type { PowerUp } from '@/types/game'
 
 export interface ThoughtPattern {

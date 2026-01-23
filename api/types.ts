@@ -63,6 +63,7 @@ export const CharacterCreateSchema = z.object({
 export const CharacterUpdateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   avatar: z.string().optional(),
+  experience: z.number().min(0).optional(),
   selected_base_model: z.number().optional(),
   selected_skin_color: z.number().optional(),
   selected_background_color: z.number().optional(),

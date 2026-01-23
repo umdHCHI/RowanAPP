@@ -5,7 +5,7 @@
   },
   "build": {
     "production": {
-      "releaseChannel": "prod",
+      "channel": "prod",
       "developmentClient": false,
       "distribution": "internal",
       "env": {
@@ -37,8 +37,5 @@
         "simulator": true
       }
     }
-  },
-  "submit": {
-    "production": {}
   }
 }

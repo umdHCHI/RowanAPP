@@ -1,6 +1,5 @@
 export { JournalPage } from './JournalPage'
 export { JournalHeader } from './JournalHeader'
-export { JournalAttributeBar } from './JournalAttributeBar'
 export { JournalPromptSection } from './JournalPromptSection'
 export { JournalEntryCard } from './JournalEntryCard'
 export { JournalSaveButton } from './JournalSaveButton'

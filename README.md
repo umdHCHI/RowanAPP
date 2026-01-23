@@ -2,6 +2,8 @@
 
 Here we make changes to the original application and implement the expert findings into this application. 
 
+Please note that due to Expo changes and us moving to Production Builds this is migrating to a EAS Workflow. For Expo to EAS merge please see: https://docs.expo.dev/develop/development-builds/expo-go-to-dev-build/
+
 ## Features
 
 ###  Core Gameplay - Mimics What we had before

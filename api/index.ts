@@ -29,6 +29,7 @@ export {
   useCreateCharacter,
   useUpdateCharacter,
   useDeleteCharacter,
+  useAwardExperience,
   characterKeys,
 } from './hooks/use-character'
 

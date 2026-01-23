@@ -57,7 +57,7 @@ export default {
     updates: {
       url: 'https://u.expo.dev/3b487e69-4650-42e9-90e1-126402429650',
       enabled: isEasBuild,
-      checkAutomatically: 'ON_ERROR_RECOVERY', // Only check for updates after errors, not on startup
+      checkAutomatically: 'ON_LOAD', // Only check for updates after errors, not on startup
       fallbackToCacheTimeout: 0,
     },
     runtimeVersion: appVersion,

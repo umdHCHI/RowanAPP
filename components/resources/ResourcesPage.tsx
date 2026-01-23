@@ -47,6 +47,9 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
     markPowersSeen,
     experience,
     resourceCounts,
+    profileData,
+    storiesData,
+    journalEntries,
   } = useResources()
 
   // Set initial scroll position when component mounts
@@ -182,7 +185,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
                 <Text style={styles.loadingText}>Loading...</Text>
               </View>
             ) : (
-              <ResourcesSettingsTab />
+              <ResourcesSettingsTab profileData={profileData} />
             )}
           </View>
 
@@ -193,7 +196,13 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
                 <Text style={styles.loadingText}>Loading...</Text>
               </View>
             ) : (
-              <ResourcesResourcesTab resources={resources} storyId={storyId} />
+              <ResourcesResourcesTab 
+                resources={resources} 
+                storyId={storyId}
+                profileData={profileData}
+                storiesData={storiesData}
+                journalEntries={journalEntries}
+              />
             )}
           </View>
 

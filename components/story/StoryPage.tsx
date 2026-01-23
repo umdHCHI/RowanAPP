@@ -17,6 +17,7 @@ import { useStoryAutoAdvance } from '@/hooks/use-story-auto-advance'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
 import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, getExperienceRewardFromPassage, hasMinigameOption } from '@/utils/story-helpers'
 import { journalService } from '@/api/services/journal.service'
+import { useAwardExperience } from '@/api'
 import type { StoryChoice } from '@/types/story'
 
 interface StoryPageProps {
@@ -31,6 +32,7 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const { textSpeed, markJournalRewardCollected, hasCollectedJournalReward, addMemory } = useGameStore()
+  const awardExperience = useAwardExperience()
 
   const {
     isLoading,
@@ -217,7 +219,7 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
     // Store passage in const so TypeScript knows it's not null inside async function
     const passage = currentPassage
 
-    function collectExperienceReward() {
+    async function collectExperienceReward() {
       const reward = getExperienceRewardFromPassage(passage)
       if (!reward) {
         return
@@ -234,6 +236,14 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
 
       // Mark as shown this session
       rewardsShownThisSession.current.add(rewardKey)
+
+      // Award experience to the backend
+      try {
+        await awardExperience.mutateAsync(reward.amount)
+      } catch (error) {
+        // Log error but don't block the reward display
+        console.error('Failed to award experience:', error)
+      }
 
       // Add reward to story history
       addReward({

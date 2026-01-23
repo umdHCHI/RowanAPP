@@ -23,6 +23,7 @@ import { useCreateJournalEntry, useUpdateJournalEntry, useJournalPrompts, useJou
 import { journalService } from '@/api/services/journal.service'
 import { useQueryClient } from '@tanstack/react-query'
 import { journalKeys } from '@/api/hooks/use-journal'
+import { useAwardExperience } from '@/api'
 import { JournalPromptSection } from './JournalPromptSection'
 import { JournalEntryCard } from './JournalEntryCard'
 import { JournalSaveButton } from './JournalSaveButton'
@@ -61,6 +62,7 @@ export function JournalPage() {
   const queryClient = useQueryClient()
   const createJournalEntry = useCreateJournalEntry()
   const updateJournalEntry = useUpdateJournalEntry()
+  const awardExperience = useAwardExperience()
   const haptics = useHaptics()
    
   
@@ -394,12 +396,24 @@ export function JournalPage() {
       return
     }
 
+    // Check if this is the last prompt before we do anything else
+    const isLastPrompt = currentPromptIndex >= activePrompts.length - 1
+
+    // Award 1 lumen for completing a journal entry
+    try {
+      await awardExperience.mutateAsync(1)
+    } catch (error) {
+      // Log error but don't block the save success
+      console.error('Failed to award experience:', error)
+    }
+
     // Note: API prompts don't have attributeChanges, so we skip that logic
     const combinedChanges: JournalContent['attributeChanges'] = {}
     setSavedAttributeChanges(combinedChanges)
 
     // Update journal progression
-    if (currentPromptIndex < activePrompts.length - 1) {
+    if (!isLastPrompt) {
+      // Move to next prompt
       setCurrentPromptIndex(currentPromptIndex + 1)
     } else {
       progressJournal(0, journal.voidClarity)
@@ -408,20 +422,21 @@ export function JournalPage() {
     setIsSaved(true)
     setIsSaving(false)
 
-    // Reset after save
-    setTimeout(() => {
-      setIsSaved(false)
-      setText('')
-      setDrawing([])
-      setAudioUri(null)
-      
-      // Navigate back if last prompt
-      if (currentPromptIndex >= activePrompts.length - 1) {
-        setTimeout(() => {
-          router.replace('/hub')
-        }, 500)
-      }
-    }, 1500)
+    // Handle navigation and reset based on whether this is the last prompt
+    if (isLastPrompt) {
+      // Last prompt: Show confirmation, then navigate to hub
+      setTimeout(() => {
+        router.replace('/hub')
+      }, 2500) // Give time to see confirmation and lumens reward
+    } else {
+      // Not last prompt: Reset form for next prompt after showing confirmation
+      setTimeout(() => {
+        setIsSaved(false)
+        setText('')
+        setDrawing([])
+        setAudioUri(null)
+      }, 2000) // Show confirmation before resetting
+    }
   }
 
   function renderModeContent() {
@@ -592,7 +607,10 @@ export function JournalPage() {
                   <RNText style={styles.savedText}>
                     ✓ Entry saved!
                   </RNText>
-                  <JournalAttributeChanges changes={savedAttributeChanges} attributes={attributes} />
+                  <JournalAttributeChanges />
+                  <RNText style={styles.congratsText}>
+                    Congratulations!
+                  </RNText>
                 </View>
               )}
 
@@ -713,9 +731,19 @@ const styles = StyleSheet.create({
   },
   savedText: {
     fontFamily: 'FontTitle-White',
+    fontSize: 16,
     letterSpacing: 1.5,
     color: '#ffffff',
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  congratsText: {
+    fontFamily: 'FontTitle-White',
+    fontSize: 14,
+    letterSpacing: 1,
+    color: 'rgba(255, 255, 255, 0.85)',
+    textAlign: 'center',
+    marginTop: 8,
   },
   bottomButtonText: {
     fontFamily: 'FontTitle-White',

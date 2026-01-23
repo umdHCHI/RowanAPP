@@ -1,52 +1,18 @@
 import { View, Image, Text, StyleSheet } from 'react-native'
-import { attributeImages } from '@/utils/attribute-images'
-import type { AttributeLevel } from '@/stores/game-store'
-import type { JournalContent } from '@/types/journal'
 
-interface JournalAttributeChangesProps {
-  changes?: JournalContent['attributeChanges']
-  attributes: AttributeLevel
-}
+import { useGameStore } from '@/stores/game-store'
 
-export function JournalAttributeChanges({ changes, attributes }: JournalAttributeChangesProps) {
-  if (!changes) return null
 
-  const attributeConfig = [
-    { key: 'connection' as const, images: attributeImages.connection },
-    { key: 'courage' as const, images: attributeImages.courage },
-    { key: 'exploration' as const, images: attributeImages.exploration },
-    { key: 'fear' as const, images: attributeImages.fear },
-  ]
 
+export function JournalAttributeChanges() {
+  const lumens = useGameStore((state) => state.lumens.lumens)
+  // Show the reward amount (1 lumen) rather than total
+  // The total will update after query invalidation, but we want to show the reward immediately
   return (
     <View style={styles.attributeChangesContainer}>
-      {attributeConfig.map((attr) => {
-        const change = changes[attr.key]
-        if (change === undefined || change === 0) return null
-        
-        const currentLevel = attributes[attr.key]
-        const displayLevel = Math.max(1, Math.min(5, currentLevel))
-        const imageSource = attr.images[displayLevel as keyof typeof attributeImages.connection]
-        const sign = change > 0 ? '+' : ''
-        
-        return (
-          <View key={attr.key} style={styles.attributeChangeItem}>
-            <Image
-              source={imageSource}
-              style={styles.attributeChangeIcon}
-              resizeMode="contain"
-            />
-            <Text
-              style={[
-                styles.attributeChangeText,
-                { color: change > 0 ? '#4CAF50' : '#F44336' },
-              ]}
-            >
-              {sign}{change}
-            </Text>
-          </View>
-        )
-      })}
+      <Text style={styles.attributeChangeText}>+1 Lumens</Text>
+      <Text style={styles.attributeChangeText}>Total {lumens} helping you seal the Void</Text>
+      
     </View>
   )
 }
@@ -58,6 +24,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
     flexWrap: 'wrap',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   attributeChangeItem: {
     flexDirection: 'row',
@@ -79,6 +47,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 1,
+    color: '#ffffff',
   },
 })
 

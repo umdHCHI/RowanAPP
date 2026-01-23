@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useCurrentUserFullProfile, useStories } from '@/api'
+import { useCurrentUserFullProfile, useStories, useJournalEntries } from '@/api'
 import type { StoryResponse } from '@/api/types'
 import { useGameStore, type Power } from '@/stores/game-store'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
@@ -122,10 +122,12 @@ const fallbackPowers: Power[] = [
 export function useResources() {
   const { data: profileData, isLoading: isLoadingProfile } = useCurrentUserFullProfile()
   const { data: storiesData, isLoading: isLoadingStories } = useStories()
+  const { data: journalEntriesData, isLoading: isLoadingJournal } = useJournalEntries(1, 100)
   const storeMemories = useGameStore((state) => state.memories)
   const storePowers = useGameStore((state) => state.powers)
   const lastSeenPowerUnlockAt = useGameStore((state) => state.lastSeenPowerUnlockAt)
   const markPowersSeen = useGameStore((state) => state.markPowersSeen)
+  const lumens = useGameStore((state) => state.lumens.lumens)
 
   // Get user level from profile (default to 1 if not available)
   const userLevel = useMemo(() => {
@@ -216,7 +218,29 @@ export function useResources() {
     return [...storyProgressMemories, ...storeMemoryItems]
   }, [storeMemories, storyProgressMemories])
   
-  const isLoading = isLoadingProfile || isLoadingStories
+  // Process journal entries data
+  const journalEntries = useMemo(() => {
+    if (!journalEntriesData) return []
+    
+    // Handle different response structures
+    if (Array.isArray(journalEntriesData)) {
+      return journalEntriesData
+    }
+    
+    // If wrapped in ApiResponse/PaginatedResponse with data field
+    if (journalEntriesData && typeof journalEntriesData === 'object') {
+      if ('data' in journalEntriesData) {
+        const data = journalEntriesData.data
+        if (Array.isArray(data)) {
+          return data
+        }
+      }
+    }
+    
+    return []
+  }, [journalEntriesData])
+
+  const isLoading = isLoadingProfile || isLoadingStories || isLoadingJournal
 
   const attributes = useMemo(() => {
     return profileData?.character?.wellness_stats || []
@@ -235,9 +259,8 @@ export function useResources() {
     return buildAvatarConfig(profileData.character)
   }, [profileData])
 
-  const experience = useMemo(() => {
-    return profileData?.character?.experience || 0
-  }, [profileData])
+  // Use lumens from game store (which gets updated optimistically)
+  const experience = lumens
 
   // Extract resource counts from character profile
   const resourceCounts = useMemo(() => {
@@ -298,6 +321,10 @@ export function useResources() {
     markPowersSeen,
     experience,
     resourceCounts,
+    // Pass data to child components to avoid duplicate API calls
+    profileData,
+    storiesData,
+    journalEntries,
   }
 }
 

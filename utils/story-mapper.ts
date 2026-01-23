@@ -14,7 +14,7 @@ function truncateText(text: string, maxLength: number): string {
 }
 
 /**
- * Check if a story is the Introduction story
+ * Check if a story is the Introduction story -- wait Trevor might have created a different function somewhere.... 
  */
 function isIntroductionStory(story: StoryData): boolean {
   const titleLower = story.title.toLowerCase()
@@ -48,7 +48,7 @@ export function mapStoriesToCards(
       }
     }
     
-    // Also check level requirement (legacy check)
+    // Also check level requirement (legacy check) //remove legacy check>? 
     if (story.min_level > 1 && status !== 'locked') {
       // Check if user meets level requirement (you can enhance this)
       status = 'locked'

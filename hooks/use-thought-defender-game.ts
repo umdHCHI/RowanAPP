@@ -794,7 +794,7 @@ export function useVantageGame({
       bossBurstRemainingRef.current = GAME_CONFIG.BOSS_BURST_COUNT
       bossNextBurstShotAtRef.current = now
       
-      let bossFireCooldown = GAME_CONFIG.BOSS_FIRE_COOLDOWN_MS
+      let bossFireCooldown: number = GAME_CONFIG.BOSS_FIRE_COOLDOWN_MS
       
       // IMMEDIATE RESPONSE: Check for rapid boss hits (within last 2 seconds)
       const recentBossHits = bossHitsRef.current.filter((hitTime) => now - hitTime < 2000)

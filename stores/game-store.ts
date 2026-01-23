@@ -3,24 +3,12 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { z } from 'zod'
 
-// Attribute levels
-export const AttributeLevelSchema = z.object({
-  connection: z.number().min(1).max(5).default(1),
-  courage: z.number().min(1).max(5).default(1),
-  exploration: z.number().min(1).max(5).default(1),
-  fear: z.number().min(1).max(5).default(1),
+// Lumens
+export const LumenLevelSchema = z.object({
+  lumens: z.number().default(0),
 })
 
-export type AttributeLevel = z.infer<typeof AttributeLevelSchema>
-
-// Equipment types
-export interface Equipment {
-  id: string
-  name: string
-  type: 'weapon' | 'armor' | 'helmet' | 'boots'
-  imagePath: string
-  unlocked: boolean
-}
+export type LumenLevel = z.infer<typeof LumenLevelSchema>
 
 // Character data
 export interface Character {
@@ -129,11 +117,8 @@ interface GameState {
   character: Character | null
   hasCreatedCharacter: boolean
   
-  // Attributes
-  attributes: AttributeLevel
-  
-  // Equipment
-  equipment: Equipment[]
+  // Lumens
+  lumens: LumenLevel
   
   // Story
   story: StoryState
@@ -163,11 +148,10 @@ interface GameState {
   
   // Actions
   setCharacter: (character: Character) => void
-  updateAttribute: (attr: keyof AttributeLevel, value: number) => void
-  addEquipment: (equipment: Equipment) => void
+  updateLumen: (lumen: keyof LumenLevel, value: number) => void
   progressStory: (chapter: number, clarity?: number) => void
   progressJournal: (journalIndex: number, clarity?: number) => void
-  makeChoice: (choiceId: string, choice: string, attributeChanges?: Partial<AttributeLevel>) => void
+  makeChoice: (choiceId: string, choice: string, lumenChanges?: Partial<LumenLevel>) => void
   setJournalPrompts: (prompts: JournalPrompt[]) => void
   setStories: (stories: StoryData[]) => void
   setLoadingStories: (loading: boolean) => void
@@ -182,15 +166,12 @@ interface GameState {
   setTextSpeed: (speed: TextSpeed) => void
   cycleTextSpeed: () => void
   setNotificationsEnabled: (enabled: boolean) => void
-  setAttributes: (attributes: AttributeLevel) => void
+  setLumen: (lumen: LumenLevel) => void
   resetGame: () => void
 }
 
-const defaultAttributes: AttributeLevel = {
-  connection: 1,
-  courage: 1,
-  exploration: 1,
-  fear: 1,
+const defaultLumen: LumenLevel = {
+  lumens: 0,
 }
 
 const defaultStory: StoryState = {
@@ -214,8 +195,7 @@ export const useGameStore = create<GameState>()(
     (set, get) => ({
       character: null,
       hasCreatedCharacter: false,
-      attributes: defaultAttributes,
-      equipment: [],
+      lumens: defaultLumen,
       story: defaultStory,
       journal: defaultJournal,
       journalPrompts: [],
@@ -232,22 +212,17 @@ export const useGameStore = create<GameState>()(
       setCharacter: (character) =>
         set({ character, hasCreatedCharacter: true }),
 
-      updateAttribute: (attr, delta) =>
+      updateLumen: (lumen, delta) =>
         set((state) => {
-          const currentValue = state.attributes[attr]
+          const currentValue = state.lumens[lumen]
           const newValue = Math.max(1, Math.min(5, currentValue + delta))
           return {
-            attributes: {
-              ...state.attributes,
-              [attr]: newValue,
+            lumens: {
+              ...state.lumens,
+              [lumen]: newValue,
             },
           }
         }),
-
-      addEquipment: (equipment) =>
-        set((state) => ({
-          equipment: [...state.equipment, equipment],
-        })),
 
       progressStory: (chapter, clarity) =>
         set((state) => ({
@@ -267,24 +242,24 @@ export const useGameStore = create<GameState>()(
           },
         })),
 
-      makeChoice: (choiceId, choice, attributeChanges) =>
+      makeChoice: (choiceId, choice, lumenChanges) =>
         set((state) => {
-          const newAttributes = attributeChanges
-            ? Object.entries(attributeChanges).reduce(
+          const newLumens = lumenChanges
+            ? Object.entries(lumenChanges).reduce(
                 (acc, [key, value]) => {
-                  const attrKey = key as keyof AttributeLevel
-                  const currentValue = state.attributes[attrKey]
+                const lumenKey = key as keyof LumenLevel
+                  const currentValue = state.lumens[lumenKey]
                   return {
                     ...acc,
-                    [attrKey]: Math.max(1, Math.min(5, currentValue + (value ?? 0))),
+                    [lumenKey]: Math.max(1, Math.min(5, currentValue + (value ?? 0))),
                   }
                 },
-                { ...state.attributes }
+                { ...state.lumens }
               )
-            : state.attributes
+            : state.lumens
 
           return {
-            attributes: newAttributes,
+            lumens: newLumens,
             story: {
               ...state.story,
               completedChoices: {
@@ -376,17 +351,14 @@ export const useGameStore = create<GameState>()(
       setNotificationsEnabled: (enabled) =>
         set({ notificationsEnabled: enabled }),
 
-      setAttributes: (attributes) =>
-        set(() => ({
-          attributes,
-        })),
+      setLumen: (lumen: LumenLevel) =>
+        set({ lumens: lumen }),
 
       resetGame: () =>
         set({
           character: null,
           hasCreatedCharacter: false,
-          attributes: defaultAttributes,
-          equipment: [],
+          lumens: defaultLumen,
           story: defaultStory,
           journal: defaultJournal,
           journalPrompts: [],
