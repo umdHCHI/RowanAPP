@@ -3,12 +3,13 @@ import { View, StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useStories } from '@/api'
+import { useStories, useRequireAuth } from '@/api'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import type { StoryResponse } from '@/api/types'
 
 export default function StoryOverview() {
+  useRequireAuth() // Redirects to login if not authenticated
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()

@@ -6,9 +6,8 @@ import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import { setAudioModeAsync } from 'expo-audio'
-import { NotificationInitializer } from '@/components/NotificationInitializer'
 import '../global.css'
-
+import { useNotifications } from '@/hooks'
 // Configure React Query with sensible defaults
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,7 +62,6 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <NotificationInitializer />
         <SafeAreaProvider>
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
             <Stack.Screen name="index" />

@@ -64,21 +64,21 @@ export const userService = {
     }
 
     // Prefer /api/auth/login/ (most of your app lives under /api/)
+    const loginOpts = { skipAuth: true, suppressErrorLog: true as const }
     try {
       const raw = await apiClient.post<unknown>(
         API_ENDPOINTS.USER_LOGIN,
         body,
-        { skipAuth: true, useRootBase: false }
+        { ...loginOpts, useRootBase: false }
       )
       return normalizeLoginResponse(raw)
     } catch (error: any) {
-      // Some deployments mount auth at root (no /api/)
       if (error?.status !== 404) throw error
 
       const raw = await apiClient.post<unknown>(
         API_ENDPOINTS.USER_LOGIN,
         body,
-        { skipAuth: true, useRootBase: true }
+        { ...loginOpts, useRootBase: true }
       )
       return normalizeLoginResponse(raw)
     }

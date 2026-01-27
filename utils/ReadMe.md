@@ -10,7 +10,9 @@ Great question! These are split up utilities used within the project of The Arch
 
 - format-quote.ts = I have this here to help format some of the story data in this application. I needed this early on and especially during the early versions of the story. 
 
-- profile-mapper.ts =expierence for player 
+- profile-mapper.ts = experience for player (profile → lumens).
+
+- resources-mapper.ts = Pure transformation functions for hub resources. Maps stories → ResourceItem, story progress/journal/store memories → MemoryItem, powers → powers-for-UI. Used by use-resources; follows story-mapper / profile-mapper pattern. 
 
 - story-constants.ts = data that is unchanable for the story in this project 
 

@@ -8,17 +8,17 @@ import { useGameStore } from '@/stores/game-store'
  * 
  * Story IDs should match the IDs returned from the API
  */
-const STORY_MUSIC_MAP: Record<number | string, any> = {
+const STORY_MUSIC_MAP: Record<number | string, { uri: string }> = {
   // Add new stories by adding entries here
   // Introduction story music (ID 28 - matches API)
-  28: require('../assets/audio/introductionStory.mp3'),
+  28: { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61ixJZMf4wJgUdiHGFDN1aYuSmtXLZy96kjbhVp' },
   // Story 2 music (ID 29 - matches API)
-  29: require('../assets/audio/storyOne.mp3'),
+  29: { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61ijAnLZjvB6imSJolaG0CEK7ZHRu98wsxdVzMW' },
   // Story 3 music (ID 30 - matches API)
-  30: require('../assets/audio/storyTwo.mp3'),
+  30: { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61iYOdGI3Lx6aPVdtUClEik9wDyjfIS7rg3NTGe' },
   // Add more story music files here as they become available
   // Example:
-  // 3: require('../assets/audio/story3.mp3'),
+  // 3: { uri: 'https://your-cdn.com/story3.mp3' },
 }
 
 /**
@@ -30,7 +30,7 @@ const STORY_MUSIC_MAP: Record<number | string, any> = {
  */
 // Default/placeholder audio source (using introduction story as fallback)
 // This ensures we always have a valid audio source for the hook
-const DEFAULT_AUDIO_SOURCE = require('../assets/audio/introductionStory.mp3')
+const DEFAULT_AUDIO_SOURCE = { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61ixJZMf4wJgUdiHGFDN1aYuSmtXLZy96kjbhVp' }
 
 export function useStoryMusic(storyId: number | string | null | undefined, isActive: boolean) {
   const soundMuted = useGameStore((state) => state.soundMuted)

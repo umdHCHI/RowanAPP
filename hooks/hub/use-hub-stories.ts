@@ -8,6 +8,7 @@ const hubStoriesKeys = {
 
 /**
  * Fetch all stories for the hub
+ * Story metadata doesn't change on the backend - only unlock status changes client-side
  */
 export function useHubStories() {
   return useQuery({
@@ -16,7 +17,9 @@ export function useHubStories() {
       const stories = await storyService.getAllStories()
       return stories
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true, // Only refetch when component first mounts (app launch)
+    refetchOnReconnect: false,
   })
 }
-

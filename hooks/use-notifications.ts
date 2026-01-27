@@ -1,31 +1,26 @@
 import { useEffect, useRef } from 'react'
-import { Alert, Platform } from 'react-native'
+import { Alert } from 'react-native'
 import * as Notifications from 'expo-notifications'
-import Constants from 'expo-constants'
 import { useGameStore } from '@/stores/game-store'
 import { useAuthUserId } from '@/api/hooks/use-auth'
 import { useCurrentUserFullProfile } from '@/api'
 import { userService } from '@/api/services/user.service'
 
-// Check if running in Expo Go (push notifications not supported in SDK 53+)
-const isExpoGo = Constants.executionEnvironment === 'storeClient'
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+})
 
-// Configure notification handler (only if not in Expo Go)
-if (!isExpoGo) {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  })
-}
+import type { UseNotificationsResult } from '@/types/hooks'
 
 const NOTIFICATION_IDENTIFIER = 'daily-research-reminder'
 
-export function useNotifications() {
+export function useNotifications(): UseNotificationsResult {
   const notificationsEnabled = useGameStore((state) => state.notificationsEnabled)
   const setNotificationsEnabled = useGameStore((state) => state.setNotificationsEnabled)
   const userId = useAuthUserId()
@@ -66,15 +61,6 @@ export function useNotifications() {
   // Request permissions and schedule notifications
   useEffect(() => {
     async function setupNotifications() {
-      // Skip notification setup if running in Expo Go
-      if (isExpoGo) {
-        console.warn('Notifications are not supported in Expo Go (SDK 53+). Please use a development build.')
-        if (notificationsEnabled) {
-          setNotificationsEnabled(false)
-        }
-        return
-      }
-
       if (!notificationsEnabled) {
         // Cancel all notifications if disabled
         await Notifications.cancelAllScheduledNotificationsAsync()
@@ -139,11 +125,6 @@ export function useNotifications() {
 
   // Set up notification listeners for when app is in foreground
   useEffect(() => {
-    // Skip listener setup if running in Expo Go
-    if (isExpoGo) {
-      return
-    }
-
     // Listener for notifications received while app is foregrounded
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       console.log('Notification received:', notification)
@@ -172,16 +153,6 @@ export function useNotifications() {
   }, [])
 
   async function requestPermissions(): Promise<boolean> {
-    // Check if running in Expo Go
-    if (isExpoGo) {
-      Alert.alert(
-        'Development Build Required',
-        'Notifications require a development build. Please build the app using "npx expo run:android" or "npx expo run:ios"',
-        [{ text: 'OK' }]
-      )
-      return false
-    }
-
     try {
       userToggledRef.current = true
       const { status: existingStatus } = await Notifications.getPermissionsAsync()
@@ -224,15 +195,6 @@ export function useNotifications() {
   }
 
   async function sendTestNotification(): Promise<void> {
-    if (isExpoGo) {
-      Alert.alert(
-        'Development Build Required',
-        'Test notifications require a development build. Please build the app using "npx expo run:android" or "npx expo run:ios"',
-        [{ text: 'OK' }]
-      )
-      return
-    }
-
     try {
       const { status } = await Notifications.getPermissionsAsync()
       if (status !== 'granted') {
@@ -258,12 +220,9 @@ export function useNotifications() {
   }
 
   async function cancelAllNotifications() {
-    // Still allow canceling in Expo Go to update state
     try {
       userToggledRef.current = true
-      if (!isExpoGo) {
-        await Notifications.cancelScheduledNotificationAsync(NOTIFICATION_IDENTIFIER)
-      }
+      await Notifications.cancelScheduledNotificationAsync(NOTIFICATION_IDENTIFIER)
       setNotificationsEnabled(false)
       // Sync to backend
       if (userId) {

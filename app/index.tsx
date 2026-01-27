@@ -1,60 +1,55 @@
 import { View, Text, ImageBackground, Animated } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useEffect, useRef } from 'react'
-import { useCurrentUserFullProfile, useIsAuthenticated } from '@/api'
+import { useEffect, useRef, useState } from 'react'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
-import { useGameStore } from '@/stores/game-store'
+import { getDefaultSplashAvatarConfig } from '@/utils/character-avatar-config'
 
+/**
+ * Splash / loading screen. Shown briefly on app load, then always navigates to Login.
+ * Uses a default avatar with a random assets per load.
+ * First screen after splash is Login → Character Creator (handled by useLogin).
+ */
 export default function Index() {
   const router = useRouter()
-  const isAuthenticated = useIsAuthenticated()
-  const { data: profileData, isLoading: isLoadingProfile } = useCurrentUserFullProfile()
-  const { character } = useGameStore()
   const fadeAnim = useRef(new Animated.Value(0)).current
+  const [defaultAvatarConfig] = useState(() => getDefaultSplashAvatarConfig())
 
   useEffect(() => {
-    // Fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1500,
       useNativeDriver: true,
     }).start()
 
-    // Navigate based on auth state first
     const timer = setTimeout(() => {
-      if (!isAuthenticated) {
-        router.replace('/login')
-        return
-      }
-
-      // If authenticated, route based on whether the user has a character yet
-      const hasCharacter = !!profileData?.character
-      router.replace(hasCharacter ? '/hub' : '/character-creator')
-    }, 800)
+      router.replace('/login')
+    }, 1200)
 
     return () => clearTimeout(timer)
-  }, [isAuthenticated, profileData?.character, router, fadeAnim])
+  }, [router, fadeAnim])
 
   return (
+    <View className="splashScreenContainer">
     <ImageBackground
       source={require('../assets/UI/hauntedlibrary.png')}
-      style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
       resizeMode="cover"
+      className="backgroundImage"
     >
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.9)' }} />
-      <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
-        <Text style={{ fontSize: 48, fontWeight: 'bold', color: '#C4B5FD', marginBottom: 16, letterSpacing: 2 }}>
+      <Animated.View
+        className="splashScreenTextContainer"
+        style={{ opacity: fadeAnim }}
+      >
+        <Text className="splashScreenTextTitle">
           The Archive
         </Text>
-        {character?.avatar && (
-          <View style={{ marginBottom: 16 }}>
-            <CharacterAvatar avatarConfig={character.avatar} size={120} />
-          </View>
-        )}
-        <Text style={{ fontSize: 18, color: 'rgba(196, 181, 253, 0.7)', fontStyle: 'italic' }}>
-          {isAuthenticated ? (isLoadingProfile ? 'Reading your file...' : 'Welcome back...') : 'Sign in to continue...'}
+        <View className="splashScreenTextAvatar">
+          <CharacterAvatar avatarConfig={defaultAvatarConfig} size={120} />
+        </View>
+        <Text className="splashScreenTextSubtitle">
+          Loading...
         </Text>
       </Animated.View>
     </ImageBackground>
-  )
+    </View>
+    )
 }

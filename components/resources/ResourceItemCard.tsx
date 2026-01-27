@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, ImageBackground, StyleSheet } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import type { ResourceItem } from '@/hooks/use-resources'
+import type { ResourceItem } from '@/types/hooks'
 
 interface ResourceItemCardProps {
   item: ResourceItem

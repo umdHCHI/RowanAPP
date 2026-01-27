@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { Character, Equipment, AttributeLevel } from '../stores/game-store'
+import type { Character } from '../stores/game-store'
 import type { StoryChapter } from '../types/story'
 
 /**

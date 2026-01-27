@@ -1,8 +1,9 @@
 import React, { useMemo, useCallback } from 'react'
 import { View, StyleSheet, Text as RNText } from 'react-native'
 import { useLocalSearchParams, useFocusEffect } from 'expo-router'
+import { useRequireAuth } from '@/api'
 import { StoryPage } from '@/components/story'
-import { useHubStories } from '@/hooks/use-hub-stories'
+import { useHubStories } from '@/hooks'
 import type { StoryData } from '@/stores/game-store'
 
 /**
@@ -14,6 +15,7 @@ function isIntroductionStory(story: StoryData): boolean {
 }
 
 export default function Story() {
+  useRequireAuth() // Redirects to login if not authenticated
   const params = useLocalSearchParams<{ storyId?: string }>()
   const { data: stories, isLoading } = useHubStories()
 

@@ -111,39 +111,34 @@ class ApiClient {
 
   /**
    * Handle API errors
+   * @param suppressLog - When true, skip console.error (e.g. expected 401 on login). Caller still receives thrown error.
    */
-  private async handleError(response: Response): Promise<ApiError> {
+  private async handleError(response: Response, suppressLog = false): Promise<ApiError> {
     let errorData: ApiError
 
-    // Check content type to determine how to parse the response
     const contentType = response.headers.get('content-type') || ''
     const isHTML = contentType.includes('text/html')
 
     try {
-      // Clone the response so we can read it multiple times if needed
       const clonedResponse = response.clone()
-      
+
       if (isHTML) {
-        // If it's HTML (like Django error page), extract text and look for error info
         const text = await clonedResponse.text()
-        console.error('API Error Response (HTML):', text.substring(0, 500)) // Log first 500 chars
-        
-        // Try to extract error message from HTML (Django debug pages often have error info)
-        const errorMatch = text.match(/<pre[^>]*>([^<]+)<\/pre>/i) || 
-                          text.match(/<h1[^>]*>([^<]+)<\/h1>/i) ||
-                          text.match(/Error:\s*([^\n<]+)/i)
-        
+        if (!suppressLog) console.error('API Error Response (HTML):', text.substring(0, 500))
+
+        const errorMatch = text.match(/<pre[^>]*>([^<]+)<\/pre>/i) ||
+          text.match(/<h1[^>]*>([^<]+)<\/h1>/i) ||
+          text.match(/Error:\s*([^\n<]+)/i)
         const extractedMessage = errorMatch ? errorMatch[1].trim() : null
-        
+
         errorData = {
           message: extractedMessage || `HTTP ${response.status}: ${response.statusText || 'Internal Server Error'}`,
           status: response.status,
         }
       } else {
-        // Try to parse as JSON
         const data = await clonedResponse.json()
-        console.error('API Error Response Data (JSON):', JSON.stringify(data, null, 2))
-        
+        if (!suppressLog) console.error('API Error Response Data (JSON):', JSON.stringify(data, null, 2))
+
         errorData = {
           message: data.message || data.detail || data.error || data.error_message || `HTTP ${response.status}: ${response.statusText}`,
           code: data.code,
@@ -152,19 +147,19 @@ class ApiClient {
         }
       }
     } catch (parseError) {
-      // If parsing fails, try to get text
       try {
         const clonedResponse = response.clone()
         const text = await clonedResponse.text()
-        console.error('API Error Response Text (raw):', text.substring(0, 500))
-        console.error('Response headers:', Object.fromEntries(response.headers.entries()))
-        
+        if (!suppressLog) {
+          console.error('API Error Response Text (raw):', text.substring(0, 500))
+          console.error('Response headers:', Object.fromEntries(response.headers.entries()))
+        }
         errorData = {
           message: `HTTP ${response.status}: ${response.statusText || 'Internal Server Error'}`,
           status: response.status,
         }
       } catch (textError) {
-        console.error('Failed to read error response:', textError)
+        if (!suppressLog) console.error('Failed to read error response:', textError)
         errorData = {
           message: `HTTP ${response.status}: ${response.statusText || 'Internal Server Error'}`,
           status: response.status,
@@ -172,7 +167,6 @@ class ApiClient {
       }
     }
 
-    // Create a proper Error object with all the error data
     const error = new Error(errorData.message) as Error & ApiError
     Object.assign(error, errorData)
     return error as ApiError
@@ -236,7 +230,7 @@ class ApiClient {
 
         // Handle non-2xx responses
         if (!response.ok) {
-          const error = await this.handleError(response)
+          const error = await this.handleError(response, suppressErrorLog)
           lastError = error
           
           // Log error details for debugging (unless suppressed for expected errors)

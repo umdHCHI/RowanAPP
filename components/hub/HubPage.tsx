@@ -1,6 +1,5 @@
 import React from 'react'
-import { View, ScrollView, StyleSheet, Dimensions } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { ScrollView, Dimensions, View, StyleSheet } from 'react-native'
 import { StoryCard } from './StoryCard'
 import { ResourceCard } from './ResourceCard'
 import { ProgressIndicator } from './ProgressIndicator'
@@ -12,55 +11,60 @@ interface HubPageProps {
   card: StoryCardType
   isLast: boolean
   onResourcePress: () => void
+  carouselHeight: number
 }
 
-export function HubPage({ card, isLast, onResourcePress }: HubPageProps) {
-  const insets = useSafeAreaInsets()
-  const isPrologue = card.title.toLowerCase().includes('prologue') || card.title.toLowerCase() === 'prologue'
-  // Prologue should never show resources, regardless of hasResources value
+export function HubPage({ card, isLast, onResourcePress, carouselHeight }: HubPageProps) {
+  const isPrologue =
+    card.title.toLowerCase().includes('prologue') || card.title.toLowerCase() === 'prologue'
   const showResources = !isPrologue && card.hasResources
 
-  // Calculate header height: safe area top + header min height (60) + some padding
-  const headerHeight = insets.top + 80
+  // Tall cards: use ~90% of carousel height to match design (long, prominent cards)
+  const cardHeight = Math.round(carouselHeight * 1.0)
+  const hasScroll = showResources
 
   return (
-    <View style={styles.pageContainer}>
-      <ScrollView
-        style={[styles.verticalScroll, { marginTop: headerHeight }]}
-        contentContainerStyle={styles.verticalScrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Main story card */}
-        <StoryCard card={card} />
-
-        {/* Progress indicator and resource card - never show for Prologue */}
-        {showResources && (
-          <>
-            <View style={styles.resourceSection}>
-              <ProgressIndicator card={card} isLast={isLast} />
-              <ResourceCard card={card} onPress={onResourcePress} />
-            </View>
-          </>
-        )}
-      </ScrollView>
+    <View style={[styles.page, { width, height: carouselHeight }]}>
+      {hasScroll ? (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <StoryCard card={card} height={cardHeight} />
+          <View style={styles.resourcesBlock}>
+            <ProgressIndicator card={card} isLast={isLast} />
+            <ResourceCard card={card} onPress={onResourcePress} />
+          </View>
+        </ScrollView>
+      ) : (
+        <View style={styles.cardContainer}>
+          <StoryCard card={card} height={cardHeight} />
+        </View>
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  pageContainer: {
-    width: width,
+  page: {
+    paddingHorizontal: 36,
+    paddingTop: 12,
+    paddingBottom: 0,
+  },
+  scroll: {
     flex: 1,
   },
-  verticalScroll: {
-    flex: 1,
-  },
-  verticalScrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+  scrollContent: {
+    paddingBottom: 12,
     alignItems: 'center',
   },
-  resourceSection: {
+  cardContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  resourcesBlock: {
     marginTop: 16,
     width: '100%',
   },

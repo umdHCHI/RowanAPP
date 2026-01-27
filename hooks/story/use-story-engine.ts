@@ -1,32 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Platform } from 'react-native'
 import { storyService } from '@/api/services/story.service'
-import type { StoryPassage, StoryChoice } from '@/types/story'
+import type { StoryChoice } from '@/types/story'
+import type { UseStoryEngineResult, EngineState, UseStoryEngineProps } from '@/types/hooks'
 import {
   retryApiCall,
   getStartingPassageId,
   normalizePassageState,
-} from './use-story-engine-helpers'
-import { normalizeChoices } from '@/utils/story-helpers'
+  DEFAULT_MAX_RETRIES,
+  getRetryDelay,
+} from '@/utils/story-helpers'
 
-interface EngineState {
-  story: any
-  passage: StoryPassage & { choices: StoryChoice[] }
-  progress: any
-  chapter_title: string
-  chapter_number?: number
-}
-
-interface UseStoryEngineProps {
-  storyId: string | number
-  chapterId?: number
-}
-
-const DEFAULT_MAX_RETRIES = 3
-
-function getRetryDelay(): number {
-  return Platform.OS === 'web' ? 500 : 1000
-}
 
 function extractErrorMessage(err: any): string {
   if (err?.message) return err.message
@@ -37,7 +20,7 @@ function extractErrorMessage(err: any): string {
   return 'An unexpected error occurred.'
 }
 
-export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps) {
+export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps): UseStoryEngineResult {
   const [engineState, setEngineState] = useState<EngineState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

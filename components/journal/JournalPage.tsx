@@ -58,7 +58,7 @@ export function JournalPage() {
   const [savedAttributeChanges, setSavedAttributeChanges] = useState<JournalContent['attributeChanges']>(undefined)
   const [isDrawing, setIsDrawing] = useState(false)
   
-  const { journal, journalPrompts, progressJournal, setJournalPrompts, addMemory, attributes } = useGameStore()
+  const { journal, journalPrompts, progressJournal, setJournalPrompts, addMemory } = useGameStore()
   const queryClient = useQueryClient()
   const createJournalEntry = useCreateJournalEntry()
   const updateJournalEntry = useUpdateJournalEntry()

@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
 import { View, Image, Animated } from 'react-native'
 import { GAME_CONFIG } from '@/utils/vantage-constants'
+import { useFadeIn } from '@/utils/useFadeIn'
 import type { EnemyProjectile } from '@/types/game'
 
 interface GameEnemyProjectileProps {
@@ -8,20 +8,7 @@ interface GameEnemyProjectileProps {
 }
 
 export function GameEnemyProjectile({ projectile }: GameEnemyProjectileProps) {
-  const fadeIn = useRef(new Animated.Value(0)).current
-  const hasAnimatedInRef = useRef(false)
-
-  // Fade in on first render to prevent double-render flash
-  useEffect(() => {
-    if (!hasAnimatedInRef.current) {
-      hasAnimatedInRef.current = true
-      Animated.timing(fadeIn, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }).start()
-    }
-  }, [fadeIn])
+  const fadeIn = useFadeIn(150)
 
   // Use purple colors for boss projectiles, red for regular enemy projectiles
   const isBoss = projectile.isBoss ?? false

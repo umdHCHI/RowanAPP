@@ -1,31 +1,35 @@
 import React from 'react'
-import { View, StyleSheet, ImageBackground } from 'react-native'
+import { View, ImageBackground } from 'react-native'
+import type { StoryBackgroundProps as StoryBackgroundPropsType } from '@/types/story'
 
-interface StoryBackgroundProps {
-  isEnding?: boolean
-  isIntroduction?: boolean
-  storyId?: string | number
+interface StoryBackgroundProps extends StoryBackgroundPropsType {
+  children?: React.ReactNode
+  showOverlay?: boolean
+  overlayOpacity?: number
 }
 
-export function StoryBackground({ isEnding = false, isIntroduction = false, storyId }: StoryBackgroundProps) {
+export function StoryBackground({ 
+  children, 
+  showOverlay = true,
+  overlayOpacity = 0.6,
+  isEnding,
+  isIntroduction,
+  storyId,
+}: StoryBackgroundProps): React.ReactNode {
+  const backgroundImage = require('../../assets/UI/hauntedlibrary.png')
   return (
-    <ImageBackground
-      source={require('../../assets/UI/hauntedlibrary.png')}
-      style={styles.backgroundContainer}
-      resizeMode="cover"
-    >
-      {/* Dark overlay for better text readability */}
-      <View style={styles.overlay} />
+    <ImageBackground className="backgroundContainer backgroundImage bg-cover resize-cover"
+      source={backgroundImage}  resizeMode="cover"> 
+      {showOverlay && (
+        <View 
+          className="overlay" 
+          style={{ opacity: overlayOpacity }}
+        />
+      )}
+      {children}
     </ImageBackground>
-  )
-}
+    )
+  }
 
-const styles = StyleSheet.create({
-  backgroundContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-})
+
+export default StoryBackground

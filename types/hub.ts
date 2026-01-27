@@ -15,3 +15,11 @@ export interface StoryCard {
   revelations?: string[]
 }
 
+
+export interface ContentWarningModalProps {
+  visible: boolean
+  onClose: () => void
+  title: string
+  content?: string
+  revelations?: string[]
+}

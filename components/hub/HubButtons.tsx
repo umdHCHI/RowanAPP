@@ -1,8 +1,7 @@
 import React from 'react'
-import { View, Text as RNText, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import type { StoryCard } from '@/types/hub'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import { useHaptics } from '@/utils/useHaptics'
+import { Button, Text } from '@/components/ui'
 
 interface HubButtonsProps {
   card: StoryCard
@@ -13,107 +12,59 @@ interface HubButtonsProps {
 
 function getButtonText(card: StoryCard): string {
   if (card.id === 'intro') return 'Begin'
-  if (card.status === 'locked') return 'Upgrade to continue now'
   if (card.status === 'completed') return 'Replay this book'
   return 'Explore this book'
 }
 
 export function HubButtons({ card, onPrimaryPress, onResourcePress, onNextPress }: HubButtonsProps) {
-  const playPageFlipSound = usePageFlipSound()
-  const haptics = useHaptics()
   const isIntroduction = card.title.toLowerCase().includes('introduction') || card.title.toLowerCase() === 'introduction'
   // Introduction should never show resource buttons
-  const showResourceButtons = !isIntroduction && card.hasResources && card.status !== 'available'
-
-  function handlePrimaryPress() {
-    haptics.mediumImpact()
-    playPageFlipSound()
-    onPrimaryPress()
-  }
-
-  function handleResourcePress() {
-    haptics.mediumImpact()
-    playPageFlipSound()
-    onResourcePress()
-  }
-
-  function handleNextPress() {
-    haptics.mediumImpact()
-    playPageFlipSound()
-    onNextPress()
-  }
+  const showResourceButtons = !isIntroduction && card.hasResources && card.status === 'completed'
 
   if (showResourceButtons && card.status === 'completed') {
     // Two button layout for completed cards
     return (
-      <View style={styles.dualButtonContainer}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={handleResourcePress}
-          style={styles.secondaryButton}
+      <View style={styles.container}>
+        <Button
+          variant="primary"
+          onPress={onResourcePress}
+          fullWidth
+          hapticType="light"
         >
-          <RNText style={styles.buttonText}>Open resources</RNText>
-        </TouchableOpacity>
+          <Text variant="title" size={1}>Open resources</Text>
+        </Button>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={handleNextPress}
-          style={styles.secondaryButton}
+        <Button
+          variant="primary"
+          onPress={onNextPress}
+          fullWidth
+          hapticType="light"
         >
-          <RNText style={styles.buttonText}>Go to next book</RNText>
-        </TouchableOpacity>
+          <Text variant="title" size={1}>Go to next book</Text>
+        </Button>
       </View>
     )
   }
 
   // Single button layout
   return (
-    <View style={styles.primaryButtonContainer}>
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={handlePrimaryPress}
-        style={styles.primaryButton}
+    <View style={styles.container}>
+      <Button
+        variant="primary"
+        onPress={onPrimaryPress}
+        fullWidth
       >
-        <RNText style={styles.buttonText}>{getButtonText(card)}</RNText>
-      </TouchableOpacity>
+        <Text variant="title" size={1}>{getButtonText(card)}</Text>
+      </Button>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  primaryButtonContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-  },
-  primaryButton: {
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#15111f',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dualButtonContainer: {
+  container: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingBottom: 16,
     gap: 12,
-  },
-  secondaryButton: {
-    flex: 1,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#15111f',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 16,
-    color: '#ffffff',
   },
 })
 

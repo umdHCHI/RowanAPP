@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native'
-import { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { useEffect, useRef } from 'react'
 import { Animated } from 'react-native'
 import type { Fragment } from '@/types/game'
 
@@ -10,7 +10,7 @@ interface GameFragmentProps {
   gameWidth: number
 }
 
-export function GameFragment({ fragment, gameHeight, gameWidth }: GameFragmentProps) {
+export function GameFragment({ fragment, onTap, gameHeight, gameWidth }: GameFragmentProps) {
   const translateY = useRef(new Animated.Value(0)).current
   const translateX = useRef(new Animated.Value(0)).current
   const opacity = useRef(new Animated.Value(0.5)).current // Start brighter
@@ -90,19 +90,23 @@ export function GameFragment({ fragment, gameHeight, gameWidth }: GameFragmentPr
           opacity,
         },
       ]}
-      pointerEvents="none" // Non-interactive background element
     >
-      <View style={[styles.bubble, isWellness ? styles.wellnessBubble : styles.negativeBubble]}>
+      <Pressable
+        onPress={() => onTap(fragment.id)}
+        style={({ pressed }) => [
+          styles.bubble,
+          isWellness ? styles.wellnessBubble : styles.negativeBubble,
+          ...(pressed ? [styles.bubblePressed] : []),
+        ]}
+        hitSlop={8}
+      >
         <Text
-          style={[
-            styles.text,
-            isWellness ? styles.wellnessText : styles.negativeText,
-          ]}
+          style={[styles.text, isWellness ? styles.wellnessText : styles.negativeText]}
           numberOfLines={2}
         >
           {fragment.text}
         </Text>
-      </View>
+      </Pressable>
     </Animated.View>
   )
 }
@@ -110,11 +114,11 @@ export function GameFragment({ fragment, gameHeight, gameWidth }: GameFragmentPr
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    zIndex: 1, // Behind gameplay elements (GameArea is default, gameplay elements are higher)
+    zIndex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    maxWidth: 200, // Prevent text from overflowing
-    paddingHorizontal: 8, // Padding to prevent edge overflow
+    maxWidth: 200,
+    paddingHorizontal: 8,
   },
   bubble: {
     borderRadius: 20, // Circular thought bubble
@@ -132,6 +136,9 @@ const styles = StyleSheet.create({
   },
   negativeBubble: {
     borderColor: 'rgba(200, 100, 100, 0.5)', // Red-tinted border for negative thoughts
+  },
+  bubblePressed: {
+    opacity: 0.85,
   },
   text: {
     fontFamily: 'Quicksand-Medium',

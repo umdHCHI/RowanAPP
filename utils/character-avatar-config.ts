@@ -1,4 +1,20 @@
-import { COLORS, type Color } from '@/utils/character-assets'
+import {
+  COLORS,
+  MOUTH_COUNT,
+  BG_COUNT,
+  HAIR_COUNT,
+  CLOTHES_COUNT,
+  EYES_COUNT,
+  type Color,
+} from '@/utils/character-assets'
+
+function pickRandomInt(max: number): number {
+  return Math.floor(Math.random() * max)
+}
+
+function pickRandomColor(): Color {
+  return COLORS[pickRandomInt(COLORS.length)]
+}
 
 /**
  * Frontend character config format (used in character creator)
@@ -101,4 +117,27 @@ export function buildAvatarConfig(character: any): string | null {
   }
 
   return JSON.stringify(avatarConfig)
+}
+
+/**
+ * Default avatar config for the splash screen. Randomizes hair, hair color,
+ * background, background color, eyes, eye color, shirt, shirt color, and mouth
+ * per load so the splash feels different each time.
+ */
+export function getDefaultSplashAvatarConfig(): string {
+  const config: FrontendCharacterConfig = {
+    baseIndex: 0,
+    backgroundColor: pickRandomColor(),
+    backgroundIndex: pickRandomInt(BG_COUNT),
+    hairColor: pickRandomColor(),
+    hairIndex: pickRandomInt(HAIR_COUNT),
+    clothesColor: pickRandomColor(),
+    clothesIndex: pickRandomInt(CLOTHES_COUNT),
+    eyesColor: pickRandomColor(),
+    eyesIndex: pickRandomInt(EYES_COUNT),
+    eyebrowsColor: 'Brown',
+    eyebrowsIndex: 0,
+    mouthIndex: pickRandomInt(MOUTH_COUNT),
+  }
+  return JSON.stringify(config)
 }

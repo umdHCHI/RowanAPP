@@ -20,6 +20,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "environment": "development",
       "env": {
         "EXPO_PUBLIC_API_URL": "${EXPO_PUBLIC_API_URL}",
         "EXPO_PUBLIC_API_TOKEN": "${EXPO_PUBLIC_API_TOKEN}"

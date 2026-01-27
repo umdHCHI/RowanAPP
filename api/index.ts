@@ -86,3 +86,4 @@ export {
   useAuthActions,
   useRequiredAuthUserId,
 } from './hooks/use-auth'
+export { useRequireAuth } from './hooks/use-require-auth'

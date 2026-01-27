@@ -1,6 +1,5 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { StoryCard } from '@/types/hub'
 
 interface ProgressIndicatorProps {
@@ -9,56 +8,44 @@ interface ProgressIndicatorProps {
 }
 
 export function ProgressIndicator({ card, isLast }: ProgressIndicatorProps) {
-  const isLocked = card.status === 'locked'
-  
   return (
-    <View style={styles.progressContainer}>
+    <View style={styles.container}>
       {/* Top line */}
-      <View style={styles.progressLine} />
+      <View style={styles.line} />
       
-      {/* Circle or Lock indicator */}
-      <View style={[
-        styles.progressIndicator,
-        isLocked && styles.progressIndicatorLocked
-      ]}>
-        {isLocked ? (
-          <MaterialCommunityIcons name="lock" size={14} color="#ffffff88" />
-        ) : (
-          <View style={styles.progressIndicatorInner} />
-        )}
+      {/* Circle indicator */}
+      <View style={styles.circle}>
+        <View style={styles.circleInner} />
       </View>
       
       {/* Bottom line */}
-      {!isLast && <View style={styles.progressLine} />}
+      {!isLast && <View style={styles.line} />}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  progressContainer: {
+  container: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 0,
   },
-  progressLine: {
+  line: {
     width: 1.5,
     height: 40,
-    backgroundColor: '#ffffff44',
+    backgroundColor: 'rgba(255, 255, 255, 0.27)',
   },
-  progressIndicator: {
+  circle: {
     width: 32,
     height: 32,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#ffffff66',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 4,
   },
-  progressIndicatorLocked: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  progressIndicatorInner: {
+  circleInner: {
     width: 10,
     height: 10,
     borderRadius: 5,

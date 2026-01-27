@@ -1,10 +1,10 @@
 import React from 'react'
-import { View, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Pressable, StyleSheet } from 'react-native'
 import type { StoryCard } from '@/types/hub'
 import { useHaptics } from '@/utils/useHaptics'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 
-interface HubPaginationProps {
+interface HubPaginationProps {  
   cards: StoryCard[]
   activeIndex: number
   onDotPress: (index: number) => void
@@ -21,21 +21,18 @@ export function HubPagination({ cards, activeIndex, onDotPress }: HubPaginationP
   }
 
   return (
-    <View style={styles.paginationContainer}>
+    <View style={styles.container}>
       {cards.map((card, index) => {
         const isActive = index === activeIndex
         return (
-          <TouchableOpacity
-            key={card.id}
+          <Pressable
+            key={index}
             onPress={() => handleDotPress(index)}
-          >
-            <View
-              style={[
-                styles.paginationDot,
-                isActive && styles.paginationDotActive
-              ]}
-            />
-          </TouchableOpacity>
+            style={[
+              styles.dot,
+              isActive && styles.dotActive,
+            ]}
+          />
         )
       })}
     </View>
@@ -43,24 +40,23 @@ export function HubPagination({ cards, activeIndex, onDotPress }: HubPaginationP
 }
 
 const styles = StyleSheet.create({
-  paginationContainer: {
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
+    paddingVertical: 0,
+    gap: 10,
   },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#ffffff66',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
-  paginationDotActive: {
+  dotActive: {
     backgroundColor: '#ffffff',
     borderColor: '#ffffff',
   },
 })
-

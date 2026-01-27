@@ -95,3 +95,8 @@ export interface StoryChapter {
   }
 }
 
+export interface StoryBackgroundProps {
+  isEnding?: boolean  
+  isIntroduction?: boolean
+  storyId?: string | number
+}

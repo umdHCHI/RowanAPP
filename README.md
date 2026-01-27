@@ -4,61 +4,107 @@ Here we make changes to the original application and implement the expert findin
 
 Please note that due to Expo changes and us moving to Production Builds this is migrating to a EAS Workflow. For Expo to EAS merge please see: https://docs.expo.dev/develop/development-builds/expo-go-to-dev-build/
 
+Due to APK 55 upgrade AND EAS prod builds Expo Go will no longer be supported on this project. Follow the link for instructions on how to merge from Expo Go to EAS. The workflow from that point forward should follow EAS dev, instructions below. 
+
 ## Features
 
 ###  Core Gameplay - Mimics What we had before
 - **Character Creation**: Create your unique avatar to journey through The Archive
-- **Story Progression**: Experience a narrative that starts in "the void" and gradually reveals The Archive library
-- **Choice-Based Narrative**: Make decisions that affect your attributes and story progression
-- **Attribute System**: Build four core attributes through your choices: - Not sure how to implement
-  - **Connection**: Your ability to connect with others and seek support
-  - **Courage**: Your bravery in facing challenges
-  - **Exploration**: Your curiosity and willingness to explore new solutions
-  - **Fear**: Your awareness and understanding of fear
+- **Story Progression**: Three chapters are currently added this this application. One is a tutorial showing the player how to play and how the buttons work. The next two are story chapters only. Story one introduces the Library and Fractures that happen with a monster. The Curator helps explain this. Second Story starts the player in the employee lounge of the library and weird things start to occur. Mini game will proc. 
+- **Choice-Based Narrative**: Make decisions that affect your lumens(expierence) and story progression. Lumens either provide unlocks or slowly light up the background. 
 
-###  Game Mechanics
-- **The Curator**: Guided by a mysterious hooded cat NPC with various emotional states
+
 
 ###  Story Game Features
-- **Journal**: Reflect on your journey with guided prompts
-- **Vantage**: A space-invaders style minigame for practicing thought reframing
+- **Journal**: Reflect on your journey with guided prompts. Story will proc entries. 
+- **Vantage**: A space-invaders style minigame for practicing thought reframing. Story will proc game and game can be practiced outside of story. 
 
 ## Getting Started
+New Instructions updated 1/23
+Use the workflow below to get a local build running and to publish updates with EAS.
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn
+- Node.js 18 LTS (project is verified on 18.18+)
+- npm 9+ or Yarn 1.x (my references will use npm since that is what I use)
 - Expo CLI (`npm install -g expo-cli`)
-- iOS Simulator (Mac) or Android Emulator, or Expo Go app on your phone
+- EAS CLI (`npm install -g eas-cli`)
+- Android Studio (API 34 emulator) and/or Xcode 15+ for simulators
+- A physical device for final validation(see someone in HCI lab to borrow Andriod phone if needed); Expo Go is **not** supported because the app depends on custom dev clients
 
-### Installation
-
-1. Install dependencies:
+### 1. Install dependencies
 ```bash
 npm install
 ```
 
-2. (First time setup) Clear cache and reinstall:
-```bash
-npm start -- --clear
+### 2. Configure environment variables
+
+Get the .env file from someone within the HCI lab team and add to the root of this project. 
+
+Example: 
+
+```cmd
+thearchive\.env
 ```
 
-3. Start the development server:
+For production builds this is hosted here: 
+
+https://expo.dev/accounts/roesorcerer/projects/thearchive 
+
+This project can be rebuilt on Expo to any other developer just ensure you set up the env information in the CLI or web UI so the builds do not fail. 
+
+https://docs.expo.dev/guides/environment-variables/ 
+
+### 3. Build or install a development client
+Because Expo Go cannot load the custom modules in this repo, you must install a dev build once per platform:
+
 ```bash
-npm start
+# Android package (.apk)
+eas build --profile development --platform android
+
+# iOS simulator build (.tar.gz)
+eas build --profile ios-simulator --platform ios
 ```
 
-4. Run on your preferred platform:
-   - Press `i` for iOS simulator
-   - Press `a` for Android emulator
-   - Scan QR code with Expo Go app on your phone
+Download the resulting artifact from the EAS dashboard, install it on your device or simulator, and keep it up to date whenever native modules change.
+
+### 4. Run the app locally
+```bash
+npx expo start --dev-client
+```
+
+- Press `a` to launch the Android dev client that you installed in the previous step.
+- Press `i` to launch the iOS simulator build.
+- Use the Metro CLI to reload (`r`) or open dev tools (`d`).
+
+Available npm scripts:
+- `npm run start` – alias for `expo start` (Metro only).
+- `npm run android` – builds and deploys the native project to a connected Android device via `expo run:android --device`.
+- `npm run ios` – rebuilds the iOS project with `expo run:ios`.
+
+### 5. Create production artifacts
+Run the following when you are ready for QA or release testing:
+
+```bash
+# Production-ready Android APK (configured via eas.json)
+eas build --profile production --platform android
+
+# Publish an OTA update to the prod channel
+eas update --channel prod --platform android --message "Describe the change"
+```
+
+Submit the generated artifacts through the Google Play Console or distribute them internally with the EAS dashboard.
+
+### 6. Common troubleshooting steps
+- Clear every cache before debugging Metro issues: `expo start --dev-client --clear`.
+- If a dev client fails to open, uninstall the old build and reinstall the latest artifact.
+- Sync node modules after changing Expo SDK versions by removing `node_modules`, deleting `package-lock.json`, and rerunning `npm install`.
 
 ## Asset Organization
 
 Assets are organized in the project root:
-- `attributes/` - Attribute level images (connection, courage, exploration, fear)
-- `equipment/` - Equipment items organized by type (weapons, armor, helmets, boots)
-- `thecurator/` - The Curator NPC character images with different emotions
+- `attributes/` - Attribute level images (connection, courage, exploration, fear) - Might need to remove or add deprecated tag 
+- `equipment/` - Equipment items organized by type (weapons, armor, helmets, boots) - Might need to remove or add deprecated tag 
+- `thecurator/` - The Curator NPC character images with different emotions - Might need to remove or add deprecated tag (on the backend now)
 - `Vantage/` - Minigame assets (player, projectiles, power-ups, etc.)
 - `hauntedlibrary.png` - Main background image for The Archive
 

@@ -1,104 +1,99 @@
 import React, { useState } from 'react'
-import { View, Text as RNText, TouchableOpacity, Image, StyleSheet, Dimensions, Platform } from 'react-native'
-import { BlurView } from 'expo-blur'
+import {
+  Image,
+  ImageSourcePropType,
+  Pressable as RNPressable,
+  View,
+  StyleSheet,
+} from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { StoryCard as StoryCardType } from '@/types/hub'
 import { useHaptics } from '@/utils/useHaptics'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { ContentWarningModal } from './ContentWarningModal'
+import { Text, Button } from '@/components/ui'
+
+const FALLBACK_IMAGE: ImageSourcePropType = require('@/assets/storyCardBackground/introBackground.png')
 
 interface StoryCardProps {
   card: StoryCardType
+  height: number
 }
 
-export function StoryCard({ card }: StoryCardProps) {
+export function StoryCard({ card, height }: StoryCardProps) {
   const haptics = useHaptics()
   const playPageFlipSound = usePageFlipSound()
   const [isContentWarningVisible, setIsContentWarningVisible] = useState(false)
+
   const isCompleted = card.status === 'completed'
+  const imageSource = card.imageUrl
+    ? { uri: card.imageUrl }
+    : FALLBACK_IMAGE
 
+  function handleBookIconPress() {
+    haptics.lightImpact()
+    playPageFlipSound()
+  }
 
-  const hasBackendImage = !!card.imageUrl
+  function handleContentWarningPress() {
+    haptics.lightImpact()
+    playPageFlipSound()
+    setIsContentWarningVisible(true)
+  }
 
   return (
-    <View style={styles.storyCardWrapper}>
-      <View style={styles.storyCard}>
-        {/* Background - Backend image */}
-        {hasBackendImage && card.imageUrl && (
-          <View style={styles.storyCardBackground}>
-            <Image
-              source={{ uri: card.imageUrl }}
-              style={styles.storyCardBackground}
-              resizeMode="cover"
-            />
-            {/* Blur overlay effect */}
-            <BlurView intensity={40} style={StyleSheet.absoluteFill} tint="dark" />
-          </View>
-        )}
+    <View style={[styles.wrapper, { height }]}>
+      <View style={styles.container}>
+        <View style={styles.backgroundImage}>
+          <Image source={imageSource} style={styles.image} resizeMode="cover" />
+          <View style={styles.dimOverlay} />
+        </View>
 
-        {/* Card content - needs to be above background */}
         <View style={styles.cardContent}>
-          {/* Header with label and book icon */}
-          <View style={styles.cardHeader}>
-            <View style={styles.labelWrapper}>
-              <RNText style={styles.labelText} numberOfLines={1}>{card.label}</RNText>
+          <View style={styles.header}>
+            <View style={styles.headerLabel}>
+              <Text variant="label" numberOfLines={1}>
+                {card.label}
+              </Text>
             </View>
-            
-            {/* Book icon for completed chapters */}
+
             {isCompleted && (
-              <TouchableOpacity 
-                style={styles.bookIcon}
-                onPress={() => {
-                  haptics.lightImpact()
-                  playPageFlipSound()
-                }}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons name="book-open-outline" size={28} color="#ffffff" />
-              </TouchableOpacity>
+              <View style={styles.bookIcon}>
+                <RNPressable onPress={handleBookIconPress} hitSlop={10}>
+                  <MaterialCommunityIcons name="book-open-outline" size={26} color="#ffffff" />
+                </RNPressable>
+              </View>
             )}
           </View>
-         
-          {/* Title section */}
+
           <View style={styles.titleSection}>
-            <RNText 
-              style={styles.titleText}
-            >
+            <Text variant="heading" size={1}>
               {card.title}
-            </RNText>
-            <RNText 
-              style={styles.subtitleText}
-            >
+            </Text>
+            <Text variant="body" size={3} color="#ffffff" opacity={0.9} marginTop={4}>
               {card.subtitle || 'THE ARCHIVE'}
-            </RNText>
+            </Text>
           </View>
 
-          {/* Bottom section with tagline and content warning */}
           <View style={styles.bottomSection}>
-            <RNText 
-              style={styles.taglineText}
-            >
+            <Text variant="tagline" size={1} opacity={0.9}>
               {card.tagline || 'Your journey awaits'}
-            </RNText>
-            
-            <TouchableOpacity 
-              style={styles.contentWarningButton}
-              onPress={() => {
-                haptics.lightImpact()
-                playPageFlipSound()
-                setIsContentWarningVisible(true)
-              }}
-              activeOpacity={0.7}
+            </Text>
+
+            <Button
+              variant="secondary"
+              size="small"
+              onPress={handleContentWarningPress}
+              hapticType="light"
             >
-              <RNText style={styles.contentWarningText} numberOfLines={1}>
+              <Text variant="title" size={4} numberOfLines={1}>
                 CONTENT WARNING
-              </RNText>
-            </TouchableOpacity>
+              </Text>
+            </Button>
           </View>
         </View>
       </View>
 
-      {/* Content Warning Modal */}
       <ContentWarningModal
         visible={isContentWarningVisible}
         onClose={() => setIsContentWarningVisible(false)}
@@ -110,133 +105,48 @@ export function StoryCard({ card }: StoryCardProps) {
 }
 
 const styles = StyleSheet.create({
-  storyCardWrapper: {
-    width: Dimensions.get('window').width * 0.95,
-    minHeight: Dimensions.get('window').height * 0.55,
-    marginBottom: 32,
-  },
-  storyCard: {
+  wrapper: {
+    width: '100%',
     borderRadius: 24,
-    backgroundColor: '#1a1a2e',
-    minHeight: Dimensions.get('window').height * 0.55,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
-  storyCardBackground: {
-    ...StyleSheet.absoluteFillObject,
+  container: {
     flex: 1,
-    width: "100%",
-    height: '100%',
-    overlayColor: 'rgba(0, 255, 255, 0.5)',
-    backgroundColor: '#3d5a80',
+    backgroundColor: '#161622',
+  },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  image: { width: '100%', height: '100%' },
+  dimOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   cardContent: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 32,
-    marginBottom: 100,
-    alignItems: 'center',
-    width: '100%',
-    minHeight: Dimensions.get('window').height * 0.55,
-    position: 'relative',
+    flex: 1,
+    padding: 18,
     justifyContent: 'space-between',
   },
-  cardHeader: {
+  header: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    position: 'relative',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
-  labelWrapper: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  labelText: {
-    fontFamily: 'System',
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 3,
-    color: '#ffffffcc',
-    textAlign: 'center',
+  headerLabel: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    maxWidth: '80%',
   },
   bookIcon: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  titleSection: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
     alignItems: 'center',
-    marginTop: 24,
-    width: '100%',
-    paddingHorizontal: 8,
-    flexShrink: 0,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  titleText: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 42,
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: 8,
-    lineHeight: 48,
-    width: '100%',
-  },
-  subtitleText: {
-    fontFamily: 'System',
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 3,
-    color: '#ffffff',
-    textAlign: 'center',
-    width: '100%',
-    marginTop: 4,
-    opacity: 0.9,
-  },
-  bottomSection: {
-    alignItems: 'center',
-    gap: 16,
-    width: '100%',
-    paddingHorizontal: 24,
-    marginTop: 32,
-    flexShrink: 0,
-  },
-  taglineText: {
-    fontFamily: 'VT323-Regular',
-    fontSize: 24,
-    color: '#ffffff',
-    textAlign: 'center',
-    width: '100%',
-    lineHeight: 24,
-    opacity: 0.9,
-  },
-  contentWarningButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  contentWarningText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: '#ffffff',
-    opacity: 0.95,
-  },
+  titleSection: { gap: 6 },
+  bottomSection: { gap: 12 },
 })
-

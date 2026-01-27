@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
-import { useHubStories } from './use-hub-stories'
+import { useHubStories } from '../hub/use-hub-stories'
 import { mapStoriesToCards } from '@/utils/story-mapper'
 import { useCurrentUserFullProfile } from '@/api'
-import type { StoryCard } from '@/types/hub'
+import type { UseStoryCardsResult } from '@/types/hooks'
 
 /**
  * Get story cards with transformation logic
  * Includes daily unlock system based on user creation date
  */
-export function useStoryCards() {
+export function useStoryCards(): UseStoryCardsResult {
   const { data: stories, isLoading: isLoadingStories, error: storiesError } = useHubStories()
   const { data: userProfile, isLoading: isLoadingProfile } = useCurrentUserFullProfile()
 
@@ -27,4 +27,3 @@ export function useStoryCards() {
     error: storiesError,
   }
 }
-

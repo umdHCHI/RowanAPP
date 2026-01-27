@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { View, Text, useWindowDimensions } from 'react-native'
+import { View, Text, useWindowDimensions, StyleSheet } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useGameStore } from '@/stores/game-store'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
-import { useVantageGame } from '@/hooks/use-thought-defender-game'
-import { useGameDirector } from '@/hooks/use-game-director'
+import { useVantageGame, useGameDirector } from '@/hooks'
 import { GAME_CONFIG, type Difficulty } from '@/utils/vantage-constants'
-import { useAwardExperience } from '@/api'
+import { useAwardExperience, useRequireAuth } from '@/api'
 import {
   GameArea,
   GamePlayer,
@@ -25,11 +24,13 @@ import {
 } from '@/components/minigame'
 
 export default function Vantage() {
+  useRequireAuth() // Redirects to login if not authenticated
+  
   const router = useRouter()
   const params = useLocalSearchParams<{ storyId?: string; tutorial?: string }>()
   const storyId = params.storyId
   const isTutorial = params.tutorial === 'true'
-  const { addMemory, character } = useGameStore()
+  const { addMemory, character, updateLumen } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
@@ -124,10 +125,10 @@ export default function Vantage() {
         
         // Reward based on score
         if (score >= 200) {
-          updateLumen( 1)
+          updateLumen('lumens', 1)
         }
         if (score >= 100) {
-          updateLumen( 1)
+          updateLumen('lumens', 1)
         }
       }, 0)
     },
@@ -212,35 +213,11 @@ export default function Vantage() {
     >
       {/* Compact HUD overlay at top - Only show when playing */}
       {(game.isPlaying || game.gameOver) && (
-        <View 
-          style={{
-            position: 'absolute',
-            top: insets.top + 8,
-            left: 16,
-            right: 16,
-            zIndex: 100,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: 'rgba(212, 175, 55, 0.3)',
-          }}
-          pointerEvents="none"
-        >
-          <Text style={{ fontFamily: 'Quicksand-SemiBold', fontSize: 14, color: 'rgba(255, 255, 255, 0.92)', fontWeight: '600' }}>
-            Score: {game.score}
-          </Text>
-          <Text style={{ fontFamily: 'Quicksand-SemiBold', fontSize: 14, color: 'rgba(255, 255, 255, 0.92)', fontWeight: '600' }}>
-            Lives: {game.lives}
-          </Text>
+        <View style={[styles.hud, { top: insets.top + 8 }]} pointerEvents="none">
+          <Text style={styles.hudText}>Score: {game.score}</Text>
+          <Text style={styles.hudText}>Lives: {game.lives}</Text>
           {game.wave > 0 && (
-            <Text style={{ fontFamily: 'Quicksand-SemiBold', fontSize: 14, color: 'rgba(212, 175, 55, 0.9)', fontWeight: '600' }}>
-              Wave: {game.wave}
-            </Text>
+            <Text style={[styles.hudText, styles.hudWave]}>Wave: {game.wave}</Text>
           )}
         </View>
       )}
@@ -359,3 +336,30 @@ export default function Vantage() {
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  hud: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 100,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  hudText: {
+    fontFamily: 'Quicksand-SemiBold',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontWeight: '600',
+  },
+  hudWave: {
+    color: 'rgba(212, 175, 55, 0.9)',
+  },
+})

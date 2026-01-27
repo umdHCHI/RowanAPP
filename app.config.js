@@ -1,11 +1,15 @@
-import 'dotenv/config'
+require('dotenv/config')
 
 const appVersion = '2.0.0'
 const isEasBuild = process.env.EAS_BUILD === 'true'
 const profile = process.env.EAS_BUILD_PROFILE || process.env.EXPO_PUBLIC_EAS_BUILD_PROFILE
 const isDevBuild = profile === 'development'
 
-export default {
+const BUNDLE_ID = 'com.thearchive.app'
+
+module.exports = {
+  // Root-level ios helps EAS credential step find bundleIdentifier when updating config
+  ios: { bundleIdentifier: BUNDLE_ID },
   expo: {
     name: 'The Archive',
     slug: 'thearchive',
@@ -14,10 +18,12 @@ export default {
     userInterfaceStyle: 'dark',
     icon: './assets/splashscreen/icon.png',
     backgroundColor: '#000000',
-    assetBundlePatterns: ['**/*'],
+    assetBundlePatterns: [
+      '**/*'
+    ],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.thearchive.app',
+      bundleIdentifier: BUNDLE_ID,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },

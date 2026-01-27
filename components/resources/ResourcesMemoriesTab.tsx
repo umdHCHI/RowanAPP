@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useStoryPassage } from '@/api/hooks/use-story'
-import type { MemoryItem } from '@/hooks/use-resources'
+import type { MemoryItem } from '@/types/hooks'
 
 interface ResourcesMemoriesTabProps {
   memories: MemoryItem[]

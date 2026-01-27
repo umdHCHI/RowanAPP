@@ -2,11 +2,12 @@ import { useEffect } from 'react'
 import { useCurrentUserFullProfile } from '@/api'
 import { useGameStore } from '@/stores/game-store'
 import { mapProfileToLumen } from '@/utils/profile-mapper'
+import type { UseHubProfileResult } from '@/types/hooks'
 
 /**
- * Load user profile and map to attributes in the game store
+ * Only loading expierence to lumens so we can view the player expierence in the game(as Lumans)
  */
-export function useHubProfile() {
+export function useHubProfile(): UseHubProfileResult {
   const { data: profile, isLoading, error } = useCurrentUserFullProfile()
   const setLumen = useGameStore((state) => state.setLumen)
 
@@ -21,7 +22,6 @@ export function useHubProfile() {
 
   return {
     isLoading,
-    error,
+    error: error || null,
   }
 }
-

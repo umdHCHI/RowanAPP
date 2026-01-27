@@ -1,3 +1,5 @@
+import { GameDirectorMetrics } from "@/types/hooks"
+
 export type Difficulty = 'easy' | 'normal' | 'hard' // If Proposal to HCII get approved this structure needs to change to themes of stress. 
 
 export interface DifficultyConfig {
@@ -135,8 +137,78 @@ export const GAME_CONFIG = {
   BOSS_FIRE_COOLDOWN_MS: 1400, // Base cooldown between bursts (slower to prevent overwhelming)
   BOSS_BURST_COUNT: 1, // Number of shots per burst
   BOSS_BURST_GAP_MS: 120, // Time between shots in a burst
+
+  // Rendering
+  RENDER_THROTTLE_MS: 33, // Throttle interval for store updates (~30fps)
+
+  // Player
+  PLAYER_IFRAME_DURATION_MS: 900, // Invincibility duration after taking damage
+
+  // Boss
+  BOSS_DEFEATED_DELAY_MS: 500, // Delay before ending game after boss defeat
+
+  // Debug
+  DEBUG_TOGGLE_HEADER_PRESS_TIMEOUT_MS: 500, // Timeout window for header press sequence
+  DEBUG_TOGGLE_HEADER_PRESS_COUNT: 3, // Number of header presses needed to toggle debug
 } as const
 
 // Debug flag for hitboxes
 export const DEBUG_HITBOXES = false
 
+
+
+
+export const DDA_CONFIG = {
+  // DDA Configuration
+  INITIAL_DIFFICULTY: 5,
+  INITIAL_NEUTRAL: 0.5,
+  INITIAL_MOVE: 1.0,
+  SMOOTHING_ALPHA: 0.15,
+  // Pressure calculation weights (0-1)
+  HIT_FREQUENCY_WEIGHT: 0.25,
+  ACCURACY_WEIGHT: 0.25,
+  SURVIVAL_WINDOW_WEIGHT: 0.15,
+  SHOOT_ACTIVITY_WEIGHT: 0.15, // Time since last shot (inactivity = pressure)
+  KILL_ACTIVITY_WEIGHT: 0.20, // Time since last enemy killed (no kills = pressure)
+
+  // Pressure thresholds
+  HIGH_PRESSURE_THRESHOLD: 0.7, // If pressure > 0.7, player is struggling
+  LOW_PRESSURE_THRESHOLD: 0.3, // If pressure < 0.3, player is doing well
+
+  // Difficulty adjustment rates
+  DIFFICULTY_DECREASE_RATE: 0.8, // How much to decrease difficulty when struggling (0.8 = decrease by 20%)
+  DIFFICULTY_INCREASE_RATE: 0.05, // How much to increase difficulty when doing well (per evaluation)
+
+  // Difficulty bounds
+  MIN_DIFFICULTY: 1,
+  MAX_DIFFICULTY: 10,
+
+  // Evaluation interval
+  EVALUATION_INTERVAL_MS: 5000, // Recalculate every 5 seconds
+
+  // Minimum time window for calculations (in ms)
+  MIN_EVALUATION_WINDOW: 3000, // Need at least 3 seconds of data
+
+  // Activity thresholds (in ms)
+  SHOOT_INACTIVITY_THRESHOLD: 3000, // 3 seconds without shooting = high pressure
+  KILL_INACTIVITY_THRESHOLD: 5000, // 5 seconds without killing = high pressure
+
+  // Stress decay when player is doing well
+  STRESS_DECAY_RATE: 0.02, // Stress decays at 2% per evaluation when no recent hits
+  STRESS_DECAY_THRESHOLD: 5000, // If no hits for 5 seconds, start decay
+
+  // Emotional Intensity (EI) smoothing
+  EI_UPDATE_INTERVAL_MS: 1000, // Update EI every 1 second for smoother transitions
+  EI_EMA_ALPHA: 0.15, // EMA smoothing factor (0-1, lower = smoother)
+  EI_THERAPEUTIC_DECAY_RATE: 0.05, // When stressSignal is high, EI decays at this rate per update
+  EI_RISE_RATE: 0.02, // When stressSignal is low, EI can rise at this rate per update
+} as const
+
+export const DEFAULT_METRICS: GameDirectorMetrics = {
+  formationTickMultiplier: 1,
+  moveSpeed: 1,
+  powerUpChance: 1,
+  difficultyLevel: 5,
+  pressureScore: 0.5,
+  emotionalIntensity: 0.5,
+} as const

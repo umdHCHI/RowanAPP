@@ -1,21 +1,18 @@
-import { View, ScrollView, ImageBackground, Text as RNText, StyleSheet, TouchableOpacity, Alert, Platform, Dimensions } from 'react-native'
+import { View, ScrollView, Text as RNText, StyleSheet, TouchableOpacity, Alert, Platform, Dimensions } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Header } from '@/components/header'
 import { GameButton } from '@/components/GameButton'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { GameBackground } from '@/components/ui/GameBackground'
 
 export default function About() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
 
   return (
-    <ImageBackground
-      source={require('../assets/UI/hauntedlibrary.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay} />
+    <View style={styles.screen}>
+      <GameBackground />
 
       <Header />
 
@@ -207,18 +204,14 @@ export default function About() {
           />
         </View>
       </ScrollView>
-    </ImageBackground>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  background: {
+  screen: {
     flex: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    opacity: 0.9,
+    position: 'relative',
   },
   scrollView: {
     flex: 1,

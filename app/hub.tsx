@@ -1,67 +1,55 @@
-import React, { useEffect, useState, useRef } from 'react'
-import { View, ScrollView, ImageBackground, Text as RNText, Dimensions, StyleSheet, TouchableOpacity, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native'
+import React, { useState, useRef } from 'react'
+import {
+  ScrollView,
+  Dimensions,
+  View,
+  StyleSheet,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+} from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useGameStore } from '@/stores/game-store'
-import { useIsAuthenticated } from '@/api'
+import { useRequireAuth } from '@/api'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { Header } from '@/components/header'
 import { HubPage, HubButtons, HubPagination } from '@/components/hub'
-import { useStoryCards } from '@/hooks/use-story-cards'
-import { useHubProfile } from '@/hooks/use-hub-profile'
+import { useStoryCards, useHubProfile } from '@/hooks'
 import type { StoryCard } from '@/types/hub'
+import { StoryBackground } from '@/components/story/StoryBackground'
+import { Text } from '@/components/ui'
 
 const { width } = Dimensions.get('window')
 
-function LoginRedirect() {
-  const router = useRouter()
-
-  useEffect(() => {
-    router.replace('/login')
-  }, [router])
-
-  return null
-}
+// Approximate bottom section height: pagination (~48) + button (~56) + padding
+const BOTTOM_SECTION_APPROX = 136
 
 export default function Hub() {
+  useRequireAuth()
+
   const router = useRouter()
-  const isAuthenticated = useIsAuthenticated()
   const insets = useSafeAreaInsets()
-  const { story, soundMuted, toggleSoundMute } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
-  const voidClarity = story.voidClarity
-  const libraryOpacity = Math.min(1, voidClarity / 100 + 0.3)
-
-  if (!isAuthenticated) {
-    return <LoginRedirect />
-  }
 
   const [activeIndex, setActiveIndex] = useState(0)
   const horizontalScrollRef = useRef<ScrollView>(null)
 
-  // Use custom hooks for data fetching
   const { storyCards, isLoading: isLoadingStories } = useStoryCards()
-  useHubProfile() // Handles profile loading and attribute mapping
+  useHubProfile()
+
+  const bottomPadding = Math.max(32, insets.bottom + 16)
+  const bottomSectionHeight = BOTTOM_SECTION_APPROX + bottomPadding
 
   function handlePrimaryAction(card: StoryCard) {
     haptics.mediumImpact()
     playPageFlipSound()
-
-    if (card.status === 'locked') {
-      router.push('/upgrade')
-      return
-    }
-
-    // Use chapterId directly (this is the story ID)
     router.push(`/story?storyId=${card.chapterId}`)
   }
 
   function handleResourceAction(card: StoryCard) {
     haptics.lightImpact()
     playPageFlipSound()
-    // Use chapterId directly (this is the story ID)
     router.push(`/resources?storyId=${card.chapterId}`)
   }
 
@@ -85,109 +73,90 @@ export default function Hub() {
   const currentCard = storyCards[activeIndex]
 
   return (
-    <ImageBackground
-      source={require('../assets/UI/hauntedlibrary.png')}
-      style={styles.imageCardBackground}
-      resizeMode="cover"
-    >
-      {/* Void overlay */}
-      <View
-        style={[
-          styles.voidOverlay,
-          { opacity: Math.max(0.4, 1 - libraryOpacity) }
-        ]}
-      />
+    <StoryBackground showOverlay={false}>
+      <View style={styles.root}>
+        {/* Carousel: flex 1, sits above bottom section */}
+        <View style={[styles.carouselContainer, { paddingTop: insets.top + 80 }]}>
+          {isLoadingStories ? (
+            <View style={styles.loadingContainer}>
+              <Text variant="body" size={1}>Loading stories...</Text>
+            </View>
+          ) : (
+            <ScrollView
+              ref={horizontalScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={styles.scrollView}
+              onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+                const x = event.nativeEvent.contentOffset.x
+                const index = Math.round(x / width)
+                if (index !== activeIndex && index >= 0 && index < storyCards.length) {
+                  setActiveIndex(index)
+                }
+              }}
+              scrollEventThrottle={16}
+            >
+              {storyCards.map((card, index) => (
+                <HubPage
+                  key={card.id}
+                  card={card}
+                  isLast={index === storyCards.length - 1}
+                  onResourcePress={() => handleResourceAction(card)}
+                  carouselHeight={Dimensions.get('window').height - (insets.top + 80) - bottomSectionHeight}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
 
-      {/* Horizontal stories carousel */}
-      <View style={styles.carouselContainer}>
-        {isLoadingStories ? (
-          <View style={styles.loadingContainer}>
-            <RNText style={styles.loadingText}>Loading stories...</RNText>
-          </View>
-        ) : (
-          <ScrollView
-            // @ts-ignore - ref is valid but TypeScript doesn't recognize it in this context
-            ref={horizontalScrollRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
-              const x = event.nativeEvent.contentOffset.x
-              const index = Math.round(x / width)
-              if (index !== activeIndex && index >= 0 && index < storyCards.length) {
-                setActiveIndex(index)
-              }
-            }}
-            scrollEventThrottle={16}
-          >
-            {storyCards.map((card, index) => (
-              <HubPage
-                key={card.id}
-                card={card}
-                isLast={index === storyCards.length - 1}
-                onResourcePress={() => handleResourceAction(card)}
-              />
-            ))}
-          </ScrollView>
-        )}
-      </View>
-
-      {/* Top navigation - rendered last to ensure it's on top */}
-      <Header />
-
-      {/* Bottom section with pagination and buttons */}
-      <View style={[styles.bottomSection, { paddingBottom: Math.max(32, insets.bottom + 16) }]}>
-        {/* Pagination dots */}
-        <HubPagination
-          cards={storyCards}
-          activeIndex={activeIndex}
-          onDotPress={handleDotPress}
-        />
-
-        {/* Bottom buttons */}
-        {currentCard && (
-          <HubButtons
-            card={currentCard}
-            onPrimaryPress={() => handlePrimaryAction(currentCard)}
-            onResourcePress={() => handleResourceAction(currentCard)}
-            onNextPress={goToNextDream}
+        {/* Bottom: dots + CTA, not overlay */}
+        <View style={[styles.bottomContainer, { paddingBottom: bottomPadding, marginTop: -8 }]}>
+          <HubPagination
+            cards={storyCards}
+            activeIndex={activeIndex}
+            onDotPress={handleDotPress}
           />
-        )}
-
+          {currentCard && (
+            <HubButtons
+              card={currentCard}
+              onPrimaryPress={() => handlePrimaryAction(currentCard)}
+              onResourcePress={() => handleResourceAction(currentCard)}
+              onNextPress={goToNextDream}
+            />
+          )}
+        </View>
       </View>
-    </ImageBackground>
+
+      <Header />
+    </StoryBackground>
   )
 }
 
 const styles = StyleSheet.create({
-  voidOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
-    zIndex: 1,
-  },
-  imageCardBackground: {
-    ...StyleSheet.absoluteFillObject,
-    resizeMode: 'contain',
-    backgroundColor: '#3d5a80',
-    zIndex: 0,
+  root: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flex: 1,
   },
   carouselContainer: {
     flex: 1,
     zIndex: 2,
-    paddingTop: 0,
-  },
-  bottomSection: {
-    backgroundColor: 'transparent',
-    zIndex: 3,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    fontFamily: 'System',
-    fontSize: 16,
-    color: '#ffffffcc',
+  scrollView: {
+    flex: 1,
+  },
+  bottomContainer: {
+    zIndex: 3,
+    paddingHorizontal: 24,
   },
 })
+

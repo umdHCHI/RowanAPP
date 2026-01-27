@@ -15,8 +15,12 @@ interface AuthState {
   // Backend uses: Authorization: Token <token>
   token: string | null
   
+  // Whether the user has created a character
+  hasCharacter: boolean
+  
   // Actions
-  setUser: (userId: number, token: string) => void
+  setUser: (userId: number, token: string, hasCharacter?: boolean) => void
+  setHasCharacter: (hasCharacter: boolean) => void
   clearAuth: () => void
   isAuthenticated: () => boolean
 }
@@ -26,16 +30,22 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       userId: null,
       token: null,
+      hasCharacter: false,
 
-      setUser: (userId, token) => {
+      setUser: (userId, token, hasCharacter = false) => {
         set({ 
           userId, 
-          token: token || null
+          token: token || null,
+          hasCharacter
         })
       },
 
+      setHasCharacter: (hasCharacter) => {
+        set({ hasCharacter })
+      },
+
       clearAuth: () => {
-        set({ userId: null, token: null })
+        set({ userId: null, token: null, hasCharacter: false })
       },
 
       isAuthenticated: () => {

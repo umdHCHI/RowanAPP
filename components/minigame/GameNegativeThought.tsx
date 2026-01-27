@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
 import { View, Image, Animated } from 'react-native'
 import { GAME_CONFIG } from '@/utils/vantage-constants'
+import { useFadeIn } from '@/utils/useFadeIn'
 import type { NegativeThought } from '@/types/game'
 
 interface GameNegativeThoughtProps {
@@ -8,20 +8,7 @@ interface GameNegativeThoughtProps {
 }
 
 export function GameNegativeThought({ thought }: GameNegativeThoughtProps) {
-  const fadeIn = useRef(new Animated.Value(0)).current
-  const hasAnimatedInRef = useRef(false)
-
-  // Fade in on first render to prevent double-render flash
-  useEffect(() => {
-    if (!hasAnimatedInRef.current) {
-      hasAnimatedInRef.current = true
-      Animated.timing(fadeIn, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start()
-    }
-  }, [fadeIn])
+  const fadeIn = useFadeIn(200)
 
   return (
     <Animated.View

@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import { useResources } from '@/hooks/use-resources'
+import { useResources } from '@/hooks'
 import { ResourcesSettingsTab } from './ResourcesSettingsTab'
 import { ResourcesResourcesTab } from './ResourcesResourcesTab'
 import { ResourcesMemoriesTab } from './ResourcesMemoriesTab'
@@ -39,14 +39,6 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
     isLoading,
     resources,
     memories,
-    attributes,
-    equippedGear,
-    characterName,
-    avatarConfig,
-    powers,
-    markPowersSeen,
-    experience,
-    resourceCounts,
     profileData,
     storiesData,
     journalEntries,

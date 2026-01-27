@@ -200,8 +200,8 @@ export function useAwardExperience() {
         queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
         
         // Invalidate user profile to refresh experience display
-        if (profileData?.id) {
-          queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(profileData.id) })
+        if (profileData?.user?.id) {
+          queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(String(profileData.user.id)) })
         }
       }, 2000) // Delay to allow confirmation UI to display
     },

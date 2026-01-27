@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  presets: [require('nativewind/preset')],
   content: [
     "./app/**/*.{js,jsx,ts,tsx}",
     "./components/**/*.{js,jsx,ts,tsx}",
@@ -27,6 +28,7 @@ module.exports = {
         body: ['CrimsonPro-Medium-Italic', 'serif'],
         ui: ['Quicksand-SemiBold', 'sans-serif'],
         display: ['BeyondWonderland', 'serif'],
+        titleWhite: ['FontTitle-White', 'sans-serif'],
       },
     },
   },

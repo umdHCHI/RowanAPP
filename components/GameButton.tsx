@@ -1,34 +1,75 @@
 import { useState } from 'react'
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { View, Text, Image, StyleSheet, TouchableOpacity, type TouchableOpacityProps } from 'react-native'
 import { useHaptics } from '@/utils/useHaptics'
+import { usePageFlipSound } from '@/utils/usePageFlipSound'
 
-interface GameButtonProps {
+type HapticType = 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'error' | 'warning'
+
+interface GameButtonProps extends Omit<TouchableOpacityProps, 'onPress'> {
   normalImage: any
   selectedImage: any
-  pressedImage: any
+  pressedImage?: any
   label: string
   onPress: () => void
   width?: number
   height?: number
+  hapticType?: HapticType
+  soundFunction?: () => void
+  enableHaptics?: boolean
+  enableSound?: boolean
 }
 
 export function GameButton({
   normalImage,
   selectedImage,
+  pressedImage,
   label,
   onPress,
   width = 200,
   height = 60,
+  hapticType = 'light',
+  soundFunction,
+  enableHaptics = true,
+  enableSound = true,
+  ...touchableProps
 }: GameButtonProps) {
   const [isSelected, setIsSelected] = useState(false)
-  const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
+  const defaultSound = usePageFlipSound()
+  const playSound = soundFunction || defaultSound
 
   function handlePress() {
+    if (enableHaptics) {
+      switch (hapticType) {
+        case 'light':
+          haptics.lightImpact()
+          break
+        case 'medium':
+          haptics.mediumImpact()
+          break
+        case 'heavy':
+          haptics.heavyImpact()
+          break
+        case 'selection':
+          haptics.selection()
+          break
+        case 'success':
+          haptics.success()
+          break
+        case 'error':
+          haptics.error()
+          break
+        case 'warning':
+          haptics.warning()
+          break
+      }
+    }
+
+    if (enableSound) {
+      playSound()
+    }
+
     setIsSelected(true)
-    haptics.lightImpact()
-    playPageFlipSound()
     onPress()
   }
 
@@ -46,10 +87,11 @@ export function GameButton({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       activeOpacity={1}
+      {...touchableProps}
     >
       <View style={[styles.container, { width, height }]}>
         <Image
-          source={isSelected ? selectedImage : normalImage}
+          source={isSelected ? (pressedImage || selectedImage) : normalImage}
           style={[styles.image, { width, height }]}
           resizeMode="stretch"
         />

@@ -1,10 +1,11 @@
 import React from 'react'
 import { View, Image, Text, StyleSheet } from 'react-native'
-import { useGameStore, type AttributeLevel } from '@/stores/game-store'
+import { useAttributes } from '@/api/hooks/use-attributes'
+import type { AttributesResponse } from '@/api/types'
 
 interface AttributeDisplayProps {
   showImages?: boolean
-  attributes?: AttributeLevel
+  attributes?: AttributesResponse
 }
 
 /**
@@ -14,8 +15,8 @@ interface AttributeDisplayProps {
 
 
 export function AttributesDisplay({ showImages = false, attributes: propsAttributes }: AttributeDisplayProps) {
-  const { attributes: storeAttributes } = useGameStore()
-  const attributes = propsAttributes ?? storeAttributes
+  const { data: apiAttributes } = useAttributes()
+  const attributes = propsAttributes ?? apiAttributes ?? { connection: 1, courage: 1, exploration: 1, fear: 1 }
 
   const connectionImages: Record<number, any> = {
     1: require('../../assets/attributes/connection/connectionLv1.png'),

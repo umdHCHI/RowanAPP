@@ -2,7 +2,8 @@ import { useEffect, useCallback, useRef } from 'react'
 import { useAudioPlayer } from 'expo-audio'
 import { useGameStore } from '@/stores/game-store'
 
-const audioSource = require('../assets/audio/pageflip.mp3')
+// Use remote URL directly - don't use require() for URLs
+const audioSource = { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61iIS3GICJK6SbqtNzhvM1mIXaeYPZ9A5cr8gwu' }
 
 export function usePageFlipSound() {
   const player = useAudioPlayer(audioSource)

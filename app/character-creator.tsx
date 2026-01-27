@@ -21,22 +21,12 @@ import { COLORS, Color, BASE_COUNT, BG_COUNT, HAIR_COUNT, CLOTHES_COUNT, EYES_CO
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { useCreateCharacter, useUpdateCharacter } from '@/api/hooks/use-character'
-import { useCurrentUserFullProfile, useIsAuthenticated, useRequiredAuthUserId, userKeys } from '@/api'
+import { useCurrentUserFullProfile, useRequireAuth, useRequiredAuthUserId, useAuthActions, userKeys } from '@/api'
 import { convertToBackendConfig, buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useQueryClient } from '@tanstack/react-query'
 import { characterKeys } from '@/api/hooks/use-character'
 
 type Category = 'base' | 'background' | 'hair' | 'clothes' | 'eyes' | 'eyebrows' | 'mouth'
-
-function LoginRedirect() {
-  const router = useRouter()
-
-  useEffect(() => {
-    router.replace('/login')
-  }, [router])
-
-  return null
-}
 
 interface CharacterConfig {
   baseIndex: number
@@ -54,10 +44,12 @@ interface CharacterConfig {
 }
 
 export default function CharacterCreator() {
+  useRequireAuth() // Redirects to login if not authenticated
+  
   const router = useRouter()
-  const isAuthenticated = useIsAuthenticated()
   const insets = useSafeAreaInsets()
   const { setCharacter } = useGameStore()
+  const { setHasCharacter } = useAuthActions()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const [characterName, setCharacterName] = useState('')
@@ -65,9 +57,6 @@ export default function CharacterCreator() {
   const [isSaving, setIsSaving] = useState(false)
   
   const queryClient = useQueryClient()
-  if (!isAuthenticated) {
-    return <LoginRedirect />
-  }
   const userId = useRequiredAuthUserId()
   const { data: profileData } = useCurrentUserFullProfile()
   const createCharacter = useCreateCharacter()
@@ -77,11 +66,15 @@ export default function CharacterCreator() {
   const existingCharacterId = existingCharacter?.id ? String(existingCharacter.id) : undefined
   
   // Simple video player with auto-loop
-  const player = useVideoPlayer(require('../assets/UI/thevoid.mp4'), (player) => {
-    player.muted = true
-    player.loop = true
-    player.play()
-  })
+  // Load video from remote URL to avoid bundling large file
+  const player = useVideoPlayer(
+    { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61iIS3GICJK6SbqtNzhvM1mIXaeYPZ9A5cr8gwu' }, // TODO: Replace with actual thevoid.mp4 URL
+    (player) => {
+      player.muted = true
+      player.loop = true
+      player.play()
+    }
+  )
   
   const [config, setConfig] = useState<CharacterConfig>({
     baseIndex: 0,
@@ -304,6 +297,9 @@ export default function CharacterCreator() {
         avatar: avatarConfig,
         createdAt: Date.now(),
       })
+
+      // Update auth store to reflect that user has a character
+      setHasCharacter(true)
 
       router.replace('/hub')
     } catch (error: any) {

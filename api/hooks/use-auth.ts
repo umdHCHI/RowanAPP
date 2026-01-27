@@ -44,14 +44,16 @@ export function useCurrentUserFullProfile() {
 
 /**
  * Auth store actions hook
- * Provides access to authentication actions (setUser, clearAuth)
+ * Provides access to authentication actions (setUser, setHasCharacter, clearAuth)
  */
 export function useAuthActions() {
   const setUser = useAuthStore((state) => state.setUser)
+  const setHasCharacter = useAuthStore((state) => state.setHasCharacter)
   const clearAuth = useAuthStore((state) => state.clearAuth)
   
   return {
     setUser,
+    setHasCharacter,
     clearAuth,
   }
 }

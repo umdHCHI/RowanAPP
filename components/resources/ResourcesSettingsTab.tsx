@@ -7,7 +7,7 @@ import { useGameStore } from '@/stores/game-store'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 import { useAuthActions, userService } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
-import { useNotifications } from '@/hooks/use-notifications'
+import { useNotifications } from '@/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 import type { UserFullProfileResponse } from '@/api/types'
 

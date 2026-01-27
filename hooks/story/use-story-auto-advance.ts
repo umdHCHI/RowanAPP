@@ -1,17 +1,6 @@
 import { useEffect, useCallback } from 'react'
-import type { StoryPassage, StoryChoice } from '@/types/story'
 import { AUTO_ADVANCE_SPEED, isContinueChoice } from '@/utils/story-constants'
-import type { TextSpeed } from '@/stores/game-store'
-
-interface UseStoryAutoAdvanceProps {
-  hasChoices: boolean
-  isLoading: boolean
-  currentPassage: StoryPassage | null
-  choices: StoryChoice[]
-  textSpeed: TextSpeed
-  isPaused: boolean
-  onAutoAdvance: (choice: StoryChoice) => void
-}
+import type { UseStoryAutoAdvanceProps } from '@/types/hooks'
 
 /**
  * Hook to handle auto-advancing "Continue" choices
@@ -46,4 +35,3 @@ export function useStoryAutoAdvance({
     }
   }, [hasChoices, choices, isLoading, currentPassage, onAutoAdvance, textSpeed, isPaused])
 }
-

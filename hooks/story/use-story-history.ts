@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { StoryHistoryItem, StoryPassage } from '@/types/story'
+import type { StoryHistoryItem } from '@/types/story'
 import { isContinueChoice } from '@/utils/story-constants'
+import type { UseStoryHistoryResult, UseStoryHistoryProps } from '@/types/hooks'
 
-interface UseStoryHistoryProps {
-  currentPassage: StoryPassage | null
-}
-
-export function useStoryHistory({ currentPassage }: UseStoryHistoryProps) {
+export function useStoryHistory({ currentPassage }: UseStoryHistoryProps): UseStoryHistoryResult {
   const [history, setHistory] = useState<StoryHistoryItem[]>([])
 
   // Add current passage to history when it changes
@@ -76,4 +73,3 @@ export function useStoryHistory({ currentPassage }: UseStoryHistoryProps) {
 
   return { history, addChoice, addReward }
 }
-
