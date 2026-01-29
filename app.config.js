@@ -14,10 +14,6 @@ module.exports = {
     name: 'The Archive',
     slug: 'thearchive',
     version: appVersion,
-    orientation: 'portrait',
-    userInterfaceStyle: 'dark',
-    icon: './assets/splashscreen/icon.png',
-    backgroundColor: '#000000',
     assetBundlePatterns: [
       '**/*'
     ],

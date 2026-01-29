@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react'
 import { View, StyleSheet, Text, Platform } from 'react-native'
-import type { StoryResponse, UserFullProfileResponse } from '@/api/types'
+import type { StoryResponse } from '@/api/types'
+import type { StoryProgressItem } from '@/utils/resources-mapper'
 
 interface StoryInformationCardProps {
   story: StoryResponse
-  progress?: UserFullProfileResponse['story_progress'][0]
+  progress?: StoryProgressItem
 }
 
 /**

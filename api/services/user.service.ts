@@ -154,7 +154,7 @@ export const userService = {
     // actually responds with a plain UserFullProfileResponse. We cast here so callers can work
     // with the correct shape.
     const raw = await apiClient.get<UserFullProfileResponse>(
-      API_ENDPOINTS.USER_FULL_PROFILE(id),
+      API_ENDPOINTS.USER_FULL_PROFILE,
       { skipVersion: true }
     )
 

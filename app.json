@@ -1,7 +1,0 @@
-{
-  "expo": {
-    "ios": {
-      "bundleIdentifier": "com.thearchive.app"
-    }
-  }
-}

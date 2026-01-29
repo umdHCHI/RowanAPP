@@ -42,6 +42,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
     profileData,
     storiesData,
     journalEntries,
+    storyProgress,
   } = useResources()
 
   // Set initial scroll position when component mounts
@@ -194,6 +195,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
                 profileData={profileData}
                 storiesData={storiesData}
                 journalEntries={journalEntries}
+                storyProgress={storyProgress}
               />
             )}
           </View>

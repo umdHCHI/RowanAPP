@@ -124,62 +124,64 @@ export function apiUrl(path: string): string {
 export const API_ENDPOINTS = {
   // --- Authentication (DRF Token Auth) ---
   // Some deployments mount auth under /api/, others at root; client can fall back automatically.
-  USER_LOGIN: '/auth/login/',
-  USER_LOGOUT: '/auth/logout/',
+  USER_LOGIN: "/auth/login/",
+  USER_LOGOUT: "/auth/logout/",
 
   // --- Characters (included at /api/...) ---
-  CHARACTERS: '/characters/',
-  CHARACTER_BY_ID: (id: string | number) => `/characters/${id}/`,
+  CHARACTERS: "/characters/",
+  CHARACTER_MINE: "/characters/my_character/",
+  // Character create endpoint (matches backend router)
+  CHARACTER_CREATE: "/characters/characters/",
+  CHARACTER_UPDATE_CUSTOMIZATION: "/characters/update_customization/",
+  CHARACTER_GAIN_LUMENS: "/characters/gain-xp/",
+  // CHARACTER_BY_ID: (id: string | number) => `/characters/${id}/`,
 
   // --- Users (included at /api/...) ---
-  USER_FULL_PROFILE: (id: string | number) => `/users/${id}/full_profile/`,
-  USER: '/user',
+  USER_FULL_PROFILE: `/users/me/`,
+  USER: "/user",
   USER_BY_ID: (id: string | number) => `/users/${id}/`,
-  USER_CREATE: '/user/create',
-  USER_VERIFY_EMAIL: '/user/verify-email',
-  USER_RESET_PASSWORD: '/user/reset-password',
-  USER_FORGOT_PASSWORD: '/user/forgot-password',
+  USER_CREATE: "/user/create",
+  USER_VERIFY_EMAIL: "/user/verify-email",
+  USER_RESET_PASSWORD: "/user/reset-password",
+  USER_FORGOT_PASSWORD: "/user/forgot-password",
 
   // --- Story (mounted at /api/story/...) ---
- 
-  STORY_CHAPTER: (chapterId: number | string) => `/story/chapters/${chapterId}/`,
-  STORY: '/story',
-  STORY_STORIES: '/story/stories/',
-  STORY_PROGRESS: '/story/record_progress',
+
+  STORY_CHAPTER: (chapterId: number | string) =>
+    `/story/chapters/${chapterId}/`,
+  STORY: "/story",
+  STORY_STORIES: "/story/stories/",
+  STORY_PROGRESS: "/story/story-progress/",
 
   // --- Journal (mounted at /api/journal/...) ---
-  JOURNAL_CODEX_ENTRIES: '/journal/codex-entries/',
+  JOURNAL_CODEX_ENTRIES: "/journal/codex-entries/",
   JOURNAL_ENTRY_BY_ID: (id: string | number) => `/journal/codex-entries/${id}/`,
-  JOURNAL_PROMPTS: '/journal/journal-prompts/',
+  JOURNAL_PROMPTS: "/journal/journal-prompts/",
 
   // --- Game (mounted at /api/game/...) ---
-  GAME_MY_DATA: '/game/game-data/my-data/',       // DRF action on GameDataViewSet
-  GAME_STATS: '/game/game-data/stats/',           // DRF action on GameDataViewSet
+  GAME_MY_DATA: "/game/game-data/my-data/", // DRF action on GameDataViewSet
+  GAME_STATS: "/game/game-data/stats/", // DRF action on GameDataViewSet
 
   // Record progress endpoint
-  GAME_RECORD_PROGRESS: '/game/progress/record_progress/',
+  GAME_RECORD_PROGRESS: "/game/progress/record_progress/",
 
   // Vantage endpoint
- VANTAGE_RUN: '/game/game-data/thought-defender/run/',
+  VANTAGE_RUN: "/game/game-data/thought-defender/run/",
 
   // Wellness endpoint (your urls.py currently wires this oddly; leaving the URL you exposed)
-  GAME_GAIN_WELLNESS: '/game/gain-wellness/',
+  GAME_GAIN_WELLNESS: "/game/gain-wellness/",
 
   // --- Media (served by Caddy from /media/...) ---
   // Not an API route; this is for images/files.
-  MEDIA: '/media/',
-
-
+  MEDIA: "/media/",
 
   //Random other endpoints
-    
-    // Equipment endpoints
-    EQUIPMENT: '/equipment',
-    EQUIPMENT_BY_ID: (id: string) => `/equipment/${id}`,
-    
-    // Attributes endpoints
-    ATTRIBUTES: '/attributes',
-    ATTRIBUTES_UPDATE: '/attributes/update',
-    
 
-} as const
+  // Equipment endpoints
+  EQUIPMENT: "/equipment",
+  EQUIPMENT_BY_ID: (id: string) => `/equipment/${id}`,
+
+  // Attributes endpoints
+  ATTRIBUTES: "/attributes",
+  ATTRIBUTES_UPDATE: "/attributes/update",
+} as const;

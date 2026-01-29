@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'expo-router'
 import { useAuthActions } from './use-auth'
 import { userService } from '../services/user.service'
+import { characterService } from '../services/character.service'
 import type { ApiError } from '../types'
 
 function getLoginErrorMessage(err: unknown): string {
@@ -25,7 +26,7 @@ function getLoginErrorMessage(err: unknown): string {
  */
 export function useLogin() {
   const router = useRouter()
-  const { setUser } = useAuthActions()
+  const { setUser, setHasCharacter } = useAuthActions()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const clearError = useCallback(() => setError(null), [])
@@ -48,15 +49,24 @@ export function useLogin() {
         throw new Error('Invalid user ID in response')
       }
 
+      // First store the user + token so subsequent API calls are authenticated
+      setUser(userId, token, false)
+
+      // Then check if the user already has a character by hitting the
+      // dedicated "my character" endpoint.
       let hasCharacter = false
       try {
-        const profile = await userService.getFullProfile(userId)
-        hasCharacter = profile?.character != null
-      } catch (profileError) {
-        console.warn('Failed to fetch user profile after login:', profileError)
+        const mine = await characterService.getMine()
+        hasCharacter = !!(mine?.success && mine.data)
+      } catch (profileError: any) {
+        const status = (profileError as ApiError)?.status
+        // 404 just means "no character yet" – that's fine for first-time users.
+        if (status && status !== 404) {
+          console.warn('Failed to check character after login:', profileError)
+        }
       }
 
-      setUser(userId, token, hasCharacter)
+      setHasCharacter(hasCharacter)
 
       if (hasCharacter) {
         router.replace('/hub')
