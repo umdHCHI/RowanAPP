@@ -109,7 +109,7 @@ async function fetchCharacter(id: string) {
 
 ### Character Hooks
 - `useCharacters()` - Get all characters
-- `useCharacter(id)` - Get character by ID
+
 - `useCreateCharacter()` - Create new character
 - `useUpdateCharacter()` - Update character
 - `useDeleteCharacter()` - Delete character

@@ -15,7 +15,7 @@ import { useGameStore } from '@/stores/game-store'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
 import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, getExperienceRewardFromPassage, hasMinigameOption } from '@/utils/story-helpers'
 import { journalService } from '@/api/services/journal.service'
-import { useAwardExperience } from '@/api'
+import { useGainLumens } from '@/api'
 import type { StoryChoice } from '@/types/story'
 
 interface StoryPageProps {
@@ -30,7 +30,7 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const { textSpeed, markJournalRewardCollected, hasCollectedJournalReward, addMemory } = useGameStore()
-  const awardExperience = useAwardExperience()
+  const gainLumens = useGainLumens()
 
   const {
     isLoading,
@@ -237,7 +237,7 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
 
       // Award experience to the backend
       try {
-        await awardExperience.mutateAsync(reward.amount)
+        await gainLumens.mutateAsync(reward.amount)
       } catch (error) {
         // Log error but don't block the reward display
         console.error('Failed to award experience:', error)

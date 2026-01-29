@@ -7,7 +7,7 @@ import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { useVantageGame, useGameDirector } from '@/hooks'
 import { GAME_CONFIG, type Difficulty } from '@/utils/vantage-constants'
-import { useAwardExperience, useRequireAuth } from '@/api'
+import { useGainLumens, useRequireAuth } from '@/api'
 import {
   GameArea,
   GamePlayer,
@@ -34,7 +34,7 @@ export default function Vantage() {
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
-  const awardExperience = useAwardExperience()
+  const gainLumens = useGainLumens()
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [gameWon, setGameWon] = useState(false)
   const [bossDefeated, setBossDefeated] = useState(false)
@@ -117,7 +117,7 @@ export default function Vantage() {
         
         // Award 1 lumen for completing the mini game
         try {
-          await awardExperience.mutateAsync(1)
+          await gainLumens.mutateAsync(1)
         } catch (error) {
           // Log error but don't block the game completion
           console.error('Failed to award experience:', error)

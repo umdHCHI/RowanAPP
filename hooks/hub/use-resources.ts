@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useCurrentUserFullProfile, useStories, useJournalEntries } from '@/api'
+import { storyService } from '@/api/services/story.service'
 import { useGameStore } from '@/stores/game-store'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import {
@@ -23,6 +24,7 @@ export function useResources(): UseResourcesResult {
   const { isLoading: isLoadingHubProfile } = useHubProfile()
   const { data: storiesData, isLoading: isLoadingStories } = useStories()
   const { data: journalEntriesData, isLoading: isLoadingJournal } = useJournalEntries(1, 100)
+  const [storyProgressData, setStoryProgressData] = useState<StoryProgressItem[]>([])
 
   const storeMemories = useGameStore((state) => state.memories)
   const storePowers = useGameStore((state) => state.powers)
@@ -41,10 +43,12 @@ export function useResources(): UseResourcesResult {
   )
 
   const storyProgressMemories = useMemo(() => {
-    const progress = profileData?.story_progress
+    const progress = storyProgressData.length
+      ? storyProgressData
+      : (profileData?.story_progress as StoryProgressItem[] | undefined)
     if (!progress?.length) return []
-    return mapStoryProgressToMemoryItems(progress as StoryProgressItem[])
-  }, [profileData?.story_progress])
+    return mapStoryProgressToMemoryItems(progress)
+  }, [profileData?.story_progress, storyProgressData])
 
   const journalEntriesArray = useMemo(
     () => extractJournalEntriesArray(journalEntriesData),
@@ -84,6 +88,25 @@ export function useResources(): UseResourcesResult {
   const isLoading =
     isLoadingProfile || isLoadingHubProfile || isLoadingStories || isLoadingJournal
 
+  useEffect(() => {
+    if (!profileData) return
+
+    const run = async () => {
+      try {
+        const response = await storyService.getProgress()
+        const data = (response as any)?.data
+        const progressList = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : null
+        if (Array.isArray(progressList)) {
+          setStoryProgressData(progressList as StoryProgressItem[])
+        }
+      } catch (error: any) {
+        void error
+      }
+    }
+
+    run()
+  }, [profileData])
+
   return {
     isLoading,
     resources,
@@ -98,5 +121,6 @@ export function useResources(): UseResourcesResult {
     profileData,
     storiesData,
     journalEntries: journalEntriesArray,
+    storyProgress: storyProgressData,
   }
 }

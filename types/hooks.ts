@@ -10,6 +10,7 @@ import type { StoryPassage, StoryChoice, StoryHistoryItem } from './story'
 import type { StoryCard } from './hub'
 import type { CharacterFullProfile, StoryResponse, UserFullProfileResponse } from '@/api/types'
 import type { Power, TextSpeed } from '@/stores/game-store'
+import type { StoryProgressItem } from '@/utils/resources-mapper'
 import type {
   Projectile,
   EnemyProjectile,
@@ -91,6 +92,7 @@ export interface UseResourcesResult {
   profileData: UserFullProfileResponse | undefined
   storiesData: StoryResponse[] | undefined
   journalEntries: any[]
+  storyProgress: StoryProgressItem[]
 }
 
 // ============================================================================

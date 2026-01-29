@@ -6,6 +6,7 @@ import { JournalStatsCard } from './JournalStatsCard'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { StoryResponse, UserFullProfileResponse, JournalEntryResponse } from '@/api/types'
+import type { StoryProgressItem } from '@/utils/resources-mapper'
 
 interface ResourcesResourcesTabProps {
   resources: any[] // Keep for compatibility but not used
@@ -13,6 +14,7 @@ interface ResourcesResourcesTabProps {
   profileData?: UserFullProfileResponse | null
   storiesData?: StoryResponse[] | null
   journalEntries?: JournalEntryResponse[]
+  storyProgress?: StoryProgressItem[]
 }
 
 export function ResourcesResourcesTab({ 
@@ -20,16 +22,20 @@ export function ResourcesResourcesTab({
   profileData,
   storiesData,
   journalEntries = [],
+  storyProgress = [],
 }: ResourcesResourcesTabProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
 
   // Get completed stories when no storyId is provided
   const completedStories = useMemo(() => {
-    if (!storiesData || !profileData?.story_progress) return []
+    const progressList = storyProgress.length
+      ? storyProgress
+      : (profileData?.story_progress as StoryProgressItem[] | undefined)
+    if (!storiesData || !progressList?.length) return []
     
     // Filter for completed story progress entries
-    const completedProgress = profileData.story_progress.filter(
+    const completedProgress = progressList.filter(
       (progress) => progress.is_completed
     )
     
@@ -39,26 +45,29 @@ export function ResourcesResourcesTab({
         const story = storiesData.find((s) => s.id === progress.story)
         return story ? { story, progress } : null
       })
-      .filter((item): item is { story: StoryResponse; progress: typeof profileData.story_progress[0] } => item !== null)
+      .filter((item): item is { story: StoryResponse; progress: StoryProgressItem } => item !== null)
       .sort((a, b) => {
         // Sort by completed_at date (most recent first)
         const dateA = new Date(a.progress.completed_at).getTime()
         const dateB = new Date(b.progress.completed_at).getTime()
         return dateB - dateA
       })
-  }, [storiesData, profileData])
+  }, [storiesData, profileData, storyProgress])
 
   // Find the current story and its progress when storyId is provided
   const currentStoryWithProgress = useMemo(() => {
-    if (!storiesData || !storyId || !profileData?.story_progress) return null
+    const progressList = storyProgress.length
+      ? storyProgress
+      : (profileData?.story_progress as StoryProgressItem[] | undefined)
+    if (!storiesData || !storyId || !progressList?.length) return null
     
     const story = storiesData.find((s) => s.id === storyId) || null
     if (!story) return null
     
-    const progress = profileData.story_progress.find((p) => p.story === storyId)
+    const progress = progressList.find((p) => p.story === storyId)
     
     return { story, progress }
-  }, [storiesData, storyId, profileData])
+  }, [storiesData, storyId, profileData, storyProgress])
 
   function handleViewOverview(storyId: number) {
     playPageFlipSound()

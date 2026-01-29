@@ -24,14 +24,12 @@ export { userService } from './services/user.service'
 
 // Hooks - Character
 export {
-  useCharacters,
-  useCharacter,
+  useMyCharacter,
   useCreateCharacter,
-  useUpdateCharacter,
-  useDeleteCharacter,
-  useAwardExperience,
+  useUpdateCharacterCustomization,
+  useGainLumens,
   characterKeys,
-} from './hooks/use-character'
+} from "./hooks/use-character";
 
 // Hooks - Story
 export {

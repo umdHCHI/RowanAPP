@@ -23,7 +23,7 @@ import { useCreateJournalEntry, useUpdateJournalEntry, useJournalPrompts, useJou
 import { journalService } from '@/api/services/journal.service'
 import { useQueryClient } from '@tanstack/react-query'
 import { journalKeys } from '@/api/hooks/use-journal'
-import { useAwardExperience } from '@/api'
+import { useGainLumens } from '@/api'
 import { JournalPromptSection } from './JournalPromptSection'
 import { JournalEntryCard } from './JournalEntryCard'
 import { JournalSaveButton } from './JournalSaveButton'
@@ -62,7 +62,7 @@ export function JournalPage() {
   const queryClient = useQueryClient()
   const createJournalEntry = useCreateJournalEntry()
   const updateJournalEntry = useUpdateJournalEntry()
-  const awardExperience = useAwardExperience()
+  const gainLumens = useGainLumens()
   const haptics = useHaptics()
    
   
@@ -401,7 +401,7 @@ export function JournalPage() {
 
     // Award 1 lumen for completing a journal entry
     try {
-      await awardExperience.mutateAsync(1)
+      await gainLumens.mutateAsync(1)
     } catch (error) {
       // Log error but don't block the save success
       console.error('Failed to award experience:', error)

@@ -10,14 +10,6 @@ export const LumenLevelSchema = z.object({
 
 export type LumenLevel = z.infer<typeof LumenLevelSchema>
 
-// Character data
-export interface Character {
-  id: string
-  name: string
-  avatar: string // Path to avatar image
-  createdAt: number
-}
-
 // Story progression
 export interface StoryState {
   currentChapter: number
@@ -113,10 +105,6 @@ export interface Power {
 }
 
 interface GameState {
-  // Character
-  character: Character | null
-  hasCreatedCharacter: boolean
-  
   // Lumens
   lumens: LumenLevel
   
@@ -147,7 +135,6 @@ interface GameState {
   notificationsEnabled: boolean
   
   // Actions
-  setCharacter: (character: Character) => void
   updateLumen: (lumen: keyof LumenLevel, value: number) => void
   progressStory: (chapter: number, clarity?: number) => void
   progressJournal: (journalIndex: number, clarity?: number) => void
@@ -193,8 +180,6 @@ const textSpeedOrder: TextSpeed[] = ['slow', 'normal', 'fast']
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
-      character: null,
-      hasCreatedCharacter: false,
       lumens: defaultLumen,
       story: defaultStory,
       journal: defaultJournal,
@@ -208,9 +193,6 @@ export const useGameStore = create<GameState>()(
       soundMuted: false,
       textSpeed: 'normal',
       notificationsEnabled: true,
-
-      setCharacter: (character) =>
-        set({ character, hasCreatedCharacter: true }),
 
       updateLumen: (lumen, delta) =>
         set((state) => {
@@ -356,8 +338,6 @@ export const useGameStore = create<GameState>()(
 
       resetGame: () =>
         set({
-          character: null,
-          hasCreatedCharacter: false,
           lumens: defaultLumen,
           story: defaultStory,
           journal: defaultJournal,

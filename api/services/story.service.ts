@@ -16,8 +16,39 @@ export const storyService = {
   /**
    * Get current story progress
    */
-  async getProgress(): Promise<ApiResponse<StoryProgressResponse>> {
-    return apiClient.get<StoryProgressResponse>(API_ENDPOINTS.STORY_PROGRESS)
+  async getProgress(): Promise<ApiResponse<StoryProgressResponse[]>> {
+    const raw = await apiClient.get<unknown>(API_ENDPOINTS.STORY_PROGRESS)
+
+    if (Array.isArray(raw)) {
+      return { success: true, data: raw as StoryProgressResponse[] }
+    }
+
+    if (raw && typeof raw === 'object') {
+      const maybeWrapped = raw as ApiResponse<StoryProgressResponse[]>
+      if (typeof maybeWrapped.success === 'boolean' && Array.isArray(maybeWrapped.data)) {
+        return maybeWrapped
+      }
+
+      if ('data' in (raw as any) && Array.isArray((raw as any).data)) {
+        return {
+          success: true,
+          data: (raw as any).data as StoryProgressResponse[],
+        }
+      }
+
+      if ('results' in (raw as any) && Array.isArray((raw as any).results)) {
+        return {
+          success: true,
+          data: (raw as any).results as StoryProgressResponse[],
+        }
+      }
+    }
+
+    return {
+      success: false,
+      data: [],
+      message: 'Unexpected story progress response shape',
+    }
   },
 
   /**

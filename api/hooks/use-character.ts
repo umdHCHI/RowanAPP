@@ -1,209 +1,133 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { characterService } from '../services/character.service'
-import { useCurrentUserFullProfile } from './use-auth'
-import { userKeys } from './use-user'
-import { useGameStore } from '@/stores/game-store'
-import { mapProfileToLumen } from '@/utils/profile-mapper'
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { characterService } from "../services/character.service";
+import { useCurrentUserFullProfile } from "./use-auth";
+import { userKeys } from "./use-user";
 import type {
-  CharacterResponse,
   CharacterCreateRequest,
   CharacterUpdateRequest,
-} from '../types'
+  CharacterResponse,
+} from "../types";
 
 /**
- * Query Keys
+ * Query Keys (singleton per logged-in user)
  */
 export const characterKeys = {
-  all: ['characters'] as const,
-  lists: () => [...characterKeys.all, 'list'] as const,
-  list: (filters: Record<string, unknown>) => [...characterKeys.lists(), filters] as const,
-  details: () => [...characterKeys.all, 'detail'] as const,
-  detail: (id: string) => [...characterKeys.details(), id] as const,
-}
+  all: ["character"] as const,
+  mine: () => [...characterKeys.all, "mine"] as const,
+};
 
-/**
- * Get all characters
- */
-export function useCharacters() {
-  return useQuery({
-    queryKey: characterKeys.lists(),
+export function useMyCharacter() {
+  return useQuery<CharacterResponse>({
+    queryKey: characterKeys.mine(),
     queryFn: async () => {
-      const response = await characterService.getAll()
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch characters')
-      }
-      return response.data
+      const res = await characterService.getMine();
+      if (!res.success)
+        throw new Error(res.message || "Failed to fetch character");
+      return res.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  })
+    staleTime: 60 * 1000,
+  });
 }
 
-/**
- * Get a character by ID
- */
-export function useCharacter(id: string | null) {
-  return useQuery({
-    queryKey: characterKeys.detail(id!),
-    queryFn: async () => {
-      if (!id) throw new Error('Character ID is required')
-      const response = await characterService.getById(id)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch character')
-      }
-      return response.data
-    },
-    enabled: !!id,
-    staleTime: 5 * 60 * 1000,
-  })
-}
-
-/**
- * Create a new character
- */
 export function useCreateCharacter() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: CharacterCreateRequest) => {
-      const response = await characterService.create(data)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to create character')
-      }
-      return response.data
-    },
-    onSuccess: () => {
-      // Invalidate and refetch characters list
-      queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
-    },
-  })
-}
-
-/**
- * Update a character
- */
-export function useUpdateCharacter() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: CharacterUpdateRequest }) => {
       try {
-        const response = await characterService.update(id, data)
-        if (!response.success) {
-          const error = new Error(response.message || 'Failed to update character') as Error & { status?: number; errors?: any }
-          error.status = (response as any).status
-          error.errors = (response as any).errors
-          throw error
+        const res = await characterService.create(data);
+        if (!res.success)
+          throw new Error(res.message || "Failed to create character");
+        return res.data;
+      } catch (err: any) {
+        const msg = err?.errors?.detail || err?.message || "";
+        const status = err?.status;
+
+        if (
+          status === 400 &&
+          String(msg).includes("Character already exists")
+        ) {
+          const mine = await characterService.getMine();
+          if (!mine.success)
+            throw new Error(
+              mine.message || "Character exists but failed to fetch",
+            );
+          return mine.data;
         }
-        return response.data
-      } catch (error: any) {
-        // If error already has status/message/errors, preserve it as-is
-        // This preserves ApiError objects from the API client
-        if (error && (error.status !== undefined || error.errors !== undefined || error.message)) {
-          // Make sure it's a proper Error object with all properties
-          const apiError = error instanceof Error ? error : new Error(error.message || String(error))
-          if (error.status !== undefined) (apiError as any).status = error.status
-          if (error.errors !== undefined) (apiError as any).errors = error.errors
-          if (error.code !== undefined) (apiError as any).code = error.code
-          throw apiError
-        }
-        // Otherwise wrap in a generic error
-        throw new Error(error?.message || 'Failed to update character')
+
+        throw err;
       }
     },
-    onSuccess: (data) => {
-      // Invalidate both list and specific character
-      queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: characterKeys.detail(data.id) })
+    onSuccess: (character) => {
+      queryClient.setQueryData(characterKeys.mine(), character);
     },
-  })
+  });
 }
 
 /**
- * Delete a character
+ * Update cosmetic fields only
+ * PATCH /api/characters/characters/update_customization/
  */
-export function useDeleteCharacter() {
-  const queryClient = useQueryClient()
 
+export function useUpdateCharacterCustomization() {
+  const queryClient = useQueryClient();
+  const { data: character } = useMyCharacter();
+  const userId = (character?.id ?? 0);
   return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await characterService.delete(id)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to delete character')
+    mutationFn: async (data: CharacterUpdateRequest) => {
+      const res = await characterService.updateCustomization(data);
+      const hasSuccessField =
+        !!res &&
+        typeof res === "object" &&
+        Object.prototype.hasOwnProperty.call(res as object, "success");
+      const hasDataField =
+        !!res &&
+        typeof res === "object" &&
+        Object.prototype.hasOwnProperty.call(res as object, "data");
+
+      if (hasSuccessField && !res.success) {
+        throw new Error(res.message || "Failed to update character");
       }
+
+      if (hasDataField && res?.data) return res.data;
+
+      const mine = await characterService.getMine();
+      if (!mine.success)
+        throw new Error(mine.message || "Updated character but failed to fetch");
+      return mine.data;
     },
     onSuccess: () => {
-      // Invalidate characters list
-      queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
-    },
-  })
+      queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) })
+  }});
 }
 
 /**
- * Award experience (lumens) to the current user's character
- * This hook automatically fetches the current character and increments experience
+ * Gain “lumens” (backend increments experience)
  */
-export function useAwardExperience() {
-  const queryClient = useQueryClient()
-  const { data: profileData } = useCurrentUserFullProfile()
-  const setLumen = useGameStore((state) => state.setLumen)
+export function useGainLumens() {
+  const queryClient = useQueryClient();
+  const { data: fullProfile } = useCurrentUserFullProfile();
 
   return useMutation({
     mutationFn: async (amount: number = 1) => {
-      if (!profileData?.character?.id) {
-        throw new Error('No character found. Please create a character first.')
-      }
-
-      const characterId = String(profileData.character.id)
-      const currentExperience = profileData.character.experience || 0
-      const newExperience = currentExperience + amount
-
-      // Optimistically update the game store immediately
-      if (profileData) {
-        const updatedProfile = {
-          ...profileData,
-          character: {
-            ...profileData.character,
-            experience: newExperience,
-          },
-        }
-        const mappedLumen = mapProfileToLumen(updatedProfile)
-        if (mappedLumen) {
-          setLumen(mappedLumen)
-        }
-      }
-
-      // Update character with new experience on backend
-      const response = await characterService.update(characterId, {
-        experience: newExperience,
-      } as CharacterUpdateRequest)
-
-      if (!response.success) {
-        // Rollback optimistic update on error
-        if (profileData) {
-          const mappedLumen = mapProfileToLumen(profileData)
-          if (mappedLumen) {
-            setLumen(mappedLumen)
-          }
-        }
-        throw new Error(response.message || 'Failed to award experience')
-      }
-
-      return newExperience
+      const res = await characterService.gainLumens(amount);
+      if (!res.success)
+        throw new Error(res.message || "Failed to gain lumens");
+      return res.data;
     },
-    onSuccess: () => {
-      // Delay invalidation to prevent flashing/re-renders during confirmation displays
-      // The caller should handle immediate UI updates, and we'll refresh data after a delay
-      setTimeout(() => {
-        if (profileData?.character?.id) {
-          queryClient.invalidateQueries({ queryKey: characterKeys.detail(String(profileData.character.id)) })
-        }
-        queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
-        
-        // Invalidate user profile to refresh experience display
-        if (profileData?.user?.id) {
-          queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(String(profileData.user.id)) })
-        }
-      }, 2000) // Delay to allow confirmation UI to display
+    onSuccess: (updatedCharacter) => {
+      queryClient.setQueryData<CharacterResponse>(
+        characterKeys.mine(),
+        updatedCharacter,
+      );
+
+      // IMPORTANT: userKeys.fullProfile REQUIRES AN ID
+      const userId = fullProfile?.id;
+      if (userId) {
+      queryClient.invalidateQueries({
+          queryKey: userKeys.fullProfile(userId),
+        });
+      }
     },
-  })
+  });
 }

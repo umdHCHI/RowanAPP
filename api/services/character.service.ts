@@ -1,83 +1,75 @@
-import { apiClient } from '../client'
-import { API_ENDPOINTS } from '../constants'
+import { apiClient } from "../client";
+import { API_ENDPOINTS } from "../constants";
 import type {
-  CharacterResponse,
+  ApiResponse,
   CharacterCreateRequest,
   CharacterUpdateRequest,
-  ApiResponse,
-} from '../types'
+  CharacterResponse,
+  ApiError,
+} from "../types";
 
-/**
- * Character Service
- * Handles all character-related API calls
- */
 export const characterService = {
-  /**
-   * Get all characters for the current user
-   */
-  async getAll(): Promise<ApiResponse<CharacterResponse[]>> {
-    return apiClient.get<CharacterResponse[]>(API_ENDPOINTS.CHARACTERS, { skipVersion: true })
+  async getMine(): Promise<ApiResponse<CharacterResponse>> {
+    const response = await apiClient.get<CharacterResponse>(API_ENDPOINTS.CHARACTER_MINE, {
+      skipVersion: true,
+    });
+    const isWrapped =
+      !!response &&
+      typeof response === 'object' &&
+      Object.prototype.hasOwnProperty.call(response as object, 'success') &&
+      Object.prototype.hasOwnProperty.call(response as object, 'data');
+    const normalized = isWrapped
+      ? (response as ApiResponse<CharacterResponse>)
+      : ({ success: true, data: response as CharacterResponse } as ApiResponse<CharacterResponse>);
+    return normalized;
   },
 
-  /**
-   * Get a character by ID
-   */
-  async getById(id: string): Promise<ApiResponse<CharacterResponse>> {
-    return apiClient.get<CharacterResponse>(API_ENDPOINTS.CHARACTER_BY_ID(id), { skipVersion: true })
-  },
-
-  /**
-   * Create a new character
-   */
-  async create(data: CharacterCreateRequest): Promise<ApiResponse<CharacterResponse>> {
-    const response = await apiClient.post<CharacterResponse>(API_ENDPOINTS.CHARACTERS, data, { skipVersion: true })
-    
-    // Backend returns character data directly, not wrapped in { success, data }
-    // Wrap it in ApiResponse format for consistency
-    if (response && typeof response === 'object' && 'id' in response) {
-      // Direct character object - wrap it
-      return {
-        success: true,
-        data: response as unknown as CharacterResponse,
-      }
-    }
-    
-    // If already wrapped, return as-is
-    return response as ApiResponse<CharacterResponse>
-  },
-
-  /**
-   * Update an existing character
-   */
-  async update(
-    id: string,
-    data: CharacterUpdateRequest
+  async create(
+    data: CharacterCreateRequest,
   ): Promise<ApiResponse<CharacterResponse>> {
+    /**
+     * Some deployments expose the character ViewSet at `/characters/`,
+     * others at `/characters/characters/`. To be robust against both,
+     * we try the canonical `/characters/` first, then fall back.
+     */
     try {
-      const response = await apiClient.patch<CharacterResponse>(API_ENDPOINTS.CHARACTER_BY_ID(id), data, { skipVersion: true })
-      
-      // Backend returns character data directly, not wrapped in { success, data }
-      // Wrap it in ApiResponse format for consistency
-      if (response && typeof response === 'object' && 'id' in response && !('success' in response)) {
-        // Direct character object - wrap it
-        return {
-          success: true,
-          data: response as unknown as CharacterResponse,
-        }
-      }
-      
-      // If already wrapped, return as-is
-      return response as ApiResponse<CharacterResponse>
+      return await apiClient.post<CharacterResponse>(
+        API_ENDPOINTS.CHARACTERS,
+        data,
+        { skipVersion: true },
+      );
     } catch (error: any) {
-      // Re-throw to preserve error details
-      throw error
+      const status = (error as ApiError)?.status;
+
+      // If it's not a simple routing issue, rethrow
+      if (status && status !== 404 && status !== 405) {
+        throw error;
+      }
+
+      // Fallback to the legacy/alternate path
+      return apiClient.post<CharacterResponse>(
+        API_ENDPOINTS.CHARACTER_CREATE,
+        data,
+        { skipVersion: true },
+      );
     }
   },
 
-  /**
-   * Delete a character
-   */
-  async delete(id: string): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>(API_ENDPOINTS.CHARACTER_BY_ID(id))
+  async updateCustomization(
+    data: CharacterUpdateRequest,
+  ): Promise<ApiResponse<CharacterResponse>> {
+    return apiClient.patch<CharacterResponse>(
+      API_ENDPOINTS.CHARACTER_UPDATE_CUSTOMIZATION,
+      data,
+      { skipVersion: true },
+    );
   },
-}
+
+  async gainLumens(amount: number = 1): Promise<ApiResponse<CharacterResponse>> {
+    return apiClient.post<CharacterResponse>(
+      API_ENDPOINTS.CHARACTER_GAIN_LUMENS,
+      { amount },
+      { skipVersion: true },
+    );
+  },
+};

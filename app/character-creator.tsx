@@ -15,16 +15,14 @@ import { useRouter } from 'expo-router'
 import { useVideoPlayer, VideoView } from 'expo-video'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useGameStore } from '@/stores/game-store'
 import { CharacterPreview } from '@/components/character/CharacterPreview'
 import { COLORS, Color, BASE_COUNT, BG_COUNT, HAIR_COUNT, CLOTHES_COUNT, EYES_COUNT, EYEBROWS_COUNT, MOUTH_COUNT } from '@/utils/character-assets'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
-import { useCreateCharacter, useUpdateCharacter } from '@/api/hooks/use-character'
+import { useMyCharacter, useCreateCharacter, useUpdateCharacterCustomization, characterKeys } from '@/api/hooks/use-character'
 import { useCurrentUserFullProfile, useRequireAuth, useRequiredAuthUserId, useAuthActions, userKeys } from '@/api'
 import { convertToBackendConfig, buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useQueryClient } from '@tanstack/react-query'
-import { characterKeys } from '@/api/hooks/use-character'
 
 type Category = 'base' | 'background' | 'hair' | 'clothes' | 'eyes' | 'eyebrows' | 'mouth'
 
@@ -48,7 +46,6 @@ export default function CharacterCreator() {
   
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { setCharacter } = useGameStore()
   const { setHasCharacter } = useAuthActions()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
@@ -58,13 +55,15 @@ export default function CharacterCreator() {
   
   const queryClient = useQueryClient()
   const userId = useRequiredAuthUserId()
-  const { data: profileData } = useCurrentUserFullProfile()
+const {
+  data: existingCharacter,
+  isLoading: isCharacterLoading,
+  isError: isCharacterError,
+  error: characterError,
+} = useMyCharacter()
   const createCharacter = useCreateCharacter()
-  const updateCharacter = useUpdateCharacter()
-  
-  const existingCharacter = profileData?.character
-  const existingCharacterId = existingCharacter?.id ? String(existingCharacter.id) : undefined
-  
+  const updateCharacter = useUpdateCharacterCustomization()
+ 
   // Simple video player with auto-loop
   // Load video from remote URL to avoid bundling large file
   const player = useVideoPlayer(
@@ -93,20 +92,20 @@ export default function CharacterCreator() {
 
   // Load existing character data when available
   useEffect(() => {
-    if (existingCharacter && profileData?.character) {
-      const avatarConfigStr = buildAvatarConfig(profileData.character)
+    if (existingCharacter) {
+      const avatarConfigStr = buildAvatarConfig(existingCharacter)
       if (avatarConfigStr) {
         try {
           const loadedConfig = JSON.parse(avatarConfigStr) as CharacterConfig
           setConfig(loadedConfig)
-          setCharacterName(existingCharacter.name || '')
+          setCharacterName(existingCharacter.username || '')
         } catch (error) {
           console.error('Failed to parse existing character config:', error)
         }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingCharacter?.id, profileData?.character?.id])
+  }, [existingCharacter?.id])
 
   function cycleIndex(current: number, direction: number, max: number): number {
     const newIndex = current + direction
@@ -245,107 +244,40 @@ export default function CharacterCreator() {
       const avatarConfig = JSON.stringify(config)
 
       const requestData: any = {
-        name: characterName.trim(),
         ...backendConfig,
       }
 
       // Preserve existing skin_color if updating and it's a valid value (>= 1)
       // Otherwise, use the default from convertToBackendConfig (which is 1)
-      if (existingCharacterId && existingCharacter?.character_config?.selected_skin_color) {
-        const existingSkinColor = existingCharacter.character_config.selected_skin_color
-        if (existingSkinColor >= 1) {
-          requestData.selected_skin_color = existingSkinColor
-        }
-      }
-
-      console.log('Saving character with data:', {
-        isUpdate: !!existingCharacterId,
-        characterId: existingCharacterId,
-        requestData,
-      })
-
-      if (existingCharacterId) {
-        try {
-          // Try to update existing character
-          await updateCharacter.mutateAsync({
-            id: existingCharacterId,
-            data: requestData,
-          })
-        } catch (updateError: any) {
-          // If update fails with 404, the character doesn't exist - create a new one instead
-          if (updateError?.status === 404 || updateError?.message?.includes('No Character matches')) {
-            console.log('Character not found, creating new character instead')
-            await createCharacter.mutateAsync(requestData)
-          } else {
-            // Re-throw other errors
-            throw updateError
-          }
-        }
-      } else {
-        // Create new character
-        await createCharacter.mutateAsync(requestData)
-      }
-
-      // Invalidate user profile query to refresh data
-      queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) })
-      queryClient.invalidateQueries({ queryKey: characterKeys.lists() })
-
-      // Also update local game store for backwards compatibility
-      setCharacter({
-        id: existingCharacterId || Date.now().toString(),
-        name: characterName.trim(),
-        avatar: avatarConfig,
-        createdAt: Date.now(),
-      })
-
-      // Update auth store to reflect that user has a character
-      setHasCharacter(true)
-
-      router.replace('/hub')
-    } catch (error: any) {
-      console.error('Failed to save character - Full error object:', error)
-      console.error('Error stringified:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
-      
-      // Extract error message from various error formats
-      let errorMessage = 'Failed to save character. Please try again.'
-      
-      if (error?.message && typeof error.message === 'string') {
-        errorMessage = error.message
-      } else if (error?.status && error?.message) {
-        errorMessage = `Error ${error.status}: ${error.message || error.statusText || 'Unknown error'}`
-      } else if (error?.errors) {
-        // Handle validation errors
-        if (typeof error.errors === 'object') {
-          const validationErrors = Object.entries(error.errors)
-            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : String(messages)}`)
-            .join('\n')
-          errorMessage = `Validation errors:\n${validationErrors}`
-        } else {
-          errorMessage = String(error.errors)
-        }
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      } else {
-        // Try to extract any useful info
-        errorMessage = error?.toString() || 'Unknown error occurred'
-      }
-      
-      console.error('Error details extracted:', {
-        message: errorMessage,
-        status: error?.status,
-        code: error?.code,
-        errors: error?.errors,
-      })
-      
-      Alert.alert(
-        'Error Saving Character',
-        errorMessage,
-        [{ text: 'OK' }]
-      )
-    } finally {
-      setIsSaving(false)
+    if (existingCharacter?.character_config?.selected_skin_color) {
+      const existingSkinColor = existingCharacter.character_config.selected_skin_color
+      if (existingSkinColor >= 1) requestData.selected_skin_color = existingSkinColor
     }
+
+    let savedCharacter: any
+
+    if (existingCharacter?.id) {
+      savedCharacter = await updateCharacter.mutateAsync({
+        ...requestData,
+      })
+    } else {
+      savedCharacter = await createCharacter.mutateAsync(requestData)
+    }
+
+
+    queryClient.invalidateQueries({ queryKey: characterKeys.mine() })
+    queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) })
+
+    setHasCharacter(true)
+    router.replace('/hub')
+  } catch (error: any) {
+    // keep your existing error handling
+    console.error('Failed to save character - Full error object:', error)
+    Alert.alert('Error Saving Character', error?.message ?? 'Failed to save character.', [{ text: 'OK' }])
+  } finally {
+    setIsSaving(false)
   }
+}
 
   const categories: { id: Category; label: string }[] = [
     { id: 'base', label: 'Base' },
@@ -538,7 +470,7 @@ export default function CharacterCreator() {
           activeOpacity={0.9}
         >
           <RNText style={styles.saveButtonText}>
-            {isSaving ? 'Saving...' : (existingCharacterId ? 'Update Character' : 'Begin Journey')}
+            {isSaving ? 'Saving...' : (existingCharacter?.id ? 'Update Character' : 'Begin Journey')}
           </RNText>
         </TouchableOpacity>
       </ScrollView>
