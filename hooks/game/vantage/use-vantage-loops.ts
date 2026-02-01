@@ -143,73 +143,12 @@ export function createVantageLoopController({
   }
 
   const startEnemyFireLoop = () => {
-    if (enemyFireTimerRef.current) {
-      return
-    }
-
-    const enemyFireStep = () => {
-      const { isPlaying, gameOver, boss } = store.getState()
-      if (!isPlaying || gameOver || boss) {
-        stopEnemyFireLoop()
-        return
-      }
-
-      const now = Date.now()
-      const thoughtsNow = negativeThoughtsRef.current
-
-      if (thoughtsNow.length === 0) {
-        enemyNextFireAtRef.current = now + 100
-        enemyFireTimerRef.current = setTimeout(enemyFireStep, 100)
-        return
-      }
-
-      if (now >= enemyNextFireAtRef.current) {
-        const { setEnemyProjectiles } = store.getState()
-        const rowHeightTolerance = GAME_CONFIG.THOUGHT_HEIGHT + GAME_CONFIG.INVADER_V_GAP
-        let maxY = -Infinity
-        for (const thought of thoughtsNow) {
-          if (thought.y > maxY) {
-            maxY = thought.y
-          }
-        }
-
-        const bottomRowEnemies = thoughtsNow.filter(
-          (thought) => Math.abs(thought.y - maxY) <= rowHeightTolerance / 2
-        )
-
-        if (bottomRowEnemies.length > 0) {
-          const randomIndex = Math.floor(Math.random() * bottomRowEnemies.length)
-          const firingEnemy = bottomRowEnemies[randomIndex]
-          const baseEnemyProjectileSpeed = 300
-
-          setEnemyProjectiles((prev) => [
-            ...prev,
-            {
-              id: `enemy-proj-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              x: firingEnemy.x + GAME_CONFIG.THOUGHT_WIDTH / 2 - GAME_CONFIG.ENEMY_PROJECTILE_WIDTH / 2,
-              y: firingEnemy.y + GAME_CONFIG.THOUGHT_HEIGHT,
-              vy: baseEnemyProjectileSpeed,
-            },
-          ])
-        }
-
-        const baseInterval = 900 + Math.random() * 500
-        const adjustedInterval = director.getEnemyFireInterval(baseInterval)
-        enemyNextFireAtRef.current = now + adjustedInterval
-      }
-
-      enemyFireTimerRef.current = setTimeout(enemyFireStep, 100)
-    }
-
     enemyNextFireAtRef.current = Date.now() + 900 + Math.random() * 500
-    enemyFireTimerRef.current = setTimeout(enemyFireStep, 100)
   }
 
   const stopEnemyFireLoop = () => {
-    if (enemyFireTimerRef.current) {
-      clearTimeout(enemyFireTimerRef.current)
-      enemyFireTimerRef.current = null
-    }
+    enemyNextFireAtRef.current = 0
+    enemyFireTimerRef.current = null
   }
 
   return {

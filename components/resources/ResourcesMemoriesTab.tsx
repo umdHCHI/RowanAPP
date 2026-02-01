@@ -7,6 +7,7 @@ import type { MemoryItem } from '@/types/hooks'
 
 interface ResourcesMemoriesTabProps {
   memories: MemoryItem[]
+  storyId?: number
 }
 
 interface StoryPassageDisplayProps {
@@ -55,8 +56,15 @@ function formatDate(dateString: string | undefined): string {
   }
 }
 
-export function ResourcesMemoriesTab({ memories }: ResourcesMemoriesTabProps) {
+export function ResourcesMemoriesTab({ memories, storyId }: ResourcesMemoriesTabProps) {
   const router = useRouter()
+  const visibleMemories = React.useMemo(() => {
+    if (!storyId) return memories
+    return memories.filter((memory) => {
+      if (memory.type !== 'STORY_PROGRESS') return true
+      return memory.storyId === storyId
+    })
+  }, [memories, storyId])
 
   function renderMemoryContent(memory: MemoryItem) {
     // Handle STORY_PROGRESS type
@@ -86,7 +94,10 @@ export function ResourcesMemoriesTab({ memories }: ResourcesMemoriesTabProps) {
           )}
           
           {/* Display 1-2 passages */}
-          {memory.storyId && memory.passageIds && memory.passageIds.length > 0 && (
+          {memory.storyId &&
+            memory.passageIds &&
+            memory.passageIds.length > 0 &&
+            (!storyId || memory.storyId === storyId) && (
             <View style={styles.passagesContainer}>
               {memory.passageIds.slice(0, 2).map((passageId, index) => (
                 <StoryPassageDisplay
@@ -219,14 +230,14 @@ export function ResourcesMemoriesTab({ memories }: ResourcesMemoriesTabProps) {
 
   return (
     <View style={styles.memoriesContainer}>
-      {memories.length === 0 ? (
+      {visibleMemories.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialCommunityIcons name="book-open-variant-outline" size={48} color="rgba(255, 255, 255, 0.3)" />
           <Text style={styles.emptyStateText}>No memories yet</Text>
           <Text style={styles.emptyStateSubtext}>Start exploring stories to create memories</Text>
         </View>
       ) : (
-        memories.map((memory) => (
+        visibleMemories.map((memory) => (
           <View key={`memory-${memory.id}`} style={styles.memoryCard}>
             <Text style={styles.memoryTitle}>
               {memory.type === 'JOURNAL_REWARD' 

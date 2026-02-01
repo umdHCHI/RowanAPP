@@ -7,6 +7,7 @@ import { useHaptics } from '@/utils/useHaptics'
 import type { Difficulty } from '@/utils/vantage-constants'
 import type { ConqueredThought } from '@/types/game'
 import { GameOverDialog } from './GameOverDialog'
+import { Button, Text as UiText } from '@/components/ui'
 
 interface GameOverlayProps {
   type: 'start' | 'gameOver' | 'victory'
@@ -41,6 +42,7 @@ export function GameOverlay({
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
+  const lumensAwarded = won && bossDefeated ? 1 : 0
 
   function handleStart() {
     playPageFlipSound()
@@ -145,15 +147,9 @@ export function GameOverlay({
           )}
           
           {onStart && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.primaryButton,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={handleStart}
-            >
-              <Text style={styles.secondaryButtonText}>Start Game</Text>
-            </Pressable>
+            <Button variant="primary" onPress={handleStart} fullWidth hapticType="light">
+              <UiText variant="title" size={1} align="center">Start Game</UiText>
+            </Button>
           )}
         </View>
       </View>
@@ -185,8 +181,10 @@ export function GameOverlay({
           <View style={styles.card} pointerEvents="auto">
             <Text style={styles.title}>Victory!</Text>
             <Text style={styles.subtitle}>You've sealed the breach.</Text>
-            {score !== undefined && (
-              <Text style={styles.lumensText}>Lumens Gathered: {score}</Text>
+            {lumensAwarded > 0 ? (
+              <Text style={styles.lumensText}>Lumens Gathered: {lumensAwarded}</Text>
+            ) : (
+              <Text style={styles.noLumensText}>No Lumens Gathered</Text>
             )}
             {(conqueredThoughts.length > 0 || defeatedNegativeThoughts.length > 0) && (
               <View style={styles.archiveSection}>
@@ -223,24 +221,16 @@ export function GameOverlay({
               </View>
             )}
             <View style={styles.buttonRow}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  pressed && styles.buttonPressed,
-                ]}
-                onPress={handleBackToHub}
-              >
-                <Text style={styles.secondaryButtonText}>Back to Archive</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  pressed && styles.buttonPressed,
-                ]}
-                onPress={handlePlayAgain}
-              >
-                  <Text style={styles.buttonText}>Play Again</Text>
-              </Pressable>
+              <View style={styles.buttonSlot}>
+                <Button variant="secondary" size="small" onPress={handleBackToHub} fullWidth hapticType="light">
+                  <UiText variant="title" size={1} align="center">Back to Archive</UiText>
+                </Button>
+              </View>
+              <View style={styles.buttonSlot}>
+                <Button variant="primary" size="small" onPress={handlePlayAgain} fullWidth hapticType="light">
+                  <UiText variant="title" size={1} align="center">Play Again</UiText>
+                </Button>
+              </View>
             </View>
           </View>
         </View>
@@ -254,6 +244,7 @@ export function GameOverlay({
         score={score || 0} 
         won={won} 
         bossDefeated={bossDefeated} 
+        lumensAwarded={lumensAwarded}
         conqueredThoughts={conqueredThoughts} 
         defeatedNegativeThoughts={defeatedNegativeThoughts}
         onDismiss={onDismiss || (() => {})} 
@@ -329,6 +320,14 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
   },
+  noLumensText: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 18,
+    color: '#ffffffcc',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
   caption: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     padding: 12,
@@ -349,53 +348,10 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 20,
     width: '100%',
-  },
-  button: {
-    flex: 1,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 3,
-    alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 120,
-    position: 'relative',
-    overflow: 'hidden',
   },
-  primaryButton: {
-    borderColor: '#ffffff',
-    backgroundColor: '#15111f',
-  },
-  secondaryButton: {
-    borderColor: 'rgba(255, 255, 255, 0.7)',
-    backgroundColor: '#15111f',
-  },
-  buttonPressed: {
-    opacity: 0.7,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  buttonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 18,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: 1,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  secondaryButtonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 18,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: 1,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+  buttonSlot: {
+    flex: 1,
   },
   difficultyContainer: {
     width: '100%',

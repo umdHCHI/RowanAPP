@@ -77,8 +77,8 @@ export function Button({
       borderWidth: 1,
     },
     secondary: {
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: 'rgba(108, 178, 255, 0.25)',
+      borderColor: 'rgba(108, 178, 255, 0.45)',
       borderWidth: 1,
     },
   }

@@ -40,6 +40,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
     resources,
     memories,
     profileData,
+    avatarConfig,
     storiesData,
     journalEntries,
     storyProgress,
@@ -178,7 +179,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
                 <Text style={styles.loadingText}>Loading...</Text>
               </View>
             ) : (
-              <ResourcesSettingsTab profileData={profileData} />
+              <ResourcesSettingsTab profileData={profileData} avatarConfig={avatarConfig} />
             )}
           </View>
 
@@ -212,7 +213,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                <ResourcesMemoriesTab memories={memories} />
+              <ResourcesMemoriesTab memories={memories} storyId={storyId} />
               </ScrollView>
             )}
           </View>

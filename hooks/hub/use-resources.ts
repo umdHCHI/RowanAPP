@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useCurrentUserFullProfile, useStories, useJournalEntries } from '@/api'
+import { useCurrentUserFullProfile, useStories, useJournalEntries, useMyCharacter } from '@/api'
 import { storyService } from '@/api/services/story.service'
 import { useGameStore } from '@/stores/game-store'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
@@ -21,6 +21,7 @@ import type { UseResourcesResult } from '@/types/hooks'
  */
 export function useResources(): UseResourcesResult {
   const { data: profileData, isLoading: isLoadingProfile } = useCurrentUserFullProfile()
+  const { data: myCharacter } = useMyCharacter()
   const { isLoading: isLoadingHubProfile } = useHubProfile()
   const { data: storiesData, isLoading: isLoadingStories } = useStories()
   const { data: journalEntriesData, isLoading: isLoadingJournal } = useJournalEntries(1, 100)
@@ -75,10 +76,11 @@ export function useResources(): UseResourcesResult {
     [profileData?.character?.name]
   )
 
-  const avatarConfig = useMemo(
-    () => (profileData?.character ? buildAvatarConfig(profileData.character) : null),
-    [profileData?.character]
-  )
+  const avatarConfig = useMemo(() => {
+    const profileConfig = profileData?.character ? buildAvatarConfig(profileData.character) : null
+    if (profileConfig) return profileConfig
+    return myCharacter ? buildAvatarConfig(myCharacter) : null
+  }, [profileData?.character, myCharacter])
 
   const resourceCounts = useMemo(
     () => profileData?.character?.memories_explored ?? 0,

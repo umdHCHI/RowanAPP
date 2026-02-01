@@ -30,7 +30,7 @@ export default function Vantage() {
   const params = useLocalSearchParams<{ storyId?: string; tutorial?: string }>()
   const storyId = params.storyId
   const isTutorial = params.tutorial === 'true'
-  const { addMemory, character, updateLumen } = useGameStore()
+  const { addMemory } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
@@ -115,20 +115,14 @@ export default function Vantage() {
         }
         addMemory(memory)
         
-        // Award 1 lumen for completing the mini game
-        try {
-          await gainLumens.mutateAsync(1)
-        } catch (error) {
-          // Log error but don't block the game completion
-          console.error('Failed to award experience:', error)
-        }
-        
-        // Reward based on score
-        if (score >= 200) {
-          updateLumen('lumens', 1)
-        }
-        if (score >= 100) {
-          updateLumen('lumens', 1)
+        const lumensAwarded = won && bossDef ? 1 : 0
+        if (lumensAwarded > 0) {
+          try {
+            await gainLumens.mutateAsync(lumensAwarded)
+          } catch (error) {
+            // Log error but don't block the game completion
+            console.error('Failed to award experience:', error)
+          }
         }
       }, 0)
     },
@@ -311,6 +305,8 @@ export default function Vantage() {
         <GameOverlay 
           type="victory" 
           score={game.score}
+          won={gameWon}
+          bossDefeated={bossDefeated}
           conqueredThoughts={game.conqueredThoughts || []}
           defeatedNegativeThoughts={game.defeatedNegativeThoughts || []}
           onPlayAgain={handlePlayAgain}

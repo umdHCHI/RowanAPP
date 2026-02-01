@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useGameStore } from '@/stores/game-store'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
-import { useAuthActions, userService } from '@/api'
+import { useAuthActions, userService, useMyCharacter } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useNotifications } from '@/hooks'
 import { useQueryClient } from '@tanstack/react-query'
@@ -13,9 +13,10 @@ import type { UserFullProfileResponse } from '@/api/types'
 
 interface ResourcesSettingsTabProps {
   profileData?: UserFullProfileResponse | null
+  avatarConfig?: string | null
 }
 
-export function ResourcesSettingsTab({ profileData }: ResourcesSettingsTabProps) {
+export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigProp }: ResourcesSettingsTabProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const playPageFlipSound = usePageFlipSound()
@@ -27,12 +28,17 @@ export function ResourcesSettingsTab({ profileData }: ResourcesSettingsTabProps)
   const lumens = useGameStore((state) => state.lumens.lumens)
   const { clearAuth } = useAuthActions()
   const { notificationsEnabled, requestPermissions, cancelAllNotifications, sendTestNotification } = useNotifications()
+  const { data: myCharacter } = useMyCharacter()
 
   // Get avatar config from profile
   const avatarConfig = useMemo(() => {
+    if (avatarConfigProp) return avatarConfigProp
     if (!profileData?.character) return null
     return buildAvatarConfig(profileData.character)
-  }, [profileData])
+  }, [avatarConfigProp, profileData?.character])
+
+  const experienceLumens =
+    myCharacter?.experience ?? profileData?.character?.experience ?? lumens
 
   function handleChangeCharacter() {
     playPageFlipSound()
@@ -148,7 +154,7 @@ export function ResourcesSettingsTab({ profileData }: ResourcesSettingsTabProps)
                   style={styles.lumenImage}
                   resizeMode="contain"
                 />
-                <Text style={styles.lumensText}>{lumens} Lumens</Text>
+                <Text style={styles.lumensText}>{experienceLumens} Lumens</Text>
               </View>
             </View>
           </View>
@@ -243,11 +249,13 @@ export function ResourcesSettingsTab({ profileData }: ResourcesSettingsTabProps)
               activeOpacity={0.7}
             >
               <View style={styles.settingItemContent}>
-                {avatarConfig ? (
-                  <CharacterAvatar avatarConfig={avatarConfig} size={32} />
-                ) : (
-                  <MaterialCommunityIcons name="account-outline" size={24} color="#ffffff" />
-                )}
+                <View style={styles.changeCharacterAvatar}>
+                  {avatarConfig ? (
+                    <CharacterAvatar avatarConfig={avatarConfig} size={36} />
+                  ) : (
+                    <MaterialCommunityIcons name="account-outline" size={24} color="#ffffff" />
+                  )}
+                </View>
                 <Text style={styles.settingItemText}>Change Your Character</Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255, 255, 255, 0.5)" />
@@ -377,6 +385,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  changeCharacterAvatar: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settingItemText: {
     fontFamily: 'System',

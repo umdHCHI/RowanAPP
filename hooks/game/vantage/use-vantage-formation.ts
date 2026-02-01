@@ -14,6 +14,9 @@ export function createVantageFormationController({
   getPlayerY,
   triggerBoss,
 }: FormationControllerOptions): VantageFormationController {
+  const pendingWaveAdvances = new Set<number>()
+  let lastEnemyFireAt = 0
+  let nextEnemyFireInMs = 900
   const spawnInvaderWave = (monsterKey: string, waveNumber: number) => {
     const { setNegativeThoughts, setWaveDefeatedPatterns } = store.getState()
     try {
@@ -65,8 +68,14 @@ export function createVantageFormationController({
       setEnemyProjectiles([])
     }
 
+    if (pendingWaveAdvances.has(wave)) {
+      return
+    }
+    pendingWaveAdvances.add(wave)
+
     if (wave < difficultyConfig.wavesBeforeBoss) {
       setTimeout(() => {
+        pendingWaveAdvances.delete(wave)
         const nextWave = wave + 1
         setWave(nextWave)
         setFormationTickMs((tick) =>
@@ -75,6 +84,7 @@ export function createVantageFormationController({
         spawnInvaderWave('void_eater', nextWave)
       }, 1000)
     } else if (!bossActive) {
+      pendingWaveAdvances.delete(wave)
       triggerBoss()
     }
   }
@@ -82,6 +92,7 @@ export function createVantageFormationController({
   const stepFormation = ({ wave, bossActive, onPlayerDefeated }: FormationStepParams) => {
     const { setNegativeThoughts } = store.getState()
     let waveCleared = false
+    let firingEnemy: NegativeThought | null = null
 
     setNegativeThoughts((prev) => {
       if (prev.length === 0) {
@@ -129,21 +140,70 @@ export function createVantageFormationController({
         return prev
       }
 
-      return prev.map((invader) => ({
+      const nextInvaders = prev.map((invader) => ({
         ...invader,
         x: invader.x + stepX,
         y: invader.y + stepY,
       }))
+
+      if (!bossActive) {
+        const now = Date.now()
+        if (now - lastEnemyFireAt >= nextEnemyFireInMs) {
+          const rowHeightTolerance = GAME_CONFIG.THOUGHT_HEIGHT + GAME_CONFIG.INVADER_V_GAP
+          let maxY = -Infinity
+          for (const thought of nextInvaders) {
+            if (thought.y > maxY) {
+              maxY = thought.y
+            }
+          }
+          const bottomRowEnemies = nextInvaders.filter(
+            (thought) => Math.abs(thought.y - maxY) <= rowHeightTolerance / 2
+          )
+          const candidates = bottomRowEnemies.length > 0 ? bottomRowEnemies : nextInvaders
+          if (candidates.length > 0) {
+            const randomIndex = Math.floor(Math.random() * candidates.length)
+            firingEnemy = candidates[randomIndex]
+            lastEnemyFireAt = now
+            nextEnemyFireInMs = director.getEnemyFireInterval(900 + Math.random() * 500)
+          }
+        }
+      }
+
+      return nextInvaders
     })
 
     if (waveCleared) {
       handleWaveCleared(wave, bossActive)
+    }
+
+    if (firingEnemy) {
+      const { setEnemyProjectiles, playerX } = store.getState()
+      const baseEnemyProjectileSpeed = 300
+      const playerCenterX = playerX + GAME_CONFIG.PLAYER_WIDTH / 2
+      const enemyCenterX = firingEnemy.x + GAME_CONFIG.THOUGHT_WIDTH / 2
+      const maxDistance = Math.max(120, GAME_CONFIG.THOUGHT_WIDTH * 6)
+      const normalizedDx = Math.max(-1, Math.min(1, (playerCenterX - enemyCenterX) / maxDistance))
+      const vx = normalizedDx * 120
+
+      setEnemyProjectiles((prev) => [
+        ...prev,
+        {
+          id: `enemy-proj-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          x: enemyCenterX - GAME_CONFIG.ENEMY_PROJECTILE_WIDTH / 2,
+          y: firingEnemy.y + GAME_CONFIG.THOUGHT_HEIGHT,
+          vx,
+          vy: baseEnemyProjectileSpeed,
+        },
+      ])
     }
   }
 
   const resetWaveState = () => {
     formationDirRef.current = 1
     projectilesClearedForWaveRef.current = 0
+    pendingWaveAdvances.clear()
+    lastEnemyFireAt = 0
+    nextEnemyFireInMs = 900
   }
 
   return {

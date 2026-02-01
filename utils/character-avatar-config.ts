@@ -97,7 +97,15 @@ export function buildAvatarConfig(character: any): string | null {
   if (!character) return null
   
   // Try character_config first, fallback to character itself
-  const config = character.character_config || character
+  const rawConfig = character.character_config ?? character
+  const parsedConfig = parseCharacterConfig(rawConfig)
+  const config = parsedConfig ?? (rawConfig !== character ? character : null)
+
+  if (!config) return null
+
+  if (isFrontendCharacterConfig(config)) {
+    return JSON.stringify(config)
+  }
   
   // Backend stores 1-based indices, convert to 0-based for frontend
   // Color indices also need to be converted from 1-based to 0-based
@@ -117,6 +125,31 @@ export function buildAvatarConfig(character: any): string | null {
   }
 
   return JSON.stringify(avatarConfig)
+}
+
+function parseCharacterConfig(config: unknown): unknown | null {
+  if (!config) return null
+
+  if (typeof config === 'string') {
+    try {
+      return JSON.parse(config)
+    } catch {
+      return null
+    }
+  }
+
+  return config
+}
+
+function isFrontendCharacterConfig(config: unknown): config is FrontendCharacterConfig {
+  if (!config || typeof config !== 'object') return false
+
+  const candidate = config as FrontendCharacterConfig
+  return (
+    typeof candidate.baseIndex === 'number' &&
+    typeof candidate.backgroundColor === 'string' &&
+    typeof candidate.backgroundIndex === 'number'
+  )
 }
 
 /**

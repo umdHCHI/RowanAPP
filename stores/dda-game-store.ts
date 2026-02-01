@@ -16,7 +16,8 @@ function runEvaluate(get: () => DdaGameState, set: (partial: Partial<DdaGameStat
   if (!inputs?.isPlaying) return
 
   const now = performance.now()
-  const gameStartTime = inputs.gameStartTime || now
+  const gameStartTime = inputs.gameStartTime
+  if (!gameStartTime || gameStartTime <= 0) return
   const timeSinceStart = now - gameStartTime
   const timeSinceLastEvaluation = now - state.lastEvaluationTime
   const lastShotAt = inputs.lastShotAt ?? 0
@@ -226,9 +227,13 @@ export const useDdaGameStore = create<DdaGameState & DdaGameActions>()((set, get
       return
     }
     if (inputs.isPlaying && state.lastEvaluationTime === 0) {
+      if (!inputs.gameStartTime || inputs.gameStartTime <= 0) {
+        set({ inputs })
+        return
+      }
       set({
         inputs,
-        lastEvaluationTime: inputs.gameStartTime || performance.now(),
+        lastEvaluationTime: inputs.gameStartTime,
         lastProjectilesSpawned: inputs.projectilesSpawned,
         lastThoughtsDestroyed: inputs.thoughtsDestroyed,
       })

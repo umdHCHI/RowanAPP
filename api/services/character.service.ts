@@ -66,10 +66,37 @@ export const characterService = {
   },
 
   async gainLumens(amount: number = 1): Promise<ApiResponse<CharacterResponse>> {
-    return apiClient.post<CharacterResponse>(
-      API_ENDPOINTS.CHARACTER_GAIN_LUMENS,
-      { amount },
-      { skipVersion: true },
-    );
+    try {
+      const response = await apiClient.post<CharacterResponse>(
+        API_ENDPOINTS.CHARACTER_GAIN_LUMENS,
+        { amount },
+        { skipVersion: true },
+      );
+
+      const isWrapped =
+        !!response &&
+        typeof response === 'object' &&
+        Object.prototype.hasOwnProperty.call(response as object, 'success') &&
+        Object.prototype.hasOwnProperty.call(response as object, 'data');
+
+      return isWrapped
+        ? (response as ApiResponse<CharacterResponse>)
+        : ({ success: true, data: response as CharacterResponse } as ApiResponse<CharacterResponse>);
+    } catch (error: any) {
+      const message = String(error?.message || '').toLowerCase();
+      const status = (error as ApiError)?.status;
+
+      const xpWasAdded =
+        message.includes('xp added') ||
+        message.includes('experience added') ||
+        message.includes('lumens added');
+
+      if (xpWasAdded || status === 200) {
+        const mine = await characterService.getMine();
+        if (mine.success) return mine;
+      }
+
+      throw error;
+    }
   },
 };

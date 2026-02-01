@@ -2,12 +2,14 @@ import { View, Text, Pressable, StyleSheet, Modal } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import type { ConqueredThought } from '@/types/game'
+import { Button, Text as UiText } from '@/components/ui'
 
 interface GameOverDialogProps {
   visible: boolean
   score: number
   won: boolean
   bossDefeated: boolean
+  lumensAwarded: number
   conqueredThoughts: ConqueredThought[]
   defeatedNegativeThoughts?: ConqueredThought[]
   onDismiss: () => void
@@ -20,6 +22,7 @@ export function GameOverDialog({
   score,
   won,
   bossDefeated,
+  lumensAwarded,
   conqueredThoughts,
   defeatedNegativeThoughts = [],
   onDismiss,
@@ -63,7 +66,11 @@ export function GameOverDialog({
             You've practiced reframing negative thoughts!
           </Text>
         )}
-        <Text style={styles.lumensText}>Lumens Gathered: {score}</Text>
+        {lumensAwarded > 0 ? (
+          <Text style={styles.lumensText}>Lumens Gathered: {lumensAwarded}</Text>
+        ) : (
+          <Text style={styles.noLumensText}>No Lumens Gathered</Text>
+        )}
         {bossDefeated && (
           <Text style={styles.bossText}>Boss Defeated!</Text>
         )}
@@ -106,26 +113,16 @@ export function GameOverDialog({
           </View>
         )}
         <View style={styles.buttonRow}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              styles.secondaryButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handleBackToHub}
-          >
-            <Text style={styles.secondaryButtonText}>Back to Archive</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              styles.primaryButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handlePlayAgain}
-          >
-            <Text style={styles.secondaryButtonText}>Play Again</Text>
-          </Pressable>
+          <View style={styles.buttonSlot}>
+            <Button variant="secondary" size="small" onPress={handleBackToHub} fullWidth hapticType="light">
+              <UiText variant="title" size={1} align="center">Back to Archive</UiText>
+            </Button>
+          </View>
+          <View style={styles.buttonSlot}>
+            <Button variant="primary" size="small" onPress={handlePlayAgain} fullWidth hapticType="light">
+              <UiText variant="title" size={1} align="center">Play Again</UiText>
+            </Button>
+          </View>
         </View>
       </View>
     </View>
@@ -187,6 +184,13 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(255, 215, 0, 0.5)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
+  },
+  noLumensText: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 18,
+    color: '#ffffffcc',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   bossText: {
     fontFamily: 'System',
@@ -255,51 +259,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
     width: '100%',
-  },
-  button: {
-    flex: 1,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 3,
-    alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
   },
-  primaryButton: {
-    borderColor: '#ffffff',
-    backgroundColor: '#15111f',
-  },
-  secondaryButton: {
-    borderColor: 'rgba(255, 255, 255, 0.7)',
-    backgroundColor: '#15111f',
-  },
-  buttonPressed: {
-    opacity: 0.7,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  primaryButtonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 14,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: 1,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  secondaryButtonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 14,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: 1,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+  buttonSlot: {
+    flex: 1,
   },
 })

@@ -65,7 +65,7 @@ export function ResourcesResourcesTab({
     if (!story) return null
     
     const progress = progressList.find((p) => p.story === storyId)
-    
+
     return { story, progress }
   }, [storiesData, storyId, profileData, storyProgress])
 

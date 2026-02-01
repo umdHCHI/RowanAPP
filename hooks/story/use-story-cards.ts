@@ -16,7 +16,7 @@ export function useStoryCards(): UseStoryCardsResult {
     if (!stories || stories.length === 0) return []
     
     // Get user creation date from profile
-    const userCreatedAt = userProfile?.profile?.created_at || null
+    const userCreatedAt = userProfile?.created_at || null
     
     return mapStoriesToCards(stories, userCreatedAt)
   }, [stories, userProfile])
