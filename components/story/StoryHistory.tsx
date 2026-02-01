@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router'
 import { StoryPassage } from './StoryPassage'
 import { StoryRewardMoment } from './StoryRewardMoment'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
-import { useGameStore } from '@/stores/game-store'
+import { useMyCharacter } from '@/api'
+import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import { getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS } from './story-theme'
 import type { StoryHistoryItem } from '@/types/story'
@@ -14,14 +15,15 @@ interface StoryHistoryProps {
 }
 
 export function StoryHistory({ history }: StoryHistoryProps) {
-  const { character } = useGameStore()
   const router = useRouter()
+  const { data: myCharacter } = useMyCharacter()
+  const avatarConfig = React.useMemo(() => buildAvatarConfig(myCharacter), [myCharacter])
   
   function handleRewardPress(journalEntryId?: string) {
     if (journalEntryId) {
-      router.push(`/journal?promptId=${journalEntryId}`)
+      router.push(`/journal?promptId=${journalEntryId}&from=story`)
     } else {
-      router.push('/journal')
+      router.push('/journal?from=story')
     }
   }
 
@@ -67,6 +69,8 @@ export function StoryHistory({ history }: StoryHistoryProps) {
                 passageType={item.passageType} 
                 speakerName={item.speakerName}
                 speakerImage={item.speakerImage}
+                playerAvatarConfig={avatarConfig}
+                playerAvatarSize={48}
               />
             ) : item.type === 'reward' ? (
             <StoryRewardMoment
@@ -88,9 +92,9 @@ export function StoryHistory({ history }: StoryHistoryProps) {
               <View style={styles.playerChoiceBubble}>
                 <RNText style={styles.playerChoiceText}>{item.content}</RNText>
               </View>
-              {character?.avatar && (
+              {avatarConfig && (
                 <CharacterAvatar 
-                  avatarConfig={character.avatar} 
+                  avatarConfig={avatarConfig} 
                   size={48} 
                 />
               )}

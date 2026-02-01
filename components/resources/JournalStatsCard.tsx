@@ -19,7 +19,7 @@ export function JournalStatsCard({ entries }: JournalStatsCardProps) {
 
   function handleViewJournalEntries() {
     playPageFlipSound()
-    router.push('/journal')
+    router.push('/journal?from=resources')
   }
 
   // Calculate most common entry type

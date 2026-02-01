@@ -116,7 +116,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
               style={styles.headerButton}
               onPress={() => {
                 playPageFlipSound()
-                router.push('/journal')
+                router.push('/journal?from=resources')
               }}
             >
               <MaterialCommunityIcons name="feather" size={24} color="#ffffff" />

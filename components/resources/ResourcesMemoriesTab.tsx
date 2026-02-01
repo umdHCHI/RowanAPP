@@ -175,7 +175,9 @@ export function ResourcesMemoriesTab({ memories, storyId }: ResourcesMemoriesTab
           <TouchableOpacity
             style={styles.memoryButton}
             onPress={() => {
-              const url = journalEntryId ? `/journal?promptId=${journalEntryId}` : '/journal'
+              const url = journalEntryId
+                ? `/journal?promptId=${journalEntryId}&from=resources`
+                : '/journal?from=resources'
               router.push(url)
             }}
           >

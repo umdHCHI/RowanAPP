@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, Text as RNText, StyleSheet, Image } from 'react-native'
+import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 import { parseQuoteContent } from '@/utils/format-quote'
 import { getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LINE_HEIGHTS, STORY_LAYOUT } from './story-theme'
@@ -10,9 +11,18 @@ interface StoryPassageProps {
   passageType?: PassageType
   speakerName?: string | null
   speakerImage?: string | null
+  playerAvatarConfig?: string | null
+  playerAvatarSize?: number
 }
 
-export function StoryPassage({ content, passageType, speakerName, speakerImage }: StoryPassageProps) {
+export function StoryPassage({
+  content,
+  passageType,
+  speakerName,
+  speakerImage,
+  playerAvatarConfig,
+  playerAvatarSize = 48,
+}: StoryPassageProps) {
   const quoteParts = parseQuoteContent(content)
   
   // If speaker_name is "Quote", always format as a quote
@@ -61,12 +71,17 @@ export function StoryPassage({ content, passageType, speakerName, speakerImage }
       )
     case 'decision':
       return (
-        <View style={styles.decisionContainer}>
-          <View style={styles.decisionHeader}>
-            <RNText style={styles.decisionLabel}>DECISION</RNText>
+        <View style={styles.decisionRow}>
+          <View style={styles.decisionContainer}>
+            <View style={styles.decisionHeader}>
+              <RNText style={styles.decisionLabel}>DECISION</RNText>
+            </View>
+            <RNText style={styles.decisionText}>{content}</RNText>
+            <RNText style={styles.decisionSubtext}>Your choice will have an impact</RNText>
           </View>
-          <RNText style={styles.decisionText}>{content}</RNText>
-          <RNText style={styles.decisionSubtext}>Your choice will have an impact</RNText>
+          {playerAvatarConfig && (
+            <CharacterAvatar avatarConfig={playerAvatarConfig} size={playerAvatarSize} />
+          )}
         </View>
       )
     case 'action':
@@ -164,6 +179,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  decisionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+    gap: STORY_SPACING.md,
   },
   decisionHeader: {
     alignItems: 'center',

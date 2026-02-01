@@ -1,17 +1,19 @@
-import { View, Image, Text, StyleSheet } from 'react-native'
-
+import { View, Text, StyleSheet } from 'react-native'
+import { useMyCharacter } from '@/api'
 import { useGameStore } from '@/stores/game-store'
 
 
 
 export function JournalAttributeChanges() {
-  const lumens = useGameStore((state) => state.lumens.lumens)
+  const { data: myCharacter } = useMyCharacter()
+  const storeLumens = useGameStore((state) => state.lumens.lumens)
+  const displayLumens = myCharacter?.experience ?? storeLumens
   // Show the reward amount (1 lumen) rather than total
   // The total will update after query invalidation, but we want to show the reward immediately
   return (
     <View style={styles.attributeChangesContainer}>
       <Text style={styles.attributeChangeText}>+1 Lumens</Text>
-      <Text style={styles.attributeChangeText}>Total {lumens} helping you seal the Void</Text>
+      <Text style={styles.attributeChangeText}>Total {displayLumens} helping you seal the Void</Text>
       
     </View>
   )

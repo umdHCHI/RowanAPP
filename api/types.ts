@@ -12,6 +12,29 @@ export interface ApiResponse<T> {
 }
 
 /**
+ * Attributes Response
+ */
+export interface AttributesResponse {
+  connection: number
+  courage: number
+  exploration: number
+  fear: number
+  experience?: number
+  lumens?: number
+  total_lumens?: number
+}
+
+/**
+ * Attributes Update Request
+ */
+export interface AttributesUpdateRequest {
+  connection?: number
+  courage?: number
+  exploration?: number
+  fear?: number
+}
+
+/**
  * API Error Response
  */
 export interface ApiError {
@@ -168,12 +191,14 @@ export const JournalEntryCreateSchema = z.object({
   prompt: z.number(),
   entry_type: z.string().min(1),
   content: z.string().min(1),
+  duration_seconds: z.number().nullable().optional(),
 })
 
 export const JournalEntryUpdateSchema = z.object({
   prompt: z.number().optional(),
   entry_type: z.string().min(1).optional(),
   content: z.string().min(1).optional(),
+  duration_seconds: z.number().nullable().optional(),
 })
 
 export const JournalEntryResponseSchema = z.object({

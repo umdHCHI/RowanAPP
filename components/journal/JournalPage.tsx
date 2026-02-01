@@ -6,7 +6,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ImageBackground,
   StyleSheet,
   Alert,
   TouchableOpacity,
@@ -16,7 +15,6 @@ import {
 } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useGameStore } from '@/stores/game-store'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useCreateJournalEntry, useUpdateJournalEntry, useJournalPrompts, useJournalEntryByPrompt } from '@/api/hooks/use-journal'
@@ -33,12 +31,14 @@ import { DrawingCanvas, type Stroke } from './DrawingCanvas'
 import { VoiceMemoRecorder } from './VoiceMemoRecorder'
 import type { JournalContent } from '@/types/journal'
 import { useHaptics } from '@/utils/useHaptics'
+import { StoryBackground } from '@/components/story/StoryBackground'
+import { Header } from '@/components/header'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 
 export function JournalPage() {
   const router = useRouter()
-  const searchParams = useLocalSearchParams<{ promptId?: string }>()
+  const searchParams = useLocalSearchParams<{ promptId?: string; from?: string }>()
   const insets = useSafeAreaInsets()
   const playPageFlipSound = usePageFlipSound()
   const scrollViewRef = useRef<ScrollView>(null)
@@ -50,6 +50,7 @@ export function JournalPage() {
   const [text, setText] = useState('')
   const [drawing, setDrawing] = useState<Stroke[]>([])
   const [audioUri, setAudioUri] = useState<string | null>(null)
+  const [audioDurationSeconds, setAudioDurationSeconds] = useState<number | null>(null)
   
   // UI state
   const [isSaved, setIsSaved] = useState(false)
@@ -83,14 +84,18 @@ export function JournalPage() {
     'voice': ['voice'],
   }
   
+  function getActivePromptsForMode(modeValue: ReflectionMode) {
+    return journalPrompts
+      .filter((prompt) => 
+        prompt.is_active && 
+        prompt.unlocked && 
+        modeToCategory[modeValue].includes(prompt.category.toLowerCase())
+      )
+      .sort((a, b) => a.order - b.order)
+  }
+
   // Get active and unlocked prompts filtered by category, sorted by order
-  const activePrompts = journalPrompts
-    .filter((prompt) => 
-      prompt.is_active && 
-      prompt.unlocked && 
-      modeToCategory[mode].includes(prompt.category.toLowerCase())
-    )
-    .sort((a, b) => a.order - b.order)
+  const activePrompts = getActivePromptsForMode(mode)
   
   // Get current prompt
   const currentPrompt = activePrompts[currentPromptIndex]
@@ -105,22 +110,25 @@ export function JournalPage() {
   // Handle promptId query parameter - find and set the prompt if it exists
   useEffect(() => {
     if (searchParams.promptId && journalPrompts.length > 0) {
-      const targetPromptIndex = activePrompts.findIndex((p) => p.prompt_id === searchParams.promptId)
+      const targetPrompt = journalPrompts.find((p) => p.prompt_id === searchParams.promptId)
+      if (!targetPrompt) return
+      
+      const promptCategory = targetPrompt.category.toLowerCase()
+      let nextMode: ReflectionMode = 'journal'
+      if (promptCategory === 'draw') nextMode = 'draw'
+      if (promptCategory === 'voice') nextMode = 'voice'
+
+      if (mode !== nextMode) {
+        setMode(nextMode)
+      }
+
+      const targetPrompts = getActivePromptsForMode(nextMode)
+      const targetPromptIndex = targetPrompts.findIndex((p) => p.prompt_id === searchParams.promptId)
       if (targetPromptIndex !== -1) {
         setCurrentPromptIndex(targetPromptIndex)
-        // Set mode based on the prompt's category
-        const promptCategory = activePrompts[targetPromptIndex].category.toLowerCase()
-        // Map API category to mode (API uses "journal" for writing prompts)
-        if (promptCategory === 'journal' || promptCategory === 'journal') {
-          setMode('journal')
-        } else if (promptCategory === 'draw') {
-          setMode('draw')
-        } else if (promptCategory === 'voice') {
-          setMode('voice')
-        }
       }
     }
-  }, [searchParams.promptId, journalPrompts, activePrompts])
+  }, [searchParams.promptId, journalPrompts, mode])
   
   // Reset prompt index when mode changes to show first prompt of new category
   useEffect(() => {
@@ -149,6 +157,7 @@ export function JournalPage() {
         setText(existingEntry.content)
         setDrawing([])
         setAudioUri(null)
+        setAudioDurationSeconds(null)
       } else if (mode === 'draw') {
         try {
           const parsed = JSON.parse(existingEntry.content)
@@ -163,6 +172,7 @@ export function JournalPage() {
         }
         setText('')
         setAudioUri(null)
+        setAudioDurationSeconds(null)
         // Scroll to response area when switching to draw mode
         setTimeout(() => {
           scrollToResponseArea()
@@ -175,6 +185,7 @@ export function JournalPage() {
         } else {
           setAudioUri(null)
         }
+        setAudioDurationSeconds(existingEntry.duration_seconds ?? null)
         setText('')
         setDrawing([])
       }
@@ -185,10 +196,12 @@ export function JournalPage() {
         setText('')
         setDrawing([])
         setAudioUri(null)
+        setAudioDurationSeconds(null)
       } else if (mode === 'draw') {
         setText('')
         setDrawing([])
         setAudioUri(null)
+        setAudioDurationSeconds(null)
         // Scroll to response area when switching to draw mode
         setTimeout(() => {
           scrollToResponseArea()
@@ -197,6 +210,7 @@ export function JournalPage() {
         setText('')
         setDrawing([])
         setAudioUri(null)
+        setAudioDurationSeconds(null)
       }
     }
   }, [existingEntry, currentPrompt, mode])
@@ -221,6 +235,10 @@ export function JournalPage() {
 
   function handleBack() {
     playPageFlipSound()
+    if (searchParams.from === 'story' || searchParams.from === 'resources') {
+      router.back()
+      return
+    }
     router.replace('/hub')
   }
 
@@ -326,6 +344,7 @@ export function JournalPage() {
           data: {
             content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
             entry_type: mode,
+            duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
           },
         })
         // Invalidate queries to refetch the entry
@@ -337,6 +356,7 @@ export function JournalPage() {
           prompt: currentPrompt.id,
           entry_type: mode,
           content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
+          duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
         })
         didSave = true
       }
@@ -375,6 +395,7 @@ export function JournalPage() {
               data: {
                 content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
                 entry_type: mode,
+                duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
               },
             })
             queryClient.invalidateQueries({ queryKey: journalKeys.all })
@@ -424,8 +445,12 @@ export function JournalPage() {
 
     // Handle navigation and reset based on whether this is the last prompt
     if (isLastPrompt) {
-      // Last prompt: Show confirmation, then navigate to hub
+      // Last prompt: Show confirmation, then navigate based on origin
       setTimeout(() => {
+        if (searchParams.from === 'story' || searchParams.from === 'resources') {
+          router.back()
+          return
+        }
         router.replace('/hub')
       }, 2500) // Give time to see confirmation and lumens reward
     } else {
@@ -435,6 +460,7 @@ export function JournalPage() {
         setText('')
         setDrawing([])
         setAudioUri(null)
+        setAudioDurationSeconds(null)
       }, 2000) // Show confirmation before resetting
     }
   }
@@ -452,7 +478,7 @@ export function JournalPage() {
 
     if (mode === 'draw') {
       return (
-        <View style={[styles.drawingContainer, { height: Math.min(420, SCREEN_HEIGHT * 0.42) }]}>
+        <View style={[styles.drawingContainer, { minHeight: Math.min(420, SCREEN_HEIGHT * 0.42) }]}>
           <DrawingCanvas 
             value={drawing} 
             onChange={setDrawing}
@@ -466,7 +492,12 @@ export function JournalPage() {
     if (mode === 'voice') {
       return (
         <View style={styles.voiceContainer}>
-          <VoiceMemoRecorder onSave={(uri) => setAudioUri(uri || null)} />
+          <VoiceMemoRecorder
+            onSave={({ uri, durationSeconds }) => {
+              setAudioUri(uri || null)
+              setAudioDurationSeconds(durationSeconds)
+            }}
+          />
         </View>
       )
     }
@@ -475,30 +506,8 @@ export function JournalPage() {
   }
 
   return (
-    <ImageBackground
-      source={require('../../assets/UI/hauntedlibrary.png')}
-      className="flex-1"
-      resizeMode="cover"
-    >
-      <View
-        className="absolute inset-0"
-        style={{ backgroundColor: 'rgba(21, 17, 31, 0.92)' }}
-      />
-      
-      <View className="flex-1" style={{ paddingTop: insets.top }}>
-        {/* Top Bar */}
-        <View className="flex-row justify-between items-center px-8 pb-8 pt-8 pr-4">
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <View style={styles.backButtonCircle}>
-              <MaterialCommunityIcons name="close" size={20} color="#ffffff" />
-            </View>
-          </TouchableOpacity>
-          
-    
-          
-          <View style={styles.topBarSpacer} />
-        </View>
-
+    <StoryBackground showOverlay={false}>
+      <View style={styles.root}>
         <KeyboardAvoidingView
           className="flex-1"
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -510,7 +519,7 @@ export function JournalPage() {
               className="flex-1"
               contentContainerStyle={[
                 styles.scrollContent,
-                { paddingBottom: insets.bottom + 180 },
+                { paddingTop: insets.top + 80, paddingBottom: insets.bottom + 180 },
               ]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -630,41 +639,31 @@ export function JournalPage() {
           </View>
         </KeyboardAvoidingView>
       </View>
-    </ImageBackground>
+
+      <Header
+        showMenu={false}
+        rightActions={[
+          {
+            icon: 'close',
+            onPress: handleBack,
+          },
+        ]}
+      />
+    </StoryBackground>
   )
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 16,
-  },
-  backButtonCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#15111f',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topBarLabel: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: 'rgba(255, 255, 255, 0.75)',
-  },
-  topBarSpacer: {
-    width: 40,
+  root: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: 20,
   },
   titleContainer: {
     alignItems: 'center',

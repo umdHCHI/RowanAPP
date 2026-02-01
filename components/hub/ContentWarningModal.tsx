@@ -64,14 +64,15 @@ export function ContentWarningModal({
                   <MaterialCommunityIcons name="alert" size={24} color="#fbbf24" />
                 </View>
                 <View style={styles.textContainer}>
-                  <Text variant="title" size={1}>
+                  <Text variant="title" size={2} color="#f8fafc">
                     Content Warning
                   </Text>
                   <ScrollView
                     style={styles.scrollView}
                     showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
                   >
-                    <Text variant="body" size={2} color="rgba(255, 255, 255, 0.9)" align="left">
+                    <Text variant="body" size={2} color="#e2e8f0" align="left">
                       {warningContent}
                     </Text>
                   </ScrollView>
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   backdropPressable: {
     position: 'absolute',
@@ -122,19 +123,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
+    width: '100%',
   },
   panel: {
     width: '100%',
     maxWidth: 500,
     borderRadius: 16,
-    backgroundColor: 'rgba(17, 17, 17, 0.9)',
+    backgroundColor: 'rgba(15, 23, 42, 0.98)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(148, 163, 184, 0.3)',
     overflow: 'hidden',
   },
   contentContainer: {
-    alignItems: 'center',
-    paddingVertical: 8,
+    alignItems: 'stretch',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -151,11 +155,14 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    gap: 8,
+    gap: 12,
   },
   scrollView: {
-    maxHeight: 200,
-    marginVertical: 8,
+    maxHeight: 240,
+    marginTop: 8,
+  },
+  scrollContent: {
+    paddingBottom: 8,
   },
   buttonContainer: {
     borderTopWidth: 1,

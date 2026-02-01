@@ -10,18 +10,30 @@ import {
 
 // Note: expo-audio replaces deprecated expo-av for audio recording
 
+interface VoiceMemoRecorderSavePayload {
+  uri: string
+  durationSeconds: number
+}
+
 interface VoiceMemoRecorderProps {
-  onSave: (audioUri: string) => void
+  onSave: (payload: VoiceMemoRecorderSavePayload) => void
 }
 
 export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
   const [recordedUri, setRecordedUri] = useState<string | null>(null)
 
+  function toDurationSeconds(durationMillis?: number) {
+    if (typeof durationMillis !== 'number' || Number.isNaN(durationMillis)) return 1
+    const seconds = Math.round(durationMillis / 1000)
+    return seconds > 0 ? seconds : 1
+  }
+
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {
     // Status listener - called when recording status changes
     if (status.isFinished && status.url) {
+      const durationSeconds = toDurationSeconds(status.durationMillis ?? recorderState.durationMillis)
       setRecordedUri(status.url)
-      onSave(status.url)
+      onSave({ uri: status.url, durationSeconds })
     }
   })
 
@@ -50,11 +62,13 @@ export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
       await recorder.stop()
       // The uri will be available via recorder.uri after stopping
       if (recorder.uri) {
+        const durationSeconds = toDurationSeconds(recorderState.durationMillis)
         setRecordedUri(recorder.uri)
-        onSave(recorder.uri)
+        onSave({ uri: recorder.uri, durationSeconds })
       } else if (recorderState.url) {
+        const durationSeconds = toDurationSeconds(recorderState.durationMillis)
         setRecordedUri(recorderState.url)
-        onSave(recorderState.url)
+        onSave({ uri: recorderState.url, durationSeconds })
       }
     } catch (error) {
       console.error('Error stopping recording:', error)

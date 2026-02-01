@@ -55,6 +55,7 @@ export {
 export {
   useAttributes,
   useUpdateAttributes,
+  useExperienceLumens,
   attributesKeys,
 } from './hooks/use-attributes'
 
