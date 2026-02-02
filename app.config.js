@@ -13,7 +13,13 @@ module.exports = {
   expo: {
     name: 'The Archive',
     slug: 'thearchive',
+    icon: './assets/splashscreen/Loading_Book.png',
     version: appVersion,
+    splash: {
+      image: './assets/splashscreen/Loading_Book.png',
+      resizeMode: 'contain',
+      backgroundColor: '#000000',
+    },
     assetBundlePatterns: [
       '**/*'
     ],
@@ -27,6 +33,7 @@ module.exports = {
     android: {
       adaptiveIcon: {
         backgroundColor: '#000000',
+        foregroundImage: './assets/splashscreen/Loading_Book.png',
       },
       package: 'com.thearchive.app',
     },
@@ -38,7 +45,7 @@ module.exports = {
         'expo-splash-screen',
         {
           backgroundColor: '#000000',
-          image: './assets/splashscreen/icon.png',
+          image: './assets/splashscreen/Loading_Book.png',
           resizeMode: 'contain',
           imageWidth: 200,
         },
@@ -46,7 +53,7 @@ module.exports = {
       [
         'expo-notifications',
         {
-          icon: './assets/splashscreen/icon.png',
+          assets: './assets/splashscreen/Loading_Book.png',
           color: '#000000',
           sounds: [],
         },

@@ -2,7 +2,7 @@ import { View, ScrollView, Text as RNText, StyleSheet, TouchableOpacity, Alert, 
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Header } from '@/components/header'
-import { GameButton } from '@/components/GameButton'
+import { Button } from '@/components/ui/Button'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { GameBackground } from '@/components/ui/GameBackground'
 
@@ -191,17 +191,18 @@ export default function About() {
         </View>
 
         <View style={styles.buttonContainer}>
-          <GameButton
-            normalImage={require('../assets/UI/buttons/blue/Button_05A_Normal.png')}
-            selectedImage={require('../assets/UI/buttons/blue/Button_05A_Pressed.png')}
-            pressedImage={require('../assets/UI/buttons/blue/Button_05A_Pressed.png')}
-            label="Return to Archive"
-            onPress={() => {
-              router.push('/hub')
-            }}
-            width={200}
-            height={50}
-          />
+            <Button
+            onPress={() => router.push('/hub')}
+            variant="primary"
+            size="default"
+            hapticType="light"
+            enableHaptics={true}
+            enableSound={true}
+            fullWidth={false}
+            disabled={false}
+          >
+            Return to Archive
+          </Button>
         </View>
       </ScrollView>
     </View>

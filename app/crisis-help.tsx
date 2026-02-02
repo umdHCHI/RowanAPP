@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Header } from '@/components/header'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
-import { GameButton } from '@/components/GameButton'
+import { Button } from '@/components/ui/Button'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { GameBackground } from '@/components/ui/GameBackground'
 
@@ -126,19 +126,18 @@ export default function CrisisHelp() {
         </View>
 
         <View style={styles.buttonContainer}>
-          <GameButton
-            normalImage={require('../assets/UI/buttons/blue/Button_05A_Normal.png')}
-            selectedImage={require('../assets/UI/buttons/blue/Button_05A_Pressed.png')}
-            pressedImage={require('../assets/UI/buttons/blue/Button_05A_Pressed.png')}
-            label="Return to Archive"
-            onPress={() => {
-              haptics.lightImpact()
-              playPageFlipSound()
-              router.push('/hub')
-            }}
-            width={200}
-            height={50}
-          />
+          <Button
+            onPress={() => router.push('/hub')}
+            variant="primary"
+            size="default"
+            hapticType="light"
+            enableHaptics={true}
+            enableSound={true}
+            fullWidth={false}
+            disabled={false}
+          >
+            Return to Archive
+          </Button>
         </View>
       </ScrollView>
     </View>

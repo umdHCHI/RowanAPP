@@ -153,10 +153,28 @@ export function StoryRewardMoment({
     }
   }
 
+  function getTitle() {
+    switch (type) {
+      case 'JOURNAL_REWARD':
+        return 'Tap to document this moment'
+      case 'MINIGAME':
+        return 'Tap to seal the Void'
+      case 'POWER':
+        return 'Tap to unlock a new power'
+      case 'ITEM':
+        return 'Tap to unlock a new item'
+      case 'ACTION_SCENE':
+        return null
+      case 'LUMENS':
+        return 'Lumens helping you seal the Void'
+      default:
+        return 'Tap to view the reward'
+    }
+  }
+
   const shouldShowImage = type === 'ACTION_SCENE' || type === 'LUMENS'
   const resolvedImageSource = imageSource || (type === 'LUMENS' ? DEFAULT_LUMENS_IMAGE : null)
   const isLumensReward = type === 'LUMENS' && typeof lumensAmount === 'number'
-  const displayTitle = isLumensReward ? `+${lumensAmount} Lumens` : title
 
   const content = (
     <Animated.View
@@ -211,7 +229,7 @@ export function StoryRewardMoment({
 
       {/* Title */}
       <RNText style={[styles.title, { color: primaryColor }]}>
-        {displayTitle}
+        {getTitle()}
       </RNText>
 
       {isLumensReward && (
