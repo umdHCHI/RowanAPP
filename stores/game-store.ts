@@ -63,20 +63,8 @@ export interface StoryData {
   is_repeatable: boolean
   created_at: string
   updated_at: string
-  chapters: StoryChapterData[]
-  chapter_count: number
+  passage_count?: number
   total_passages: number
-}
-
-export interface StoryChapterData {
-  id: number
-  title: string
-  chapter_number: number
-  is_starting_chapter: boolean
-  story_title: string
-  user_username: string
-  passage_count: number
-  created_at: string
 }
 
 export type TextSpeed = 'slow' | 'normal' | 'fast'

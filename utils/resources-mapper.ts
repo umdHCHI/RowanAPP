@@ -21,6 +21,10 @@ export interface StoryProgressItem {
   passages_visited: string[]
   passages_visited_count: number
   choices_made_count: number
+  choices_made?: Array<{
+    choice_id?: string | null
+    choice_text?: string | null
+  }>
   started_at: string
   last_played: string
   completed_at: string | null
@@ -36,12 +40,8 @@ export function formatDuration(minutes: number | undefined): string | undefined 
   return `${minutes} MIN READ`
 }
 
-export function formatStoryType(story: StoryResponse): string {
-  let type = story.category.toUpperCase()
-  if (story.difficulty) {
-    type = `${type} | ${story.difficulty.toUpperCase()}`
-  }
-  return type
+export function formatStoryType(_story: StoryResponse): string {
+  return 'STORY'
 }
 
 export function mapStoryToResourceItem(
@@ -72,9 +72,10 @@ export function mapStoriesToResourceItems(
 // -----------------------------------------------------------------------------
 
 export function mapEntryTypeToModality(
-  entryType: string
+  entryType?: string | null
 ): 'journal' | 'draw' | 'voice' | 'journal_reward' {
-  const normalized = entryType.toLowerCase()
+  if (!entryType) return 'journal'
+  const normalized = String(entryType ?? '').toLowerCase()
   if (normalized.includes('draw') || normalized.includes('drawing')) return 'draw'
   if (normalized.includes('voice') || normalized.includes('audio')) return 'voice'
   if (normalized.includes('reward')) return 'journal_reward'

@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useGameStore } from '@/stores/game-store'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
-import { useAuthActions, userService, useMyCharacter } from '@/api'
+import { useAuthActions, useMyCharacter } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useNotifications } from '@/hooks'
 import { useQueryClient } from '@tanstack/react-query'
@@ -84,12 +84,6 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
             router.replace('/login')
 
             void (async () => {
-              try {
-                await userService.logout()
-              } catch {
-                // ignore network/logout errors
-              }
-
               try {
                 await cancelAllNotifications()
               } catch {

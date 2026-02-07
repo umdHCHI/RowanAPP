@@ -15,8 +15,9 @@ interface HubPageProps {
 }
 
 export function HubPage({ card, isLast, onResourcePress, carouselHeight }: HubPageProps) {
+  const titleLower = String(card.title ?? '').toLowerCase()
   const isPrologue =
-    card.title.toLowerCase().includes('prologue') || card.title.toLowerCase() === 'prologue'
+    titleLower.includes('prologue') || titleLower === 'prologue'
   const showResources = !isPrologue && card.hasResources
 
   // Tall cards: use ~90% of carousel height to match design (long, prominent cards)

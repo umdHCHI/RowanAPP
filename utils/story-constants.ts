@@ -33,7 +33,7 @@ export const INTRODUCTION_STORY_ID = 12
  * Check if a choice text is a "Continue" choice
  */
 export function isContinueChoice(choiceText: string): boolean {
-  return choiceText.toLowerCase().includes('continue')
+  return String(choiceText ?? '').toLowerCase().includes('continue')
 }
 
 /**

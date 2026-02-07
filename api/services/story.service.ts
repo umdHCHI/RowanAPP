@@ -6,13 +6,25 @@ import type {
   StoryResponse,
   ApiResponse,
 } from '../types'
-import type { StoryChapter } from '../../types/story'
 
 /**
  * Story Service
  * Handles all story-related API calls
  */
 export const storyService = {
+  /**
+   * Start story with fallback to restart on 5xx/network
+   */
+  async startStoryWithFallback(storyId: number | string): Promise<any> {
+    try {
+      return await this.startStory(Number(storyId))
+    } catch (error: any) {
+      const status = error?.status ?? error?.response?.status
+      const shouldFallback = !status || status >= 500
+      if (!shouldFallback) throw error
+      return this.restartStory(Number(storyId))
+    }
+  },
   /**
    * Get current story progress
    */
@@ -52,6 +64,33 @@ export const storyService = {
   },
 
   /**
+   * Get progress for a specific story
+   */
+  async getStoryProgressByStoryId(
+    storyId: number | string
+  ): Promise<StoryProgressResponse | null> {
+    try {
+      const response = await apiClient.get<StoryProgressResponse>(
+        API_ENDPOINTS.STORY_PROGRESS_BY_ID(storyId),
+        {
+          suppressErrorLog: true,
+        }
+      )
+
+      if (response && typeof response === 'object' && 'data' in response) {
+        if (response.success && response.data) return response.data
+        if ('data' in response) return (response as ApiResponse<StoryProgressResponse>).data || null
+      }
+
+      return response as unknown as StoryProgressResponse
+    } catch (error: any) {
+      const status = error?.status ?? error?.response?.status
+      if (status === 404) return null
+      throw error
+    }
+  },
+
+  /**
    * Update story progress
    */
   async updateProgress(
@@ -61,23 +100,7 @@ export const storyService = {
   },
 
   /**
-   * Get a specific story chapter
-   * Note: This might return StoryChapter from your types or from the API
-   */
-  async getChapter(chapterId: number): Promise<ApiResponse<StoryChapter>> {
-    return apiClient.get<StoryChapter>(API_ENDPOINTS.STORY_CHAPTER(chapterId))
-  },
-
-  /**
-   * Get all available story chapters
-   */
-  async getAllChapters(): Promise<ApiResponse<StoryChapter[]>> {
-    return apiClient.get<StoryChapter[]>(API_ENDPOINTS.STORY)
-  },
-
-  /**
    * Get all stories from the backend
-   * This endpoint returns the full story data with chapters
    * Note: The backend may return a direct array or wrapped in ApiResponse
    */
   async getAllStories(): Promise<StoryResponse[]> {
@@ -122,18 +145,37 @@ export const storyService = {
   },
 
   /**
+   * Start a story on the backend to create progress and get the starting passage
+   * POST /story/stories/{id}/start/
+   */
+  async startStory(storyId: number): Promise<any> {
+    const url = `/story/stories/${storyId}/start/`
+
+    const response = await apiClient.post<any>(url, {}, {
+      skipVersion: true,
+    })
+
+    // Handle both wrapped (ApiResponse) and direct responses
+    if (response && typeof response === 'object') {
+      if ('data' in response) {
+        return response.data
+      }
+      if ('passage' in response || 'story' in response || 'starting_passage_id' in response) {
+        return response
+      }
+    }
+
+    return response
+  },
+
+  /**
    * Restart a story on the backend to (re)create progress and get starting passage
    * Mirrors restartStory logic from the thesis app (POST /story/stories/{id}/restart/)
    */
-  async restartStory(
-    storyId: number,
-    chapterId?: number
-  ): Promise<{ starting_passage: string }> {
-    const payload = chapterId ? { chapter_id: chapterId } : {}
-    let url = `/story/stories/${storyId}/restart/`
-    if (chapterId) url = `/story/stories/${storyId}/restart/?chapter_id=${chapterId}`
+  async restartStory(storyId: number): Promise<any> {
+    const url = `/story/stories/${storyId}/restart/`
 
-    const response = await apiClient.post<{ starting_passage: string }>(url, payload, {
+    const response = await apiClient.post<any>(url, {}, {
       skipVersion: true,
     })
     
@@ -153,7 +195,7 @@ export const storyService = {
 
   /**
    * Fetch a specific passage for a story
-   * Backend returns { story, chapter_title, passage, progress, ... }
+   * Backend returns { story, passage, progress, ... }
    */
   async getPassage(storyId: number, passageId: string): Promise<any> {
     const url = `/story/stories/${storyId}/passage/${passageId}/`
@@ -174,21 +216,82 @@ export const storyService = {
   },
 
   /**
+   * Fetch all passages for a story
+   * GET /story/passages/?story_id={storyId}
+   */
+  async getStoryPassages(storyId: number | string): Promise<any[]> {
+    const query = storyId ? `?story_id=${encodeURIComponent(String(storyId))}` : ''
+    const url = `/story/passages/${query}`
+    let nextUrl: string | null = url
+    const allPassages: any[] = []
+
+    while (nextUrl) {
+      const response = await apiClient.get<any>(nextUrl, { skipVersion: true } as any) as any
+
+      if (Array.isArray(response)) {
+        allPassages.push(...response)
+        break
+      }
+
+      if (response && typeof response === 'object') {
+        if ('results' in response && Array.isArray((response as any).results)) {
+          allPassages.push(...(response as any).results)
+          nextUrl = (response as any).next || null
+          continue
+        }
+        if ('data' in response && Array.isArray(response.data)) {
+          allPassages.push(...response.data)
+          break
+        }
+      }
+
+      break
+    }
+
+    return allPassages
+  },
+
+  /**
+   * Fetch choices for a passage (passage PK)
+   * GET /story/passages/{passagePk}/choices/
+   */
+  async getPassageChoices(passagePk: string | number): Promise<any[]> {
+    const url = `/story/passages/${passagePk}/choices/`
+    const response = await apiClient.get<any>(url, { skipVersion: true } as any)
+
+    if (Array.isArray(response)) {
+      return response
+    }
+
+    if (response && typeof response === 'object') {
+      if ('data' in response && Array.isArray(response.data)) {
+        return response.data
+      }
+      if ('results' in response && Array.isArray((response as any).results)) {
+        return (response as any).results
+      }
+    }
+
+    return []
+  },
+
+  /**
    * Make a choice in the story and get the next passage state back
    * Mirrors makeChoice logic from the thesis app (POST story/make_choice/)
    */
   async makeChoice(
     storyId: number | string,
     targetPassageId: string,
+    choiceText?: string,
     additionalPayload?: Record<string, unknown>
   ): Promise<any> {
     const payload = {
-      story_id: storyId,
       target_passage_id: targetPassageId,
+      choice_text: choiceText,
       ...(additionalPayload || {}),
     }
 
-    const response = await apiClient.post<any>('/story/make_choice/', payload, {
+    const response = await apiClient.post<any>(`/story/stories/${storyId}/make-choice/`, payload, {
       skipVersion: true,
     })
     
@@ -206,75 +309,4 @@ export const storyService = {
     return response
   },
 
-  /**
-   * Get all chapters for a specific story
-   * Mirrors getChapters logic from the thesis app (GET /story/stories/{id}/chapters/)
-   */
-  async getChapters(storyId: number | string): Promise<any[]> {
-    const url = `/story/stories/${storyId}/chapters/`
-    const response = await apiClient.get<any[]>(url, { skipVersion: true } as any)
-    
-    // Handle both wrapped (ApiResponse) and direct responses
-    if (response && typeof response === 'object') {
-      if (Array.isArray(response)) {
-        return response
-      }
-      if ('data' in response && Array.isArray(response.data)) {
-        return response.data
-      }
-    }
-    
-    return []
-  },
-
-  /**
-   * Get all passages for a specific chapter
-   * Mirrors getChapterPassages logic from the thesis app (GET /story/stories/{id}/chapters/{chapterId}/passages/)
-   */
-  async getChapterPassages(
-    storyId: number | string,
-    chapterId: number
-  ): Promise<any[]> {
-    const url = `/story/stories/${storyId}/chapters/${chapterId}/passages/`
-    const response = await apiClient.get<any[]>(url, { skipVersion: true } as any)
-    
-    // Handle both wrapped (ApiResponse) and direct responses
-    if (response && typeof response === 'object') {
-      if (Array.isArray(response)) {
-        return response
-      }
-      if ('data' in response && Array.isArray(response.data)) {
-        return response.data
-      }
-    }
-    
-    return []
-  },
-
-  /**
-   * Restart a specific chapter
-   * Mirrors restartChapter logic from the thesis app (POST /story/stories/{id}/restart/?chapter_id={chapterId})
-   */
-  async restartChapter(
-    storyId: number | string,
-    chapterId: number
-  ): Promise<{ starting_passage: string }> {
-    const url = `/story/stories/${storyId}/restart/?chapter_id=${chapterId}`
-    const response = await apiClient.post<{ starting_passage: string }>(url, {}, {
-      skipVersion: true,
-    })
-    
-    // Handle both wrapped (ApiResponse) and direct responses
-    if (response && typeof response === 'object') {
-      if ('data' in response) {
-        return response.data
-      }
-      // If it's already the data structure we expect, return it directly
-      if ('starting_passage' in response) {
-        return response
-      }
-    }
-    
-    return response
-  },
 }

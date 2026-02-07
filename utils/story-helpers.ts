@@ -79,11 +79,31 @@ export function normalizeChoices(choices: any[]): StoryChoice[] {
     return []
   }
 
-  return choices.map((choice: any) => ({
-    id: choice.id || choice.choice_id,
-    text: choice.text || choice.choice_text || choice.label,
-    target_id: choice.target_id || choice.target_passage_id || choice.target,
-  }))
+  return choices
+    .map((choice: any) => {
+      const text = choice.text || choice.choice_text || choice.label || ''
+      const rawTargetId = choice.target_id || choice.target_passage_id || choice.target || ''
+      const nextPassageId = choice?.next_passage_info?.passage_id || ''
+      const successPassageId = choice?.success_passage_id || ''
+      const failurePassageId = choice?.failure_passage_id || ''
+      const primaryTarget = String(rawTargetId).trim()
+      const fallbackTargets = [
+        String(nextPassageId).trim(),
+        String(successPassageId).trim(),
+        String(failurePassageId).trim(),
+      ].filter((id) => id.length > 0)
+      const isNumericOnly = /^\d+$/.test(primaryTarget)
+      const isSameAsChoiceId =
+        typeof choice?.id !== 'undefined' && String(choice.id).trim() === primaryTarget
+      const shouldFallback = !primaryTarget || isNumericOnly || isSameAsChoiceId
+      const targetId = shouldFallback ? fallbackTargets[0] || '' : primaryTarget
+      return {
+        id: choice.id || choice.choice_id,
+        text: String(text).trim(),
+        target_id: String(targetId).trim(),
+      }
+    })
+    .filter((choice) => choice.target_id.length > 0)
 }
 
 /**
@@ -161,7 +181,7 @@ export function getJournalEntryRewardFromPassage(passage: any, primaryTrait?: st
 
   // object keyed by trait form
   if (je && typeof je === 'object' && !Array.isArray(je) && primaryTrait) {
-    const key = primaryTrait.toLowerCase().trim()
+    const key = String(primaryTrait ?? '').toLowerCase().trim()
     const id = je[key]
     if (typeof id === 'string') {
       return { kind: 'journal_entry', journalEntryId: id, sourcePassageId: passage?.passage_id ?? passage?.id }
@@ -266,7 +286,7 @@ export function normalizeSpeakerName(speakerName: string | null | undefined): st
   if (!speakerName) return null
   
   // Check if speaker name starts with "Cur" (case-insensitive)
-  if (speakerName.trim().toLowerCase().startsWith('cur')) {
+  if (String(speakerName ?? '').trim().toLowerCase().startsWith('cur')) {
     return 'The Curator'
   }
   
@@ -319,134 +339,35 @@ export function isIntroductionStory(storyId: string | number): boolean {
 }
 
 /**
- * Find the starting chapter from a list of chapters
- */
-export function findStartingChapter(chapters: any[]) {
-  if (!chapters || chapters.length === 0) return null
-
-  // Find the starting chapter (is_starting_chapter: true) or the first chapter by chapter_number
-  const startingChapter =
-    chapters.find((ch: any) => ch.is_starting_chapter) ||
-    chapters.sort((a: any, b: any) => (a.chapter_number || 0) - (b.chapter_number || 0))[0]
-
-  return startingChapter || null
-}
-
-/**
  * Get starting passage ID for a story
  */
 export async function getStartingPassageId(
-  storyId: string | number,
-  chapterId?: number
+  storyId: string | number
 ): Promise<{
   startingPassageId: string
-  chapterTitle?: string
-  chapterNumber?: number
 }> {
-  const isIntro = isIntroductionStory(storyId)
   const retryDelay = getRetryDelay()
 
-  // If chapterId is provided, use it directly
-  if (chapterId) {
-    try {
-      const restartResponse = await retryApiCall(
-        () => storyService.restartStory(Number(storyId), chapterId),
-        DEFAULT_MAX_RETRIES,
-        retryDelay
-      )
+  const restartResponse = await retryApiCall(
+    () => storyService.restartStory(Number(storyId)),
+    DEFAULT_MAX_RETRIES,
+    retryDelay
+  )
 
-      if (restartResponse.starting_passage) {
-        // Get chapter info for title
-        const chapters = await retryApiCall(
-          () => storyService.getChapters(storyId),
-          DEFAULT_MAX_RETRIES,
-          retryDelay
-        ).catch(() => null)
+  const startingPassageId =
+    restartResponse?.starting_passage ||
+    restartResponse?.starting_passage_id ||
+    restartResponse?.story?.starting_passage_id ||
+    restartResponse?.story?.starting_passage ||
+    restartResponse?.passage?.passage_id ||
+    restartResponse?.passage?.id
 
-        const currentChapter = chapters?.find((ch: any) => ch.id === chapterId)
-        return {
-          startingPassageId: restartResponse.starting_passage,
-          chapterTitle: currentChapter?.title,
-          chapterNumber: currentChapter?.chapter_number,
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to restart story ${storyId} with chapter ${chapterId}:`, error)
-    }
+  if (!startingPassageId) {
+    throw new Error('Story restart did not provide a starting passage ID.')
   }
 
-  // Try to find the first chapter if no chapterId provided
-  if (!chapterId && !isIntro) {
-    try {
-      const chapters = await retryApiCall(
-        () => storyService.getChapters(storyId),
-        DEFAULT_MAX_RETRIES,
-        retryDelay
-      )
-
-      const startingChapter = findStartingChapter(chapters)
-      if (startingChapter) {
-        const actualChapterId = startingChapter.id
-        const restartResponse = await retryApiCall(
-          () => storyService.restartStory(Number(storyId), actualChapterId),
-          DEFAULT_MAX_RETRIES,
-          retryDelay
-        )
-
-        if (restartResponse.starting_passage) {
-          return {
-            startingPassageId: restartResponse.starting_passage,
-            chapterTitle: startingChapter.title,
-            chapterNumber: startingChapter.chapter_number,
-          }
-        }
-      }
-    } catch (error) {
-      console.log(`Could not fetch chapters for story ${storyId}, using standard story flow`)
-    }
-  }
-
-  // Use standard story flow
-  if (isIntro && chapterId) {
-    // For Introduction story with chapters, use restartChapter
-    const restartResponse = await retryApiCall(
-      () => storyService.restartChapter(Number(storyId), chapterId),
-      DEFAULT_MAX_RETRIES,
-      retryDelay
-    )
-
-    if (!restartResponse.starting_passage) {
-      throw new Error('Chapter restart did not provide a starting passage ID.')
-    }
-
-    // Fetch chapter info
-    const chapters = await retryApiCall(
-      () => storyService.getChapters(storyId),
-      DEFAULT_MAX_RETRIES,
-      retryDelay
-    )
-
-    const currentChapter = chapters.find((ch: any) => ch.id === chapterId)
-    return {
-      startingPassageId: restartResponse.starting_passage,
-      chapterTitle: currentChapter?.title,
-      chapterNumber: currentChapter?.chapter_number,
-    }
-  } else {
-    // For stories without chapters, use the standard restart flow
-    const restartResponse = await retryApiCall(
-      () => storyService.restartStory(Number(storyId)),
-      DEFAULT_MAX_RETRIES,
-      retryDelay
-    )
-
-    if (!restartResponse.starting_passage) {
-      throw new Error('Story restart did not provide a starting passage ID.')
-    }
-
-    return {
-      startingPassageId: restartResponse.starting_passage,
-    }
+  return {
+    startingPassageId: String(startingPassageId),
   }
 }
 
@@ -454,34 +375,10 @@ export async function getStartingPassageId(
  * Normalize passage state from API response
  * Backend already provides speaker_image, speaker_name, passage_type, passage_id
  */
-export function normalizePassageState(state: any, chapterTitle?: string, chapterNumber?: number) {
+export function normalizePassageState(state: any) {
   // Normalize choices
   if (state.passage?.choices && Array.isArray(state.passage.choices)) {
     state.passage.choices = normalizeChoices(state.passage.choices)
-  }
-
-  // Debug: Log passage data for action and decision types to see what fields are available
-  if (__DEV__ && state.passage) {
-    const passage = state.passage
-    if (passage.passage_type === 'action' || passage.passage_type === 'decision') {
-      console.log(`[normalizePassageState] ${passage.passage_type} passage:`, {
-        passage_id: passage.passage_id,
-        passage_type: passage.passage_type,
-        speaker_image: passage.speaker_image,
-        speaker_name: passage.speaker_name,
-        speaker: passage.speaker,
-        // Log all keys to see what else might be available
-        allKeys: Object.keys(passage),
-      })
-    }
-  }
-
-  // Override chapter info if provided
-  if (chapterTitle !== undefined) {
-    state.chapter_title = chapterTitle
-  }
-  if (chapterNumber !== undefined) {
-    state.chapter_number = chapterNumber
   }
 
   return state

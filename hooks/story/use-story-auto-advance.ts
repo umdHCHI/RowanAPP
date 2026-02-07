@@ -1,5 +1,5 @@
-import { useEffect, useCallback } from 'react'
-import { AUTO_ADVANCE_SPEED, isContinueChoice } from '@/utils/story-constants'
+import { useEffect } from 'react'
+import { AUTO_ADVANCE_SPEED } from '@/utils/story-constants'
 import type { UseStoryAutoAdvanceProps } from '@/types/hooks'
 
 /**
@@ -16,9 +16,12 @@ export function useStoryAutoAdvance({
 }: UseStoryAutoAdvanceProps) {
   useEffect(() => {
     if (hasChoices && !isLoading && currentPassage && !isPaused) {
-      const continueChoice = choices.find((choice) => isContinueChoice(choice.text))
+      const singleChoice = choices.length === 1 ? choices[0] : null
+      const autoChoice = singleChoice
+      const targetId = autoChoice?.target_id?.trim() ?? ''
+      const hasValidTarget = targetId.length > 0 && targetId !== 'minigame'
 
-      if (continueChoice) {
+      if (autoChoice && hasValidTarget) {
         const contentLength = currentPassage.content?.length || 0
         // Estimate word count: average English word is ~5 characters (including space)
         const estimatedWordCount = Math.max(1, Math.ceil(contentLength / 5))
@@ -27,7 +30,7 @@ export function useStoryAutoAdvance({
         const delay = Math.min(Math.max(estimatedWordCount * wordDelay, minDelay), maxDelay)
 
         const timer = setTimeout(() => {
-          onAutoAdvance(continueChoice)
+          onAutoAdvance(autoChoice)
         }, delay)
 
         return () => clearTimeout(timer)

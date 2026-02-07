@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useStoryEngine, useStoryHistory, useStoryAutoAdvance } from '@/hooks'
+import { useStoryAutoAdvance, useStoryEngine, useStoryHistory } from '@/hooks'
 import { useStoryMusic } from '@/utils/useStoryMusic'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
@@ -20,12 +20,17 @@ import type { StoryChoice } from '@/types/story'
 
 interface StoryPageProps {
   storyId: string | number
-  chapterId?: number
   isIntroduction?: boolean
   isActive?: boolean
+  shouldRestart?: boolean
 }
 
-export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive = true }: StoryPageProps) {
+export function StoryPage({
+  storyId,
+  isIntroduction = false,
+  isActive = true,
+  shouldRestart = false,
+}: StoryPageProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
@@ -39,9 +44,9 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
     choices,
     isEnding,
     hasChoices,
-    chapterTitle,
+    storyTitle,
     makeChoice: makeEngineChoice,
-  } = useStoryEngine({ storyId, chapterId })
+  } = useStoryEngine({ storyId, shouldRestart })
 
   // Track if route is focused (to prevent music playing when navigating away)
   const [isRouteFocused, setIsRouteFocused] = React.useState(true)
@@ -271,6 +276,10 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
         return
       }
       
+      if (!choice.target_id || choice.target_id.trim().length === 0) {
+        return
+      }
+
       addChoice(choice)
       
       // Check if this is a choice in an ending passage
@@ -301,27 +310,6 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
     [makeEngineChoice, playPageFlipSound, haptics, addChoice, isEnding, currentPassage, router]
   )
 
-  // Handle auto-advance (without sound - automatic)
-  const handleAutoAdvance = useCallback(
-    async (choice: StoryChoice) => {
-      // No sound or haptics for auto-advance
-      addChoice(choice)
-      await makeEngineChoice(choice)
-    },
-    [makeEngineChoice, addChoice]
-  )
-
-  // Auto-advance "Continue" choices (without sound)
-  useStoryAutoAdvance({
-    hasChoices,
-    isLoading,
-    currentPassage,
-    choices,
-    textSpeed,
-    isPaused,
-    onAutoAdvance: handleAutoAdvance,
-  })
-
   // Check if current passage has minigame option enabled
   const hasMinigame = currentPassage ? hasMinigameOption(currentPassage) : false
 
@@ -343,6 +331,17 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
   }, [choices, minigameChoice])
 
   const hasAnyChoices = allChoices.length > 0
+  const hasMultipleChoices = allChoices.length > 1
+
+  useStoryAutoAdvance({
+    hasChoices: hasAnyChoices,
+    isLoading,
+    currentPassage,
+    choices: allChoices,
+    textSpeed,
+    isPaused,
+    onAutoAdvance: handleChoice,
+  })
 
   // Check if current passage is ending type
   const hasEndingPassage =
@@ -357,18 +356,18 @@ export function StoryPage({ storyId, chapterId, isIntroduction = false, isActive
 
       <View style={styles.mainContainer}>
         <StoryContent
-          chapterTitle={chapterTitle}
+          storyTitle={storyTitle}
           history={history}
           currentPassage={currentPassage}
           error={error}
           isLoading={isLoading}
           isEnding={isEnding}
-          hasChoices={hasAnyChoices}
+          hasChoices={hasMultipleChoices}
           storyId={storyId}
         />
 
-        {/* Choice buttons at bottom - show even for endings if there are choices */}
-        {hasAnyChoices && (
+        {/* Choice buttons at bottom - only show if multiple choices */}
+        {hasMultipleChoices && (
           <StoryChoices choices={allChoices} onChoicePress={handleChoice} />
         )}
 

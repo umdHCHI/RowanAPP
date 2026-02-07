@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { storyService } from '../services/story.service'
 import type { StoryProgressResponse, StoryProgressUpdateRequest, StoryResponse } from '../types'
-import type { StoryChapter } from '../../types/story'
 
 /**
  * Query Keys
@@ -9,9 +8,10 @@ import type { StoryChapter } from '../../types/story'
 export const storyKeys = {
   all: ['story'] as const,
   progress: () => [...storyKeys.all, 'progress'] as const,
-  chapters: () => [...storyKeys.all, 'chapters'] as const,
-  chapter: (id: number) => [...storyKeys.chapters(), id] as const,
+  progressByStory: (storyId: number | string) => [...storyKeys.all, 'progress', storyId] as const,
   stories: () => [...storyKeys.all, 'stories'] as const,
+  passageChoices: (passagePk: number | string | null) =>
+    [...storyKeys.all, 'passage-choices', passagePk] as const,
 }
 
 /**
@@ -32,6 +32,21 @@ export function useStoryProgress() {
 }
 
 /**
+ * Get progress for a specific story
+ */
+export function useStoryProgressByStoryId(storyId: number | string | null) {
+  return useQuery({
+    queryKey: storyId ? storyKeys.progressByStory(storyId) : storyKeys.progress(),
+    queryFn: async () => {
+      if (!storyId) return null
+      return storyService.getStoryProgressByStoryId(storyId)
+    },
+    enabled: !!storyId,
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+/**
  * Update story progress
  */
 export function useUpdateStoryProgress() {
@@ -48,42 +63,6 @@ export function useUpdateStoryProgress() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: storyKeys.progress() })
     },
-  })
-}
-
-/**
- * Get all story chapters
- */
-export function useStoryChapters() {
-  return useQuery({
-    queryKey: storyKeys.chapters(),
-    queryFn: async () => {
-      const response = await storyService.getAllChapters()
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch story chapters')
-      }
-      return response.data
-    },
-    staleTime: 10 * 60 * 1000, // 10 minutes (chapters don't change often)
-  })
-}
-
-/**
- * Get a specific story chapter
- */
-export function useStoryChapter(chapterId: number | null) {
-  return useQuery({
-    queryKey: storyKeys.chapter(chapterId!),
-    queryFn: async () => {
-      if (chapterId === null) throw new Error('Chapter ID is required')
-      const response = await storyService.getChapter(chapterId)
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch story chapter')
-      }
-      return response.data
-    },
-    enabled: chapterId !== null,
-    staleTime: 10 * 60 * 1000,
   })
 }
 
@@ -114,5 +93,20 @@ export function useStoryPassage(storyId: number | null, passageId: string | null
     },
     enabled: !!storyId && !!passageId,
     staleTime: 10 * 60 * 1000, // 10 minutes (passages don't change)
+  })
+}
+
+/**
+ * Get choices for a specific passage (passage PK)
+ */
+export function usePassageChoices(passagePk: number | string | null) {
+  return useQuery({
+    queryKey: storyKeys.passageChoices(passagePk),
+    queryFn: async () => {
+      if (!passagePk) throw new Error('Passage ID is required')
+      return storyService.getPassageChoices(passagePk)
+    },
+    enabled: !!passagePk,
+    staleTime: 5 * 60 * 1000,
   })
 }

@@ -14,18 +14,18 @@ interface StoryInformationCardProps {
  */
 export function StoryInformationCard({ story, progress }: StoryInformationCardProps) {
   // Determine label based on category
-  const isIntroduction = story.title.toLowerCase().includes('introduction')
-  const label = story.category === 'main' 
-    ? (isIntroduction ? 'INTRODUCTION' : `STORY ${story.id}`)
-    : story.category.toUpperCase()
+  const titleLower = String(story.title ?? '').toLowerCase()
+  const isIntroduction = titleLower.includes('introduction')
+  const label = isIntroduction ? 'INTRODUCTION' : `STORY ${story.id}`
 
   // Calculate NPC interactions from choices (count choices that involve NPCs like The Curator)
   const npcInteractions = useMemo(() => {
-    if (!progress?.choices_made) return 0
+    const choices = progress?.choices_made ?? []
+    if (!choices.length) return 0
     // Count choices that involve NPC interactions (e.g., curator, dialogue choices)
-    return progress.choices_made.filter(choice => {
-      const choiceId = choice.choice_id.toLowerCase()
-      const choiceText = choice.choice_text.toLowerCase()
+    return choices.filter((choice) => {
+      const choiceId = String(choice.choice_id ?? '').toLowerCase()
+      const choiceText = String(choice.choice_text ?? '').toLowerCase()
       // Check for NPC-related choice IDs or text
       return choiceId.includes('curator') || 
              choiceId.includes('npc') || 

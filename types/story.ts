@@ -50,7 +50,7 @@ export interface StoryCardConfig {
   title: string
   subtitle: string
   tagline: string
-  chapterId: number
+  storyId: number
 }
 
 /**
@@ -76,23 +76,6 @@ export interface StoryDialogue {
   speaker: 'curator' | 'narrator' | 'player'
   text: string
   curatorEmotion?: 'default' | 'excited' | 'talking' | 'tired' | 'winking' | 'stretch' | 'pawup'
-}
-
-/**
- * Legacy Story Chapter (kept for backwards compatibility)
- */
-export interface StoryChapter {
-  id: number
-  title: string
-  dialogues: StoryDialogue[]
-  choices?: LegacyStoryChoice[]
-  voidClarity: number // 0-100, affects visual clarity
-  equipmentReward?: {
-    id: string
-    name: string
-    type: 'weapon' | 'armor' | 'helmet' | 'boots'
-    imagePath: string
-  }
 }
 
 export interface StoryBackgroundProps {

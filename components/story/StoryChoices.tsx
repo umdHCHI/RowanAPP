@@ -3,7 +3,6 @@ import { View, Text as RNText, TouchableOpacity, StyleSheet, ScrollView, Dimensi
 import { BlurView } from 'expo-blur'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { StoryChoice } from '@/types/story'
-import { isContinueChoice } from '@/utils/story-constants'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LAYOUT } from './story-theme'
 
 interface StoryChoicesProps {
@@ -15,8 +14,8 @@ export function StoryChoices({ choices, onChoicePress }: StoryChoicesProps) {
   const insets = useSafeAreaInsets()
   const screenHeight = Dimensions.get('window').height
   
-  // Filter out "Continue" choices
-  const visibleChoices = choices.filter((choice) => !isContinueChoice(choice.text))
+  // Filter out empty target ids
+  const visibleChoices = choices.filter((choice) => choice.target_id?.trim().length > 0)
 
   if (visibleChoices.length === 0) {
     return null

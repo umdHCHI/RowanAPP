@@ -2,7 +2,6 @@ import { apiClient } from '../client'
 import { API_ENDPOINTS } from '../constants'
 import type {
   ApiResponse,
-  UserCreateRequest,
   UserFullProfileResponse,
   UserResponse,
   UserUpdateRequest,
@@ -52,80 +51,21 @@ export const userService = {
   /**
    * Login user and get DRF Token authentication
    * Returns token and user data
-   * Backend endpoint: auth/login/
+   * Backend endpoint: users/auth/login/
    * Auth format: Authorization: Token <token>
    */
-  async login(email: string, password: string): Promise<ApiResponse<{ token: string; user: UserResponse }>> {
+  async login(
+    username: string,
+    password: string
+  ): Promise<ApiResponse<{ token: string; user: UserResponse }>> {
     const body = {
-      // Backend commonly expects "username" for login. Some setups accept "email".
-      username: email,
-      email,
+      username,
       password,
     }
 
-    // Prefer /api/auth/login/ (most of your app lives under /api/)
     const loginOpts = { skipAuth: true, suppressErrorLog: true as const }
-    try {
-      const raw = await apiClient.post<unknown>(
-        API_ENDPOINTS.USER_LOGIN,
-        body,
-        { ...loginOpts, useRootBase: false }
-      )
-      return normalizeLoginResponse(raw)
-    } catch (error: any) {
-      if (error?.status !== 404) throw error
-
-      const raw = await apiClient.post<unknown>(
-        API_ENDPOINTS.USER_LOGIN,
-        body,
-        { ...loginOpts, useRootBase: true }
-      )
-      return normalizeLoginResponse(raw)
-    }
-  },
-
-  /**
-   * Logout current user (best-effort)
-   * Backend typically invalidates the current token.
-   * 
-   * Note: Logout is primarily about clearing local auth state.
-   * If the backend endpoint doesn't exist (404) or fails, we still succeed
-   * to allow users to log out locally. Error logs are suppressed for expected 404s.
-   */
-  async logout(): Promise<ApiResponse<null>> {
-    // Try root-mounted auth (/auth/logout/) first, then fallback to /api/auth/logout/
-    // If both fail (especially 404), we still succeed since logout is primarily local.
-    // Suppress error logs for expected 404s to avoid log spam.
-    const attempts = [
-      { useRootBase: true },
-      { useRootBase: false },
-    ]
-
-    for (const attempt of attempts) {
-      try {
-        const raw = await apiClient.post<unknown>(
-          API_ENDPOINTS.USER_LOGOUT,
-          undefined,
-          { skipAuth: false, suppressErrorLog: true, ...attempt }
-        )
-
-        if (raw && typeof raw === 'object' && 'success' in (raw as any)) return raw as ApiResponse<null>
-        return { success: true, data: null }
-      } catch (error: any) {
-        // If it's a 404, try the next attempt (different base URL)
-        if (error?.status === 404 && attempt === attempts[0]) {
-          continue // Try next attempt
-        }
-        
-        // For any other error on the first attempt, or 404 on the second attempt,
-        // or any non-404 error: silently succeed (logout is primarily local)
-        // Error logs are already suppressed via suppressErrorLog option
-        return { success: true, data: null }
-      }
-    }
-
-    // If we get here, both attempts were skipped somehow - still succeed
-    return { success: true, data: null }
+    const raw = await apiClient.post<unknown>(API_ENDPOINTS.USER_LOGIN, body, loginOpts)
+    return normalizeLoginResponse(raw)
   },
 
   /**
@@ -168,13 +108,6 @@ export const userService = {
     // Cast to bypass TypeScript since we know the actual shape
     const profile = raw as unknown as UserFullProfileResponse
     return profile
-  },
-
-  /**
-   * Create a new user
-   */
-  async create(data: UserCreateRequest): Promise<ApiResponse<UserResponse>> {
-    return apiClient.post<UserResponse>(API_ENDPOINTS.USER_CREATE, data)
   },
 
   /**

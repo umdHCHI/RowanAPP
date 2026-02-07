@@ -50,7 +50,7 @@ export function JournalStatsCard({ entries }: JournalStatsCardProps) {
   const formatEntryType = (type: string | null): string => {
     if (!type) return 'N/A'
     
-    switch (type.toLowerCase()) {
+    switch (String(type ?? '').toLowerCase()) {
       case 'journal':
         return 'Journal'
       case 'draw':

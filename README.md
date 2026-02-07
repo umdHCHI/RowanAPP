@@ -10,7 +10,7 @@ Due to APK 55 upgrade AND EAS prod builds Expo Go will no longer be supported on
 
 ###  Core Gameplay - Mimics What we had before
 - **Character Creation**: Create your unique avatar to journey through The Archive
-- **Story Progression**: Three chapters are currently added this this application. One is a tutorial showing the player how to play and how the buttons work. The next two are story chapters only. Story one introduces the Library and Fractures that happen with a monster. The Curator helps explain this. Second Story starts the player in the employee lounge of the library and weird things start to occur. Mini game will proc. 
+- **Story Progression**: Stories now flow passage-to-passage (Story → Passage → Choice → Passage). The introduction teaches the player how the buttons work, then the main stories introduce the Library and the Fractures. A mini game can trigger during the second story in the employee lounge.
 - **Choice-Based Narrative**: Make decisions that affect your lumens(expierence) and story progression. Lumens either provide unlocks or slowly light up the background. 
 
 

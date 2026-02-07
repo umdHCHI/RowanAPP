@@ -10,13 +10,13 @@ import type { StoryData } from '@/stores/game-store'
  * Check if a story is the Introduction story
  */
 function isIntroductionStory(story: StoryData): boolean {
-  const titleLower = story.title.toLowerCase()
+  const titleLower = String(story.title ?? '').toLowerCase()
   return titleLower.includes('introduction') || titleLower === 'introduction'
 }
 
 export default function Story() {
   useRequireAuth() // Redirects to login if not authenticated
-  const params = useLocalSearchParams<{ storyId?: string }>()
+  const params = useLocalSearchParams<{ storyId?: string; restart?: string }>()
   const { data: stories, isLoading } = useHubStories()
 
   // Find the story to display based on storyId parameter
@@ -30,6 +30,7 @@ export default function Story() {
   }, [stories, params.storyId])
 
   const isIntroduction = currentStory ? isIntroductionStory(currentStory) : false
+  const shouldRestart = params.restart === 'true'
 
   // Stop introduction music when navigating away from story route
   useFocusEffect(
@@ -64,6 +65,7 @@ export default function Story() {
         storyId={currentStory.id} 
         isIntroduction={isIntroduction}
         isActive={true}
+        shouldRestart={shouldRestart}
       />
     </View>
   )

@@ -20,7 +20,7 @@ export const journalService = {
    */
   async getAll(page = 1, limit = 20): Promise<PaginatedResponse<JournalEntryResponse>> {
     const response = await apiClient.get<JournalEntryResponse[]>(
-      `${API_ENDPOINTS.JOURNAL_CODEX_ENTRIES}?page=${page}&limit=${limit}`,
+      `${API_ENDPOINTS.JOURNAL_COMPLETED_ENTRIES}?page=${page}&limit=${limit}`,
       { skipVersion: true }
     )
     // If your API returns pagination metadata, it should be in the response
@@ -45,7 +45,7 @@ export const journalService = {
   async create(
     data: JournalEntryCreateRequest
   ): Promise<ApiResponse<JournalEntryResponse>> {
-    return apiClient.post<JournalEntryResponse>(API_ENDPOINTS.JOURNAL_CODEX_ENTRIES, data, {
+    return apiClient.post<JournalEntryResponse>(API_ENDPOINTS.JOURNAL_COMPLETED_ENTRIES, data, {
       skipVersion: true,
     })
   },

@@ -103,16 +103,13 @@ export interface EngineState {
   story: any
   passage: StoryPassage & { choices: StoryChoice[] }
   progress: any
-  chapter_title: string
-  chapter_number?: number
 }
 
 export interface UseStoryEngineResult {
   isLoading: boolean
   error: string | null
   currentPassage: StoryPassage | null
-  chapterTitle: string | null
-  chapterNumber: number | null | undefined
+  storyTitle: string | null
   makeChoice: (choice: StoryChoice) => Promise<EngineState | null>
   isInitialized: boolean
   isEnding: boolean
@@ -141,7 +138,7 @@ export interface UseStoryHistoryProps {
 
 export interface UseStoryEngineProps {
   storyId: string | number
-  chapterId?: number
+  shouldRestart?: boolean
 }
 
 export interface UseStoryAutoAdvanceProps {

@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { storyService } from '@/api/services/story.service'
+import { usePassageChoices } from '@/api/hooks/use-story'
 import type { StoryChoice } from '@/types/story'
 import type { UseStoryEngineResult, EngineState, UseStoryEngineProps } from '@/types/hooks'
 import {
   retryApiCall,
   getStartingPassageId,
   normalizePassageState,
+  normalizeChoices,
   DEFAULT_MAX_RETRIES,
   getRetryDelay,
 } from '@/utils/story-helpers'
@@ -20,10 +22,72 @@ function extractErrorMessage(err: any): string {
   return 'An unexpected error occurred.'
 }
 
-export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps): UseStoryEngineResult {
+export function useStoryEngine({
+  storyId,
+  shouldRestart = false,
+}: UseStoryEngineProps): UseStoryEngineResult {
   const [engineState, setEngineState] = useState<EngineState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const passagePkMapRef = useRef<Map<string, string>>(new Map())
+  const passageIdMapRef = useRef<Map<string, string>>(new Map())
+  const [currentPassagePk, setCurrentPassagePk] = useState<string | null>(null)
+  const startedRef = useRef(false)
+
+  const hydratePassageMaps = useCallback(async () => {
+    if (passagePkMapRef.current.size > 0 && passageIdMapRef.current.size > 0) return
+    const passages = await retryApiCall(
+      () => storyService.getStoryPassages(Number(storyId)),
+      DEFAULT_MAX_RETRIES,
+      getRetryDelay()
+    )
+    const map = new Map<string, string>()
+    const reverseMap = new Map<string, string>()
+    passages.forEach((item: any) => {
+      if (item?.passage_id && item?.id) {
+        map.set(String(item.passage_id), String(item.id))
+        reverseMap.set(String(item.id), String(item.passage_id))
+      }
+    })
+    passagePkMapRef.current = map
+    passageIdMapRef.current = reverseMap
+  }, [storyId])
+
+  const resolvePassagePk = useCallback(async (passage: any): Promise<string | null> => {
+    if (!passage) return null
+    if (passage.id) return String(passage.id)
+    if (passage.passage_id) {
+      const existing = passagePkMapRef.current.get(String(passage.passage_id))
+      if (existing) return existing
+    }
+
+    const passages = await retryApiCall(
+      () => storyService.getStoryPassages(Number(storyId)),
+      DEFAULT_MAX_RETRIES,
+      getRetryDelay()
+    )
+    const map = new Map<string, string>()
+    const reverseMap = new Map<string, string>()
+    passages.forEach((item: any) => {
+      if (item?.passage_id && item?.id) {
+        map.set(String(item.passage_id), String(item.id))
+        reverseMap.set(String(item.id), String(item.passage_id))
+      }
+    })
+    passagePkMapRef.current = map
+    passageIdMapRef.current = reverseMap
+      if (passage?.passage_id) {
+        const resolved = map.get(String(passage.passage_id)) || null
+      return resolved
+    }
+    return null
+  }, [storyId])
+
+  const { data: passageChoices } = usePassageChoices(currentPassagePk)
+
+  useEffect(() => {
+    startedRef.current = false
+  }, [storyId, shouldRestart])
 
   useEffect(() => {
     if (!storyId) {
@@ -32,32 +96,56 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps): Use
     }
 
     async function startStoryFlow() {
+      if (startedRef.current) return
+      startedRef.current = true
       setIsLoading(true)
       setError(null)
       setEngineState(null)
 
       try {
-        // Get starting passage ID and chapter info
-        const { startingPassageId, chapterTitle, chapterNumber } =
-          await getStartingPassageId(storyId, chapterId)
+        const startResponse = shouldRestart
+          ? await retryApiCall(
+              () => storyService.restartStory(Number(storyId)),
+              DEFAULT_MAX_RETRIES,
+              getRetryDelay()
+            )
+          : await retryApiCall(
+              () => storyService.startStoryWithFallback(Number(storyId)),
+              DEFAULT_MAX_RETRIES,
+              getRetryDelay()
+            )
 
-        // Fetch the starting passage using the ID
-        const initialState = await retryApiCall(
-          () => storyService.getPassage(Number(storyId), startingPassageId),
-          DEFAULT_MAX_RETRIES,
-          getRetryDelay()
-        )
+        let initialState: any = startResponse
+
+        if (!initialState?.passage) {
+          const startingPassageId =
+            startResponse?.starting_passage_id ||
+            startResponse?.starting_passage ||
+            startResponse?.story?.starting_passage_id ||
+            startResponse?.story?.starting_passage
+
+          if (startingPassageId) {
+            initialState = await retryApiCall(
+              () => storyService.getPassage(Number(storyId), String(startingPassageId)),
+              DEFAULT_MAX_RETRIES,
+              getRetryDelay()
+            )
+          } else {
+            const { startingPassageId: restartPassageId } = await getStartingPassageId(storyId)
+            initialState = await retryApiCall(
+              () => storyService.getPassage(Number(storyId), restartPassageId),
+              DEFAULT_MAX_RETRIES,
+              getRetryDelay()
+            )
+          }
+        }
 
         if (!initialState || !initialState.passage) {
           throw new Error('Failed to fetch the initial passage.')
         }
 
         // Normalize the passage state
-        const normalizedState = normalizePassageState(
-          initialState,
-          chapterTitle,
-          chapterNumber
-        )
+        const normalizedState = normalizePassageState(initialState)
 
         setEngineState(normalizedState)
       } catch (err: any) {
@@ -69,7 +157,42 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps): Use
     }
 
     startStoryFlow()
-  }, [storyId, chapterId])
+  }, [storyId, shouldRestart])
+
+  useEffect(() => {
+    let isActive = true
+
+    async function setPassagePk() {
+      if (!engineState?.passage) {
+        if (isActive) setCurrentPassagePk(null)
+        return
+      }
+      const passagePk = await resolvePassagePk(engineState.passage)
+      if (isActive) setCurrentPassagePk(passagePk)
+    }
+
+    setPassagePk()
+
+    return () => {
+      isActive = false
+    }
+  }, [engineState?.passage?.passage_id, resolvePassagePk])
+
+  useEffect(() => {
+    if (!passageChoices || !engineState?.passage) return
+
+    setEngineState((prev) => {
+      if (!prev?.passage) return prev
+      if (prev.passage.choices === passageChoices) return prev
+      return {
+        ...prev,
+        passage: {
+          ...prev.passage,
+          choices: normalizeChoices(passageChoices),
+        },
+      }
+    })
+  }, [passageChoices, engineState?.passage?.passage_id])
 
   const makeChoice = useCallback(
     async (choice: StoryChoice) => {
@@ -79,30 +202,42 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps): Use
       setError(null)
 
       try {
-        const nextState = await retryApiCall(
-          () => storyService.makeChoice(storyId, choice.target_id),
+        await hydratePassageMaps()
+        const rawTargetId = String(choice.target_id).trim()
+        const isNumericTarget = /^\d+$/.test(rawTargetId)
+        const targetPassageId = isNumericTarget
+          ? passageIdMapRef.current.get(rawTargetId) || rawTargetId
+          : rawTargetId
+        try {
+          await retryApiCall(
+            () =>
+              storyService.makeChoice(storyId, String(targetPassageId), choice.text, {
+                story_id: storyId,
+                choice_id: choice.id,
+              }),
+            DEFAULT_MAX_RETRIES,
+            getRetryDelay()
+          )
+        } catch {
+          // Logging shouldn't block traversal
+        }
+
+        let nextPassageState
+        nextPassageState = await retryApiCall(
+          () => storyService.getPassage(Number(storyId), String(targetPassageId)),
           DEFAULT_MAX_RETRIES,
           getRetryDelay()
         )
 
-        if (!nextState || !nextState.passage) {
+        if (!nextPassageState || !nextPassageState.passage) {
           throw new Error('Failed to load the next passage.')
         }
 
         // Normalize choices
-        const normalizedState = normalizePassageState(nextState)
+        const normalizedState = normalizePassageState(nextPassageState)
 
-        // Preserve chapter info from current state
-        const updatedState: EngineState = {
-          ...normalizedState,
-          chapter_title:
-            normalizedState.chapter_title || engineState?.chapter_title || '',
-          chapter_number:
-            normalizedState.chapter_number ?? engineState?.chapter_number,
-        }
-
-        setEngineState(updatedState)
-        return updatedState
+        setEngineState(normalizedState)
+        return normalizedState
       } catch (err: any) {
         const message = extractErrorMessage(err)
         setError(message)
@@ -111,7 +246,7 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps): Use
         setIsLoading(false)
       }
     },
-    [storyId, isLoading, engineState]
+    [storyId, isLoading, engineState, hydratePassageMaps]
   )
 
   const currentPassage = engineState?.passage || null
@@ -129,8 +264,7 @@ export function useStoryEngine({ storyId, chapterId }: UseStoryEngineProps): Use
     isLoading,
     error,
     currentPassage,
-    chapterTitle: engineState?.chapter_title || null,
-    chapterNumber: engineState?.chapter_number || null,
+    storyTitle: engineState?.story?.title || null,
     makeChoice,
     isInitialized: !!engineState,
     isEnding,

@@ -119,20 +119,6 @@ function StoryInformation({ story }: { story: StoryResponse }) {
           </Text>
         </View>
 
-        {/* Category */}
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Category</Text>
-          <Text style={styles.detailValue}>{story.category.toUpperCase()}</Text>
-        </View>
-
-        {/* Difficulty */}
-        {story.difficulty && (
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Difficulty</Text>
-            <Text style={styles.detailValue}>{story.difficulty.toUpperCase()}</Text>
-          </View>
-        )}
-
         {/* Rarity */}
         {story.rarity && (
           <View style={styles.detailItem}>
@@ -141,16 +127,12 @@ function StoryInformation({ story }: { story: StoryResponse }) {
           </View>
         )}
 
-        {/* Chapters */}
+        {/* Passages */}
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Chapters</Text>
-          <Text style={styles.detailValue}>{story.chapter_count || story.chapters?.length || 0}</Text>
-        </View>
-
-        {/* Total Passages */}
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Total Passages</Text>
-          <Text style={styles.detailValue}>{story.total_passages || 0}</Text>
+          <Text style={styles.detailLabel}>Passages</Text>
+          <Text style={styles.detailValue}>
+            {story.total_passages || story.passage_count || 0}
+          </Text>
         </View>
       </View>
 
@@ -173,25 +155,6 @@ function StoryInformation({ story }: { story: StoryResponse }) {
               </View>
             ))}
           </View>
-        </View>
-      )}
-
-      {/* Chapters List */}
-      {story.chapters && story.chapters.length > 0 && (
-        <View style={styles.infoSection}>
-          <Text style={styles.infoLabel}>Chapters</Text>
-          {story.chapters.map((chapter) => (
-            <View key={chapter.id} style={styles.chapterItem}>
-              <Text style={styles.chapterTitle}>
-                {chapter.chapter_number ? `Chapter ${chapter.chapter_number}: ` : ''}
-                {chapter.title}
-              </Text>
-              <Text style={styles.chapterDetails}>
-                {chapter.passage_count} passages
-                {chapter.is_starting_chapter && ' • Starting Chapter'}
-              </Text>
-            </View>
-          ))}
         </View>
       )}
 
@@ -330,26 +293,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.85)',
-  },
-  chapterItem: {
-    padding: 12,
-    marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  chapterTitle: {
-    fontFamily: 'System',
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  chapterDetails: {
-    fontFamily: 'System',
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.6)',
   },
 })
 

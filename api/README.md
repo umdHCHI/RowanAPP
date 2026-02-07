@@ -117,8 +117,6 @@ async function fetchCharacter(id: string) {
 ### Story Hooks
 - `useStoryProgress()` - Get current story progress
 - `useUpdateStoryProgress()` - Update story progress
-- `useStoryChapters()` - Get all story chapters
-- `useStoryChapter(id)` - Get specific chapter
 
 ### Equipment Hooks
 - `useEquipment()` - Get all equipment

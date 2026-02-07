@@ -13,7 +13,7 @@ import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_FONTS, STORY_BORDE
 import type { StoryHistoryItem, StoryPassage as StoryPassageType } from '@/types/story'
 
 interface StoryContentProps {
-  chapterTitle: string | null
+  storyTitle: string | null
   history: StoryHistoryItem[]
   currentPassage: StoryPassageType | null
   error: string | null
@@ -24,7 +24,7 @@ interface StoryContentProps {
 }
 
 export function StoryContent({
-  chapterTitle,
+  storyTitle,
   history,
   currentPassage,
   error,
@@ -138,8 +138,8 @@ export function StoryContent({
       scrollEventThrottle={100}
     >
       {/* Story Title */}
-      {chapterTitle && (
-        <RNText style={styles.storyTitle}>{chapterTitle}</RNText>
+      {storyTitle && (
+        <RNText style={styles.storyTitle}>{storyTitle}</RNText>
       )}
 
       {/* Story History */}
@@ -152,8 +152,6 @@ export function StoryContent({
           (() => {
             const imageUrl = getStoryImageUrl(currentPassage.speaker_image)
             const normalizedSpeakerName = normalizeSpeakerName(currentPassage.speaker_name)
-            console.log('[StoryContent] Action scene - speaker_image:', currentPassage.speaker_image)
-            console.log('[StoryContent] Action scene - imageUrl:', imageUrl)
             return (
               <StoryRewardMoment
                 type="ACTION_SCENE"

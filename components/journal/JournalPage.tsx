@@ -89,7 +89,7 @@ export function JournalPage() {
       .filter((prompt) => 
         prompt.is_active && 
         prompt.unlocked && 
-        modeToCategory[modeValue].includes(prompt.category.toLowerCase())
+        modeToCategory[modeValue].includes(String(prompt.category ?? '').toLowerCase())
       )
       .sort((a, b) => a.order - b.order)
   }
@@ -113,7 +113,7 @@ export function JournalPage() {
       const targetPrompt = journalPrompts.find((p) => p.prompt_id === searchParams.promptId)
       if (!targetPrompt) return
       
-      const promptCategory = targetPrompt.category.toLowerCase()
+      const promptCategory = String(targetPrompt.category ?? '').toLowerCase()
       let nextMode: ReflectionMode = 'journal'
       if (promptCategory === 'draw') nextMode = 'draw'
       if (promptCategory === 'voice') nextMode = 'voice'

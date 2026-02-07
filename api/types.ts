@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import type { Character } from '../stores/game-store'
-import type { StoryChapter } from '../types/story'
 
 /**
  * API Response Wrapper
@@ -137,17 +136,6 @@ export type CharacterUpdateRequest = CharacterCreateRequest;
 // Story Schemas
 // ============================================================================
 
-export const StoryChapterResponseSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  chapter_number: z.number(),
-  is_starting_chapter: z.boolean(),
-  story_title: z.string(),
-  user_username: z.string(),
-  passage_count: z.number(),
-  created_at: z.string(),
-})
-
 export const StoryResponseSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -155,18 +143,15 @@ export const StoryResponseSchema = z.object({
   image: z.string().nullable(),
   starting_passage_id: z.string(),
   min_level: z.number(),
-  category: z.string(),
   rarity: z.string(),
   revelations: z.array(z.string()),
   estimated_time_minutes: z.number(),
   atmosphere: z.string(),
-  difficulty: z.string(),
   personality_focus: z.array(z.string()),
   is_repeatable: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
-  chapters: z.array(StoryChapterResponseSchema),
-  chapter_count: z.number(),
+  passage_count: z.number().optional(),
   total_passages: z.number(),
 })
 
@@ -178,7 +163,6 @@ export const StoryProgressUpdateSchema = z.object({
 })
 
 export type StoryResponse = z.infer<typeof StoryResponseSchema>
-export type StoryChapterResponse = z.infer<typeof StoryChapterResponseSchema>
 export type StoryProgressResponse = z.infer<typeof StoryProgressSchema>
 export type StoryProgressUpdateRequest = z.infer<typeof StoryProgressUpdateSchema>
 

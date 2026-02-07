@@ -44,13 +44,14 @@ export default function Hub() {
   function handlePrimaryAction(card: StoryCard) {
     haptics.mediumImpact()
     playPageFlipSound()
-    router.push(`/story?storyId=${card.chapterId}`)
+    const restartParam = card.status === 'completed' ? '&restart=true' : ''
+    router.push(`/story?storyId=${card.storyId}${restartParam}`)
   }
 
   function handleResourceAction(card: StoryCard) {
     haptics.lightImpact()
     playPageFlipSound()
-    router.push(`/resources?storyId=${card.chapterId}`)
+    router.push(`/resources?storyId=${card.storyId}`)
   }
 
   function goToNextDream() {

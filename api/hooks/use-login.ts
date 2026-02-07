@@ -31,12 +31,12 @@ export function useLogin() {
   const [error, setError] = useState<string | null>(null)
   const clearError = useCallback(() => setError(null), [])
 
-  async function login(email: string, password: string) {
+  async function login(username: string, password: string) {
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await userService.login(email.trim(), password)
+      const response = await userService.login(username.trim(), password)
 
       if (!response || !response.success || !response.data) {
         throw new Error(response?.message || 'Login failed')

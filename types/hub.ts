@@ -8,7 +8,7 @@ export interface StoryCard {
   title: string
   subtitle: string
   tagline: string
-  chapterId: number
+  storyId: number
   status: CardStatus
   hasResources: boolean
   imageUrl?: string | null // Backend image URL

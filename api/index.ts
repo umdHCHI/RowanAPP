@@ -34,9 +34,8 @@ export {
 // Hooks - Story
 export {
   useStoryProgress,
+  useStoryProgressByStoryId,
   useUpdateStoryProgress,
-  useStoryChapters,
-  useStoryChapter,
   useStories,
   useStoryPassage,
   storyKeys,

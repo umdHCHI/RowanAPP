@@ -11,8 +11,8 @@
  *   https://backend.131.212.41.8.nip.io/api/
  *
  * NOTE:
- * - Most endpoints live under /api/...
- * - Auth endpoints live at the root (no /api): /auth/login/, /auth/logout/
+ * - All endpoints live under /api/...
+ * - Auth endpoints live under /auth/...
  */
 
 type ApiConfig = {
@@ -123,9 +123,8 @@ export function apiUrl(path: string): string {
  */
 export const API_ENDPOINTS = {
   // --- Authentication (DRF Token Auth) ---
-  // Some deployments mount auth under /api/, others at root; client can fall back automatically.
+  // Backend: /api/auth/login/
   USER_LOGIN: "/auth/login/",
-  USER_LOGOUT: "/auth/logout/",
 
   // --- Characters (included at /api/...) ---
   CHARACTERS: "/characters/",
@@ -138,24 +137,19 @@ export const API_ENDPOINTS = {
 
   // --- Users (included at /api/...) ---
   USER_FULL_PROFILE: `/users/me/`,
-  USER: "/user",
+  USER: "/users/",
   USER_BY_ID: (id: string | number) => `/users/${id}/`,
-  USER_CREATE: "/user/create",
-  USER_VERIFY_EMAIL: "/user/verify-email",
-  USER_RESET_PASSWORD: "/user/reset-password",
-  USER_FORGOT_PASSWORD: "/user/forgot-password",
 
   // --- Story (mounted at /api/story/...) ---
 
-  STORY_CHAPTER: (chapterId: number | string) =>
-    `/story/chapters/${chapterId}/`,
   STORY: "/story",
   STORY_STORIES: "/story/stories/",
   STORY_PROGRESS: "/story/story-progress/",
+  STORY_PROGRESS_BY_ID: (id: string | number) => `/story/stories/${id}/progress/`,
 
   // --- Journal (mounted at /api/journal/...) ---
-  JOURNAL_CODEX_ENTRIES: "/journal/codex-entries/",
-  JOURNAL_ENTRY_BY_ID: (id: string | number) => `/journal/codex-entries/${id}/`,
+  JOURNAL_COMPLETED_ENTRIES: "/journal/completed-entries/",
+  JOURNAL_ENTRY_BY_ID: (id: string | number) => `/journal/completed-entries/${id}/`,
   JOURNAL_PROMPTS: "/journal/journal-prompts/",
 
   // --- Game (mounted at /api/game/...) ---

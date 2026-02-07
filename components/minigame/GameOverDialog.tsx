@@ -84,7 +84,7 @@ export function GameOverDialog({
                 {conqueredThoughts.length > 0 && (
                   <Text style={styles.thoughtCategoryTitle}>Reframed Thoughts</Text>
                 )}
-                {conqueredThoughts.slice(0, 5).map((thought) => (
+                {conqueredThoughts.slice(0, 2).map((thought) => (
                   <View key={`positive-${thought.id}`} style={styles.thoughtRecord}>
                     <Text style={styles.thoughtPhrase}>"{thought.phrase}"</Text>
                     <Text style={styles.counterRecord}>{thought.counterRecord}</Text>
@@ -94,22 +94,7 @@ export function GameOverDialog({
             )}
             
             {/* Negative thoughts (defeated) */}
-            {defeatedNegativeThoughts.length > 0 && (
-              <>
-                {conqueredThoughts.length > 0 && defeatedNegativeThoughts.length > 0 && (
-                  <View style={styles.thoughtDivider} />
-                )}
-                {defeatedNegativeThoughts.length > 0 && (
-                  <Text style={styles.thoughtCategoryTitle}>Defeated Thoughts</Text>
-                )}
-                {defeatedNegativeThoughts.slice(0, 5).map((thought) => (
-                  <View key={`negative-${thought.id}`} style={styles.thoughtRecord}>
-                    <Text style={styles.thoughtPhrase}>"{thought.phrase}"</Text>
-                    <Text style={styles.counterRecord}>{thought.counterRecord}</Text>
-                  </View>
-                ))}
-              </>
-            )}
+
           </View>
         )}
         <View style={styles.buttonRow}>

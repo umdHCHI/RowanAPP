@@ -11,13 +11,13 @@ interface HubButtonsProps {
 }
 
 function getButtonText(card: StoryCard): string {
-  if (card.id === 'intro') return 'Begin'
-  if (card.status === 'completed') return 'Replay this book'
-  return 'Explore this book'
+  if (card.status === 'completed') return 'Revisit this Book'
+  return 'Explore this Book'
 }
 
 export function HubButtons({ card, onPrimaryPress, onResourcePress, onNextPress }: HubButtonsProps) {
-  const isIntroduction = card.title.toLowerCase().includes('introduction') || card.title.toLowerCase() === 'introduction'
+  const titleLower = String(card.title ?? '').toLowerCase()
+  const isIntroduction = titleLower.includes('introduction') || titleLower === 'introduction'
   // Introduction should never show resource buttons
   const showResourceButtons = !isIntroduction && card.hasResources && card.status === 'completed'
 

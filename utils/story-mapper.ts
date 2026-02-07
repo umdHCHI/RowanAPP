@@ -1,5 +1,5 @@
-import type { StoryData } from '@/stores/game-store'
 import type { StoryCard, CardStatus } from '@/types/hub'
+import type { StoryProgressResponse, StoryResponse } from '@/api/types'
 import { getStoryImageUrl } from '@/utils/story-helpers'
 import { isStoryUnlocked } from '@/utils/story-constants'
 
@@ -16,8 +16,8 @@ function truncateText(text: string, maxLength: number): string {
 /**
  * Check if a story is the Introduction story -- wait Trevor might have created a different function somewhere.... 
  */
-function isIntroductionStory(story: StoryData): boolean {
-  const titleLower = story.title.toLowerCase()
+function isIntroductionStory(story: StoryResponse): boolean {
+  const titleLower = String(story.title ?? '').toLowerCase()
   return titleLower.includes('introduction') || titleLower === 'introduction'
 }
 
@@ -28,15 +28,25 @@ function isIntroductionStory(story: StoryData): boolean {
  * @param userCreatedAt - User creation date for daily unlock calculation (optional)
  */
 export function mapStoriesToCards(
-  stories: StoryData[],
-  userCreatedAt?: string | Date | null
+  stories: StoryResponse[],
+  userCreatedAt?: string | Date | null,
+  progressList?: StoryProgressResponse[]
 ): StoryCard[] {
   if (!stories || stories.length === 0) {
     return []
   }
 
+  const progressByStoryId = new Map<number, StoryProgressResponse>()
+  if (Array.isArray(progressList)) {
+    progressList.forEach((item) => {
+      if (typeof item?.story === 'number') {
+        progressByStoryId.set(item.story, item)
+      }
+    })
+  }
+
   // Helper function to map a story to a card
-  function mapStoryToCard(story: StoryData, index: number, isIntroduction = false): StoryCard {
+  function mapStoryToCard(story: StoryResponse, index: number, isIntroduction = false): StoryCard {
     // Determine status based on story data and user progress
     let status: CardStatus = 'available'
     
@@ -54,20 +64,29 @@ export function mapStoriesToCards(
       status = 'locked'
     }
 
-    // Check if story has chapters, but Introduction should never have resources
-    const hasResources = isIntroduction ? false : (story.chapters && story.chapters.length > 0)
+    const progress = progressByStoryId.get(story.id)
+    const completionCount = Number(progress?.story_variables?.completion_count ?? 0)
+
+    if (status !== 'locked' && completionCount > 0) {
+      status = 'completed'
+    }
+
+    // Introduction should never have resources
+    const hasResources = !isIntroduction
 
     // Truncate backend data to prevent overflow in card
     // Title: max 50 chars (for display card titles)
     // Subtitle: max 30 chars (usually short like "THE ARCHIVE")
     // Tagline: no truncation - card can scroll to show full description
+    const label = `STORY ${index + 1}`
+
     return {
       id: `story-${story.id}`,
-      label: story.category === 'main' ? `STORY ${index + 1}` : story.category.toUpperCase(),
+      label,
       title: truncateText(story.title, 50),
       subtitle: truncateText(story.atmosphere || 'THE ARCHIVE', 30),
       tagline: story.description || 'Your journey awaits',
-      chapterId: story.id,
+      storyId: story.id,
       status,
       hasResources,
       imageUrl: getStoryImageUrl(story.image),
