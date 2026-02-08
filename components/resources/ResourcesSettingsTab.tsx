@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native'
+import React, { useMemo, useState } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Modal, Pressable } from 'react-native'
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
@@ -10,6 +10,7 @@ import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useNotifications } from '@/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 import type { UserFullProfileResponse } from '@/api/types'
+import type { NotificationTime } from '@/types/hooks'
 
 interface ResourcesSettingsTabProps {
   profileData?: UserFullProfileResponse | null
@@ -26,19 +27,22 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
   const cycleTextSpeed = useGameStore((state) => state.cycleTextSpeed)
   const resetGame = useGameStore((state) => state.resetGame)
   const lumens = useGameStore((state) => state.lumens.lumens)
-  const { clearAuth } = useAuthActions()
-  const { notificationsEnabled, requestPermissions, cancelAllNotifications, sendTestNotification } = useNotifications()
+  const { clearAuthStorage } = useAuthActions()
+  const { notificationsEnabled, notificationTime, requestPermissions, cancelAllNotifications, updateNotificationTime } = useNotifications()
   const { data: myCharacter } = useMyCharacter()
+  const [isNotificationTimeOpen, setIsNotificationTimeOpen] = useState(false)
+  const [draftNotificationTime, setDraftNotificationTime] = useState<NotificationTime>({ hour: 9, minute: 0 })
 
   // Get avatar config from profile
   const avatarConfig = useMemo(() => {
     if (avatarConfigProp) return avatarConfigProp
-    if (!profileData?.character) return null
-    return buildAvatarConfig(profileData.character)
-  }, [avatarConfigProp, profileData?.character])
+    const profileCharacter = profileData?.profile?.character
+    if (!profileCharacter?.customization) return null
+    return buildAvatarConfig(profileCharacter.customization)
+  }, [avatarConfigProp, profileData?.profile?.character])
 
   const experienceLumens =
-    myCharacter?.experience ?? profileData?.character?.experience ?? lumens
+    myCharacter?.experience ?? profileData?.profile?.character?.experience ?? lumens
 
   function handleChangeCharacter() {
     playPageFlipSound()
@@ -80,7 +84,7 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
             // Make navigation immediate; do slow/best-effort cleanup in the background
             queryClient.clear()
             resetGame()
-            clearAuth()
+            await clearAuthStorage()
             router.replace('/login')
 
             void (async () => {
@@ -95,6 +99,37 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
       ],
       { cancelable: true }
     )
+  }
+
+  function formatClockTime(time: NotificationTime): string {
+    const hour12 = time.hour % 12 || 12
+    const minuteLabel = String(time.minute).padStart(2, '0')
+    const period = time.hour >= 12 ? 'PM' : 'AM'
+    return `${hour12}:${minuteLabel} ${period}`
+  }
+
+  function shiftNotificationTime(deltaMinutes: number) {
+    setDraftNotificationTime((current) => {
+      const totalMinutes = current.hour * 60 + current.minute + deltaMinutes
+      const normalized = (totalMinutes + 1440) % 1440
+      return {
+        hour: Math.floor(normalized / 60),
+        minute: normalized % 60,
+      }
+    })
+  }
+
+  function handleOpenNotificationTime() {
+    playPageFlipSound()
+    setDraftNotificationTime(notificationTime)
+    setIsNotificationTimeOpen(true)
+  }
+
+  function handleSaveNotificationTime() {
+    playPageFlipSound()
+    updateNotificationTime(draftNotificationTime)
+    setIsNotificationTimeOpen(false)
+    Alert.alert('Notification Time Updated', `Daily reminders will arrive at ${formatClockTime(draftNotificationTime)}.`)
   }
 
   async function handleNotificationToggle() { // Notifications might need to have expanded backend 
@@ -116,11 +151,6 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
     }
   }
 
-  function handleSettingPress(settingName: string) {
-    playPageFlipSound()
-    Alert.alert('Coming Soon', `${settingName} settings are not implemented yet.`, [{ text: 'OK' }])
-  }
-
   return (
     <ScrollView 
       style={styles.container}
@@ -140,7 +170,7 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
             <CharacterAvatar avatarConfig={avatarConfig} size={80} />
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>
-                {profileData?.character?.name || 'Your Character'}
+                {profileData?.username || 'Your Character'}
               </Text>
               <View style={styles.lumensContainer}>
                 <Image
@@ -199,22 +229,18 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
             {notificationsEnabled && (
               <TouchableOpacity
                 style={styles.settingItem}
-                onPress={async () => {
-                  playPageFlipSound()
-                  await sendTestNotification()
-                  Alert.alert('Test Sent', 'A test notification has been sent!')
-                }}
+                onPress={handleOpenNotificationTime}
                 activeOpacity={0.7}
               >
                 <View style={styles.settingItemContent}>
                   <MaterialCommunityIcons 
-                    name="bell-ring-outline" 
+                    name="clock-outline" 
                     size={24} 
                     color="#ffffff" 
                   />
-                  <Text style={styles.settingItemText}>Test Notification</Text>
+                  <Text style={styles.settingItemText}>Change Notification Time</Text>
                 </View>
-                <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255, 255, 255, 0.5)" />
+                <Text style={styles.settingItemValue}>{formatClockTime(notificationTime)}</Text>
               </TouchableOpacity>
             )}
 
@@ -233,10 +259,7 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
             </TouchableOpacity>
           </View>
 
-          {/* Account Settings */}
           <View style={styles.settingsSection}>
-            <Text style={styles.sectionTitle}>ACCOUNT</Text>
-            
             <TouchableOpacity
               style={styles.settingItem}
               onPress={handleChangeCharacter}
@@ -255,17 +278,6 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
               <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255, 255, 255, 0.5)" />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('Privacy')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.settingItemContent}>
-                <MaterialCommunityIcons name="shield-outline" size={24} color="#ffffff" />
-                <Text style={styles.settingItemText}>Privacy</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255, 255, 255, 0.5)" />
-            </TouchableOpacity>
           </View>
 
           {/* Logout Section */}
@@ -281,6 +293,81 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
           </View>
         </View>
       </View>
+
+      <Modal
+        visible={isNotificationTimeOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsNotificationTimeOpen(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setIsNotificationTimeOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => null}>
+            <Text style={styles.modalTitle}>Notification Time</Text>
+            <Text style={styles.modalSubtitle}>Choose when your daily reminder should appear.</Text>
+
+            <View style={styles.timePicker}>
+              <View style={styles.timeColumn}>
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => shiftNotificationTime(60)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="chevron-up" size={26} color="#ffffff" />
+                </TouchableOpacity>
+                <Text style={styles.timeValue}>{String(draftNotificationTime.hour).padStart(2, '0')}</Text>
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => shiftNotificationTime(-60)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="chevron-down" size={26} color="#ffffff" />
+                </TouchableOpacity>
+                <Text style={styles.timeLabel}>Hour</Text>
+              </View>
+
+              <Text style={styles.timeDivider}>:</Text>
+
+              <View style={styles.timeColumn}>
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => shiftNotificationTime(5)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="chevron-up" size={26} color="#ffffff" />
+                </TouchableOpacity>
+                <Text style={styles.timeValue}>{String(draftNotificationTime.minute).padStart(2, '0')}</Text>
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => shiftNotificationTime(-5)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="chevron-down" size={26} color="#ffffff" />
+                </TouchableOpacity>
+                <Text style={styles.timeLabel}>Minute</Text>
+              </View>
+            </View>
+
+            <Text style={styles.timePreview}>Scheduled for {formatClockTime(draftNotificationTime)}</Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setIsNotificationTimeOpen(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={handleSaveNotificationTime}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.modalButtonText, styles.modalButtonTextPrimary]}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   )
 }
@@ -351,7 +438,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   settingsList: {
-    gap: 24,
+    gap: 8,
   },
   settingsSection: {
     gap: 8,
@@ -416,6 +503,106 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ff4444',
     letterSpacing: 0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#1d1d1d',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  modalTitle: {
+    fontFamily: 'BeyondWonderland',
+    fontSize: 22,
+    color: '#ffffff',
+  },
+  modalSubtitle: {
+    fontFamily: 'System',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 6,
+  },
+  timePicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 18,
+    marginTop: 20,
+  },
+  timeColumn: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  timeButton: {
+    width: 44,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  timeValue: {
+    fontFamily: 'System',
+    fontSize: 26,
+    fontWeight: '600',
+    color: '#ffffff',
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  timeLabel: {
+    fontFamily: 'System',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  timeDivider: {
+    fontFamily: 'System',
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  timePreview: {
+    fontFamily: 'System',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  modalButtonPrimary: {
+    backgroundColor: '#ffffff',
+    borderColor: '#ffffff',
+  },
+  modalButtonText: {
+    fontFamily: 'System',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  modalButtonTextPrimary: {
+    color: '#121212',
   },
 })
 

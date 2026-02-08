@@ -29,7 +29,7 @@ export function StoryChoices({ choices, onChoicePress }: StoryChoicesProps) {
 
   return (
     <View style={[styles.choicesContainer, { 
-      paddingBottom: Math.max(insets.bottom, STORY_SPACING.lg),
+      paddingBottom: insets.bottom + STORY_SPACING.sm,
       maxHeight: maxContainerHeight,
     }]}>
       {/* Blur background to allow video to show through */}

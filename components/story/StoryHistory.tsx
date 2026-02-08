@@ -17,7 +17,21 @@ interface StoryHistoryProps {
 export function StoryHistory({ history }: StoryHistoryProps) {
   const router = useRouter()
   const { data: myCharacter } = useMyCharacter()
-  const avatarConfig = React.useMemo(() => buildAvatarConfig(myCharacter), [myCharacter])
+  const avatarConfig = React.useMemo(() => buildAvatarConfig(myCharacter), [
+    myCharacter?.character_config,
+    myCharacter?.selected_base_model,
+    myCharacter?.selected_background_color,
+    myCharacter?.selected_background_type,
+    myCharacter?.selected_hair_color,
+    myCharacter?.selected_hair_style,
+    myCharacter?.selected_shirt_color,
+    myCharacter?.selected_shirt_type,
+    myCharacter?.selected_eye_color,
+    myCharacter?.selected_eye_type,
+    myCharacter?.selected_eyebrow_color,
+    myCharacter?.selected_eyebrow_style,
+    myCharacter?.selected_mouth_type,
+  ])
   
   function handleRewardPress(journalEntryId?: string) {
     if (journalEntryId) {

@@ -20,7 +20,7 @@ export const characterService = {
       Object.prototype.hasOwnProperty.call(response as object, 'data');
     const normalized = isWrapped
       ? (response as ApiResponse<CharacterResponse>)
-      : ({ success: true, data: response as CharacterResponse } as ApiResponse<CharacterResponse>);
+      : ({ success: true, data: response as unknown as CharacterResponse } as ApiResponse<CharacterResponse>);
     return normalized;
   },
 
@@ -81,7 +81,7 @@ export const characterService = {
 
       return isWrapped
         ? (response as ApiResponse<CharacterResponse>)
-        : ({ success: true, data: response as CharacterResponse } as ApiResponse<CharacterResponse>);
+        : ({ success: true, data: response as unknown as CharacterResponse } as ApiResponse<CharacterResponse>);
     } catch (error: any) {
       const message = String(error?.message || '').toLowerCase();
       const status = (error as ApiError)?.status;

@@ -155,11 +155,17 @@ export interface UseStoryAutoAdvanceProps {
 // Notification Hooks
 // ============================================================================
 
+export interface NotificationTime {
+  hour: number
+  minute: number
+}
+
 export interface UseNotificationsResult {
   notificationsEnabled: boolean
+  notificationTime: NotificationTime
   requestPermissions: () => Promise<boolean>
   cancelAllNotifications: () => Promise<void>
-  sendTestNotification: () => Promise<void>
+  updateNotificationTime: (time: NotificationTime) => void
 }
 
 // ============================================================================

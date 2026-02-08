@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { z } from 'zod'
+import type { NotificationTime } from '@/types/hooks'
 
 // Lumens
 export const LumenLevelSchema = z.object({
@@ -121,6 +122,7 @@ interface GameState {
   soundMuted: boolean
   textSpeed: TextSpeed
   notificationsEnabled: boolean
+  notificationTime: NotificationTime
   
   // Actions
   updateLumen: (lumen: keyof LumenLevel, value: number) => void
@@ -141,6 +143,7 @@ interface GameState {
   setTextSpeed: (speed: TextSpeed) => void
   cycleTextSpeed: () => void
   setNotificationsEnabled: (enabled: boolean) => void
+  setNotificationTime: (time: NotificationTime) => void
   setLumen: (lumen: LumenLevel) => void
   resetGame: () => void
 }
@@ -181,6 +184,7 @@ export const useGameStore = create<GameState>()(
       soundMuted: false,
       textSpeed: 'normal',
       notificationsEnabled: true,
+      notificationTime: { hour: 9, minute: 0 },
 
       updateLumen: (lumen, delta) =>
         set((state) => {
@@ -321,6 +325,9 @@ export const useGameStore = create<GameState>()(
       setNotificationsEnabled: (enabled) =>
         set({ notificationsEnabled: enabled }),
 
+      setNotificationTime: (time) =>
+        set({ notificationTime: time }),
+
       setLumen: (lumen: LumenLevel) =>
         set({ lumens: lumen }),
 
@@ -339,6 +346,7 @@ export const useGameStore = create<GameState>()(
           soundMuted: false,
           textSpeed: 'normal',
           notificationsEnabled: true,
+          notificationTime: { hour: 9, minute: 0 },
         }),
     }),
     {

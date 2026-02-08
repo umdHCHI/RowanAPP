@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { Alert } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import { useGameStore } from '@/stores/game-store'
 import { useAuthUserId } from '@/api/hooks/use-auth'
@@ -16,13 +15,15 @@ Notifications.setNotificationHandler({
   }),
 })
 
-import type { UseNotificationsResult } from '@/types/hooks'
+import type { NotificationTime, UseNotificationsResult } from '@/types/hooks'
 
 const NOTIFICATION_IDENTIFIER = 'daily-research-reminder'
 
 export function useNotifications(): UseNotificationsResult {
   const notificationsEnabled = useGameStore((state) => state.notificationsEnabled)
+  const notificationTime = useGameStore((state) => state.notificationTime)
   const setNotificationsEnabled = useGameStore((state) => state.setNotificationsEnabled)
+  const setNotificationTime = useGameStore((state) => state.setNotificationTime)
   const userId = useAuthUserId()
 
   const { data: profileData } = useCurrentUserFullProfile()
@@ -90,7 +91,7 @@ export function useNotifications(): UseNotificationsResult {
         // Cancel existing notifications with our identifier to avoid duplicates
         await Notifications.cancelScheduledNotificationAsync(NOTIFICATION_IDENTIFIER)
 
-        // Schedule daily notification at 9 AM using daily trigger
+        // Schedule daily notification using stored time
         await Notifications.scheduleNotificationAsync({
           content: {
             title: 'Time to Participate in Research',
@@ -103,13 +104,13 @@ export function useNotifications(): UseNotificationsResult {
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
-            hour: 9,
-            minute: 0,
+            hour: notificationTime.hour,
+            minute: notificationTime.minute,
           },
           identifier: NOTIFICATION_IDENTIFIER,
         })
 
-        console.log('Daily notification scheduled successfully for 9:00 AM')
+        console.log('Daily notification scheduled successfully')
       } catch (error) {
         console.error('Error setting up notifications:', error)
         setNotificationsEnabled(false)
@@ -121,7 +122,7 @@ export function useNotifications(): UseNotificationsResult {
     }
 
     setupNotifications()
-  }, [notificationsEnabled, setNotificationsEnabled, userId])
+  }, [notificationsEnabled, notificationTime.hour, notificationTime.minute, setNotificationsEnabled, userId])
 
   // Set up notification listeners for when app is in foreground
   useEffect(() => {
@@ -194,29 +195,8 @@ export function useNotifications(): UseNotificationsResult {
     }
   }
 
-  async function sendTestNotification(): Promise<void> {
-    try {
-      const { status } = await Notifications.getPermissionsAsync()
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please enable notifications first.')
-        return
-      }
-
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Test Notification',
-          body: 'This is a test notification from The Archive!',
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-          data: {
-            type: 'test',
-          },
-        },
-        trigger: null, // Send immediately
-      })
-    } catch (error) {
-      console.error('Error sending test notification:', error)
-    }
+  function updateNotificationTime(time: NotificationTime) {
+    setNotificationTime(time)
   }
 
   async function cancelAllNotifications() {
@@ -240,9 +220,10 @@ export function useNotifications(): UseNotificationsResult {
 
   return {
     notificationsEnabled,
+    notificationTime,
     requestPermissions,
     cancelAllNotifications,
-    sendTestNotification,
+    updateNotificationTime,
   }
 }
 

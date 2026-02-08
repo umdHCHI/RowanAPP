@@ -395,7 +395,7 @@ export function StoryPage({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#000000',
   },
   mainContainer: {
     flex: 1,

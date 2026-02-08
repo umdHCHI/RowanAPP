@@ -34,8 +34,8 @@ export function useResources(): UseResourcesResult {
   const lumens = useGameStore((state) => state.lumens.lumens)
 
   const userLevel = useMemo(
-    () => profileData?.character?.level ?? 1,
-    [profileData?.character?.level]
+    () => profileData?.profile?.character?.level ?? 1,
+    [profileData?.profile?.character?.level]
   )
 
   const resources = useMemo(
@@ -72,19 +72,21 @@ export function useResources(): UseResourcesResult {
   )
 
   const characterName = useMemo(
-    () => profileData?.character?.name ?? 'Seeker',
-    [profileData?.character?.name]
+    () => profileData?.profile?.character?.name ?? 'Seeker',
+    [profileData?.profile?.character?.name]
   )
 
   const avatarConfig = useMemo(() => {
-    const profileConfig = profileData?.character ? buildAvatarConfig(profileData.character) : null
+    const profileConfig = profileData?.profile?.character?.customization
+      ? buildAvatarConfig(profileData.profile.character.customization)
+      : null
     if (profileConfig) return profileConfig
     return myCharacter ? buildAvatarConfig(myCharacter) : null
-  }, [profileData?.character, myCharacter])
+  }, [profileData?.profile?.character, myCharacter])
 
   const resourceCounts = useMemo(
-    () => profileData?.character?.memories_explored ?? 0,
-    [profileData?.character?.memories_explored]
+    () => profileData?.profile?.character?.memories_explored ?? 0,
+    [profileData?.profile?.character?.memories_explored]
   )
 
   const isLoading =
@@ -115,7 +117,7 @@ export function useResources(): UseResourcesResult {
     memories,
     characterName,
     avatarConfig,
-    character: profileData?.character ?? undefined,
+    character: profileData?.profile?.character ?? undefined,
     powers: powersForUi,
     markPowersSeen,
     experience: lumens,

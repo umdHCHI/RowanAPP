@@ -84,18 +84,36 @@ export function JournalPage() {
     'voice': ['voice'],
   }
   
-  function getActivePromptsForMode(modeValue: ReflectionMode) {
-    return journalPrompts
+  const forcedPrompt = searchParams.promptId
+    ? journalPrompts.find((prompt) => prompt.prompt_id === searchParams.promptId)
+    : null
+
+  function getActivePromptsForMode(
+    modeValue: ReflectionMode,
+    pinnedPrompt?: typeof journalPrompts[number] | null
+  ) {
+    const filteredPrompts = journalPrompts
       .filter((prompt) => 
         prompt.is_active && 
         prompt.unlocked && 
         modeToCategory[modeValue].includes(String(prompt.category ?? '').toLowerCase())
       )
       .sort((a, b) => a.order - b.order)
+
+    if (!pinnedPrompt) return filteredPrompts
+
+    const pinnedCategory = String(pinnedPrompt.category ?? '').toLowerCase()
+    const isPinnedForMode = modeToCategory[modeValue].includes(pinnedCategory)
+    if (!isPinnedForMode) return filteredPrompts
+
+    const alreadyIncluded = filteredPrompts.some((prompt) => prompt.prompt_id === pinnedPrompt.prompt_id)
+    if (alreadyIncluded) return filteredPrompts
+
+    return [pinnedPrompt, ...filteredPrompts]
   }
 
   // Get active and unlocked prompts filtered by category, sorted by order
-  const activePrompts = getActivePromptsForMode(mode)
+  const activePrompts = getActivePromptsForMode(mode, forcedPrompt)
   
   // Get current prompt
   const currentPrompt = activePrompts[currentPromptIndex]
@@ -122,10 +140,12 @@ export function JournalPage() {
         setMode(nextMode)
       }
 
-      const targetPrompts = getActivePromptsForMode(nextMode)
+      const targetPrompts = getActivePromptsForMode(nextMode, targetPrompt)
       const targetPromptIndex = targetPrompts.findIndex((p) => p.prompt_id === searchParams.promptId)
       if (targetPromptIndex !== -1) {
         setCurrentPromptIndex(targetPromptIndex)
+      } else {
+        setCurrentPromptIndex(0)
       }
     }
   }, [searchParams.promptId, journalPrompts, mode])

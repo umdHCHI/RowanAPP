@@ -50,11 +50,13 @@ export function useAuthActions() {
   const setUser = useAuthStore((state) => state.setUser)
   const setHasCharacter = useAuthStore((state) => state.setHasCharacter)
   const clearAuth = useAuthStore((state) => state.clearAuth)
+  const clearAuthStorage = useAuthStore((state) => state.clearAuthStorage)
   
   return {
     setUser,
     setHasCharacter,
     clearAuth,
+    clearAuthStorage,
   }
 }
 

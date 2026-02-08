@@ -51,9 +51,10 @@ export function StoryContent({
       )
     : 0
   
+  const insetPadding = Math.min(insets.bottom, STORY_SPACING.md)
   const bottomPadding = hasChoices
-    ? choicesContainerHeight // Match the choices container height so content scrolls above it
-    : STORY_SPACING.xxl // Standard padding when no buttons
+    ? choicesContainerHeight + insetPadding
+    : STORY_SPACING.xxl + insetPadding
 
   // Track if user has manually scrolled away from bottom
   const isNearBottomRef = useRef(true)
@@ -102,7 +103,7 @@ export function StoryContent({
     return findNextStory(stories, storyId)
   }, [stories, storyId])
 
-  function handleViewArchive() {
+  function handleViewResources() {
     haptics.mediumImpact()
     playPageFlipSound()
     if (storyId) {
@@ -188,10 +189,10 @@ export function StoryContent({
         <View style={styles.endingButtonsContainer}>
           <TouchableOpacity
             style={[styles.endingButton, styles.archiveButton]}
-            onPress={handleViewArchive}
+            onPress={handleViewResources}
             activeOpacity={0.8}
           >
-            <RNText style={styles.endingButtonText}>View Your Archive</RNText>
+            <RNText style={styles.endingButtonText}>View Resources Gathered</RNText>
           </TouchableOpacity>
           
           <TouchableOpacity

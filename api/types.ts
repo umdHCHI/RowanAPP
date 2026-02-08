@@ -1,6 +1,4 @@
 import { z } from 'zod'
-import type { Character } from '../stores/game-store'
-
 /**
  * API Response Wrapper
  */
@@ -304,8 +302,60 @@ const StoryProgressSchema = z.object({
   progress_percentage: z.number(),
 })
 
+// ============================================================================
+// User Full Profile Schema
+// ============================================================================
+
+const CharacterCustomizationSchema = CharacterSchema.pick({
+  selected_base_model: true,
+  selected_skin_color: true,
+  selected_hair_style: true,
+  selected_hair_color: true,
+  selected_eye_type: true,
+  selected_eye_color: true,
+  selected_eyebrow_style: true,
+  selected_eyebrow_color: true,
+  selected_mouth_type: true,
+  selected_shirt_type: true,
+  selected_shirt_color: true,
+  selected_background_type: true,
+  selected_background_color: true,
+})
+
+const ProfileCharacterSchema = z.object({
+  id: z.number(),
+  experience: z.number(),
+  name: z.string().optional(),
+  level: z.number().optional(),
+  memories_explored: z.number().optional(),
+  customization: CharacterCustomizationSchema,
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+const UserProfileSchema = z.object({
+  has_completed_onboarding: z.boolean().optional(),
+  has_completed_character_creation: z.boolean().optional(),
+  has_character: z.boolean().optional(),
+  has_game_data: z.boolean().optional(),
+  notifications_enabled: z.boolean().optional(),
+  character: ProfileCharacterSchema.optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+})
+
+const UserFullProfileSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  email: z.string().optional(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  profile: UserProfileSchema.optional(),
+  story_progress: z.array(StoryProgressSchema).optional(),
+})
+
 
 
 
 export type CharacterFullProfile = z.infer<typeof CharacterSchema>
-export type UserFullProfileResponse = z.infer<typeof CharacterSchema>
+export type UserFullProfileResponse = z.infer<typeof UserFullProfileSchema>
