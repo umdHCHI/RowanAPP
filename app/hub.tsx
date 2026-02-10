@@ -102,7 +102,6 @@ export default function Hub() {
                 <HubPage
                   key={card.id}
                   card={card}
-                  isLast={index === storyCards.length - 1}
                   onResourcePress={() => handleResourceAction(card)}
                   carouselHeight={Dimensions.get('window').height - (insets.top + 80) - bottomSectionHeight}
                 />

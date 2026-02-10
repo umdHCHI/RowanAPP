@@ -106,6 +106,8 @@ export function buildAvatarConfig(character: any): string | null {
   if (isFrontendCharacterConfig(config)) {
     return JSON.stringify(config)
   }
+
+  if (!hasBackendCosmetics(config)) return null
   
   // Backend stores 1-based indices, convert to 0-based for frontend
   // Color indices also need to be converted from 1-based to 0-based
@@ -149,6 +151,25 @@ function isFrontendCharacterConfig(config: unknown): config is FrontendCharacter
     typeof candidate.baseIndex === 'number' &&
     typeof candidate.backgroundColor === 'string' &&
     typeof candidate.backgroundIndex === 'number'
+  )
+}
+
+function hasBackendCosmetics(config: unknown): boolean {
+  if (!config || typeof config !== 'object') return false
+  const candidate = config as Record<string, unknown>
+  return (
+    candidate.selected_base_model != null &&
+    candidate.selected_background_color != null &&
+    candidate.selected_background_type != null &&
+    candidate.selected_hair_color != null &&
+    candidate.selected_hair_style != null &&
+    candidate.selected_shirt_color != null &&
+    candidate.selected_shirt_type != null &&
+    candidate.selected_eye_color != null &&
+    candidate.selected_eye_type != null &&
+    candidate.selected_eyebrow_color != null &&
+    candidate.selected_eyebrow_style != null &&
+    candidate.selected_mouth_type != null
   )
 }
 

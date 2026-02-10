@@ -16,7 +16,7 @@ function isIntroductionStory(story: StoryData): boolean {
 
 export default function Story() {
   useRequireAuth() // Redirects to login if not authenticated
-  const params = useLocalSearchParams<{ storyId?: string; restart?: string }>()
+  const params = useLocalSearchParams<{ storyId?: string }>()
   const { data: stories, isLoading } = useHubStories()
 
   // Find the story to display based on storyId parameter
@@ -30,8 +30,6 @@ export default function Story() {
   }, [stories, params.storyId])
 
   const isIntroduction = currentStory ? isIntroductionStory(currentStory) : false
-  const shouldRestart = params.restart === 'true'
-
   // Stop introduction music when navigating away from story route
   useFocusEffect(
     useCallback(() => {
@@ -65,7 +63,6 @@ export default function Story() {
         storyId={currentStory.id} 
         isIntroduction={isIntroduction}
         isActive={true}
-        shouldRestart={shouldRestart}
       />
     </View>
   )

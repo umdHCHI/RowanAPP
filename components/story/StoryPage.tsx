@@ -22,14 +22,12 @@ interface StoryPageProps {
   storyId: string | number
   isIntroduction?: boolean
   isActive?: boolean
-  shouldRestart?: boolean
 }
 
 export function StoryPage({
   storyId,
   isIntroduction = false,
   isActive = true,
-  shouldRestart = false,
 }: StoryPageProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
@@ -46,7 +44,7 @@ export function StoryPage({
     hasChoices,
     storyTitle,
     makeChoice: makeEngineChoice,
-  } = useStoryEngine({ storyId, shouldRestart })
+  } = useStoryEngine({ storyId })
 
   // Track if route is focused (to prevent music playing when navigating away)
   const [isRouteFocused, setIsRouteFocused] = React.useState(true)

@@ -1,25 +1,26 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { StoryCard } from '@/types/hub'
 
 interface ProgressIndicatorProps {
   card: StoryCard
-  isLast: boolean
+  showBottomLine?: boolean
 }
 
-export function ProgressIndicator({ card, isLast }: ProgressIndicatorProps) {
+export function ProgressIndicator({ card, showBottomLine = true }: ProgressIndicatorProps) {
   return (
     <View style={styles.container}>
       {/* Top line */}
       <View style={styles.line} />
       
-      {/* Circle indicator */}
-      <View style={styles.circle}>
-        <View style={styles.circleInner} />
+      {/* Arrow indicator */}
+      <View style={styles.arrowWrap}>
+        <MaterialCommunityIcons name="arrow-down" size={20} color="#ffffff" />
       </View>
       
       {/* Bottom line */}
-      {!isLast && <View style={styles.line} />}
+      {showBottomLine && <View style={styles.line} />}
     </View>
   )
 }
@@ -34,7 +35,7 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: 'rgba(255, 255, 255, 0.27)',
   },
-  circle: {
+  arrowWrap: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -44,12 +45,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 4,
-  },
-  circleInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#ffffff',
   },
 })
 

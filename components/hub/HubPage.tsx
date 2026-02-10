@@ -9,19 +9,20 @@ const { width } = Dimensions.get('window')
 
 interface HubPageProps {
   card: StoryCardType
-  isLast: boolean
   onResourcePress: () => void
   carouselHeight: number
 }
 
-export function HubPage({ card, isLast, onResourcePress, carouselHeight }: HubPageProps) {
+export function HubPage({ card, onResourcePress, carouselHeight }: HubPageProps) {
   const titleLower = String(card.title ?? '').toLowerCase()
   const isPrologue =
     titleLower.includes('prologue') || titleLower === 'prologue'
   const showResources = !isPrologue && card.hasResources
 
-  // Tall cards: use ~90% of carousel height to match design (long, prominent cards)
-  const cardHeight = Math.round(carouselHeight * 1.0)
+  // Leave room for the scroll cue when resources exist.
+  const cardHeight = Math.round(
+    showResources ? carouselHeight * 0.8 : carouselHeight * 1.0
+  )
   const hasScroll = showResources
 
   return (
@@ -29,12 +30,14 @@ export function HubPage({ card, isLast, onResourcePress, carouselHeight }: HubPa
       {hasScroll ? (
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { minHeight: carouselHeight }]}
           showsVerticalScrollIndicator={false}
         >
           <StoryCard card={card} height={cardHeight} />
+          <View style={styles.scrollCue}>
+            <ProgressIndicator card={card} showBottomLine />
+          </View>
           <View style={styles.resourcesBlock}>
-            <ProgressIndicator card={card} isLast={isLast} />
             <ResourceCard card={card} onPress={onResourcePress} />
           </View>
         </ScrollView>
@@ -68,6 +71,9 @@ const styles = StyleSheet.create({
   resourcesBlock: {
     marginTop: 16,
     width: '100%',
+  },
+  scrollCue: {
+    marginTop: 12,
   },
 })
 

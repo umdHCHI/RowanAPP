@@ -138,7 +138,6 @@ export interface UseStoryHistoryProps {
 
 export interface UseStoryEngineProps {
   storyId: string | number
-  shouldRestart?: boolean
 }
 
 export interface UseStoryAutoAdvanceProps {

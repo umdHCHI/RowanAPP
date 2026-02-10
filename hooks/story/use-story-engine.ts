@@ -22,10 +22,7 @@ function extractErrorMessage(err: any): string {
   return 'An unexpected error occurred.'
 }
 
-export function useStoryEngine({
-  storyId,
-  shouldRestart = false,
-}: UseStoryEngineProps): UseStoryEngineResult {
+export function useStoryEngine({ storyId }: UseStoryEngineProps): UseStoryEngineResult {
   const [engineState, setEngineState] = useState<EngineState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +84,7 @@ export function useStoryEngine({
 
   useEffect(() => {
     startedRef.current = false
-  }, [storyId, shouldRestart])
+  }, [storyId])
 
   useEffect(() => {
     if (!storyId) {
@@ -103,17 +100,11 @@ export function useStoryEngine({
       setEngineState(null)
 
       try {
-        const startResponse = shouldRestart
-          ? await retryApiCall(
-              () => storyService.restartStory(Number(storyId)),
-              DEFAULT_MAX_RETRIES,
-              getRetryDelay()
-            )
-          : await retryApiCall(
-              () => storyService.startStoryWithFallback(Number(storyId)),
-              DEFAULT_MAX_RETRIES,
-              getRetryDelay()
-            )
+        const startResponse = await retryApiCall(
+          () => storyService.restartStory(Number(storyId)),
+          DEFAULT_MAX_RETRIES,
+          getRetryDelay()
+        )
 
         let initialState: any = startResponse
 
@@ -157,7 +148,7 @@ export function useStoryEngine({
     }
 
     startStoryFlow()
-  }, [storyId, shouldRestart])
+  }, [storyId])
 
   useEffect(() => {
     let isActive = true

@@ -118,7 +118,39 @@ export function useGainLumens() {
     onSuccess: (updatedCharacter) => {
       queryClient.setQueryData<CharacterResponse>(
         characterKeys.mine(),
-        updatedCharacter,
+        (existing) => {
+          if (!existing) return updatedCharacter;
+          return {
+            ...existing,
+            ...updatedCharacter,
+            character_config:
+              updatedCharacter.character_config ?? existing.character_config,
+            selected_base_model:
+              updatedCharacter.selected_base_model ?? existing.selected_base_model,
+            selected_background_color:
+              updatedCharacter.selected_background_color ?? existing.selected_background_color,
+            selected_background_type:
+              updatedCharacter.selected_background_type ?? existing.selected_background_type,
+            selected_hair_color:
+              updatedCharacter.selected_hair_color ?? existing.selected_hair_color,
+            selected_hair_style:
+              updatedCharacter.selected_hair_style ?? existing.selected_hair_style,
+            selected_shirt_color:
+              updatedCharacter.selected_shirt_color ?? existing.selected_shirt_color,
+            selected_shirt_type:
+              updatedCharacter.selected_shirt_type ?? existing.selected_shirt_type,
+            selected_eye_color:
+              updatedCharacter.selected_eye_color ?? existing.selected_eye_color,
+            selected_eye_type:
+              updatedCharacter.selected_eye_type ?? existing.selected_eye_type,
+            selected_eyebrow_color:
+              updatedCharacter.selected_eyebrow_color ?? existing.selected_eyebrow_color,
+            selected_eyebrow_style:
+              updatedCharacter.selected_eyebrow_style ?? existing.selected_eyebrow_style,
+            selected_mouth_type:
+              updatedCharacter.selected_mouth_type ?? existing.selected_mouth_type,
+          };
+        },
       );
 
       // IMPORTANT: userKeys.fullProfile REQUIRES AN ID

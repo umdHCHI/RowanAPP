@@ -9,6 +9,31 @@ import type {
 } from "../types";
 
 export const characterService = {
+  async ensureFullCharacter(
+    response: ApiResponse<CharacterResponse>
+  ): Promise<ApiResponse<CharacterResponse>> {
+    const data = response?.data
+    if (!data) return response
+
+    const hasCosmetics =
+      data.selected_base_model != null &&
+      data.selected_background_color != null &&
+      data.selected_background_type != null &&
+      data.selected_hair_color != null &&
+      data.selected_hair_style != null &&
+      data.selected_shirt_color != null &&
+      data.selected_shirt_type != null &&
+      data.selected_eye_color != null &&
+      data.selected_eye_type != null &&
+      data.selected_eyebrow_color != null &&
+      data.selected_eyebrow_style != null &&
+      data.selected_mouth_type != null
+
+    if (hasCosmetics) return response
+
+    const mine = await characterService.getMine()
+    return mine.success ? mine : response
+  },
   async getMine(): Promise<ApiResponse<CharacterResponse>> {
     const response = await apiClient.get<CharacterResponse>(API_ENDPOINTS.CHARACTER_MINE, {
       skipVersion: true,
@@ -79,9 +104,10 @@ export const characterService = {
         Object.prototype.hasOwnProperty.call(response as object, 'success') &&
         Object.prototype.hasOwnProperty.call(response as object, 'data');
 
-      return isWrapped
+      const normalized = isWrapped
         ? (response as ApiResponse<CharacterResponse>)
         : ({ success: true, data: response as unknown as CharacterResponse } as ApiResponse<CharacterResponse>);
+      return await characterService.ensureFullCharacter(normalized);
     } catch (error: any) {
       const message = String(error?.message || '').toLowerCase();
       const status = (error as ApiError)?.status;

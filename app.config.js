@@ -31,6 +31,7 @@ module.exports = {
       },
     },
     android: {
+      icon: './assets/splashscreen/Loading_Book.png',
       adaptiveIcon: {
         backgroundColor: '#000000',
         foregroundImage: './assets/splashscreen/Loading_Book.png',
