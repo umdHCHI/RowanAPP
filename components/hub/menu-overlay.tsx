@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router'
 import { useHaptics } from '@/utils/useHaptics'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { BugReportModal } from './BugReportingModal'
+import { useState } from 'react'
 
 const { width, height } = Dimensions.get('window')
 
@@ -19,24 +21,19 @@ interface MenuItem {
   action?: () => void
 }
 
-
-const menuItems: MenuItem[] = [
-  { label: 'About The Archive', route: '/about' },
-  { label: 'Start a new story', route: '/hub' },
-  { label: 'Crisis help', route: '/crisis-help' },
-  { label: 'Report a bug', action: () => {
-    // TODO: Implement bug reporting
-    //Click to Report Bug -> Modal Pops Up where user can report their issue -> HCI lab is notified
-    //using resend
-    
-  } },
-]
-
 export function MenuOverlay({ visible, onClose }: MenuOverlayProps) {
   const router = useRouter()
   const haptics = useHaptics()
   const playPageFlipSound = usePageFlipSound()
   const insets = useSafeAreaInsets()
+  const [bugReportVisible, setBugReportVisible] = useState(false)
+
+  const menuItems: MenuItem[] = [
+  { label: 'About The Archive', route: '/about' },
+  { label: 'Start a new story', route: '/hub' },
+  { label: 'Crisis help', route: '/crisis-help' },
+  { label: 'Report a bug', action: () => setBugReportVisible(true)},
+]
 
   function handleMenuItemPress(item: MenuItem) {
     haptics.mediumImpact()
@@ -53,6 +50,7 @@ export function MenuOverlay({ visible, onClose }: MenuOverlayProps) {
  
 
   return (
+    <>
     <Modal
       visible={visible}
       transparent
@@ -108,6 +106,12 @@ export function MenuOverlay({ visible, onClose }: MenuOverlayProps) {
         </View>
       </View>
     </Modal>
+
+    <BugReportModal
+      visible={bugReportVisible}
+      onClose={() => setBugReportVisible(false)}
+      />
+    </>
   )
 }
 

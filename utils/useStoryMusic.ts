@@ -17,7 +17,7 @@ const STORY_MUSIC_MAP: Record<number | string, { uri: string }> = {
   // Story 3 music (ID 30 - matches API)
   30: { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61iYOdGI3Lx6aPVdtUClEik9wDyjfIS7rg3NTGe' },
   // Story 4 music (ID 31 - matches API)
-  31: { uri: '' },
+  31: { uri: 'https://drive.google.com/file/d/1OAKSywsFeg_1e5ur5fthYUl-nyk1ahZH/view?usp=sharing' }, //add uri
   // Add more story music files here as they become available
   // Example:
   // 3: { uri: 'https://your-cdn.com/story3.mp3' },
