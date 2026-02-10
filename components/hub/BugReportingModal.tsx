@@ -120,7 +120,7 @@ export function BugReportModal({ visible, onClose }: BugReportModalProps) {
           />
 
           <TextInput
-            placeholder="Describe the bug..."
+            placeholder="Describe the bug"
             placeholderTextColor="rgba(255, 255, 255, 0.5)"
             value={description}
             onChangeText={setDescription}
