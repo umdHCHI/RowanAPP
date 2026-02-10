@@ -26,6 +26,9 @@ const menuItems: MenuItem[] = [
   { label: 'Crisis help', route: '/crisis-help' },
   { label: 'Report a bug', action: () => {
     // TODO: Implement bug reporting
+    //Click to Report Bug -> Modal Pops Up where user can report their issue -> HCI lab is notified
+    //using resend
+    
   } },
 ]
 
