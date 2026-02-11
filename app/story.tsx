@@ -6,12 +6,15 @@ import { StoryPage } from '@/components/story'
 import { useHubStories } from '@/hooks'
 import type { StoryData } from '@/stores/game-store'
 
-/**
- * Check if a story is the Introduction story
- */
+/** Prologue is story 1; treat prologue or introduction title as intro for background/music. */
 function isIntroductionStory(story: StoryData): boolean {
   const titleLower = String(story.title ?? '').toLowerCase()
-  return titleLower.includes('introduction') || titleLower === 'introduction'
+  return (
+    titleLower.includes('prologue') ||
+    titleLower === 'prologue' ||
+    titleLower.includes('introduction') ||
+    titleLower === 'introduction'
+  )
 }
 
 export default function Story() {

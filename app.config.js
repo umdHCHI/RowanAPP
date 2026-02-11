@@ -79,6 +79,8 @@ module.exports = {
       // Expose environment variables to the app
       apiUrl: process.env.EXPO_PUBLIC_API_URL,
       apiToken: process.env.EXPO_PUBLIC_API_TOKEN,
+      // Optional: full URL for bug report endpoint (e.g. Vercel serverless). If unset, app uses apiUrl + 'report-bug'.
+      bugReportUrl: process.env.EXPO_PUBLIC_BUG_REPORT_URL,
     },
   },
 }

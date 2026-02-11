@@ -56,7 +56,7 @@ function deriveRootUrl(url: string): string {
   return normalized
 }
 
-function safeGetExpoExtra(): { apiUrl?: string; apiToken?: string } {
+function safeGetExpoExtra(): { apiUrl?: string; apiToken?: string; bugReportUrl?: string } {
   try {
     // Avoid static import to reduce init issues
     const Constants = require('expo-constants').default
@@ -64,6 +64,7 @@ function safeGetExpoExtra(): { apiUrl?: string; apiToken?: string } {
     return {
       apiUrl: extra.apiUrl,
       apiToken: extra.apiToken,
+      bugReportUrl: extra.bugReportUrl,
     }
   } catch {
     return {}
@@ -106,6 +107,22 @@ export function apiUrl(path: string): string {
   if (!base) return path // avoid crashing; you'll see it quickly in logs
   const p = path.startsWith('/') ? path.slice(1) : path
   return `${base}${p}`
+}
+
+/**
+ * URL for the bug-report middleware (api/report-bug.ts → Resend).
+ * - If EXPO_PUBLIC_BUG_REPORT_URL is set, use it (e.g. native or custom host).
+ * - On web, use relative '/api/report-bug' so the same origin that serves the app
+ *   (and the middleware) receives the request.
+ * - On native without that env, falls back to apiUrl('report-bug').
+ */
+export function getBugReportUrl(): string {
+  const extra = safeGetExpoExtra()
+  const explicit = extra.bugReportUrl ?? process.env.EXPO_PUBLIC_BUG_REPORT_URL ?? ''
+  if (explicit && explicit.trim()) return explicit.trim()
+  // Web: same-origin request to the middleware
+  if (typeof window !== 'undefined' && window.location?.origin) return '/api/report-bug'
+  return apiUrl('report-bug')
 }
 
 /**

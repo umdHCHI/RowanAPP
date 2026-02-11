@@ -14,23 +14,29 @@ export function GameFragment({ fragment, onTap, gameHeight, gameWidth }: GameFra
   const translateY = useRef(new Animated.Value(0)).current
   const translateX = useRef(new Animated.Value(0)).current
   const opacity = useRef(new Animated.Value(0.5)).current // Start brighter
+  const hasAnimationStartedRef = useRef(false)
 
+  // Run the fall animation only once per fragment (per mount). Avoids restart when parent
+  // re-renders with new object reference but same data. Deps still list all values used
+  // so the first run uses current fragment/game state.
   useEffect(() => {
-    // Calculate distance to bottom of screen
+    if (hasAnimationStartedRef.current) return
+    hasAnimationStartedRef.current = true
+
     const distanceToBottom = gameHeight - fragment.y
     const fallDistance = Math.max(distanceToBottom, 300) // At least 300px or to bottom
     
     // Add subtle horizontal drift like a leaf (random left or right, constrained to stay on screen)
-    // Calculate safe drift range based on starting position and text width
     const textMaxWidth = 200
-    const leftBoundary = 8 // Minimum left padding
-    const rightBoundary = gameWidth - textMaxWidth - 8 // Maximum right position
-    
-    // Calculate how far left and right we can drift from current position
-    const maxLeftDrift = fragment.x - leftBoundary // How far left we can go
-    const maxRightDrift = rightBoundary - fragment.x // How far right we can go
-    const maxDrift = Math.min(60, maxLeftDrift, maxRightDrift) // Constrain to smallest safe range
-    const horizontalDrift = Math.max(-maxLeftDrift, Math.min(maxRightDrift, (Math.random() - 0.5) * maxDrift * 2))
+    const leftBoundary = 8
+    const rightBoundary = gameWidth - textMaxWidth - 8
+
+    // How far we can drift left/right without going off-screen; clamp to 0 when near edges
+    const maxLeftDrift = Math.max(0, fragment.x - leftBoundary)
+    const maxRightDrift = Math.max(0, rightBoundary - fragment.x)
+    const maxDrift = Math.max(0, Math.min(60, maxLeftDrift, maxRightDrift))
+    const rawDrift = (Math.random() - 0.5) * maxDrift * 2 // in [-maxDrift, maxDrift]
+    const horizontalDrift = Math.max(-maxLeftDrift, Math.min(maxRightDrift, rawDrift))
     
     // Slow, leaf-like fall: fall downward with gentle horizontal drift
     Animated.parallel([
@@ -75,7 +81,7 @@ export function GameFragment({ fragment, onTap, gameHeight, gameWidth }: GameFra
         }),
       ]),
     ]).start()
-  }, [translateY, translateX, opacity, fragment.ttlMs, fragment.y, gameHeight, gameWidth])
+  }, [translateY, translateX, opacity, fragment.ttlMs, fragment.x, fragment.y, gameHeight, gameWidth])
 
   const isWellness = fragment.kind === 'wellness'
 

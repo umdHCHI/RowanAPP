@@ -46,26 +46,27 @@ export interface JournalPrompt {
   updated_at: string
 }
 
-// Story data from API
+// Story data from API (aligns with StoryResponse; optional fields match backend)
 export interface StoryData {
   id: number
   title: string
   description: string
   image: string | null
   starting_passage_id: string
-  min_level: number
-  category: string
-  rarity: string
-  revelations: string[]
   estimated_time_minutes: number
-  atmosphere: string
-  difficulty: string
-  personality_focus: string[]
   is_repeatable: boolean
   created_at: string
   updated_at: string
+  is_hidden?: boolean
   passage_count?: number
-  total_passages: number
+  total_passages?: number
+  min_level?: number
+  category?: string
+  rarity?: string
+  revelations?: string[]
+  atmosphere?: string
+  difficulty?: string
+  personality_focus?: string[]
 }
 
 export type TextSpeed = 'slow' | 'normal' | 'fast'

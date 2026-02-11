@@ -1,17 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { View, Image, Animated, Text, StyleSheet } from 'react-native'
 import { GAME_CONFIG } from '@/utils/vantage-constants'
 import type { Boss } from '@/types/game'
 
 interface GameBossProps {
   boss: Boss
-  lastHitAt?: number
   telegraphActive?: boolean
   telegraphLabel?: string
   difficultyLevel?: number // 1-10 from useGameDirector
 }
 
-export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, difficultyLevel = 5 }: GameBossProps) {
+export function GameBoss({ boss, telegraphActive, telegraphLabel, difficultyLevel = 5 }: GameBossProps) {
   const flash = useRef(new Animated.Value(0)).current
   const shake = useRef(new Animated.Value(0)).current
   const telegraphGlow = useRef(new Animated.Value(0)).current
@@ -19,11 +18,14 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
   const lastHitAtRef = useRef<number | undefined>(undefined)
   const hasAnimatedInRef = useRef(false)
 
-  // Calculate inverseDifficulty factor for adaptive pacing
-  // Lower difficultyLevel (1) = higher pressure = slower animations, more visible telegraph
-  // Higher difficultyLevel (10) = lower pressure = faster animations, less visible telegraph
-  const inverseDifficulty = (11 - difficultyLevel) * 0.2
+  // Quantize difficulty to integer steps (1–10) so telegraph pulse only restarts when
+  // difficulty changes meaningfully, avoiding flicker from small DDA fluctuations.
+  const difficultyStep = useMemo(
+    () => Math.max(1, Math.min(10, Math.round(difficultyLevel))),
+    [difficultyLevel]
+  )
   const baseTelegraphDuration = 225
+  const inverseDifficulty = (11 - difficultyStep) * 0.2
   const adaptiveTelegraphDuration = baseTelegraphDuration * inverseDifficulty
 
   // Telegraph opacity adjustment: Lower difficulty (high pressure) = more visible warning
@@ -35,7 +37,9 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
   // Shake intensity: Lower difficulty = subtler shake
   const shakeIntensity = Math.max(1, difficultyLevel * 0.4) // Range: 1 (difficulty 1-2) to 4 (difficulty 10)
 
-  // Fade in on first render to prevent double-render flash
+  // Fade in once per mount. Parent mounts GameBoss when boss appears and unmounts when boss
+  // is defeated or game resets; the boss is never unmounted/remounted during a fight, so we
+  // get exactly one fade per boss appearance. No double-fade.
   useEffect(() => {
     if (!hasAnimatedInRef.current) {
       hasAnimatedInRef.current = true
@@ -47,8 +51,15 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
     }
   }, [fadeIn])
 
+  // Only run flash/shake when we have a new, valid hit timestamp. Treat 0/undefined as "no hit".
+  // Single source of truth: boss.lastHitAt (updated by game loop in use-vantage-boss).
   useEffect(() => {
-    if (lastHitAt !== undefined && lastHitAt !== lastHitAtRef.current) {
+    const lastHitAt = boss.lastHitAt
+    const hasNewHit =
+      lastHitAt != null &&
+      lastHitAt > 0 &&
+      lastHitAt !== lastHitAtRef.current
+    if (hasNewHit) {
       lastHitAtRef.current = lastHitAt
 
       // Flash animation
@@ -84,22 +95,23 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
         }),
       ]).start()
     }
-  }, [lastHitAt, flash, shake])
+  }, [boss.lastHitAt, flash, shake])
 
-  // Telegraph glow animation - adaptive timing based on difficulty
+  // Telegraph glow: pulse only restarts when telegraphActive or difficultyStep (integer) changes.
+  // Duration is derived from difficultyStep inside so small difficultyLevel jitter doesn't restart.
   useEffect(() => {
     if (telegraphActive) {
-      // Start pulsing animation with adaptive duration
+      const duration = baseTelegraphDuration * ((11 - difficultyStep) * 0.2)
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(telegraphGlow, {
             toValue: 1,
-            duration: adaptiveTelegraphDuration,
+            duration,
             useNativeDriver: true,
           }),
           Animated.timing(telegraphGlow, {
             toValue: 0,
-            duration: adaptiveTelegraphDuration,
+            duration,
             useNativeDriver: true,
           }),
         ])
@@ -107,14 +119,13 @@ export function GameBoss({ boss, lastHitAt, telegraphActive, telegraphLabel, dif
       pulseAnimation.start()
       return () => pulseAnimation.stop()
     } else {
-      // Fade out quickly
       Animated.timing(telegraphGlow, {
         toValue: 0,
         duration: 100,
         useNativeDriver: true,
       }).start()
     }
-  }, [telegraphActive, telegraphGlow, adaptiveTelegraphDuration])
+  }, [telegraphActive, telegraphGlow, difficultyStep])
 
   // Adaptive shake intensity based on difficulty
   const shakeTranslateX = shake.interpolate({

@@ -13,12 +13,10 @@ function truncateText(text: string, maxLength: number): string {
   return text.substring(0, maxLength).trim() + '...'
 }
 
-/**
- * Check if a story is the Introduction story -- wait Trevor might have created a different function somewhere.... 
- */
-function isIntroductionStory(story: StoryResponse): boolean {
+/** Prologue is story 1 (first card, no resources). */
+function isPrologueStory(story: StoryResponse): boolean {
   const titleLower = String(story.title ?? '').toLowerCase()
-  return titleLower.includes('introduction') || titleLower === 'introduction'
+  return titleLower.includes('prologue') || titleLower === 'prologue'
 }
 
 /**
@@ -46,21 +44,20 @@ export function mapStoriesToCards(
   }
 
   // Helper function to map a story to a card
-  function mapStoryToCard(story: StoryResponse, index: number, isIntroduction = false): StoryCard {
+  function mapStoryToCard(story: StoryResponse, index: number, isPrologue = false): StoryCard {
     // Determine status based on story data and user progress
     let status: CardStatus = 'available'
     
-    // Check daily unlock system first (for non-introduction stories)
-    if (!isIntroduction) {
+    // Check daily unlock system first (for non-prologue stories)
+    if (!isPrologue) {
       const isUnlocked = isStoryUnlocked(story.id, userCreatedAt)
       if (!isUnlocked) {
         status = 'locked'
       }
     }
     
-    // Also check level requirement (legacy check) //remove legacy check>? 
-    if (story.min_level > 1 && status !== 'locked') {
-      // Check if user meets level requirement (you can enhance this)
+    // Also check level requirement (legacy check)
+    if ((story.min_level ?? 1) > 1 && status !== 'locked') {
       status = 'locked'
     }
 
@@ -71,14 +68,11 @@ export function mapStoriesToCards(
       status = 'completed'
     }
 
-    // Introduction should never have resources
-    const hasResources = !isIntroduction
+    // Prologue (story 1) never has resources
+    const hasResources = !isPrologue
 
-    // Truncate backend data to prevent overflow in card
-    // Title: max 50 chars (for display card titles)
-    // Subtitle: max 30 chars (usually short like "THE ARCHIVE")
-    // Tagline: no truncation - card can scroll to show full description
-    const label = `STORY ${index + 1}`
+    // Truncate backend data to prevent overflow in card. Prologue is 1; others are 2, 3, ...
+    const label = isPrologue ? 'PROLOGUE' : `STORY ${index + 2}`
 
     return {
       id: `story-${story.id}`,
@@ -94,38 +88,25 @@ export function mapStoriesToCards(
     }
   }
 
-  // Find the Introduction story
-  const introductionStory = stories.find(isIntroductionStory)
+  // Drop only stories marked hidden by the backend
+  const visibleStories = stories.filter((story) => !story.is_hidden)
 
-  // Filter stories: only show those with empty personality_focus array (no personality focus)
-  // Also exclude Introduction from this list
-  // Note: We still include locked stories in the list so users can see what's coming
-  const otherStories = stories
-    .filter(
-      (story) => !isIntroductionStory(story) && (!story.personality_focus || story.personality_focus.length === 0)
-    )
-    .sort((a, b) => {
-      // Sort by ID ascending (28, 29, 30, etc.)
-      return a.id - b.id
-    })
+  // Prologue is story 1 (first card)
+  const prologueStory = visibleStories.find(isPrologueStory)
+  const otherStories = visibleStories
+    .filter((story) => !isPrologueStory(story))
+    .sort((a, b) => a.id - b.id)
 
-  // Map Introduction story to card (if found) - explicitly set hasResources to false
-  const introductionCard = introductionStory
-    ? mapStoryToCard(introductionStory, 0, true)
+  const prologueCard = prologueStory
+    ? mapStoryToCard(prologueStory, 0, true)
     : null
-
-  // Map other stories to cards
-  // Story numbering starts at 1 for the first non-introduction story
   const otherStoryCards: StoryCard[] = otherStories.map((story, index) =>
     mapStoryToCard(story, index, false)
   )
 
-  // Return Introduction first, then other stories with empty personality_focus
-  if (introductionCard) {
-    return [introductionCard, ...otherStoryCards]
+  if (prologueCard) {
+    return [prologueCard, ...otherStoryCards]
   }
-
-  // If no Introduction found, return only stories with empty personality_focus
   return otherStoryCards
 }
 

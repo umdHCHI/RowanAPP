@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { getBugReportUrl } from '@/api/constants'
 import { useHaptics } from '@/utils/useHaptics'
 
 interface BugReportModalProps {
@@ -35,7 +36,8 @@ export function BugReportModal({ visible, onClose }: BugReportModalProps) {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch('/api/report-bug', {
+      const url = getBugReportUrl()
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,13 +67,28 @@ export function BugReportModal({ visible, onClose }: BugReportModalProps) {
           ]
         )
       } else {
-        throw new Error('Failed to submit bug report')
+        let message = `Request failed (${response.status})`
+        try {
+          const data = await response.json()
+          if (data?.error && typeof data.error === 'string') {
+            message = data.error
+          }
+        } catch {
+          // ignore parse error
+        }
+        console.warn('Bug report failed:', response.status, url, message)
+        throw new Error(message)
       }
     } catch (error) {
       haptics.error()
+      const message =
+        error instanceof Error ? error.message : 'Network or server error'
+      console.warn('Bug report error:', message, error)
       Alert.alert(
         'Error',
-        'Failed to submit bug report. Please try again later.'
+        message.includes('Request failed') || message.includes('Failed')
+          ? message
+          : 'Failed to submit bug report. Please try again later.'
       )
     } finally {
       setIsSubmitting(false)

@@ -169,6 +169,24 @@ export function GameOverlay({
     onBackToHub?.()
   }
 
+  function handleGameOverDismiss() {
+    playPageFlipSound()
+    setVisible(false)
+    onDismiss?.()
+  }
+
+  function handleGameOverPlayAgain() {
+    playPageFlipSound()
+    setVisible(false)
+    onPlayAgain?.()
+  }
+
+  function handleGameOverBackToHub() {
+    playPageFlipSound()
+    setVisible(false)
+    onBackToHub?.()
+  }
+
   if (type === 'victory') {
     return (
       <Modal
@@ -238,19 +256,21 @@ export function GameOverlay({
     )
   }
 
+  // Game over: use same pattern as start/victory—overlay owns visible, dialog receives it.
+  // Back button and action buttons set visible false then invoke parent callbacks.
   return (
-      <GameOverDialog 
-        visible={true} 
-        score={score || 0} 
-        won={won} 
-        bossDefeated={bossDefeated} 
-        lumensAwarded={lumensAwarded}
-        conqueredThoughts={conqueredThoughts} 
-        defeatedNegativeThoughts={defeatedNegativeThoughts}
-        onDismiss={onDismiss || (() => {})} 
-        onPlayAgain={onPlayAgain || (() => {})} 
-        onBackToHub={onBackToHub || (() => {})} 
-      />
+    <GameOverDialog
+      visible={visible}
+      score={score ?? 0}
+      won={won}
+      bossDefeated={bossDefeated}
+      lumensAwarded={lumensAwarded}
+      conqueredThoughts={conqueredThoughts}
+      defeatedNegativeThoughts={defeatedNegativeThoughts}
+      onDismiss={handleGameOverDismiss}
+      onPlayAgain={handleGameOverPlayAgain}
+      onBackToHub={handleGameOverBackToHub}
+    />
   )
 }
 

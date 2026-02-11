@@ -125,18 +125,12 @@ export function findNextStory(
     return null
   }
   
-  // Find the next available story (not locked by level requirement)
-  // Filter out stories with personality_focus (those are not shown in hub)
+  // Find the next visible, available story (skip hidden; min_level <= 1 means unlocked)
   for (let i = currentIndex + 1; i < stories.length; i++) {
     const story = stories[i]
-    // Check if story is available (min_level <= 1 means unlocked)
-    // Also filter out stories with personality_focus (they're not in the main hub flow)
-    const isAvailable = story.min_level <= 1
-    const hasNoPersonalityFocus = !story.personality_focus || story.personality_focus.length === 0
-    
-    if (isAvailable && hasNoPersonalityFocus) {
-      return story
-    }
+    if (story.is_hidden) continue
+    const isAvailable = (story.min_level ?? 1) <= 1
+    if (isAvailable) return story
   }
   
   return null

@@ -214,7 +214,7 @@ export function useVantageGame({
       thoughtEchoes: state.thoughtEchoes,
       conqueredThoughts: state.conqueredThoughts,
       defeatedNegativeThoughts: state.defeatedNegativeThoughts,
-      fragments: state.fragments,
+      fragments: state.fragments ?? [],
       formationTickMs: state.formationTickMs,
       wave: state.wave,
       waveDefeatedPatterns: state.waveDefeatedPatterns,

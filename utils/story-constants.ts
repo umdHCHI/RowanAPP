@@ -25,7 +25,8 @@ export const AUTO_ADVANCE_SPEED: Record<
 }
 
 /**
- * Introduction story ID
+ * Introduction story ID (always unlocked).
+ * Prologue is story 1 on the hub; first card is identified by title "prologue".
  */
 export const INTRODUCTION_STORY_ID = 12
 

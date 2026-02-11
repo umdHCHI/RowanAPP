@@ -29,7 +29,9 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
   const onPlayerMoveRef = useRef(onPlayerMove)
   const onShootRef = useRef(onShoot)
   
-  // Update refs when callbacks change (without recreating gesture)
+  // Keep callback refs and callbacksEnabled in sync. We mutate callbacksEnabled here (not in
+  // useMemo deps) so the gesture worklet reads the current value at runtime without recreating
+  // the gesture when onPlayerMove/onShoot change. The gesture stays stable; only this effect runs.
   useEffect(() => {
     onPlayerMoveRef.current = onPlayerMove
     onShootRef.current = onShoot
@@ -49,7 +51,7 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
   const [showHint, setShowHint] = useState(true)
   const hintOpacity = useMemo(() => new Animated.Value(1), [])
   const hitFlashOpacity = useMemo(() => new Animated.Value(0), [])
-  const lastHitAtRef = useRef<number>(0)
+  const lastHitAtRef = useRef<number | undefined>(undefined)
 
   // Tutorial hints for level 0
   const tutorialHints = useMemo(() => [
@@ -63,38 +65,42 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
   const [currentTutorialHintIndex, setCurrentTutorialHintIndex] = useState(0)
   const [showTutorialHint, setShowTutorialHint] = useState(false)
   const tutorialHintOpacity = useMemo(() => new Animated.Value(0), [])
-  const tutorialTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const tutorialTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const tutorialActiveRef = useRef<boolean>(false)
+
+  function clearAllTutorialTimers() {
+    tutorialTimersRef.current.forEach((id) => clearTimeout(id))
+    tutorialTimersRef.current = []
+  }
+
+  function registerTutorialTimer(id: ReturnType<typeof setTimeout>) {
+    tutorialTimersRef.current.push(id)
+  }
 
   // Memoized function to show tutorial hints in sequence
   const showTutorialHintAtIndex = useCallback((index: number) => {
-    // Check if tutorial is still active before proceeding
     if (!tutorialActiveRef.current) return
 
     if (index >= tutorialHints.length) {
-      // All hints shown, fade out
       Animated.timing(tutorialHintOpacity, {
         toValue: 0,
         duration: 500,
         useNativeDriver: true,
       }).start(() => {
-        setShowTutorialHint(false)
+        if (tutorialActiveRef.current) setShowTutorialHint(false)
       })
       return
     }
 
     setCurrentTutorialHintIndex(index)
-    
-    // Fade in
+
     Animated.timing(tutorialHintOpacity, {
       toValue: 1,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      // Check again before setting timer
       if (!tutorialActiveRef.current) return
 
-      // Show for 5 seconds, then fade out
       const showTimer = setTimeout(() => {
         if (!tutorialActiveRef.current) return
         Animated.timing(tutorialHintOpacity, {
@@ -102,54 +108,43 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
           duration: 500,
           useNativeDriver: true,
         }).start(() => {
-          // Check again before showing next hint
           if (!tutorialActiveRef.current) return
-          // Show next hint after fade out
           const nextTimer = setTimeout(() => {
             if (tutorialActiveRef.current) {
               showTutorialHintAtIndex(index + 1)
             }
           }, 200)
-          tutorialTimerRef.current = nextTimer
+          registerTutorialTimer(nextTimer)
         })
-      }, 5000)
-      tutorialTimerRef.current = showTimer
+      }, 10000)
+      registerTutorialTimer(showTimer)
     })
   }, [tutorialHints.length, tutorialHintOpacity])
 
   // Show tutorial hints in sequence when tutorial mode is active
   useEffect(() => {
     if (!isTutorial) {
-      // Clean up if tutorial mode is disabled
       tutorialActiveRef.current = false
-      if (tutorialTimerRef.current) {
-        clearTimeout(tutorialTimerRef.current)
-        tutorialTimerRef.current = null
-      }
+      clearAllTutorialTimers()
       setShowTutorialHint(false)
       setCurrentTutorialHintIndex(0)
       tutorialHintOpacity.setValue(0)
       return
     }
 
-    // Mark tutorial as active
     tutorialActiveRef.current = true
 
-    // Start showing tutorial hints after a short delay
     const startTimer = setTimeout(() => {
       if (tutorialActiveRef.current) {
         setShowTutorialHint(true)
         showTutorialHintAtIndex(0)
       }
     }, 1000)
-    tutorialTimerRef.current = startTimer
+    registerTutorialTimer(startTimer)
 
     return () => {
       tutorialActiveRef.current = false
-      if (tutorialTimerRef.current) {
-        clearTimeout(tutorialTimerRef.current)
-        tutorialTimerRef.current = null
-      }
+      clearAllTutorialTimers()
     }
   }, [isTutorial, tutorialHintOpacity, showTutorialHintAtIndex])
 
@@ -167,9 +162,14 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
     }
   }, [showHint, hintOpacity, isTutorial])
 
-  // Handle player hit flash
+  // Handle player hit flash: only when we have a new, valid hit timestamp. Treat 0/undefined as
+  // "no hit" so we never flash on initial mount or when the parent resets to 0.
   useEffect(() => {
-    if (playerLastHitAt && playerLastHitAt !== lastHitAtRef.current) {
+    const hasNewHit =
+      playerLastHitAt != null &&
+      playerLastHitAt > 0 &&
+      playerLastHitAt !== lastHitAtRef.current
+    if (hasNewHit) {
       lastHitAtRef.current = playerLastHitAt
       hitFlashOpacity.setValue(1)
       Animated.timing(hitFlashOpacity, {
@@ -180,8 +180,10 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
     }
   }, [playerLastHitAt, hitFlashOpacity])
 
-  // Create stable gesture object using stable wrapper functions
-  // Wrapper functions read from refs, so gesture doesn't need to recreate when callbacks change
+  // Stable gesture: handlePlayerMove/handleShoot are stable (useCallback []); shared values are
+  // stable refs. callbacksEnabled is not in the dependency array—it is mutated in the effect
+  // above so worklets always read the current value; including it would not change behavior
+  // (shared value identity is stable) but we keep the gesture deps minimal on purpose.
   const composed = useMemo(() => {
     // Pan gesture for moving player
     const pan = Gesture.Pan()
@@ -259,7 +261,6 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
     tapStartX,
     tapStartY,
     lastSentX,
-    callbacksEnabled,
   ])
   
 
@@ -356,7 +357,7 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
 const styles = StyleSheet.create({
   hintPill: {
     position: 'absolute',
-    top: 12,
+    top: 56,
     right: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     paddingHorizontal: 24,
@@ -379,8 +380,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingTop: 120,
     zIndex: 200,
   },
   tutorialHintCard: {

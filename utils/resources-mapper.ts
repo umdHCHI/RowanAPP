@@ -53,7 +53,7 @@ export function mapStoryToResourceItem(
     title: story.title,
     type: formatStoryType(story),
     description: story.description || undefined,
-    isLocked: userLevel < story.min_level,
+    isLocked: userLevel < (story.min_level ?? 1),
     duration: formatDuration(story.estimated_time_minutes),
     backgroundImage: story.image ? { uri: story.image } : undefined,
   }

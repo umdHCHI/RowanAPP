@@ -1,8 +1,22 @@
+/**
+ * Bug-report middleware: receives form submissions from BugReportingModal,
+ * then sends the report to you via Resend.
+ */
+import 'dotenv/config'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function POST(request: Request) {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    console.error('RESEND_API_KEY is not set. Ensure .env is loaded or set the env var where this API runs.')
+    return Response.json(
+      { error: 'Email not configured' },
+      { status: 503 }
+    )
+  }
+
+  const resend = new Resend(apiKey)
+
   try {
     const body = await request.json()
     const { description, email, timestamp, platform } = body
@@ -11,7 +25,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await resend.emails.send({
       from: 'Bug Reports <onboarding@resend.dev>', //add domain
-      to: ['schm5669@d.umn.edu'], //add email
+      to: [ 'strat238@d.umn.edu'],//add email'schm5669@d.umn.edu'
       subject: `Bug Report - ${dateString}`,
       html: `
         <h2>New Bug Report</h2>

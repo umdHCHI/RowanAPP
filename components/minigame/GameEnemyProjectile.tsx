@@ -10,10 +10,11 @@ interface GameEnemyProjectileProps {
 export function GameEnemyProjectile({ projectile }: GameEnemyProjectileProps) {
   const fadeIn = useFadeIn(150)
 
-  // Use purple colors for boss projectiles, red for regular enemy projectiles
+  // Use purple colors for boss projectiles, red for regular enemy projectiles.
+  // Border uses a distinct color so the outline is visible (not same as fill).
   const isBoss = projectile.isBoss ?? false
   const backgroundColor = isBoss ? '#AA44FF' : '#FF4444'
-  const borderColor = isBoss ? '#CC88FF' : '#FF8888'
+  const borderColor = isBoss ? '#8844DD' : '#CC2222'
   const shadowColor = isBoss ? '#9933FF' : '#FF0000'
   const innerColor = isBoss ? '#BB66FF' : '#FF6666'
 

@@ -134,23 +134,32 @@ export type CharacterUpdateRequest = CharacterCreateRequest;
 // Story Schemas
 // ============================================================================
 
+export const StoryPassageRefSchema = z.object({
+  id: z.number(),
+  passage_id: z.string(),
+  passage_type: z.string(),
+  story_id: z.number(),
+})
+
 export const StoryResponseSchema = z.object({
   id: z.number(),
   title: z.string(),
   description: z.string(),
   image: z.string().nullable(),
   starting_passage_id: z.string(),
-  min_level: z.number(),
-  rarity: z.string(),
-  revelations: z.array(z.string()),
   estimated_time_minutes: z.number(),
-  atmosphere: z.string(),
-  personality_focus: z.array(z.string()),
+  is_hidden: z.boolean().optional(),
   is_repeatable: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
   passage_count: z.number().optional(),
-  total_passages: z.number(),
+  total_passages: z.number().optional(),
+  min_level: z.number().optional(),
+  rarity: z.string().optional(),
+  revelations: z.array(z.string()).optional(),
+  atmosphere: z.string().optional(),
+  personality_focus: z.array(z.string()).optional(),
+  passages: z.array(StoryPassageRefSchema).optional(),
 })
 
 export const StoryProgressUpdateSchema = z.object({

@@ -23,6 +23,8 @@ import {
   DebugHUD,
 } from '@/components/minigame'
 
+const noop = () => {}
+
 export default function Vantage() {
   useRequireAuth() // Redirects to login if not authenticated
   
@@ -261,7 +263,7 @@ export default function Vantage() {
               {game.enemyProjectiles.map((proj) => (
                 <GameEnemyProjectile key={proj.id} projectile={proj} />
               ))}
-              {game.fragments?.map((fragment) => (
+              {game.fragments.map((fragment) => (
                 <GameFragment
                   key={fragment.id}
                   fragment={fragment}
@@ -276,7 +278,6 @@ export default function Vantage() {
               {game.boss && (
                 <GameBoss
                   boss={game.boss}
-                  lastHitAt={game.boss.lastHitAt}
                   telegraphActive={game.bossTelegraphActive}
                   telegraphLabel={game.bossTelegraphLabel}
                   difficultyLevel={ddaMetrics.difficultyLevel}
@@ -323,7 +324,7 @@ export default function Vantage() {
           bossDefeated={bossDefeated}
           conqueredThoughts={game.conqueredThoughts || []}
           defeatedNegativeThoughts={game.defeatedNegativeThoughts || []}
-          onDismiss={() => {}}
+          onDismiss={noop}
           onPlayAgain={handlePlayAgain}
           onBackToHub={handleBackToHub}
         />

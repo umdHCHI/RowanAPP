@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
@@ -31,6 +32,19 @@ export function GameOverDialog({
 }: GameOverDialogProps) {
   const playPageFlipSound = usePageFlipSound()
   const insets = useSafeAreaInsets()
+
+  const conqueredKey = conqueredThoughts.map((c) => c.id).join(',')
+  const defeatedKey = defeatedNegativeThoughts.map((t) => t.id).join(',')
+  const oneReframed = useMemo(() => {
+    if (conqueredThoughts.length === 0) return null
+    const i = Math.floor(Math.random() * conqueredThoughts.length)
+    return conqueredThoughts[i]
+  }, [conqueredKey, conqueredThoughts])
+  const oneDefeated = useMemo(() => {
+    if (defeatedNegativeThoughts.length === 0) return null
+    const i = Math.floor(Math.random() * defeatedNegativeThoughts.length)
+    return defeatedNegativeThoughts[i]
+  }, [defeatedKey, defeatedNegativeThoughts])
 
   function handlePlayAgain() {
     playPageFlipSound()
@@ -77,24 +91,27 @@ export function GameOverDialog({
         {(conqueredThoughts.length > 0 || defeatedNegativeThoughts.length > 0) && (
           <View style={styles.archiveSection}>
             <Text style={styles.archiveTitle}>Archive Record</Text>
-            
-            {/* Positive thoughts (conquered/reframed) */}
-            {conqueredThoughts.length > 0 && (
+
+            {oneReframed && (
               <>
-                {conqueredThoughts.length > 0 && (
-                  <Text style={styles.thoughtCategoryTitle}>Reframed Thoughts</Text>
-                )}
-                {conqueredThoughts.slice(0, 2).map((thought) => (
-                  <View key={`positive-${thought.id}`} style={styles.thoughtRecord}>
-                    <Text style={styles.thoughtPhrase}>"{thought.phrase}"</Text>
-                    <Text style={styles.counterRecord}>{thought.counterRecord}</Text>
-                  </View>
-                ))}
+                <Text style={styles.thoughtCategoryTitle}>Reframed Thoughts</Text>
+                <View style={styles.thoughtRecord}>
+                  <Text style={styles.thoughtPhrase}>"{oneReframed.phrase}"</Text>
+                  <Text style={styles.counterRecord}>{oneReframed.counterRecord}</Text>
+                </View>
               </>
             )}
-            
-            {/* Negative thoughts (defeated) */}
 
+            {oneDefeated && (
+              <>
+                {oneReframed && oneDefeated && <View style={styles.thoughtDivider} />}
+                <Text style={styles.thoughtCategoryTitle}>Defeated Thoughts</Text>
+                <View style={styles.thoughtRecord}>
+                  <Text style={styles.thoughtPhrase}>"{oneDefeated.phrase}"</Text>
+                  <Text style={styles.counterRecord}>{oneDefeated.counterRecord}</Text>
+                </View>
+              </>
+            )}
           </View>
         )}
         <View style={styles.buttonRow}>
