@@ -7,7 +7,7 @@
  */
 
 import type { StoryPassage, StoryChoice, StoryHistoryItem } from './story'
-import type { StoryCard } from './hub'
+import type { StoryCard } from './hub/hub'
 import type { CharacterFullProfile, StoryResponse, UserFullProfileResponse } from '@/api/types'
 import type { Power, TextSpeed } from '@/stores/game-store'
 import type { StoryProgressItem } from '@/utils/resources-mapper'
@@ -138,6 +138,8 @@ export interface UseStoryHistoryProps {
 
 export interface UseStoryEngineProps {
   storyId: string | number
+  /** When true, restart from the beginning. When false/undefined, resume from last passage if progress exists. */
+  shouldRestart?: boolean
 }
 
 export interface UseStoryAutoAdvanceProps {

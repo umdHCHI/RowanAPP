@@ -25,16 +25,26 @@ export const AUTO_ADVANCE_SPEED: Record<
 }
 
 /**
- * Introduction story ID (always unlocked).
- * Prologue is story 1 on the hub; first card is identified by title "prologue".
+ * Prologue is story 1 on the hub (first card, no resources). Backend uses ID 28.
+ */
+export const PROLOGUE_STORY_ID = 28
+
+/**
+ * Legacy introduction story ID (always unlocked if present).
+ * Prefer PROLOGUE_STORY_ID (28) for Prologue.
  */
 export const INTRODUCTION_STORY_ID = 12
 
 /**
- * Check if a choice text is a "Continue" choice
+ * Check if a choice text is a "Continue" choice (includes partial match; used e.g. for history)
  */
 export function isContinueChoice(choiceText: string): boolean {
   return String(choiceText ?? '').toLowerCase().includes('continue')
+}
+
+/** Exact "Continue" / "continue" only (trimmed). Used for auto-advance vs showing as button. */
+export function isExactContinueChoice(choiceText: string): boolean {
+  return String(choiceText ?? '').trim().toLowerCase() === 'continue'
 }
 
 /**
@@ -100,20 +110,18 @@ export function getUnlockedStoryIds(userCreatedAt: string | Date | null | undefi
 
 /**
  * Check if a story is unlocked based on user creation date
- * 
+ *
  * @param storyId - The story ID to check
  * @param userCreatedAt - User creation date as ISO string or Date object
- * @returns true if the story is unlocked
+ * @param prologueStoryId - When provided (e.g. from backend progress story_title "Prologue"), this story is always unlocked
  */
 export function isStoryUnlocked(
   storyId: number,
-  userCreatedAt: string | Date | null | undefined
+  userCreatedAt: string | Date | null | undefined,
+  prologueStoryId?: number | null
 ): boolean {
-  // Introduction story is always unlocked
-  if (storyId === INTRODUCTION_STORY_ID) {
-    return true
-  }
-  
+  if (prologueStoryId != null && storyId === prologueStoryId) return true
+  if (storyId === PROLOGUE_STORY_ID || storyId === INTRODUCTION_STORY_ID) return true
   const unlockedIds = getUnlockedStoryIds(userCreatedAt)
   return unlockedIds.has(storyId)
 }

@@ -143,6 +143,9 @@ export function CircleIcon({ size = 28 }: { size?: number }) {
   )
 }
 
+/** Height of the header bar below safe area; use for layout (e.g. paddingTop) so content sits below header. */
+export const HEADER_BAR_HEIGHT = 60
+
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
@@ -153,7 +156,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    minHeight: 60,
+    minHeight: HEADER_BAR_HEIGHT,
     elevation: 9999, // Android elevation
   },
   menuButton: {

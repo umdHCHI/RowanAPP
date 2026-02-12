@@ -36,7 +36,7 @@ export default function LoginPage() {
         <ScrollView
           className="flex-1"
           contentContainerClassName="login-inner"
-          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 200, 300) }}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 100) }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

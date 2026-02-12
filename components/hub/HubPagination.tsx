@@ -1,10 +1,9 @@
 import React from 'react'
 import { View, Pressable, StyleSheet } from 'react-native'
-import type { StoryCard } from '@/types/hub'
+import type { StoryCard } from '@/types/hub/hub'
 import { useHaptics } from '@/utils/useHaptics'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
 
-interface HubPaginationProps {  
+interface HubPaginationProps {
   cards: StoryCard[]
   activeIndex: number
   onDotPress: (index: number) => void
@@ -12,11 +11,9 @@ interface HubPaginationProps {
 
 export function HubPagination({ cards, activeIndex, onDotPress }: HubPaginationProps) {
   const haptics = useHaptics()
-  const playPageFlipSound = usePageFlipSound()
 
   function handleDotPress(index: number) {
     haptics.selection()
-    playPageFlipSound()
     onDotPress(index)
   }
 

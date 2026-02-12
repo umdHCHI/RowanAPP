@@ -3,8 +3,6 @@ import { View, TouchableOpacity, StyleSheet, Text } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useGameStore } from '@/stores/game-store'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import { useHaptics } from '@/utils/useHaptics'
 import { getTextSpeedLabel, getTextSpeedIcon } from '@/utils/story-speed'
 import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_LAYOUT } from './story-theme'
 
@@ -15,35 +13,25 @@ interface StoryHeaderProps {
 
 export function StoryHeader({ isPaused, onTogglePause }: StoryHeaderProps) {
   const router = useRouter()
-  const playPageFlipSound = usePageFlipSound()
-  const haptics = useHaptics()
   const { soundMuted, toggleSoundMute, textSpeed, cycleTextSpeed } = useGameStore()
 
   const speedLabel = getTextSpeedLabel(textSpeed)
   const speedIconName = getTextSpeedIcon(textSpeed)
 
   function handleClose() {
-    haptics.mediumImpact()
-    playPageFlipSound()
     router.push('/hub')
   }
 
   function handleSoundToggle() {
-    haptics.lightImpact()
     toggleSoundMute()
-    playPageFlipSound()
   }
 
   function handleSpeedToggle() {
-    haptics.lightImpact()
     cycleTextSpeed()
-    playPageFlipSound()
   }
 
   function handlePauseToggle() {
-    haptics.lightImpact()
     onTogglePause()
-    playPageFlipSound()
   }
 
   return (

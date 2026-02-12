@@ -1,6 +1,6 @@
 import { ImageSourcePropType } from 'react-native'
 
-// Color options available for hair, eyes, eyebrows, clothes, and backgrounds
+
 export const COLORS = [
   'Blonde',
   'Blue',

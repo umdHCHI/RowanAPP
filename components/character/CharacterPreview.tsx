@@ -50,6 +50,14 @@ export function CharacterPreview({
   const eyebrows = getEyebrowsAsset(eyebrowsColor, eyebrowsIndex)
   const mouth = getMouthAsset(mouthIndex)
 
+  // Bases 13–21 (base_one … base_nine) are drawn higher in their assets; offset down so they align with 1–12
+  const isHighBase = baseIndex >= 12
+  const baseLayerStyle = [
+    styles.layer,
+    { width: size, height: size },
+    isHighBase && { top: size * 0.12 },
+  ]
+
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       {/* Background layer */}
@@ -62,7 +70,7 @@ export function CharacterPreview({
       {/* Base layer */}
       <Image
         source={base}
-        style={[styles.layer, { width: size, height: size }]}
+        style={baseLayerStyle}
         resizeMode="contain"
       />
       

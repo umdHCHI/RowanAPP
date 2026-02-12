@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+// Theme duplicated from theme/design-tokens.ts (Tailwind runs in Node and doesn’t load .ts).
+// Keep in sync when changing design tokens.
 module.exports = {
   presets: [require('nativewind/preset')],
   content: [
@@ -34,4 +36,3 @@ module.exports = {
   },
   plugins: [],
 }
-

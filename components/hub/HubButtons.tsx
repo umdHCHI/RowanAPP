@@ -1,58 +1,26 @@
-import React from 'react'
-import { View, StyleSheet } from 'react-native'
-import type { StoryCard } from '@/types/hub'
+import { View } from 'react-native'
+import type { StoryCard } from '@/types/hub/hub'
 import { Button, Text } from '@/components/ui'
+import { hubButtonsStyles } from '@/styles/hub/hub-styles'
+import type { HubButtonsProps } from '@/types/hub/hub'
 
-interface HubButtonsProps {
-  card: StoryCard
-  onPrimaryPress: () => void
-  onResourcePress: () => void
-  onNextPress: () => void
-}
 
 function getButtonText(card: StoryCard): string {
-  if (card.status === 'completed') return 'Revisit this Book'
+  if (card.status === 'completed') return 'Restart this Book'
+  if (card.inProgress) return 'Continue this Book'
   return 'Explore this Book'
 }
 
-export function HubButtons({ card, onPrimaryPress, onResourcePress, onNextPress }: HubButtonsProps) {
-  const titleLower = String(card.title ?? '').toLowerCase()
-  const isIntroduction = titleLower.includes('introduction') || titleLower === 'introduction'
-  // Introduction should never show resource buttons
-  const showResourceButtons = !isIntroduction && card.hasResources && card.status === 'completed'
-
-  if (showResourceButtons && card.status === 'completed') {
-    // Two button layout for completed cards
-    return (
-      <View style={styles.container}>
-        <Button
-          variant="primary"
-          onPress={onResourcePress}
-          fullWidth
-          hapticType="light"
-        >
-          <Text variant="title" size={1}>Open resources</Text>
-        </Button>
-
-        <Button
-          variant="primary"
-          onPress={onNextPress}
-          fullWidth
-          hapticType="light"
-        >
-          <Text variant="title" size={1}>Go to next book</Text>
-        </Button>
-      </View>
-    )
-  }
-
-  // Single button layout
+export function HubButtons({ card, onPrimaryPress }: HubButtonsProps) {
   return (
-    <View style={styles.container}>
+    <View style={hubButtonsStyles.container}>
       <Button
         variant="primary"
         onPress={onPrimaryPress}
         fullWidth
+        enableSound={true}
+        enableHaptics={true}
+
       >
         <Text variant="title" size={1}>{getButtonText(card)}</Text>
       </Button>
@@ -60,11 +28,5 @@ export function HubButtons({ card, onPrimaryPress, onResourcePress, onNextPress 
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    paddingBottom: 16,
-    gap: 12,
-  },
-})
+
 

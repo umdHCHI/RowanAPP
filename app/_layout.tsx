@@ -9,6 +9,8 @@ import { useEffect } from 'react'
 import { setAudioModeAsync } from 'expo-audio'
 import '../global.css'
 import { useNotifications } from '@/hooks'
+import { colors } from '@/theme/design-tokens'
+import { fontAssetMap } from '@/theme/fonts'
 // Configure React Query with sensible defaults
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,15 +29,7 @@ const queryClient = new QueryClient({
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    'BeyondWonderland': require('../assets/fonts/BeyondWonderland.ttf'),
-    'CrimsonPro-Medium-Italic': require('../assets/fonts/CrimsonPro-Medium-Italic.ttf'),
-    'Quicksand-SemiBold': require('../assets/fonts/Quicksand-SemiBold.ttf'),
-    'Quicksand-Bold': require('../assets/fonts/Quicksand-Bold.ttf'),
-    'FontTitle-White': require('../assets/fonts/manaspc.ttf'),
-    'FontText-Gold': require('../assets/fonts/manaspc.ttf'),
-    'VT323-Regular': require('../assets/fonts/VT323-Regular.ttf'),
-  })
+  const [fontsLoaded, fontError] = useFonts(fontAssetMap)
 
   // Configure audio mode on app start - this is critical for audio playback
   useEffect(() => {
@@ -70,7 +64,7 @@ export default function RootLayout() {
             <Stack.Screen 
               name="character-creator" 
               options={{ 
-                contentStyle: { backgroundColor: '#000000' },
+                contentStyle: { backgroundColor: colors.archive.darker },
                 animation: 'fade',
               }} 
             />

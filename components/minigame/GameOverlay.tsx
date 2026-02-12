@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { View, Text, Pressable, StyleSheet, Modal, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
@@ -43,6 +43,17 @@ export function GameOverlay({
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
   const lumensAwarded = won && bossDefeated ? 1 : 0
+
+  const conqueredKey = conqueredThoughts.map((c) => c.id).join(',')
+  const defeatedKey = defeatedNegativeThoughts.map((t) => t.id).join(',')
+  const oneReframed = useMemo(() => {
+    if (conqueredThoughts.length === 0) return null
+    return conqueredThoughts[Math.floor(Math.random() * conqueredThoughts.length)]
+  }, [conqueredKey, conqueredThoughts])
+  const oneDefeated = useMemo(() => {
+    if (defeatedNegativeThoughts.length === 0) return null
+    return defeatedNegativeThoughts[Math.floor(Math.random() * defeatedNegativeThoughts.length)]
+  }, [defeatedKey, defeatedNegativeThoughts])
 
   function handleStart() {
     playPageFlipSound()
@@ -204,36 +215,28 @@ export function GameOverlay({
             ) : (
               <Text style={styles.noLumensText}>No Lumens Gathered</Text>
             )}
-            {(conqueredThoughts.length > 0 || defeatedNegativeThoughts.length > 0) && (
+            {(oneReframed || oneDefeated) && (
               <View style={styles.archiveSection}>
                 <Text style={styles.archiveTitle}>Archive Record</Text>
-                
-                {/* Positive thoughts (conquered/reframed) */}
-                {conqueredThoughts.length > 0 && (
+
+                {oneReframed && (
                   <>
                     <Text style={styles.thoughtCategoryTitle}>Reframed Thoughts</Text>
-                    {conqueredThoughts.slice(0, 3).map((thought) => (
-                      <View key={`positive-${thought.id}`} style={styles.thoughtRecord}>
-                        <Text style={styles.thoughtPhrase}>"{thought.phrase}"</Text>
-                        <Text style={styles.counterRecord}>{thought.counterRecord}</Text>
-                      </View>
-                    ))}
+                    <View style={styles.thoughtRecord}>
+                      <Text style={styles.thoughtPhrase}>"{oneReframed.phrase}"</Text>
+                      <Text style={styles.counterRecord}>{oneReframed.counterRecord}</Text>
+                    </View>
                   </>
                 )}
-                
-                {/* Negative thoughts (defeated) */}
-                {defeatedNegativeThoughts.length > 0 && (
+
+                {oneDefeated && (
                   <>
-                    {conqueredThoughts.length > 0 && defeatedNegativeThoughts.length > 0 && (
-                      <View style={styles.thoughtDivider} />
-                    )}
+                    {oneReframed && oneDefeated && <View style={styles.thoughtDivider} />}
                     <Text style={styles.thoughtCategoryTitle}>Defeated Thoughts</Text>
-                    {defeatedNegativeThoughts.slice(0, 3).map((thought) => (
-                      <View key={`negative-${thought.id}`} style={styles.thoughtRecord}>
-                        <Text style={styles.thoughtPhrase}>"{thought.phrase}"</Text>
-                        <Text style={styles.counterRecord}>{thought.counterRecord}</Text>
-                      </View>
-                    ))}
+                    <View style={styles.thoughtRecord}>
+                      <Text style={styles.thoughtPhrase}>"{oneDefeated.phrase}"</Text>
+                      <Text style={styles.counterRecord}>{oneDefeated.counterRecord}</Text>
+                    </View>
                   </>
                 )}
               </View>

@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, StyleSheet } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import type { StoryCard } from '@/types/hub'
+import type { StoryCard } from '@/types/hub/hub'
 
 interface ProgressIndicatorProps {
   card: StoryCard

@@ -1,61 +1,22 @@
-import { View, ScrollView, Text as RNText, StyleSheet, Linking, TouchableOpacity } from 'react-native'
+import { View, ScrollView, Linking, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Header } from '@/components/header'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import { useHaptics } from '@/utils/useHaptics'
 import { Button } from '@/components/ui/Button'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { GameBackground } from '@/components/ui/GameBackground'
+import { crisisHelpStyles } from '@/styles/crisisHelp/crisis-help'
+import { Text } from '@/components/ui/Text'
+import { Card } from '@/components/ui/Card'
+import { crisisResources } from '@/types/crisis-help/crisis-help'
 
-interface CrisisResource {
-  title: string
-  description: string
-  phone?: string
-  website?: string
-  hours?: string
-}
-
-// Example campus mental health resources - update with actual resources
-const crisisResources: CrisisResource[] = [
-  {
-    title: 'Campus Counseling Center',
-    description: 'Professional counseling services available to all students. Confidential support for mental health concerns.',
-    phone: '(218) 726-7913',
-    website: 'https://health-services.d.umn.edu/counseling-services',
-    hours: 'Mon-Fri: 8am-4pm',
-  },
-  {
-    title: '24/7 Crisis Hotline',
-    description: 'Immediate support available 24 hours a day, 7 days a week for mental health crises.',
-    phone: '612-301-4673',
-    website: 'https://www.sph.umn.edu/current/resources/mental-health/',
-    hours: '24/7',
-  },
-  {
-    title: 'HelpCompass',
-    description: 'Interactive questionnaire to guide you to appropriate mental health resources based on your needs.',
-    phone: 'N/A',
-    website: 'https://mentalhealth.umn.edu/',
-    hours: '24/7',
-  },
-  {
-    title: 'Crisis Text Line',
-    description: 'Free 24/7 support via text message. Text HOME to connect with a trained crisis counselor.',
-    phone: 'Text HOME to 741741',
-    website: 'https://www.crisistextline.org',
-    hours: '24/7',
-  },
-]
 
 export default function CrisisHelp() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const playPageFlipSound = usePageFlipSound()
-  const haptics = useHaptics()
+
 
   function handlePhonePress(phone: string) {
-    haptics.mediumImpact()
     const phoneNumber = phone.replace(/[^\d+]/g, '')
     if (phoneNumber) {
       Linking.openURL(`tel:${phoneNumber}`)
@@ -63,69 +24,69 @@ export default function CrisisHelp() {
   }
 
   function handleWebsitePress(url: string) {
-    haptics.mediumImpact()
     Linking.openURL(url)
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={crisisHelpStyles.screen}>
       <GameBackground />
-
       <Header />
 
       <ScrollView
-        style={styles.scrollView}
+        style={crisisHelpStyles.scrollView}
         contentContainerStyle={[
-          styles.scrollContent,
+          crisisHelpStyles.scrollContent,
           { paddingTop: Math.max(insets.top + 100, 120) },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <RNText style={styles.title}>Crisis Help</RNText>
+        <Text variant="heading" size={1} align="center">Crisis Help</Text>
 
-        <RNText style={styles.subtitle}>
+        <Text variant="title" size={1} align="center" marginTop={16}>
           If you're experiencing a mental health crisis, help is available. Reach out to these
           resources:
-        </RNText>
+        </Text>
 
-        <View style={styles.resourcesContainer}>
+        <View style={crisisHelpStyles.resourcesContainer}>
           {crisisResources.map((resource, index) => (
-            <View key={index} style={styles.resourceCard}>
-              <RNText style={styles.resourceTitle}>{resource.title}</RNText>
-              <RNText style={styles.resourceDescription}>{resource.description}</RNText>
+            <View key={index} style={crisisHelpStyles.resourceCard}>
+              <Card variant="resource" fullWidth>
+              <Text variant="tagline" size={1} align="center">{resource.title}</Text>
+              <Text variant="body" size={1} align="center">{resource.description}</Text>
 
               {resource.hours && (
-                <RNText style={styles.resourceHours}>Hours: {resource.hours}</RNText>
+                <Text variant="label" size={1} align="center">Hours: {resource.hours}</Text>
               )}
 
-              <View style={styles.resourceActions}>
-                {resource.phone && (
+              <View style={crisisHelpStyles.resourceActions}>
+                {resource.phone && resource.phone.toUpperCase() !== 'N/A' && (
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={crisisHelpStyles.actionButton}
                     onPress={() => handlePhonePress(resource.phone!)}
                     activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons name="phone" size={20} color="#ffffff" />
-                    <RNText style={styles.actionButtonText}>{resource.phone}</RNText>
+                    <MaterialCommunityIcons name="phone" size={14} color="#ffffff" />
+                    <Text variant="titleWhite" size={4} align="center">{resource.phone}</Text>
                   </TouchableOpacity>
                 )}
 
                 {resource.website && (
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={crisisHelpStyles.actionButton}
                     onPress={() => handleWebsitePress(resource.website!)}
                     activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons name="web" size={20} color="#ffffff" />
-                    <RNText style={styles.actionButtonText}>Visit Website</RNText>
+                    <MaterialCommunityIcons name="web" size={14} color="#ffffff" />
+                    <Text variant="titleWhite" size={4} align="center">Visit Website</Text>
                   </TouchableOpacity>
                 )}
               </View>
+              </Card>
             </View>
           ))}
         </View>
 
-        <View style={styles.buttonContainer}>
+        <View style={crisisHelpStyles.buttonContainer}>
           <Button
             onPress={() => router.push('/hub')}
             variant="primary"
@@ -143,89 +104,4 @@ export default function CrisisHelp() {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    position: 'relative',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  title: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 42,
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 48,
-  },
-  subtitle: {
-    fontFamily: 'CrimsonPro-Medium-Italic',
-    fontSize: 18,
-    color: '#ffffffdd',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 26,
-  },
-  resourcesContainer: {
-    gap: 20,
-    marginBottom: 32,
-  },
-  resourceCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  resourceTitle: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 24,
-    color: '#ffffff',
-    marginBottom: 12,
-  },
-  resourceDescription: {
-    fontFamily: 'CrimsonPro-Medium-Italic',
-    fontSize: 16,
-    color: '#ffffffcc',
-    lineHeight: 24,
-    marginBottom: 12,
-  },
-  resourceHours: {
-    fontFamily: 'Quicksand-SemiBold',
-    fontSize: 14,
-    color: '#ffffff99',
-    marginBottom: 16,
-  },
-  resourceActions: {
-    flexDirection: 'row',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  actionButtonText: {
-    fontFamily: 'Quicksand-SemiBold',
-    fontSize: 14,
-    color: '#ffffff',
-  },
-  buttonContainer: {
-    alignItems: 'center',
-    marginTop: 24,
-  },
-})
 

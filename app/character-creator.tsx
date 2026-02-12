@@ -3,16 +3,12 @@ import {
   View,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Alert,
-  Text as RNText,
   TextInput,
   TouchableOpacity,
-  Platform,
-  Dimensions,
 } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useVideoPlayer, VideoView } from 'expo-video'
+
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CharacterPreview } from '@/components/character/CharacterPreview'
@@ -20,26 +16,16 @@ import { COLORS, Color, BASE_COUNT, BG_COUNT, HAIR_COUNT, CLOTHES_COUNT, EYES_CO
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { useMyCharacter, useCreateCharacter, useUpdateCharacterCustomization, characterKeys } from '@/api/hooks/use-character'
-import { useCurrentUserFullProfile, useRequireAuth, useRequiredAuthUserId, useAuthActions, userKeys } from '@/api'
+import { useRequireAuth, useRequiredAuthUserId, useAuthActions, userKeys } from '@/api'
 import { convertToBackendConfig, buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useQueryClient } from '@tanstack/react-query'
+import { CharacterConfig, Category } from '@/types/characterCreator/character-creator'
+import { GameBackground } from '@/components/ui/GameBackground'
+import { characterCreatorStyles } from '@/styles/characterCreator/character-creator'
+import { Text } from '@/components/ui/Text'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 
-type Category = 'base' | 'background' | 'hair' | 'clothes' | 'eyes' | 'eyebrows' | 'mouth'
-
-interface CharacterConfig {
-  baseIndex: number
-  backgroundColor: Color
-  backgroundIndex: number
-  hairColor: Color
-  hairIndex: number
-  clothesColor: Color
-  clothesIndex: number
-  eyesColor: Color
-  eyesIndex: number
-  eyebrowsColor: Color
-  eyebrowsIndex: number
-  mouthIndex: number
-}
 
 export default function CharacterCreator() {
   useRequireAuth() // Redirects to login if not authenticated
@@ -47,33 +33,17 @@ export default function CharacterCreator() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { setHasCharacter } = useAuthActions()
-  const playPageFlipSound = usePageFlipSound()
-  const haptics = useHaptics()
   const [characterName, setCharacterName] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<Category>('base')
   const [isSaving, setIsSaving] = useState(false)
   
   const queryClient = useQueryClient()
   const userId = useRequiredAuthUserId()
-const {
-  data: existingCharacter,
-  isLoading: isCharacterLoading,
-  isError: isCharacterError,
-  error: characterError,
-} = useMyCharacter()
+  const { data: existingCharacter } = useMyCharacter()
   const createCharacter = useCreateCharacter()
   const updateCharacter = useUpdateCharacterCustomization()
  
-  // Simple video player with auto-loop
-  // Load video from remote URL to avoid bundling large file
-  const player = useVideoPlayer(
-    { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61iIS3GICJK6SbqtNzhvM1mIXaeYPZ9A5cr8gwu' }, // TODO: Replace with actual thevoid.mp4 URL
-    (player) => {
-      player.muted = true
-      player.loop = true
-      player.play()
-    }
-  )
+
   
   const [config, setConfig] = useState<CharacterConfig>({
     baseIndex: 0,
@@ -115,8 +85,7 @@ const {
   }
 
   function handlePrevious() {
-    haptics.lightImpact()
-    playPageFlipSound()
+
     switch (selectedCategory) {
       case 'base':
         setConfig(prev => ({ ...prev, baseIndex: cycleIndex(prev.baseIndex, -1, BASE_COUNT) }))
@@ -143,8 +112,7 @@ const {
   }
 
   function handleNext() {
-    haptics.lightImpact()
-    playPageFlipSound()
+
     switch (selectedCategory) {
       case 'base':
         setConfig(prev => ({ ...prev, baseIndex: cycleIndex(prev.baseIndex, 1, BASE_COUNT) }))
@@ -171,8 +139,7 @@ const {
   }
 
   function handleColorChange(color: Color) {
-    haptics.selection()
-    playPageFlipSound()
+
     switch (selectedCategory) {
       case 'background':
         setConfig(prev => ({ ...prev, backgroundColor: color }))
@@ -233,37 +200,26 @@ const {
 
   async function handleCreateCharacter() {
     if (!characterName.trim()) return
-
-    haptics.mediumImpact()
-    playPageFlipSound()
     setIsSaving(true)
 
     try {
       // Convert frontend config to backend format
       const backendConfig = convertToBackendConfig(config)
-      const avatarConfig = JSON.stringify(config)
 
       const requestData: any = {
         ...backendConfig,
       }
 
-      // Preserve existing skin_color if updating and it's a valid value (>= 1)
-      // Otherwise, use the default from convertToBackendConfig (which is 1)
     if (existingCharacter?.character_config?.selected_skin_color) {
       const existingSkinColor = existingCharacter.character_config.selected_skin_color
       if (existingSkinColor >= 1) requestData.selected_skin_color = existingSkinColor
     }
 
-    let savedCharacter: any
-
     if (existingCharacter?.id) {
-      savedCharacter = await updateCharacter.mutateAsync({
-        ...requestData,
-      })
+      await updateCharacter.mutateAsync({ ...requestData })
     } else {
-      savedCharacter = await createCharacter.mutateAsync(requestData)
+      await createCharacter.mutateAsync(requestData)
     }
-
 
     queryClient.invalidateQueries({ queryKey: characterKeys.mine() })
     queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) })
@@ -290,62 +246,57 @@ const {
   ]
 
   return (
-    <View style={styles.container}>
+    <View style={characterCreatorStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" translucent />
-      {/* Background Video Layer */}
-      <View 
-        style={styles.videoContainer}
-        pointerEvents="none"
-      >
-        <VideoView
-          player={player}
-          style={styles.video}
-          contentFit="cover"
-          nativeControls={false}
-          allowsPictureInPicture={false}
-        />
-      </View>
-      {/* Overlay Layer */}
-      <View 
-        style={styles.overlay}
-        pointerEvents="none" 
-      />
+      {/* Background Image */}
+      <GameBackground />
       {/* Content Layer */}
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 60, paddingBottom: Math.max(40, insets.bottom + 20) }]}
+        style={characterCreatorStyles.scrollView}
+        contentContainerStyle={[characterCreatorStyles.scrollContent, { paddingTop: insets.top + 60, paddingBottom: Math.max(40, insets.bottom + 20) }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Title with custom font */}
-        <RNText style={styles.title}>
-          Create Your Character
-        </RNText>
-        <RNText style={styles.subtitle}>
-          Begin your journey through The Archive
-        </RNText>
+        <View style={{ marginBottom: 32 }}>
+          <Text variant="heading" size={1} align="center">
+            Create Your Character
+          </Text>
+          <Text variant="title" size={1} align="center" marginTop={16}>
+            Begin your journey through The Archive
+          </Text>
+        </View>
 
         {/* Character Name Card */}
-        <View style={styles.card}>
-          <RNText style={styles.cardLabel}>
-            Character Name
-          </RNText>
-          <TextInput
-            placeholder="Enter your name"
-            placeholderTextColor="#ffffff88"
-            value={characterName}
-            onChangeText={setCharacterName}
-            maxLength={20}
-            style={styles.textInput}
-          />
+        <View style={characterCreatorStyles.cardSection}>
+          <Card fullWidth>
+            <View style={characterCreatorStyles.nameLabelRow}>
+              <Text variant="label" size={1} align="center">
+                Character Name
+              </Text>
+            </View>
+            <View style={characterCreatorStyles.nameLabelSpacer} />
+            <TextInput
+              placeholder="Enter your name"
+              placeholderTextColor="#ffffff88"
+              value={characterName}
+              onChangeText={setCharacterName}
+              maxLength={20}
+              style={[characterCreatorStyles.textInput, characterCreatorStyles.nameInputBottom]}
+            />
+          </Card>
         </View>
 
         {/* Character Preview Card */}
-        <View style={styles.card}>
-          <RNText style={styles.cardLabel}>
-            Preview
-          </RNText>
-          <View style={styles.previewContainer}>
-            <CharacterPreview
+        <View style={characterCreatorStyles.cardSection}>
+          <Card fullWidth>
+          <View style={characterCreatorStyles.nameLabelRow}>
+            <Text variant="label" size={1} align="center">
+              Preview
+            </Text>
+            </View>
+            <View style={characterCreatorStyles.nameLabelSpacer} />
+            <View style={characterCreatorStyles.previewContainer}>
+              <CharacterPreview
               baseIndex={config.baseIndex}
               backgroundColor={config.backgroundColor}
               backgroundIndex={config.backgroundIndex}
@@ -360,317 +311,121 @@ const {
               mouthIndex={config.mouthIndex}
               size={200}
             />
-          </View>
+            </View>
+          </Card>
         </View>
 
         {/* Category Selector Card */}
-        <View style={styles.card}>
-          <RNText style={styles.cardLabel}>
-            Category
-          </RNText>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipContainer}
-          >
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                onPress={() => {
-                  haptics.selection()
-                  playPageFlipSound()
-                  setSelectedCategory(category.id)
-                }}
-                style={[
-                  styles.chip,
-                  selectedCategory === category.id && styles.chipSelected
-                ]}
-                activeOpacity={0.7}
-              >
-                <RNText style={[
-                  styles.chipText,
-                  selectedCategory === category.id && styles.chipTextSelected
-                ]}>
-                  {category.label}
-                </RNText>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+        <View style={characterCreatorStyles.cardSection}>
+          <Card fullWidth>
+            <View style={characterCreatorStyles.nameLabelRow}>
+              <Text variant="label" size={1} align="center">
+                Category
+              </Text>
+            </View>
+            <View style={characterCreatorStyles.nameLabelSpacer} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={characterCreatorStyles.chipContainer}
+            >
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  onPress={() => setSelectedCategory(category.id)}
+                  style={[
+                    characterCreatorStyles.chip,
+                    selectedCategory === category.id && characterCreatorStyles.chipSelected
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text variant="label" size={2} align="center">
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Card>
         </View>
 
         {/* Color Selector Card */}
         {needsColor() && (
-          <View style={styles.card}>
-            <RNText style={styles.cardLabel}>
-              Color
-            </RNText>
+          <View style={characterCreatorStyles.cardSection}>
+            <Card fullWidth>
+              <Text variant="label" size={2} align="center">
+                Color
+              </Text>
             <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipContainer}
-            >
-              {COLORS.map((color) => (
-                <TouchableOpacity
-                  key={color}
-                  onPress={() => handleColorChange(color)}
-                  style={[
-                    styles.chip,
-                    getCurrentColor() === color && styles.chipSelected
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <RNText style={[
-                    styles.chipText,
-                    getCurrentColor() === color && styles.chipTextSelected
-                  ]}>
-                    {color}
-                  </RNText>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={characterCreatorStyles.chipContainer}
+              >
+                {COLORS.map((color) => (
+                  <TouchableOpacity
+                    key={color}
+                    onPress={() => handleColorChange(color)}
+                    style={[
+                      characterCreatorStyles.chip,
+                      getCurrentColor() === color && characterCreatorStyles.chipSelected
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <Text variant="label" size={2} align="center">
+                      {color}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </Card>
           </View>
         )}
 
         {/* Style Controls Card */}
-        <View style={styles.card}>
-          <RNText style={styles.cardLabel}>
-            Style
-          </RNText>
-          <View style={styles.styleControls}>
-            <TouchableOpacity
-              onPress={handlePrevious}
-              style={styles.iconButton}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons name="chevron-left" size={36} color="#ffffff" />
-            </TouchableOpacity>
-            <View style={styles.indexDisplay}>
-              <RNText style={styles.indexText}>
-                {getCurrentIndex() + 1} / {getMaxCount()}
-              </RNText>
+        <View style={characterCreatorStyles.cardSection}>
+          <Card fullWidth>
+            <Text variant="label" size={2} align="center">
+              Style
+            </Text>
+            <View style={characterCreatorStyles.styleControls}>
+              <TouchableOpacity
+                onPress={handlePrevious}
+                style={characterCreatorStyles.iconButton}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="chevron-left" size={36} color="#ffffff" />
+              </TouchableOpacity>
+              <View style={characterCreatorStyles.indexDisplay}>
+                <Text variant="label" size={2} align="center">
+                  {getCurrentIndex() + 1} / {getMaxCount()}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleNext}
+                style={characterCreatorStyles.iconButton}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="chevron-right" size={36} color="#ffffff" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={handleNext}
-              style={styles.iconButton}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons name="chevron-right" size={36} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
+          </Card>
         </View>
 
         {/* Save Button */}
-        <TouchableOpacity
+        <Button
           onPress={handleCreateCharacter}
+          variant="primary"
+          size="default"
+          hapticType="light"
+          enableHaptics
+          enableSound
+          fullWidth
           disabled={!characterName.trim() || isSaving}
-          style={[
-            styles.saveButton,
-            (!characterName.trim() || isSaving) && styles.saveButtonDisabled
-          ]}
-          activeOpacity={0.9}
         >
-          <RNText style={styles.saveButtonText}>
-            {isSaving ? 'Saving...' : (existingCharacter?.id ? 'Update Character' : 'Begin Journey')}
-          </RNText>
-        </TouchableOpacity>
+          <Text variant="titleWhite" size={1} align="center">
+            {isSaving ? 'Saving...' : existingCharacter?.id ? 'Update Character' : 'Begin Journey'}
+          </Text>
+        </Button>
       </ScrollView>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  videoContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-    zIndex: 0,
-    backgroundColor: '#000000',
-  },
-  video: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#000000',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    zIndex: 1,
-  },
-  scrollView: {
-    flex: 1,
-    zIndex: 10,
-    backgroundColor: 'transparent',
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  title: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 42,
-    textAlign: 'center',
-    color: '#ffffff',
-    marginBottom: 8,
-    lineHeight: 48,
-  },
-  subtitle: {
-    fontFamily: 'System',
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 3,
-    textAlign: 'center',
-    color: '#ffffffcc',
-    marginBottom: 40,
-    opacity: 0.9,
-  },
-  card: {
-    width: '100%',
-    backgroundColor: '#1a1a2e',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 24,
-    marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  cardLabel: {
-    fontFamily: 'System',
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 3,
-    color: '#ffffffcc',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: '#ffffff',
-    fontSize: 16,
-    fontFamily: 'System',
-  },
-  previewContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 4,
-  },
-  chip: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  chipSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  chipText: {
-    fontFamily: 'System',
-    fontSize: 14,
-    color: '#ffffffaa',
-    fontWeight: '400',
-  },
-  chipTextSelected: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  styleControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  iconButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  indexDisplay: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    minWidth: 100,
-  },
-  indexText: {
-    fontFamily: 'System',
-    fontSize: 16,
-    color: '#ffffff',
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  saveButton: {
-    width: '100%',
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#15111f',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 16,
-    color: '#ffffff',
-  },
-})

@@ -2,14 +2,13 @@ import React, { useRef, useEffect, useMemo } from 'react'
 import { ScrollView, Text as RNText, View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import { useHaptics } from '@/utils/useHaptics'
 import { useHubStories } from '@/hooks'
 import { findNextStory, getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
 import { StoryHistory } from './StoryHistory'
 import { StoryPassage } from './StoryPassage'
 import { StoryRewardMoment } from './StoryRewardMoment'
 import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_FONTS, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
+import { PROLOGUE_STORY_ID } from '@/utils/story-constants'
 import type { StoryHistoryItem, StoryPassage as StoryPassageType } from '@/types/story'
 
 interface StoryContentProps {
@@ -35,8 +34,6 @@ export function StoryContent({
 }: StoryContentProps) {
   const router = useRouter()
   const scrollViewRef = useRef<ScrollView>(null)
-  const playPageFlipSound = usePageFlipSound()
-  const haptics = useHaptics()
   const insets = useSafeAreaInsets()
   const { data: stories } = useHubStories()
   const screenHeight = Dimensions.get('window').height
@@ -55,6 +52,8 @@ export function StoryContent({
   const bottomPadding = hasChoices
     ? choicesContainerHeight + insetPadding
     : STORY_SPACING.xxl + insetPadding
+
+  const horizontalPadding = Math.max(STORY_SPACING.xxxl, insets.left, insets.right)
 
   // Track if user has manually scrolled away from bottom
   const isNearBottomRef = useRef(true)
@@ -104,8 +103,6 @@ export function StoryContent({
   }, [stories, storyId])
 
   function handleViewResources() {
-    haptics.mediumImpact()
-    playPageFlipSound()
     if (storyId) {
       router.push(`/resources?storyId=${storyId}`)
     } else {
@@ -114,9 +111,6 @@ export function StoryContent({
   }
 
   function handleNextStory() {
-    haptics.mediumImpact()
-    playPageFlipSound()
-    
     if (nextStory) {
       router.push(`/story?storyId=${nextStory.id}`)
     } else {
@@ -131,8 +125,9 @@ export function StoryContent({
       style={styles.scrollView}
       contentContainerStyle={[
         styles.scrollContent,
-        { paddingBottom: bottomPadding }
+        { paddingBottom: bottomPadding, paddingHorizontal: horizontalPadding }
       ]}
+      scrollEnabled={true}
       showsVerticalScrollIndicator={false}
       bounces={true}
       onScroll={handleScroll}
@@ -184,17 +179,30 @@ export function StoryContent({
         <RNText style={styles.loadingText}>Loading story...</RNText>
       )}
 
-      {/* Navigation buttons at ending */}
-      {isEnding && !hasChoices && !isLoading && (
-        <View style={styles.endingButtonsContainer}>
+      {/* When ending has choices (e.g. "Continue"), offer Restart this Book in content area */}
+      {isEnding && hasChoices && storyId != null && !isLoading && (
+        <View style={styles.restartLinkContainer}>
           <TouchableOpacity
-            style={[styles.endingButton, styles.archiveButton]}
-            onPress={handleViewResources}
+            onPress={() => router.replace(`/story?storyId=${storyId}&restart=true`)}
             activeOpacity={0.8}
           >
-            <RNText style={styles.endingButtonText}>View Resources Gathered</RNText>
+            <RNText style={styles.restartLinkText}>Restart this Book</RNText>
           </TouchableOpacity>
-          
+        </View>
+      )}
+
+      {/* Navigation buttons at ending - Prologue (id 28) has no Resources button */}
+      {isEnding && !hasChoices && !isLoading && (
+        <View style={styles.endingButtonsContainer}>
+          {Number(storyId) !== PROLOGUE_STORY_ID && (
+            <TouchableOpacity
+              style={[styles.endingButton, styles.archiveButton]}
+              onPress={handleViewResources}
+              activeOpacity={0.8}
+            >
+              <RNText style={styles.endingButtonText}>View Resources Gathered</RNText>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.endingButton, styles.nextStoryButton]}
             onPress={handleNextStory}
@@ -204,6 +212,15 @@ export function StoryContent({
               {nextStory ? 'Continue to Next Story' : 'Return to Hub'}
             </RNText>
           </TouchableOpacity>
+          {storyId != null && (
+            <TouchableOpacity
+              style={[styles.endingButton, styles.restartButton]}
+              onPress={() => router.replace(`/story?storyId=${storyId}&restart=true`)}
+              activeOpacity={0.8}
+            >
+              <RNText style={styles.endingButtonText}>Restart this Book</RNText>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </ScrollView>
@@ -215,9 +232,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: STORY_SPACING.xxl,
     paddingTop: STORY_SPACING.xxl,
-    // paddingBottom is set dynamically based on whether buttons are visible
+    // paddingBottom and paddingHorizontal set dynamically (safe area + minimum)
   },
   storyTitle: {
     fontFamily: STORY_FONTS.beyondWonderland,
@@ -268,6 +284,22 @@ const styles = StyleSheet.create({
     backgroundColor: STORY_COLORS.buttonSecondary,
     borderWidth: 2,
     borderColor: STORY_COLORS.buttonBorder,
+  },
+  restartButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: STORY_COLORS.buttonBorder,
+  },
+  restartLinkContainer: {
+    marginTop: STORY_SPACING.xl,
+    alignItems: 'center',
+  },
+  restartLinkText: {
+    fontFamily: STORY_FONTS.system,
+    fontSize: STORY_FONT_SIZES.sm,
+    color: STORY_COLORS.text,
+    textDecorationLine: 'underline',
+    opacity: 0.9,
   },
   endingButtonText: {
     fontFamily: STORY_FONTS.system,

@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
-import { AUTO_ADVANCE_SPEED } from '@/utils/story-constants'
+import { AUTO_ADVANCE_SPEED, isExactContinueChoice } from '@/utils/story-constants'
 import type { UseStoryAutoAdvanceProps } from '@/types/hooks'
 
 /**
- * Hook to handle auto-advancing "Continue" choices
+ * Hook to handle auto-advancing. Only single choices with text exactly "Continue" / "continue" auto-advance.
  */
 export function useStoryAutoAdvance({
   hasChoices,
@@ -20,8 +20,9 @@ export function useStoryAutoAdvance({
       const autoChoice = singleChoice
       const targetId = autoChoice?.target_id?.trim() ?? ''
       const hasValidTarget = targetId.length > 0 && targetId !== 'minigame'
+      const isContinueOnly = autoChoice ? isExactContinueChoice(autoChoice.text ?? '') : false
 
-      if (autoChoice && hasValidTarget) {
+      if (autoChoice && hasValidTarget && isContinueOnly) {
         const contentLength = currentPassage.content?.length || 0
         // Estimate word count: average English word is ~5 characters (including space)
         const estimatedWordCount = Math.max(1, Math.ceil(contentLength / 5))

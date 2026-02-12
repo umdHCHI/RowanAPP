@@ -7,9 +7,8 @@ import {
   StyleSheet,
 } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import type { StoryCard as StoryCardType } from '@/types/hub'
+import type { StoryCard as StoryCardType } from '@/types/hub/hub'
 import { useHaptics } from '@/utils/useHaptics'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { ContentWarningModal } from './ContentWarningModal'
 import { Text, Button } from '@/components/ui'
 
@@ -22,7 +21,6 @@ interface StoryCardProps {
 
 export function StoryCard({ card, height }: StoryCardProps) {
   const haptics = useHaptics()
-  const playPageFlipSound = usePageFlipSound()
   const [isContentWarningVisible, setIsContentWarningVisible] = useState(false)
 
   const isCompleted = card.status === 'completed'
@@ -32,12 +30,10 @@ export function StoryCard({ card, height }: StoryCardProps) {
 
   function handleBookIconPress() {
     haptics.lightImpact()
-    playPageFlipSound()
   }
 
   function handleContentWarningPress() {
     haptics.lightImpact()
-    playPageFlipSound()
     setIsContentWarningVisible(true)
   }
 
@@ -85,6 +81,7 @@ export function StoryCard({ card, height }: StoryCardProps) {
               size="small"
               onPress={handleContentWarningPress}
               hapticType="light"
+              enableSound={false}
             >
               <Text variant="title" size={4} numberOfLines={1}>
                 CONTENT WARNING

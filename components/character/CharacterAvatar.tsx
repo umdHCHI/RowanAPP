@@ -60,7 +60,6 @@ export function CharacterAvatar({ avatarConfig, size = 150 }: CharacterAvatarPro
       </View>
     )
   } catch (error) {
-    // If parsing fails, return null (fallback for old avatar format)
     return null
   }
 }

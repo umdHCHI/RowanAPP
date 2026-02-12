@@ -27,9 +27,13 @@ export function StoryChoices({ choices, onChoicePress }: StoryChoicesProps) {
     screenHeight * STORY_LAYOUT.choicesContainerMaxHeightPercent
   )
 
+  const horizontalPadding = Math.max(STORY_SPACING.xxxl, insets.left, insets.right)
+
   return (
     <View style={[styles.choicesContainer, { 
       paddingBottom: insets.bottom + STORY_SPACING.sm,
+      paddingLeft: horizontalPadding,
+      paddingRight: horizontalPadding,
       maxHeight: maxContainerHeight,
     }]}>
       {/* Blur background to allow video to show through */}
@@ -80,22 +84,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   choicesScrollContent: {
-    paddingHorizontal: STORY_SPACING.xxl,
     paddingBottom: STORY_SPACING.xs,
+    paddingHorizontal: 0,
   },
   choiceButton: {
     backgroundColor: STORY_COLORS.button,
     borderRadius: STORY_BORDER_RADIUS.md,
-    paddingVertical: STORY_SPACING.lg,
-    paddingHorizontal: STORY_SPACING.xxl,
-    minHeight: 50,
+    paddingVertical: STORY_SPACING.md,
+    paddingHorizontal: STORY_SPACING.lg,
+    minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: STORY_SPACING.sm,
   },
   choiceText: {
     fontFamily: STORY_FONTS.fontTitleWhite,
-    fontSize: STORY_FONT_SIZES.base,
+    fontSize: STORY_FONT_SIZES.sm,
     color: STORY_COLORS.text,
     textAlign: 'center',
   },

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useRef, useEffect } from 'react'
 import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
@@ -14,6 +14,7 @@ import { StoryChoices } from './StoryChoices'
 import { useGameStore } from '@/stores/game-store'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
 import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, getExperienceRewardFromPassage, hasMinigameOption } from '@/utils/story-helpers'
+import { isExactContinueChoice } from '@/utils/story-constants'
 import { journalService } from '@/api/services/journal.service'
 import { useGainLumens } from '@/api'
 import type { StoryChoice } from '@/types/story'
@@ -22,12 +23,15 @@ interface StoryPageProps {
   storyId: string | number
   isIntroduction?: boolean
   isActive?: boolean
+  /** When true, story restarts from the beginning; when false, resumes from last saved passage. */
+  shouldRestart?: boolean
 }
 
 export function StoryPage({
   storyId,
   isIntroduction = false,
   isActive = true,
+  shouldRestart = false,
 }: StoryPageProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
@@ -44,7 +48,7 @@ export function StoryPage({
     hasChoices,
     storyTitle,
     makeChoice: makeEngineChoice,
-  } = useStoryEngine({ storyId })
+  } = useStoryEngine({ storyId, shouldRestart })
 
   // Track if route is focused (to prevent music playing when navigating away)
   const [isRouteFocused, setIsRouteFocused] = React.useState(true)
@@ -54,10 +58,37 @@ export function StoryPage({
   
   // Track pause state for auto-advance
   const [isPaused, setIsPaused] = React.useState(false)
-  
+  // Brief "play" feedback when resuming: show play icon then hide overlay
+  const [showResumeFeedback, setShowResumeFeedback] = React.useState(false)
+  const resumeFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const togglePause = React.useCallback(() => {
-    setIsPaused((prev) => !prev)
+    setIsPaused((prev) => {
+      if (prev) {
+        setShowResumeFeedback(true)
+        return false
+      }
+      return true
+    })
   }, [])
+
+  const handleTogglePause = useCallback(() => {
+    togglePause()
+  }, [togglePause])
+
+  // Clear resume feedback after short delay so play icon disappears
+  useEffect(() => {
+    if (!showResumeFeedback) return
+    resumeFeedbackTimerRef.current = setTimeout(() => {
+      setShowResumeFeedback(false)
+      resumeFeedbackTimerRef.current = null
+    }, 500)
+    return () => {
+      if (resumeFeedbackTimerRef.current) {
+        clearTimeout(resumeFeedbackTimerRef.current)
+      }
+    }
+  }, [showResumeFeedback])
   
   // Monitor route focus
   useFocusEffect(
@@ -76,12 +107,14 @@ export function StoryPage({
     setStoryHasLoaded(false)
   }, [storyId])
   
-  // Mark story as loaded once we have content
+  // Mark story as loaded once we have content (so music can start).
+  // Include isRouteFocused so when we *continue* by navigating back to this screen, we re-evaluate
+  // and set storyHasLoaded true again (deps didn't change while away, so effect wouldn't run otherwise).
   React.useEffect(() => {
     if (!isLoading && !!currentPassage && !error) {
       setStoryHasLoaded(true)
     }
-  }, [isLoading, currentPassage, error])
+  }, [isLoading, currentPassage, error, isRouteFocused])
 
   // Play background music for story (looping, 50% volume)
   // Only play when route is focused, story is active (visible), and has loaded
@@ -259,12 +292,9 @@ export function StoryPage({
     collectExperienceReward()
   }, [currentPassage, isLoading, addReward])
 
-  // Handle choice selection (with sound - user interaction)
+  // Handle choice selection (no sound here; sound/haptics only when user taps a choice button)
   const handleChoice = useCallback(
     async (choice: StoryChoice) => {
-      haptics.mediumImpact()
-      playPageFlipSound()
-      
       // Check if this is the minigame choice
       if (choice.target_id === 'minigame' || choice.id === 'minigame-choice') {
         // Navigate to minigame instead of making a story choice
@@ -305,7 +335,17 @@ export function StoryPage({
       // For non-ending choices, process normally
       await makeEngineChoice(choice)
     },
-    [makeEngineChoice, playPageFlipSound, haptics, addChoice, isEnding, currentPassage, router]
+    [makeEngineChoice, addChoice, isEnding, currentPassage, router]
+  )
+
+  // Only play page-flip sound and haptics when user explicitly taps a choice (not on auto-advance)
+  const handleChoiceWithFeedback = useCallback(
+    (choice: StoryChoice) => {
+      haptics.mediumImpact()
+      playPageFlipSound()
+      handleChoice(choice)
+    },
+    [handleChoice, haptics, playPageFlipSound]
   )
 
   // Check if current passage has minigame option enabled
@@ -330,6 +370,8 @@ export function StoryPage({
 
   const hasAnyChoices = allChoices.length > 0
   const hasMultipleChoices = allChoices.length > 1
+  const isSingleContinueOnly =
+    allChoices.length === 1 && isExactContinueChoice(allChoices[0]?.text ?? '')
 
   useStoryAutoAdvance({
     hasChoices: hasAnyChoices,
@@ -347,6 +389,8 @@ export function StoryPage({
     isEnding ||
     history.some((item) => item.passageType === 'ending')
 
+  const showOverlay = isPaused || showResumeFeedback
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StoryBackground isEnding={hasEndingPassage} isIntroduction={isIntroduction} storyId={storyId} />
@@ -354,33 +398,34 @@ export function StoryPage({
 
       <View style={styles.mainContainer}>
         <StoryContent
-          storyTitle={storyTitle}
-          history={history}
-          currentPassage={currentPassage}
-          error={error}
-          isLoading={isLoading}
-          isEnding={isEnding}
-          hasChoices={hasMultipleChoices}
-          storyId={storyId}
-        />
+            storyTitle={storyTitle}
+            history={history}
+            currentPassage={currentPassage}
+            error={error}
+            isLoading={isLoading}
+            isEnding={isEnding}
+            hasChoices={hasAnyChoices && !isSingleContinueOnly}
+            storyId={storyId}
+          />
 
-        {/* Choice buttons at bottom - only show if multiple choices */}
-        {hasMultipleChoices && (
-          <StoryChoices choices={allChoices} onChoicePress={handleChoice} />
+        {/* Choice buttons: show for multiple choices or single choice that is not exactly "Continue" */}
+        {hasAnyChoices && !isSingleContinueOnly && (
+          <StoryChoices choices={allChoices} onChoicePress={handleChoiceWithFeedback} />
         )}
 
-        {/* Pause overlay - big button when paused */}
-        {isPaused && (
+        {/* Pause overlay: pause icon when paused, play icon briefly when resuming; tap to toggle */}
+        {showOverlay && (
           <TouchableOpacity
             style={styles.pauseOverlay}
-            onPress={togglePause}
+            onPress={handleTogglePause}
             activeOpacity={0.9}
           >
             <View style={styles.pauseButtonContainer}>
-              <MaterialCommunityIcons 
-                name="play" 
-                size={80} 
-                color="#ffffff" 
+              <MaterialCommunityIcons
+                name={isPaused ? 'pause' : 'play'}
+                size={STORY_LAYOUT.pauseIconSize}
+                color="#ffffff"
+                style={{ opacity: 0.9 }}
               />
             </View>
           </TouchableOpacity>

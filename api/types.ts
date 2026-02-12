@@ -309,6 +309,7 @@ const StoryProgressSchema = z.object({
   last_played: z.string(),
   completed_at: z.string(),
   progress_percentage: z.number(),
+  is_hidden: z.boolean().optional(),
 })
 
 // ============================================================================

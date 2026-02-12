@@ -5,9 +5,11 @@ import { useRequireAuth } from '@/api'
 import { StoryPage } from '@/components/story'
 import { useHubStories } from '@/hooks'
 import type { StoryData } from '@/stores/game-store'
+import { PROLOGUE_STORY_ID, INTRODUCTION_STORY_ID } from '@/utils/story-constants'
 
-/** Prologue is story 1; treat prologue or introduction title as intro for background/music. */
+/** Prologue is story 1 (ID 28); treat prologue/intro by id or title for background/music. */
 function isIntroductionStory(story: StoryData): boolean {
+  if (story.id === PROLOGUE_STORY_ID || story.id === INTRODUCTION_STORY_ID) return true
   const titleLower = String(story.title ?? '').toLowerCase()
   return (
     titleLower.includes('prologue') ||
@@ -19,7 +21,7 @@ function isIntroductionStory(story: StoryData): boolean {
 
 export default function Story() {
   useRequireAuth() // Redirects to login if not authenticated
-  const params = useLocalSearchParams<{ storyId?: string }>()
+  const params = useLocalSearchParams<{ storyId?: string; restart?: string }>()
   const { data: stories, isLoading } = useHubStories()
 
   // Find the story to display based on storyId parameter
@@ -60,12 +62,15 @@ export default function Story() {
     )
   }
 
+  const shouldRestart = params.restart === 'true'
+
   return (
     <View style={styles.container}>
       <StoryPage 
         storyId={currentStory.id} 
         isIntroduction={isIntroduction}
         isActive={true}
+        shouldRestart={shouldRestart}
       />
     </View>
   )

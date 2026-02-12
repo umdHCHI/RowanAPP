@@ -1,78 +1,75 @@
 import { useEffect, useRef } from 'react'
-import { useAudioPlayer } from 'expo-audio'
+import { createAudioPlayer } from 'expo-audio'
 import { useGameStore } from '@/stores/game-store'
 
-/**
- * Map of story IDs to their audio files
- * Add new stories by adding entries here
- * 
- * Story IDs should match the IDs returned from the API
- */
-const STORY_MUSIC_MAP: Record<number | string, { uri: string }> = {
-  // Add new stories by adding entries here
-  // Introduction story music (ID 28 - matches API)
-  28: { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61ixJZMf4wJgUdiHGFDN1aYuSmtXLZy96kjbhVp' },
-  // Story 2 music (ID 29 - matches API)
-  29: { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61ijAnLZjvB6imSJolaG0CEK7ZHRu98wsxdVzMW' },
-  // Story 3 music (ID 30 - matches API)
-  30: { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61iYOdGI3Lx6aPVdtUClEik9wDyjfIS7rg3NTGe' },
-  // Story 4 music (ID 31 - matches API)
-  31: { uri: 'https://drive.google.com/file/d/1OAKSywsFeg_1e5ur5fthYUl-nyk1ahZH/view?usp=sharing' }, //add uri
-  // Add more story music files here as they become available
-  // Example:
-  // 3: { uri: 'https://your-cdn.com/story3.mp3' },
+const PLAYBACK_STATUS_UPDATE = 'playbackStatusUpdate' as const
+
+// Backend folder IDs 28–33 map to story audio. Relative path from utils/ so Metro bundles from assets/audio.
+const STORY_MUSIC_MAP: Record<number | string, number> = {
+  28: require('../assets/audio/introductionStory.mp3'),
+  29: require('../assets/audio/storyOne.mp3'),
+  30: require('../assets/audio/storyTwo.mp3'),
+  31: require('../assets/audio/storyThreeNew.mp3'),
+  32: require('../assets/audio/storyFour.mp3'),
+  33: require('../assets/audio/storyFive.mp3'),
+}
+
+/** Normalize story id for map lookup (API may return number or string). */
+function normalizedStoryId(id: number | string | null | undefined): number | null {
+  if (id == null) return null
+  const n = typeof id === 'string' ? parseInt(id, 10) : id
+  return Number.isNaN(n) ? null : n
+}
+
+// Single shared player for all story music — guarantees only one track plays at a time.
+let sharedPlayer: ReturnType<typeof createAudioPlayer> | null = null
+let currentPlayingStoryId: number | string | null = null
+
+function getSharedPlayer() {
+  if (!sharedPlayer) {
+    sharedPlayer = createAudioPlayer(null)
+  }
+  return sharedPlayer
+}
+
+function stopIfPlayingOurStory(storyId: number | string | null | undefined) {
+  if (currentPlayingStoryId != null && String(currentPlayingStoryId) === String(storyId)) {
+    try {
+      sharedPlayer?.pause()
+      sharedPlayer?.seekTo(0)
+      currentPlayingStoryId = null
+    } catch (_) {
+      currentPlayingStoryId = null
+    }
+  }
 }
 
 /**
- * Hook to play looping background music for stories
- * Plays at 50% volume and respects the soundMuted setting
- * 
+ * Hook to play looping background music for stories.
+ * Uses a single shared player so only one track ever plays at a time.
+ *
  * @param storyId - The ID of the story to play music for (null/undefined = no music)
  * @param isActive - Whether the story is currently active and visible
  */
-// Default/placeholder audio source (using introduction story as fallback)
-// This ensures we always have a valid audio source for the hook
-const DEFAULT_AUDIO_SOURCE = { uri: 'https://57zrb2kcas.ufs.sh/f/LHwfoeNVr61ixJZMf4wJgUdiHGFDN1aYuSmtXLZy96kjbhVp' }
-
 export function useStoryMusic(storyId: number | string | null | undefined, isActive: boolean) {
   const soundMuted = useGameStore((state) => state.soundMuted)
   const playAttemptedRef = useRef(false)
-  const wasActiveRef = useRef(false)
   const currentStoryIdRef = useRef<number | string | null | undefined>(storyId)
-  
-  // Get audio source for this story, use default as fallback to satisfy React hooks rules
-  // The player will be created with this source, but we only play if hasMusic is true
-  const audioSource = (storyId && STORY_MUSIC_MAP[storyId]) 
-    ? STORY_MUSIC_MAP[storyId] 
-    : DEFAULT_AUDIO_SOURCE
-  
-  // Always call the hook (React hooks rule) - player will be recreated if source changes
-  const player = useAudioPlayer(audioSource)
-  
-  // Track if this story has music configured (determines whether we actually play)
-  const hasMusic = storyId ? Boolean(STORY_MUSIC_MAP[storyId]) : false
-  
-  // Track the previous audio source to detect when it changes
-  const previousAudioSourceRef = useRef(audioSource)
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const retryCountRef = useRef(0)
 
-  // Update current story ID ref when it changes
+  const id = normalizedStoryId(storyId)
+  const hasMusic = id != null && id in STORY_MUSIC_MAP
+  const audioSource =
+    id != null && STORY_MUSIC_MAP[id] != null ? STORY_MUSIC_MAP[id] : null
+
+  const player = getSharedPlayer()
+  const previousAudioSourceRef = useRef<number | null>(null)
+
   useEffect(() => {
     currentStoryIdRef.current = storyId
   }, [storyId])
 
-  // Configure player on mount - set volume and loop
-  useEffect(() => {
-    if (!player) return
-    
-    try {
-      player.volume = 0.3
-      player.loop = true
-    } catch (error) {
-      // Player might not be ready yet, ignore
-    }
-  }, [player])
-
-  // Helper function to safely check if player is playing
   const isPlayerPlaying = (): boolean => {
     if (!player) return false
     try {
@@ -82,144 +79,203 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
     }
   }
 
-  // Helper function to safely stop player (pause and reset position)
-  const safeStop = () => {
-    if (!player) return
+  const stopSharedPlayer = () => {
     try {
-      if (isPlayerPlaying()) {
+      if (player?.playing) {
         player.pause()
-        // Reset position to beginning to fully stop playback
         player.seekTo(0)
       }
-    } catch (error) {
-      // Player might be destroyed, ignore error
+      currentPlayingStoryId = null
+    } catch (_) {
+      currentPlayingStoryId = null
     }
   }
 
+  // When audioSource changes (different story), replace the player's source.
+  useEffect(() => {
+    if (!player || !hasMusic || !audioSource || previousAudioSourceRef.current === audioSource)
+      return
+    try {
+      stopSharedPlayer()
+      playAttemptedRef.current = false
+      previousAudioSourceRef.current = audioSource
+      player.replace(audioSource)
+    } catch (_) {
+      // Ignore
+    }
+  }, [audioSource, hasMusic, player])
+
+  useEffect(() => {
+    if (!player) return
+    try {
+      player.volume = 0.3
+      player.loop = true
+    } catch (_) {
+      // Ignore
+    }
+  }, [player])
+
+  // expo-audio does not reliably loop; when playback ends we must seekTo(0) and play() again.
+  useEffect(() => {
+    if (!player || !hasMusic) return
+    const subscription = player.addListener(
+      PLAYBACK_STATUS_UPDATE,
+      (status: { didJustFinish?: boolean; playing?: boolean; currentTime?: number; duration?: number }) => {
+        const atEnd =
+          status.didJustFinish === true ||
+          (status.playing === false &&
+            (status.duration ?? 0) > 0 &&
+            (status.currentTime ?? 0) >= Math.max(0, (status.duration ?? 0) - 0.5))
+        const shouldLoop =
+          atEnd &&
+          !soundMuted &&
+          isActive &&
+          currentStoryIdRef.current === storyId &&
+          currentPlayingStoryId === storyId // Only loop if we're the one playing
+        if (shouldLoop) {
+          try {
+            player.seekTo(0)
+            player.play()
+            currentPlayingStoryId = storyId
+          } catch (_) {
+            // Ignore
+          }
+        }
+      }
+    )
+    return () => subscription.remove()
+  }, [player, hasMusic, soundMuted, isActive, storyId])
+
   // Handle play/stop based on isActive, soundMuted, and storyId
   useEffect(() => {
-    // Debug logging
-    if (storyId) {
-      console.log('[useStoryMusic] Story ID:', storyId, 'hasMusic:', hasMusic, 'isActive:', isActive, 'soundMuted:', soundMuted)
-    }
-    
-    // If no music configured for this story or not active, stop any playback
-    if (!hasMusic || !isActive || !storyId) {
-      if (!hasMusic && storyId) {
-        console.log('[useStoryMusic] No music configured for story ID:', storyId)
+    // If no music configured for this story or not active, stop only if we were playing
+    if (!hasMusic || !isActive || storyId == null || !audioSource) {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
       }
-      safeStop()
+      stopIfPlayingOurStory(storyId)
       playAttemptedRef.current = false
-      wasActiveRef.current = false
       return
     }
 
-    // If story ID changed, reset state
+    // If story ID changed, reset state and stop before playing new track
     const audioSourceChanged = previousAudioSourceRef.current !== audioSource
     if (currentStoryIdRef.current !== storyId || audioSourceChanged) {
-      safeStop()
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
+      }
+      stopSharedPlayer()
       playAttemptedRef.current = false
-      wasActiveRef.current = false
+      retryCountRef.current = 0
       currentStoryIdRef.current = storyId
       previousAudioSourceRef.current = audioSource
     }
 
-    // Update ref to track state
-    wasActiveRef.current = true
-
     // If story is active and sound is not muted, play
     if (!soundMuted && isActive) {
-      // Only attempt to play if we haven't already started playing
-      // This prevents restarting the music on every passage change
       if (!playAttemptedRef.current) {
-        // Try to play - ensure audio is loaded first
+        retryCountRef.current = 0
+        const RETRY_MS = 300
+        const MAX_RETRIES = 40 // ~12s for larger files (storyFour, storyFive)
+        const INITIAL_DELAY_MS =
+          audioSourceChanged || previousAudioSourceRef.current === null ? 600 : 350
         const attemptPlay = () => {
           try {
-            // Check if still active and story ID hasn't changed
             if (!isActive || currentStoryIdRef.current !== storyId) {
-              safeStop()
+              stopIfPlayingOurStory(storyId)
               return
             }
-
-            // If already playing, don't restart
-            if (isPlayerPlaying()) {
+            if (isPlayerPlaying() && currentPlayingStoryId === storyId) {
               playAttemptedRef.current = true
               return
             }
+            if (!player) return
+            if (retryCountRef.current >= MAX_RETRIES) return
 
-            // Ensure settings are correct before playing
-            if (player) {
-              player.volume = 0.5
-              player.loop = true
-              
-              // Check if audio has duration (means it's loaded)
-              const hasDuration = player.duration > 0
-              
-              // If not playing, start playback
-              if (!isPlayerPlaying()) {
-                // If audio isn't loaded yet, wait a bit more
-                if (!hasDuration) {
-                  setTimeout(attemptPlay, 500)
-                  return
-                }
-                
-                // Reset to beginning only on first play
-                player.seekTo(0)
-                // Play the sound
-                console.log('[useStoryMusic] Attempting to play music for story ID:', storyId)
-                player.play()
-                playAttemptedRef.current = true
-                console.log('[useStoryMusic] Music play() called for story ID:', storyId)
-              }
+            player.volume = 0.5
+            player.loop = true
+            const isReady =
+              (player.isLoaded ?? false) || (player.duration != null && player.duration > 0)
+
+            if (!isReady) {
+              retryCountRef.current += 1
+              retryTimeoutRef.current = setTimeout(attemptPlay, RETRY_MS)
+              return
             }
-          } catch (error) {
-            // Silently handle errors
+
+            stopSharedPlayer() // Ensure no other track is playing before we start
+            player.seekTo(0)
+            player.play()
+            currentPlayingStoryId = storyId
+            playAttemptedRef.current = true
+          } catch (_) {
+            retryCountRef.current += 1
+            if (retryCountRef.current < MAX_RETRIES) {
+              retryTimeoutRef.current = setTimeout(attemptPlay, RETRY_MS)
+            }
           }
         }
 
-        // Small delay to ensure component is mounted and player is ready
-        const playTimer = setTimeout(attemptPlay, 500)
+        const playTimer = setTimeout(attemptPlay, INITIAL_DELAY_MS)
         return () => {
           clearTimeout(playTimer)
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current)
+            retryTimeoutRef.current = null
+          }
         }
       } else {
-        // Already playing - just ensure it's still playing and settings are correct
-        if (!isPlayerPlaying()) {
-          // Music stopped somehow, restart it
-          try {
-            if (player) {
+        // Already attempted once — ensure still playing if we're the active story
+        if (!isPlayerPlaying() && currentPlayingStoryId === storyId) {
+          const RETRY_MS = 300
+          const retryPlay = () => {
+            try {
+              if (!isActive || currentStoryIdRef.current !== storyId || !player) return
+              if (isPlayerPlaying()) return
               player.volume = 0.5
               player.loop = true
-              if (player.duration > 0) {
+              const isReady =
+                (player.isLoaded ?? false) || (player.duration != null && player.duration > 0)
+              if (isReady) {
+                player.seekTo(0)
                 player.play()
+                currentPlayingStoryId = storyId
+              } else if (!retryTimeoutRef.current) {
+                retryTimeoutRef.current = setTimeout(retryPlay, RETRY_MS)
               }
+            } catch (_) {
+              if (!retryTimeoutRef.current) retryTimeoutRef.current = setTimeout(retryPlay, RETRY_MS)
             }
-          } catch (error) {
-            // Silently handle errors
           }
+          retryPlay()
         }
       }
     } else {
-      // If muted, stop if playing
-      safeStop()
+      // If muted, stop only if we were playing
+      stopIfPlayingOurStory(storyId)
       playAttemptedRef.current = false
     }
   }, [isActive, soundMuted, player, storyId, hasMusic, audioSource])
 
-  // Cleanup on unmount - ensure music always stops
+  // Cleanup on unmount - stop only if we were the one playing
   useEffect(() => {
     return () => {
-      // Component is unmounting - stop music immediately
-      safeStop()
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
+      }
+      stopIfPlayingOurStory(storyId)
       playAttemptedRef.current = false
-      wasActiveRef.current = false
     }
-  }, [player])
+  }, [storyId])
 
-  // Also ensure music stops when isActive becomes false (even if component doesn't unmount)
+  // Ensure music stops when isActive becomes false
   useEffect(() => {
     if (!isActive || !storyId) {
-      safeStop()
+      stopIfPlayingOurStory(storyId)
+      retryCountRef.current = 0
     }
   }, [isActive, storyId])
 }

@@ -1,7 +1,7 @@
-import type { StoryCard, CardStatus } from '@/types/hub'
+import type { StoryCard, CardStatus } from '@/types/hub/hub'
 import type { StoryProgressResponse, StoryResponse } from '@/api/types'
 import { getStoryImageUrl } from '@/utils/story-helpers'
-import { isStoryUnlocked } from '@/utils/story-constants'
+import { isStoryUnlocked, PROLOGUE_STORY_ID } from '@/utils/story-constants'
 
 /**
  * Truncate text to a maximum length, adding ellipsis if needed
@@ -13,8 +13,13 @@ function truncateText(text: string, maxLength: number): string {
   return text.substring(0, maxLength).trim() + '...'
 }
 
-/** Prologue is story 1 (first card, no resources). */
-function isPrologueStory(story: StoryResponse): boolean {
+/** Prologue is story 1 (first card, no resources). Prefer id from backend progress (story_title "Prologue"). */
+function isPrologueStory(
+  story: StoryResponse,
+  prologueStoryIdFromBackend?: number | null
+): boolean {
+  if (prologueStoryIdFromBackend != null && story.id === prologueStoryIdFromBackend) return true
+  if (story.id === PROLOGUE_STORY_ID) return true
   const titleLower = String(story.title ?? '').toLowerCase()
   return titleLower.includes('prologue') || titleLower === 'prologue'
 }
@@ -43,35 +48,44 @@ export function mapStoriesToCards(
     })
   }
 
+  // Derive prologue story id from backend progress (story_title "Prologue") so we don't hardcode IDs
+  const prologueStoryIdFromBackend =
+    progressList?.find((p) =>
+      String(p.story_title ?? '').toLowerCase().includes('prologue')
+    )?.story ?? null
+
   // Helper function to map a story to a card
-  function mapStoryToCard(story: StoryResponse, index: number, isPrologue = false): StoryCard {
-    // Determine status based on story data and user progress
+  function mapStoryToCard(
+    story: StoryResponse,
+    index: number,
+    isPrologue: boolean,
+    resolvedPrologueStoryId: number
+  ): StoryCard {
     let status: CardStatus = 'available'
-    
-    // Check daily unlock system first (for non-prologue stories)
+
     if (!isPrologue) {
-      const isUnlocked = isStoryUnlocked(story.id, userCreatedAt)
-      if (!isUnlocked) {
-        status = 'locked'
-      }
+      const isUnlocked = isStoryUnlocked(
+        story.id,
+        userCreatedAt,
+        resolvedPrologueStoryId
+      )
+      if (!isUnlocked) status = 'locked'
     }
-    
-    // Also check level requirement (legacy check)
-    if ((story.min_level ?? 1) > 1 && status !== 'locked') {
-      status = 'locked'
-    }
+
+    if ((story.min_level ?? 1) > 1 && status !== 'locked') status = 'locked'
 
     const progress = progressByStoryId.get(story.id)
+    const completedFromBackend = progress?.is_completed === true
     const completionCount = Number(progress?.story_variables?.completion_count ?? 0)
 
-    if (status !== 'locked' && completionCount > 0) {
+    if (status !== 'locked' && (completedFromBackend || completionCount > 0)) {
       status = 'completed'
     }
 
-    // Prologue (story 1) never has resources
-    const hasResources = !isPrologue
+    const inProgress =
+      status === 'available' && !!progress && !completedFromBackend && completionCount === 0
 
-    // Truncate backend data to prevent overflow in card. Prologue is 1; others are 2, 3, ...
+    const hasResources = !isPrologue
     const label = isPrologue ? 'PROLOGUE' : `STORY ${index + 2}`
 
     return {
@@ -82,26 +96,32 @@ export function mapStoriesToCards(
       tagline: story.description || 'Your journey awaits',
       storyId: story.id,
       status,
+      isPrologue,
+      inProgress,
       hasResources,
       imageUrl: getStoryImageUrl(story.image),
       revelations: story.revelations || [],
     }
   }
 
-  // Drop only stories marked hidden by the backend
   const visibleStories = stories.filter((story) => !story.is_hidden)
 
-  // Prologue is story 1 (first card)
-  const prologueStory = visibleStories.find(isPrologueStory)
+  // Prologue is story 1 (first card). Use backend progress story_title "Prologue" for id when available.
+  const prologueStory =
+    (prologueStoryIdFromBackend != null
+      ? visibleStories.find((s) => s.id === prologueStoryIdFromBackend)
+      : null) ?? visibleStories.find((s) => isPrologueStory(s, prologueStoryIdFromBackend))
+  const resolvedPrologueStoryId: number =
+    prologueStory?.id ?? prologueStoryIdFromBackend ?? PROLOGUE_STORY_ID
   const otherStories = visibleStories
-    .filter((story) => !isPrologueStory(story))
+    .filter((s) => !isPrologueStory(s, prologueStoryIdFromBackend))
     .sort((a, b) => a.id - b.id)
 
   const prologueCard = prologueStory
-    ? mapStoryToCard(prologueStory, 0, true)
+    ? mapStoryToCard(prologueStory, 0, true, resolvedPrologueStoryId)
     : null
   const otherStoryCards: StoryCard[] = otherStories.map((story, index) =>
-    mapStoryToCard(story, index, false)
+    mapStoryToCard(story, index, false, resolvedPrologueStoryId)
   )
 
   if (prologueCard) {

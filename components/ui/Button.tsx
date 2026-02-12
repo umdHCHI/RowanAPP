@@ -1,23 +1,11 @@
 import React, { useState } from 'react'
-import { Pressable, View, StyleSheet, ViewStyle } from 'react-native'
+import { Pressable, View, Text, ViewStyle } from 'react-native'
 import { useHaptics } from '@/utils/useHaptics'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
+import { colors } from '@/theme/design-tokens'
+import { ButtonProps } from '@/types/UI/button'
+import { buttonStyles } from '@/styles/UI/button-style'
 
-//needs to be condensed with haptics util
-
-type HapticType = 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'error' | 'warning'
-
-interface ButtonProps {
-  children: React.ReactNode
-  onPress: () => void
-  variant?: 'primary' | 'secondary'
-  size?: 'default' | 'small'
-  hapticType?: HapticType
-  enableHaptics?: boolean
-  enableSound?: boolean
-  fullWidth?: boolean
-  disabled?: boolean
-}
 
 export function Button({
   children,
@@ -70,15 +58,20 @@ export function Button({
     onPress()
   }
 
-  const variantStyles: Record<'primary' | 'secondary', ViewStyle> = {
+  const variantStyles: Record<'primary' | 'secondary' | 'tertiary', ViewStyle> = {
     primary: {
-      backgroundColor: 'rgba(17, 17, 17, 0.9)',
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: colors.archive.backgroundDark,
+      borderColor: colors.archive.borderSubtle,
       borderWidth: 1,
     },
     secondary: {
-      backgroundColor: 'rgba(108, 178, 255, 0.25)',
-      borderColor: 'rgba(108, 178, 255, 0.45)',
+      backgroundColor: colors.archive.backgroundDark,
+      borderColor: colors.archive.borderSubtle,
+      borderWidth: 1,
+    },
+    tertiary: {
+      backgroundColor: colors.archive.backgroundDark,
+      borderColor: colors.archive.borderSubtle,
       borderWidth: 1,
     },
   }
@@ -98,7 +91,7 @@ export function Button({
 
   const pressStyle: ViewStyle = isPressed
     ? {
-        backgroundColor: variant === 'primary' ? 'rgba(17, 17, 17, 0.95)' : 'rgba(255, 255, 255, 0.25)',
+        backgroundColor: variant === 'primary' ? colors.archive.backgroundDark : colors.archive.backgroundDark,
         transform: [{ scale: 0.98 }],
       }
     : {}
@@ -110,34 +103,22 @@ export function Button({
       onPressOut={() => setIsPressed(false)}
       disabled={disabled}
       style={[
-        styles.button,
+        buttonStyles.button,
         variantStyles[variant],
         sizeStyles[size],
         pressStyle,
-        fullWidth && styles.fullWidth,
-        disabled && styles.disabled,
+        fullWidth && buttonStyles.fullWidth,
+        disabled && buttonStyles.disabled,
       ]}
     >
-      <View style={styles.content}>
-        {children}
+      <View style={buttonStyles.content}>
+        {typeof children === 'string' ? (
+          <Text style={buttonStyles.label}>{children}</Text>
+        ) : (
+          React.isValidElement(children) ? children : <Text style={buttonStyles.label}>{String(children)}</Text>
+        )}
       </View>
     </Pressable>
   )
 }
 
-const styles = StyleSheet.create({
-  button: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullWidth: {
-    width: '100%',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-})

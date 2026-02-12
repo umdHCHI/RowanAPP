@@ -1,40 +1,27 @@
-import React from 'react'
-import { ImageBackground, Dimensions, Pressable as RNPressable, View, StyleSheet } from 'react-native'
+
+import { ImageBackground, Pressable as RNPressable, View } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import type { StoryCard } from '@/types/hub'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
+
 import { Text } from '@/components/ui'
+import { resourceCardStyles } from '@/styles/hub/hub-styles'
+import type { ResourceCardProps } from '@/types/hub/hub'
 
-const { height } = Dimensions.get('window')
-
-interface ResourceCardProps {
-  card: StoryCard
-  onPress: () => void
-}
-
-export function ResourceCard({ card, onPress }: ResourceCardProps) {
-  const playPageFlipSound = usePageFlipSound()
-
-  function handlePress() {
-    playPageFlipSound()
-    onPress()
-  }
-
+export function ResourceCard({ card, onResourcePress }: ResourceCardProps) {
   return (
-    <View style={styles.wrapper}>
-      <RNPressable onPress={handlePress} style={styles.pressable}>
-        <View style={styles.container}>
+    <View style={resourceCardStyles.wrapper}>
+      <RNPressable onPress={onResourcePress} style={resourceCardStyles.pressable}>
+        <View style={resourceCardStyles.container}>
           <ImageBackground
             source={require('../../assets/UI/cards/libraryResource.jpg')}
-            style={styles.imageBackground}
+            style={resourceCardStyles.imageBackground}
             resizeMode="cover"
-            imageStyle={styles.imageStyle}
+            imageStyle={resourceCardStyles.imageStyle}
           >
-            <View style={styles.overlay} />
-            <View style={styles.content}>
-              <View style={styles.header}>
-                <View style={styles.labelContainer}>
-                  <Text variant="label" numberOfLines={1}>
+            <View style={resourceCardStyles.overlay} />
+            <View style={resourceCardStyles.content}>
+              <View style={resourceCardStyles.header}>
+                <View style={resourceCardStyles.labelContainer}>
+                  <Text variant="serif" numberOfLines={1}>
                     {card.label}
                   </Text>
                 </View>
@@ -44,11 +31,11 @@ export function ResourceCard({ card, onPress }: ResourceCardProps) {
                   color="#ffffffcc"
                 />
               </View>
-              <Text variant="heading" size={2} >
+              <Text variant="title" size={1} >
                 {`${card.label} Resources`}
               </Text>
               <Text variant="body" size={2} >
-                View attributes and equipment
+                Overview information on resources aquired from this story.
               </Text>
             </View>
           </ImageBackground>
@@ -57,63 +44,3 @@ export function ResourceCard({ card, onPress }: ResourceCardProps) {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    width: '100%',
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: '#161622',
-  },
-  container: {
-    padding: 16,
-    minHeight: 140,
-    justifyContent: 'space-between',
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  labelContainer: {
-    flex: 1,
-    gap: 2,
-  },
-  footerRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pressable: {
-    flex: 1,
-  },
-  imageBackground: {
-    width: '100%',
-    height: '100%',
-  },
-  imageStyle: {
-    opacity: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-})
