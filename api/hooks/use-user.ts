@@ -3,6 +3,7 @@ import { userService } from '../services/user.service'
 import type {
   UserResponse,
   UserFullProfileResponse,
+  UserListResponse,
 } from '../types'
 
 /**
@@ -48,6 +49,17 @@ export function useUserFullProfile(id: string | number | null) {
       return profile
     },
     enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+/**
+ * Get paginated user list (GET /api/users/)
+ */
+export function useUserList() {
+  return useQuery<UserListResponse>({
+    queryKey: userKeys.lists(),
+    queryFn: () => userService.getAll(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }

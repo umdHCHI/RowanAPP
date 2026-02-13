@@ -1,38 +1,34 @@
 import React, { useState } from 'react'
 import {
   View,
-  Text,
   TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Modal,
   KeyboardAvoidingView,
   Platform,
   Alert,
   ActivityIndicator,
+  Pressable as RNPressable,
 } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getBugReportUrl } from '@/api/constants'
-import { useHaptics } from '@/utils/useHaptics'
+import { colors } from '@/theme/design-tokens'
+import { Text, Button } from '@/components/ui'
+import { bugReportModalStyles } from '@/styles/hub/hub-styles'
+import type { MenuOverlayProps } from '@/types/hub/hub'
 
-interface BugReportModalProps {
-  visible: boolean
-  onClose: () => void
-}
-
-export function BugReportModal({ visible, onClose }: BugReportModalProps) {
+export function BugReportModal({ visible, onClose }: MenuOverlayProps) {
   const [description, setDescription] = useState('')
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const haptics = useHaptics()
+
+  const insets = useSafeAreaInsets()
 
   const handleSubmit = async () => {
     if (!description.trim()) {
       Alert.alert('Error', 'Please describe the bug you encountered.')
       return
     }
-
-    haptics.mediumImpact()
     setIsSubmitting(true)
 
     try {
@@ -51,7 +47,6 @@ export function BugReportModal({ visible, onClose }: BugReportModalProps) {
       })
 
       if (response.ok) {
-        haptics.success()
         Alert.alert(
           'Thank you!',
           'Your bug report has been submitted. We appreciate your help!',
@@ -80,7 +75,6 @@ export function BugReportModal({ visible, onClose }: BugReportModalProps) {
         throw new Error(message)
       }
     } catch (error) {
-      haptics.error()
       const message =
         error instanceof Error ? error.message : 'Network or server error'
       console.warn('Bug report error:', message, error)
@@ -101,6 +95,7 @@ export function BugReportModal({ visible, onClose }: BugReportModalProps) {
     onClose()
   }
 
+
   return (
     <Modal
       visible={visible}
@@ -109,55 +104,108 @@ export function BugReportModal({ visible, onClose }: BugReportModalProps) {
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
+        style={[
+          bugReportModalStyles.modalContainer,
+          { paddingTop: insets.top, paddingBottom: insets.bottom },
+        ]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View>
-          <View>
-            <Text>Report a Bug</Text>
-            <TouchableOpacity
-              onPress={handleClose}
-              disabled={isSubmitting}
-            >
-              <MaterialCommunityIcons name="close" size={24} color="#ffffff" />
-            </TouchableOpacity>
+        <RNPressable
+          style={bugReportModalStyles.backdropPressable}
+          onPress={handleClose}
+          accessible={false}
+        >
+          <View style={bugReportModalStyles.backdrop} />
+        </RNPressable>
+        <View style={bugReportModalStyles.modalInner}>
+          <View style={bugReportModalStyles.panel}>
+            <View style={bugReportModalStyles.contentContainer}>
+              <View style={bugReportModalStyles.headerRow}>
+                <View style={bugReportModalStyles.headerTitle}>
+                  <Text variant="title" size={1} color="#f8fafc">
+                    Report a Bug
+                  </Text>
+                </View>
+                <RNPressable
+                  style={bugReportModalStyles.closeButton}
+                  onPress={handleClose}
+                  disabled={isSubmitting}
+                  accessibilityLabel="Close"
+                >
+                  <MaterialDesignIcons
+                    name="close"
+                    size={24}
+                    color="#f8fafc"
+                  />
+                </RNPressable>
+              </View>
+
+              <Text
+                variant="body"
+                size={2}
+                color="#e2e8f0"
+                style={bugReportModalStyles.descriptionText}
+              >
+                Help us improve by reporting any issues you've encountered.
+              </Text>
+
+              <TextInput
+                style={bugReportModalStyles.input}
+                placeholder="Your email (optional)"
+                placeholderTextColor={colors.archive.white}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isSubmitting}
+              />
+
+              <TextInput
+                style={[
+                  bugReportModalStyles.input,
+                  bugReportModalStyles.inputMultiline,
+                ]}
+                placeholder="Describe the bug"
+                placeholderTextColor={colors.archive.white}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={6}
+                editable={!isSubmitting}
+              />
+            </View>
+
+            <View style={bugReportModalStyles.buttonContainer}>
+              <View style={bugReportModalStyles.buttonWrapper}>
+                <Button
+                  variant="secondary"
+                  onPress={handleClose}
+                  disabled={isSubmitting}
+                  enableHaptics={!isSubmitting}
+                  enableSound={true}
+                  fullWidth
+                >
+                  Cancel
+                </Button>
+              </View>
+              <View style={bugReportModalStyles.buttonWrapper}>
+                <Button
+                  variant="secondary"
+                  onPress={handleSubmit}
+                  disabled={isSubmitting}
+                  enableHaptics={!isSubmitting}
+                  enableSound={true}
+                  fullWidth
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    'Submit Report'
+                  )}
+                </Button>
+              </View>
+            </View>
           </View>
-
-          <Text>
-            Help us improve by reporting any issues you've encountered.
-          </Text>
-
-          <TextInput
-            placeholder="Your email (optional)"
-            placeholderTextColor="rgba(255, 255, 255, 0.5)"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!isSubmitting}
-          />
-
-          <TextInput
-            placeholder="Describe the bug"
-            placeholderTextColor="rgba(255, 255, 255, 0.5)"
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-            editable={!isSubmitting}
-          />
-
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-            activeOpacity={0.7}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#000000" />
-            ) : (
-              <Text>Submit Report</Text>
-            )}
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </Modal>

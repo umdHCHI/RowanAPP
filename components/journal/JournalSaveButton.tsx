@@ -1,13 +1,9 @@
-import { View, ActivityIndicator, StyleSheet, TouchableOpacity, Text } from 'react-native'
+import { View, ActivityIndicator, TouchableOpacity } from 'react-native'
 
 
-interface JournalSaveButtonProps {
-  isSaved: boolean
-  isSaving: boolean
-  haptics: () => void
-  onPress: () => void
-  pageFlipSound: () => void
-}
+import { JournalSaveButtonProps } from '@/types/journal/journal'
+import { Text } from '@/components/ui'
+import { journalSaveButtonStyles } from '@/styles/journal/journal-styles'
 
 export function JournalSaveButton({ isSaved, isSaving, onPress, haptics, pageFlipSound }: JournalSaveButtonProps) {
    
@@ -15,7 +11,7 @@ export function JournalSaveButton({ isSaved, isSaving, onPress, haptics, pageFli
   return (
     <View className={`items-center mb-3 ${isSaved || isSaving ? 'opacity-60' : 'opacity-100'}`}>
       {isSaving ? (
-        <View style={styles.loadingContainer}>
+        <View style={journalSaveButtonStyles.loadingContainer}>
           <ActivityIndicator size="small" color="#ffffff" />
         </View>
       ) : (
@@ -27,41 +23,13 @@ export function JournalSaveButton({ isSaved, isSaving, onPress, haptics, pageFli
             onPress()
           }}
           disabled={isSaved || isSaving}
-          style={[styles.saveButton, (isSaved || isSaving) && styles.saveButtonDisabled]}
+          style={[journalSaveButtonStyles.saveButton, (isSaved || isSaving) && journalSaveButtonStyles.saveButtonDisabled]}
         >
-          <Text style={styles.saveButtonText}>{isSaved ? 'Saved!' : 'Save Entry'}</Text>
+          <Text variant="label" size={2} align="center">
+            {isSaved ? 'Saved!' : 'Save Entry'}
+          </Text>
         </TouchableOpacity>
       )}
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    width: 200,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  saveButton: {
-    width: 200,
-    height: 50,
-    borderRadius: 28,
-    backgroundColor: '#15111f',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: '#ffffff',
-  },
-})
-

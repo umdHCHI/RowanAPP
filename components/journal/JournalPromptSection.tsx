@@ -1,12 +1,9 @@
-import { View, Text as RNText, StyleSheet, ActivityIndicator } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import type { JournalPrompt } from '@/stores/game-store'
+import { View, ActivityIndicator } from 'react-native'
 
-interface JournalPromptSectionProps {
-  currentPrompt: JournalPrompt | null
-  isLoading: boolean
-  error: Error | null
-}
+
+import { JournalPromptSectionProps } from '@/types/journal/journal'
+import { Text } from '@/components/ui'
+import { journalPromptSectionStyles } from '@/styles/journal/journal-styles'
 
 export function JournalPromptSection({
   currentPrompt,
@@ -15,134 +12,56 @@ export function JournalPromptSection({
 }: JournalPromptSectionProps) {
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={journalPromptSectionStyles.loadingContainer}>
         <ActivityIndicator size="small" color="#D4A574" />
-        <RNText style={styles.loadingText}>
+        <Text variant="label" size={2} align="center">
           Loading prompts...
-        </RNText>
+        </Text>
       </View>
     )
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <RNText style={styles.errorText}>
+      <View style={journalPromptSectionStyles.errorContainer}>
+        <Text variant="label" size={2} align="center">
           Failed to load prompts. Please try again.
-        </RNText>
+        </Text>
       </View>
     )
   }
 
   if (!currentPrompt) {
     return (
-      <View style={styles.emptyContainer}>
-        <RNText style={styles.emptyText}>
+      <View style={journalPromptSectionStyles.emptyContainer}>
+        <Text variant="label" size={2} align="center">
           No prompts available at this time.
-        </RNText>
+        </Text>
       </View>
     )
   }
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={journalPromptSectionStyles.cardContainer}>
       {/* Card */}
-      <View style={styles.card}>
+      <View style={journalPromptSectionStyles.card}>
         {/* Category */}
-        <RNText style={styles.cardCategory}>
-          {currentPrompt.category.toUpperCase()}
-        </RNText>
+        <Text variant="label" size={2} align="center">
+          {currentPrompt.category}
+        </Text>
 
         {/* Prompt text */}
-        <View style={styles.promptTextContainer}>
-          <RNText style={styles.promptText}>
+        <View style={journalPromptSectionStyles.promptTextContainer}>
+          <Text variant="label" size={2} align="center">
             {currentPrompt.text}
-          </RNText>
+          </Text>
         </View>
 
         {/* Awards */}
-        <View style={styles.awardsContainer}>
-          <RNText style={styles.awardsText}>+1 Attribute</RNText>
+        <View style={journalPromptSectionStyles.awardsContainer}>
+          <Text variant="label" size={2} align="center">+1 Lumen</Text>
         </View>
       </View>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  cardContainer: {
-    width: '100%',
-    paddingHorizontal: 20,
-    marginBottom: 32,
-  },
-  card: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 24,
-  },
-  cardCategory: {
-    fontFamily: 'System',
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: 3,
-    color: '#ffffffcc',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  promptTextContainer: {
-    minHeight: 80,
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  awardsContainer: {
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  awardsText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: '#ffffff',
-  },
-  promptText: {
-    fontFamily: 'VT323-Regular',
-    fontSize: 22,
-    textAlign: 'center',
-    color: '#ffffff',
-    lineHeight: 26,
-    letterSpacing: 0.6,
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  errorContainer: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorText: {
-    textAlign: 'center',
-    color: '#F44336',
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-})

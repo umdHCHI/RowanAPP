@@ -99,8 +99,8 @@ export const STORY_LAYOUT = {
   pauseButtonSize: 120,
   pauseIconSize: 80,
   speakerAvatarSize: 48,
-  choicesContainerMinHeight: 400,
-  choicesContainerMaxHeightPercent: 0.5,
+  /** Compact strip at bottom so choices sit low and don't block nav; scrolls if many choices */
+  choicesStripHeight: 240,
   mainContainerPaddingTop: 50,
 } as const
 

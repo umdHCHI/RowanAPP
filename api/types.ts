@@ -251,21 +251,13 @@ export const UserUpdateSchema = z.object({
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
   notifications_enabled: z.boolean().optional(),
+  profile: z
+    .object({
+      enable_daily_reminders: z.boolean().optional(),
+      daily_reminder_time: z.string().nullable().optional(),
+    })
+    .optional(),
 })
-
-export const UserResponseSchema = z.object({
-  id: z.string(),
-  username: z.string(),
-  email: z.string().email(),
-  createdAt: z.number(),
-  updatedAt: z.number().optional(),
-})
-
-export type UserCreateRequest = z.infer<typeof UserCreateSchema>
-export type UserUpdateRequest = z.infer<typeof UserUpdateSchema>
-export type UserResponse = z.infer<typeof UserResponseSchema>
-
-
 
 const RecentReflectionSchema = z.object({
   id: z.number(),
@@ -334,7 +326,8 @@ const CharacterCustomizationSchema = CharacterSchema.pick({
 
 const ProfileCharacterSchema = z.object({
   id: z.number(),
-  experience: z.number(),
+  lumens: z.number(),
+  experience: z.number().optional(),
   name: z.string().optional(),
   level: z.number().optional(),
   memories_explored: z.number().optional(),
@@ -345,6 +338,9 @@ const ProfileCharacterSchema = z.object({
 
 const UserProfileSchema = z.object({
   has_completed_onboarding: z.boolean().optional(),
+  has_seen_tutorial: z.boolean().optional(),
+  enable_daily_reminders: z.boolean().optional(),
+  daily_reminder_time: z.string().nullable().optional(),
   has_completed_character_creation: z.boolean().optional(),
   has_character: z.boolean().optional(),
   has_game_data: z.boolean().optional(),
@@ -363,6 +359,28 @@ const UserFullProfileSchema = z.object({
   profile: UserProfileSchema.optional(),
   story_progress: z.array(StoryProgressSchema).optional(),
 })
+
+// User list item shape (GET /api/users/ results item); matches backend with optional profile
+export const UserResponseSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  username: z.string(),
+  email: z.string(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  profile: UserProfileSchema.optional(),
+})
+
+export type UserCreateRequest = z.infer<typeof UserCreateSchema>
+export type UserUpdateRequest = z.infer<typeof UserUpdateSchema>
+export type UserResponse = z.infer<typeof UserResponseSchema>
+
+/** DRF-style paginated list from GET /api/users/ */
+export interface UserListResponse {
+  count: number
+  next: string | null
+  previous: string | null
+  results: UserResponse[]
+}
 
 
 

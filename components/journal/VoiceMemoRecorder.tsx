@@ -1,23 +1,19 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import  { useState, useEffect } from 'react'
+import { View,  TouchableOpacity,  Alert } from 'react-native'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import {
   useAudioRecorder,
   useAudioRecorderState,
   RecordingPresets,
   requestRecordingPermissionsAsync,
 } from 'expo-audio'
+import { Text } from '@/components/ui'
+import { journalVoiceRecorderStyles } from '@/styles/journal/journal-styles'
+import {  VoiceMemoRecorderProps } from '@/types/journal/journal'
 
-// Note: expo-audio replaces deprecated expo-av for audio recording
 
-interface VoiceMemoRecorderSavePayload {
-  uri: string
-  durationSeconds: number
-}
 
-interface VoiceMemoRecorderProps {
-  onSave: (payload: VoiceMemoRecorderSavePayload) => void
-}
+
 
 export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
   const [recordedUri, setRecordedUri] = useState<string | null>(null)
@@ -31,7 +27,7 @@ export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {
     // Status listener - called when recording status changes
     if (status.isFinished && status.url) {
-      const durationSeconds = toDurationSeconds(status.durationMillis ?? recorderState.durationMillis)
+      const durationSeconds = toDurationSeconds(recorderState.durationMillis ?? 0)
       setRecordedUri(status.url)
       onSave({ uri: status.url, durationSeconds })
     }
@@ -100,35 +96,35 @@ export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.recorderContainer}>
+    <View style={journalVoiceRecorderStyles.container}>
+      <View style={journalVoiceRecorderStyles.recorderContainer}>
         {!recordedUri ? (
           <>
             {!isRecording ? (
-              <TouchableOpacity style={styles.recordButton} onPress={startRecording}>
-                <MaterialCommunityIcons name="microphone" size={32} color="#ffffff" />
-                <Text style={styles.recordButtonText}>Tap to Record</Text>
+              <TouchableOpacity style={journalVoiceRecorderStyles.recordButton} onPress={startRecording}>
+                <MaterialDesignIcons name="microphone" size={32} color="#ffffff" />
+                <Text variant="label" size={2} align="center">Tap to Record</Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.recordingContainer}>
-                <View style={styles.recordingIndicator}>
-                  <View style={styles.recordingDot} />
-                  <Text style={styles.recordingText}>{formatDuration(duration)}</Text>
+              <View style={journalVoiceRecorderStyles.recordingContainer}>
+                <View style={journalVoiceRecorderStyles.recordingIndicator}>
+                  <View style={journalVoiceRecorderStyles.recordingDot} />
+                  <Text variant="label" size={2} align="center">{formatDuration(duration)}</Text>
                 </View>
-                <TouchableOpacity style={styles.stopButton} onPress={stopRecording}>
-                  <MaterialCommunityIcons name="stop" size={24} color="#ffffff" />
-                  <Text style={styles.stopButtonText}>Stop</Text>
+                <TouchableOpacity style={journalVoiceRecorderStyles.stopButton} onPress={stopRecording}>
+                  <MaterialDesignIcons name="stop" size={24} color="#ffffff" />
+                  <Text variant="label" size={2} align="center">Stop</Text>
                 </TouchableOpacity>
               </View>
             )}
           </>
         ) : (
-          <View style={styles.recordedContainer}>
-            <MaterialCommunityIcons name="check-circle" size={32} color="#4CAF50" />
-            <Text style={styles.recordedText}>Voice memo saved</Text>
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-              <MaterialCommunityIcons name="delete-outline" size={20} color="#FFD700" />
-              <Text style={styles.deleteButtonText}>Delete</Text>
+          <View style={journalVoiceRecorderStyles.recordedContainer}>
+            <MaterialDesignIcons name="check-circle" size={32} color="#4CAF50" />
+            <Text variant="label" size={2} align="center">Voice memo saved</Text>
+            <TouchableOpacity style={journalVoiceRecorderStyles.deleteButton} onPress={handleDelete}>
+              <MaterialDesignIcons name="delete-outline" size={20} color="#FFD700" />
+              <Text variant="label" size={2} align="center">Delete</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -136,99 +132,3 @@ export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 16,
-    minHeight: 200,
-    justifyContent: 'center',
-  },
-  recorderContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recordButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
-    borderWidth: 2,
-    borderColor: '#FFD700',
-  },
-  recordButtonText: {
-    marginTop: 8,
-    fontFamily: 'System',
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FFD700',
-  },
-  recordingContainer: {
-    alignItems: 'center',
-    gap: 16,
-  },
-  recordingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  recordingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#F44336',
-  },
-  recordingText: {
-    fontFamily: 'System',
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFD700',
-  },
-  stopButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    backgroundColor: '#F44336',
-  },
-  stopButtonText: {
-    fontFamily: 'System',
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  recordedContainer: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  recordedText: {
-    fontFamily: 'System',
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#4CAF50',
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  deleteButtonText: {
-    fontFamily: 'System',
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FFD700',
-  },
-})

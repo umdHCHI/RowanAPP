@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useRouter } from 'expo-router'
 import { useGameStore } from '@/stores/game-store'
 import { getTextSpeedLabel, getTextSpeedIcon } from '@/utils/story-speed'
@@ -40,14 +40,14 @@ export function StoryHeader({ isPaused, onTogglePause }: StoryHeaderProps) {
         style={styles.headerButton}
         onPress={handleClose}
       >
-        <MaterialCommunityIcons name="close" size={24} color="#ffffff" />
+        <MaterialDesignIcons name="close" size={24} color="#ffffff" />
       </TouchableOpacity>
       <View style={styles.controlsGroup}>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={handlePauseToggle}
         >
-          <MaterialCommunityIcons 
+          <MaterialDesignIcons 
             name={isPaused ? 'play' : 'pause'} 
             size={24} 
             color="#ffffff" 
@@ -57,7 +57,7 @@ export function StoryHeader({ isPaused, onTogglePause }: StoryHeaderProps) {
           style={[styles.headerButton, styles.speedButton]}
           onPress={handleSpeedToggle}
         >
-          <MaterialCommunityIcons 
+          <MaterialDesignIcons 
             name={speedIconName as any}
             size={24}
             color={STORY_COLORS.text}
@@ -68,7 +68,7 @@ export function StoryHeader({ isPaused, onTogglePause }: StoryHeaderProps) {
           style={styles.headerButton}
           onPress={handleSoundToggle}
         >
-          <MaterialCommunityIcons 
+          <MaterialDesignIcons 
             name={soundMuted ? 'volume-off' : 'volume-high'} 
             size={24} 
             color="#ffffff" 

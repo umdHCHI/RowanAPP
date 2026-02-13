@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { View, StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useStories, useRequireAuth } from '@/api'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
@@ -45,7 +45,7 @@ export default function StoryOverview() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.headerButton} onPress={handleBack}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#ffffff" />
+            <MaterialDesignIcons name="arrow-left" size={24} color="#ffffff" />
           </TouchableOpacity>
         </View>
         <View style={styles.loadingContainer}>
@@ -65,7 +65,7 @@ export default function StoryOverview() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerButton} onPress={handleBack}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#ffffff" />
+          <MaterialDesignIcons name="arrow-left" size={24} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>STORY OVERVIEW</Text>
         <View style={styles.headerButton} />

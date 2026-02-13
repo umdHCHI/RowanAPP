@@ -166,7 +166,7 @@ export interface UseNotificationsResult {
   notificationTime: NotificationTime
   requestPermissions: () => Promise<boolean>
   cancelAllNotifications: () => Promise<void>
-  updateNotificationTime: (time: NotificationTime) => void
+  updateNotificationTime: (time: NotificationTime) => void | Promise<void>
 }
 
 // ============================================================================

@@ -1,43 +1,31 @@
-import type React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions, Linking, ScrollView } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+
+import { View, Text, TouchableOpacity,  Modal,  ScrollView } from 'react-native'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useRouter } from 'expo-router'
-import { useHaptics } from '@/utils/useHaptics'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BugReportModal } from './BugReportingModal'
 import { useState } from 'react'
+import { hubMenuOverlayStyles } from '@/styles/hub/hub-styles'
+import type { MenuOverlayProps, MenuItem } from '@/types/hub/hub'
+import { Button } from '@/components/ui'
 
-const { width, height } = Dimensions.get('window')
 
-interface MenuOverlayProps {
-  visible: boolean
-  onClose: () => void
-}
 
-interface MenuItem {
-  label: string
-  route?: string
-  action?: () => void
-}
 
 export function MenuOverlay({ visible, onClose }: MenuOverlayProps) {
   const router = useRouter()
-  const haptics = useHaptics()
-  const playPageFlipSound = usePageFlipSound()
+
   const insets = useSafeAreaInsets()
   const [bugReportVisible, setBugReportVisible] = useState(false)
 
   const menuItems: MenuItem[] = [
   { label: 'About The Archive', route: '/about' },
-  { label: 'Start a new story', route: '/hub' },
-  { label: 'Crisis help', route: '/crisis-help' },
+  { label: 'Back to The Archive', route: '/hub' },
+  { label: 'UMN Duluth Counseling Resources', route: '/crisis-help' },
   { label: 'Report a bug', action: () => setBugReportVisible(true)},
 ]
 
   function handleMenuItemPress(item: MenuItem) {
-    haptics.mediumImpact()
-    playPageFlipSound()
     onClose()
     
     if (item.route) {
@@ -57,50 +45,53 @@ export function MenuOverlay({ visible, onClose }: MenuOverlayProps) {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <View style={styles.menuContainer}>
+      <View style={[hubMenuOverlayStyles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={hubMenuOverlayStyles.menuContainer}>
           {/* Header */}
-          <View style={styles.header}>
+          <View style={hubMenuOverlayStyles.header}>
             <TouchableOpacity
-              style={styles.closeButton}
+              style={hubMenuOverlayStyles.closeButton}
               onPress={() => {
-                haptics.lightImpact()
-                playPageFlipSound()
+
                 onClose()
               }}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="close" size={24} color="#ffffff" />
+              <MaterialDesignIcons name="close-circle" size={24} color="#ffffff" />
             </TouchableOpacity>
 
-            <Text style={styles.menuTitle}>Menu</Text>
+            <Text style={hubMenuOverlayStyles.menuTitle}>Menu</Text>
 
 
           </View>
 
           {/* Divider */}
-          <View style={styles.divider} />
+          <View style={hubMenuOverlayStyles.divider} />
 
           {/* Menu Items - Scrollable */}
           <ScrollView 
-            style={styles.menuItemsScrollView}
-            contentContainerStyle={styles.menuItemsContainer}
+            style={hubMenuOverlayStyles.menuItemsScrollView}
+            contentContainerStyle={hubMenuOverlayStyles.menuItemsContainer}
             showsVerticalScrollIndicator={false}
           >
             {menuItems.map((item, index) => (
-              <TouchableOpacity
+              <Button
                 key={index}
-                style={styles.menuItem}
+                variant="secondary"
+                size="small"
                 onPress={() => handleMenuItemPress(item)}
-                activeOpacity={0.7}
+                fullWidth
+                enableSound={true}
+                enableHaptics={true}
               >
-                <Text style={styles.menuItemText}>{item.label}</Text>
-              </TouchableOpacity>
+                <Text style={hubMenuOverlayStyles.menuItemText}>{item.label}</Text>
+              </Button>
+ 
             ))}
           </ScrollView>
 
           {/* Divider */}
-          <View style={styles.divider} />
+          <View style={hubMenuOverlayStyles.divider} />
 
          
         </View>
@@ -114,92 +105,4 @@ export function MenuOverlay({ visible, onClose }: MenuOverlayProps) {
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    width: width,
-    height: height,
-  },
-  menuContainer: {
-    flex: 1,
-    width: '100%',
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  menuTitle: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 32,
-    color: '#ffffff',
-    textAlign: 'center',
-    flex: 1,
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginVertical: 16,
-  },
-  menuItemsScrollView: {
-    flex: 1,
-  },
-  menuItemsContainer: {
-    gap: 8,
-    paddingBottom: 8,
-  },
-  menuItem: {
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  menuItemText: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 20,
-    color: '#ffffff',
-    textAlign: 'left',
-  },
-  socialContainer: {
-    gap: 24,
-    marginTop: 'auto',
-  },
-  socialRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  socialIconContainer: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  socialIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  socialIconLabel: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 12,
-    color: '#ffffff',
-    textAlign: 'center',
-  },
-})
 

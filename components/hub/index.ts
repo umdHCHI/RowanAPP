@@ -4,4 +4,7 @@ export { ProgressIndicator } from './ProgressIndicator'
 export { HubPage } from './HubPage'
 export { HubButtons } from './HubButtons'
 export { HubPagination } from './HubPagination'
+export { ContentWarningModal } from './ContentWarningModal'
+export { BugReportModal } from './BugReportingModal'
+export { MenuOverlay } from './menu-overlay'
 

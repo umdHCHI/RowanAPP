@@ -226,3 +226,61 @@ export const JOURNAL_PROMPTS: JournalPrompt[] = [
   },
 ]
 
+export interface Stroke {
+  points: Array<{ x: number; y: number }>
+  color?: string
+  width?: number
+}
+
+export interface DrawingCanvasProps {
+  value: Stroke[]
+  onChange: (strokes: Stroke[]) => void
+  onDrawingStart?: () => void
+  onDrawingEnd?: () => void
+}
+
+export interface JournalEntryCardProps {
+  value: string
+  onChangeText: (text: string) => void
+  disabled?: boolean
+}
+
+export interface JournalHeaderProps {
+  characterName?: string | null
+}
+
+export type ReflectionMode = 'journal' | 'draw' | 'voice'
+
+export interface JournalModeSelectorProps {
+  mode: ReflectionMode
+  onModeChange: (mode: ReflectionMode) => void
+}
+
+/** Prompt shape used by JournalPromptSection (e.g. API JournalPromptResponse). */
+export interface JournalPromptSectionPrompt {
+  category: string
+  text: string
+}
+
+export interface JournalPromptSectionProps {
+  currentPrompt: JournalPromptSectionPrompt | null
+  isLoading: boolean
+  error: Error | null
+}
+
+export interface JournalSaveButtonProps {
+  isSaved: boolean
+  isSaving: boolean
+  haptics: () => void
+  onPress: () => void
+  pageFlipSound: () => void
+}
+
+export interface VoiceMemoRecorderSavePayload {
+  uri: string
+  durationSeconds: number
+}
+
+export interface VoiceMemoRecorderProps {
+  onSave: (payload: VoiceMemoRecorderSavePayload) => void
+}

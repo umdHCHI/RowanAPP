@@ -1,3 +1,4 @@
+
 // Hub-specific types
 
 export type CardStatus = 'locked' | 'available' | 'completed'
@@ -19,6 +20,7 @@ export interface StoryCard {
   revelations?: string[]
 }
 
+
 export interface ContentWarningModalProps {
   visible: boolean
   onClose: () => void
@@ -32,13 +34,35 @@ export interface HubButtonsProps {
   onPrimaryPress: () => void
 }
 
-export interface ResourceCardProps {
-  card: StoryCard
-  onResourcePress: () => void
-}
-
 export interface HubPageProps {
   card: StoryCard
   onResourcePress: () => void
   carouselHeight: number
+}
+
+export interface HubPaginationProps {
+  cards: StoryCard[]
+  activeIndex: number
+  onDotPress: (index: number) => void
+}
+
+export interface MenuOverlayProps {
+  visible: boolean
+  onClose: () => void
+}
+
+export interface MenuItem {
+  label: string
+  route?: string
+  action?: () => void
+}
+
+export interface ProgressIndicatorProps {
+  card: StoryCard
+  showBottomLine?: boolean
+}
+
+export interface StoryCardProps {
+  card: StoryCard
+  height: number
 }

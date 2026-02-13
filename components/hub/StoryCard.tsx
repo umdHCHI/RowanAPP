@@ -1,68 +1,62 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   Image,
-  ImageSourcePropType,
-  Pressable as RNPressable,
-  View,
-  StyleSheet,
+  View
 } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import type { StoryCard as StoryCardType } from '@/types/hub/hub'
-import { useHaptics } from '@/utils/useHaptics'
+
 import { ContentWarningModal } from './ContentWarningModal'
 import { Text, Button } from '@/components/ui'
+import { storyCardStyles } from '@/styles/hub/hub-styles'
+import type { StoryCardProps } from '@/types/hub/hub'
 
-const FALLBACK_IMAGE: ImageSourcePropType = require('@/assets/storyCardBackground/introBackground.png')
 
-interface StoryCardProps {
-  card: StoryCardType
-  height: number
-}
 
 export function StoryCard({ card, height }: StoryCardProps) {
-  const haptics = useHaptics()
+
   const [isContentWarningVisible, setIsContentWarningVisible] = useState(false)
 
   const isCompleted = card.status === 'completed'
   const imageSource = card.imageUrl
-    ? { uri: card.imageUrl }
-    : FALLBACK_IMAGE
+ 
 
-  function handleBookIconPress() {
-    haptics.lightImpact()
-  }
 
-  function handleContentWarningPress() {
-    haptics.lightImpact()
-    setIsContentWarningVisible(true)
+
+function handleContentWarningPress() {
+       setIsContentWarningVisible(true)
   }
 
   return (
-    <View style={[styles.wrapper, { height }]}>
-      <View style={styles.container}>
-        <View style={styles.backgroundImage}>
-          <Image source={imageSource} style={styles.image} resizeMode="cover" />
-          <View style={styles.dimOverlay} />
+    <View style={[storyCardStyles.wrapper, { height }]}>
+      <View style={storyCardStyles.container}>
+        <View style={storyCardStyles.backgroundImage}>
+          <Image
+            source={
+              imageSource
+                ? { uri: imageSource }
+                : require('../../assets/UI/cards/libraryResource.jpg')
+            }
+            style={storyCardStyles.image}
+            resizeMode="cover"
+          />
+          <View style={storyCardStyles.dimOverlay} />
         </View>
 
-        <View style={styles.cardContent}>
-          <View style={styles.header}>
-            <View style={styles.headerLabel}>
-              <Text variant="label" numberOfLines={1}>
+        <View style={storyCardStyles.cardContent}>
+          <View style={storyCardStyles.header}>
+            <View style={storyCardStyles.headerLabel}>
+              <Text variant="body" size={3} numberOfLines={1} opacity={0.9}>
                 {card.label}
               </Text>
             </View>
 
             {isCompleted && (
-              <View style={styles.bookIcon}>
-                <RNPressable onPress={handleBookIconPress} hitSlop={10}>
-                  <MaterialCommunityIcons name="book-open-outline" size={26} color="#ffffff" />
-                </RNPressable>
+              <View style={storyCardStyles.bookIcon}>
+               
               </View>
             )}
           </View>
 
-          <View style={styles.titleSection}>
+          <View style={storyCardStyles.titleSection}>
             <Text variant="heading" size={1}>
               {card.title}
             </Text>
@@ -71,7 +65,7 @@ export function StoryCard({ card, height }: StoryCardProps) {
             </Text>
           </View>
 
-          <View style={styles.bottomSection}>
+          <View style={storyCardStyles.bottomSection}>
             <Text variant="tagline" size={1} opacity={0.9}>
               {card.tagline || 'Your journey awaits'}
             </Text>
@@ -80,17 +74,16 @@ export function StoryCard({ card, height }: StoryCardProps) {
               variant="secondary"
               size="small"
               onPress={handleContentWarningPress}
-              hapticType="light"
-              enableSound={false}
+              enableHaptics={true}
+              enableSound={true}
             >
-              <Text variant="title" size={4} numberOfLines={1}>
-                CONTENT WARNING
+              <Text variant="titleWhite" size={2} align="center">
+                Content Warning
               </Text>
             </Button>
           </View>
         </View>
-      </View>
-
+      </View> 
       <ContentWarningModal
         visible={isContentWarningVisible}
         onClose={() => setIsContentWarningVisible(false)}
@@ -100,50 +93,3 @@ export function StoryCard({ card, height }: StoryCardProps) {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    width: '100%',
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#161622',
-  },
-  backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  image: { width: '100%', height: '100%' },
-  dimOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  cardContent: {
-    flex: 1,
-    padding: 18,
-    justifyContent: 'space-between',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  headerLabel: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    maxWidth: '80%',
-  },
-  bookIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  titleSection: { gap: 6 },
-  bottomSection: { gap: 12 },
-})

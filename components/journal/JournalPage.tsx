@@ -6,10 +6,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
   Alert,
   TouchableOpacity,
-  Text as RNText,
   Keyboard,
   Dimensions,
 } from 'react-native'
@@ -26,13 +24,16 @@ import { JournalPromptSection } from './JournalPromptSection'
 import { JournalEntryCard } from './JournalEntryCard'
 import { JournalSaveButton } from './JournalSaveButton'
 import { JournalAttributeChanges } from './JournalAttributeChanges'
-import type { ReflectionMode } from './JournalModeSelector'
-import { DrawingCanvas, type Stroke } from './DrawingCanvas'
+import  { ReflectionMode } from '@/types/journal/journal'
+import { DrawingCanvas } from './DrawingCanvas'
+import { Stroke } from '@/types/journal/journal'
 import { VoiceMemoRecorder } from './VoiceMemoRecorder'
-import type { JournalContent } from '@/types/journal'
+import type { JournalContent } from '@/types/journal/journal'
 import { useHaptics } from '@/utils/useHaptics'
 import { StoryBackground } from '@/components/story/StoryBackground'
 import { Header } from '@/components/header'
+import { journalPageStyles } from '@/styles/journal/journal-styles'
+import { Text } from '@/components/ui'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 
@@ -498,7 +499,7 @@ export function JournalPage() {
 
     if (mode === 'draw') {
       return (
-        <View style={[styles.drawingContainer, { minHeight: Math.min(420, SCREEN_HEIGHT * 0.42) }]}>
+        <View style={[journalPageStyles.drawingContainer, { minHeight: Math.min(420, SCREEN_HEIGHT * 0.42) }]}>
           <DrawingCanvas 
             value={drawing} 
             onChange={setDrawing}
@@ -511,7 +512,7 @@ export function JournalPage() {
 
     if (mode === 'voice') {
       return (
-        <View style={styles.voiceContainer}>
+        <View style={journalPageStyles.voiceContainer}>
           <VoiceMemoRecorder
             onSave={({ uri, durationSeconds }) => {
               setAudioUri(uri || null)
@@ -527,7 +528,7 @@ export function JournalPage() {
 
   return (
     <StoryBackground showOverlay={false}>
-      <View style={styles.root}>
+      <View style={journalPageStyles.root}>
         <KeyboardAvoidingView
           className="flex-1"
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -538,7 +539,7 @@ export function JournalPage() {
               ref={scrollViewRef}
               className="flex-1"
               contentContainerStyle={[
-                styles.scrollContent,
+                journalPageStyles.scrollContent,
                 { paddingTop: insets.top + 80, paddingBottom: insets.bottom + 180 },
               ]}
               showsVerticalScrollIndicator={false}
@@ -547,20 +548,10 @@ export function JournalPage() {
               nestedScrollEnabled={true}
             >
           {/* Title Section */}
-          <View style={styles.titleContainer}>
-            <RNText
-              style={[
-                styles.title,
-                {
-                  color: '#ffffff',
-                  textShadowColor: 'rgba(0, 0, 0, 0.6)',
-                  textShadowOffset: { width: 0, height: 2 },
-                  textShadowRadius: 8,
-                },
-              ]}
-            >
+          <View style={journalPageStyles.titleContainer}>
+            <Text variant="title" size={3} align="center">
               Your Journal
-            </RNText>
+            </Text>
           </View>
 
           {/* Prompt Card */}
@@ -571,9 +562,9 @@ export function JournalPage() {
           />
 
           {/* Tabs */}
-          <View style={styles.tabsContainer}>
+          <View style={journalPageStyles.tabsContainer}>
             <TouchableOpacity
-              style={[styles.tab, mode === 'journal' && styles.tabActive]}
+              style={[journalPageStyles.tab, mode === 'journal' && journalPageStyles.tabActive]}
               onPress={() => {
                 if (mode !== 'journal') {
                   playPageFlipSound()
@@ -581,14 +572,14 @@ export function JournalPage() {
                 }
               }}
             >
-              <RNText style={[styles.tabText, mode === 'journal' && styles.tabTextActive]}>
+              <Text variant="label" size={2} align="center">
                 JOURNAL
-              </RNText>
-              {mode === 'journal' && <View style={styles.tabUnderline} />}
+              </Text>
+              {mode === 'journal' && <View style={journalPageStyles.tabUnderline} />}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.tab, mode === 'voice' && styles.tabActive]}
+              style={[journalPageStyles.tab, mode === 'voice' && journalPageStyles.tabActive]}
               onPress={() => {
                 if (mode !== 'voice') {
                   playPageFlipSound()
@@ -596,14 +587,14 @@ export function JournalPage() {
                 }
               }}
             >
-              <RNText style={[styles.tabText, mode === 'voice' && styles.tabTextActive]}>
+              <Text variant="label" size={2} align="center">
                 VOICE
-              </RNText>
-              {mode === 'voice' && <View style={styles.tabUnderline} />}
+              </Text>
+              {mode === 'voice' && <View style={journalPageStyles.tabUnderline} />}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.tab, mode === 'draw' && styles.tabActive]}
+              style={[journalPageStyles.tab, mode === 'draw' && journalPageStyles.tabActive]}
               onPress={() => {
                 if (mode !== 'draw') {
                   playPageFlipSound()
@@ -611,10 +602,10 @@ export function JournalPage() {
                 }
               }}
             >
-              <RNText style={[styles.tabText, mode === 'draw' && styles.tabTextActive]}>
+              <Text variant="label" size={2} align="center">
                 DRAWING
-              </RNText>
-              {mode === 'draw' && <View style={styles.tabUnderline} />}
+              </Text>
+              {mode === 'draw' && <View style={journalPageStyles.tabUnderline} />}
             </TouchableOpacity>
           </View>
 
@@ -622,7 +613,7 @@ export function JournalPage() {
           {!isLoadingPrompts && !promptsError && currentPrompt && (
             <View 
               ref={inputContainerRef} 
-              style={styles.responseArea}
+              style={journalPageStyles.responseArea}
               onLayout={(event) => {
                 responseAreaYRef.current = event.nativeEvent.layout.y
               }}
@@ -632,14 +623,14 @@ export function JournalPage() {
 
               {/* Saved confirmation */}
               {isSaved && (
-                <View style={styles.savedContainer}>
-                  <RNText style={styles.savedText}>
+                <View style={journalPageStyles.savedContainer}>
+                  <Text variant="label" size={2} align="center">
                     ✓ Entry saved!
-                  </RNText>
+                  </Text>
                   <JournalAttributeChanges />
-                  <RNText style={styles.congratsText}>
+                  <Text variant="label" size={2} align="center">
                     Congratulations!
-                  </RNText>
+                  </Text>
                 </View>
               )}
 
@@ -673,102 +664,3 @@ export function JournalPage() {
   )
 }
 
-const styles = StyleSheet.create({
-  root: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  titleContainer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontFamily: 'BeyondWonderland',
-    fontSize: 42,
-    textAlign: 'center',
-    lineHeight: 48,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 16,
-    gap: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  tab: {
-    paddingBottom: 12,
-    position: 'relative',
-  },
-  tabActive: {
-    // Active state handled by underline
-  },
-  tabText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: 'rgba(255, 255, 255, 0.65)',
-  },
-  tabTextActive: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  tabUnderline: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: '#ffffff',
-  },
-  responseArea: {
-    paddingHorizontal: 16,
-    marginTop: 24,
-    paddingBottom: 12,
-  },
-  drawingContainer: {
-    marginBottom: 24,
-    position: 'relative',
-  },
-  voiceContainer: {
-    marginBottom: 16,
-  },
-  savedContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  savedText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 16,
-    letterSpacing: 1.5,
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  congratsText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 14,
-    letterSpacing: 1,
-    color: 'rgba(255, 255, 255, 0.85)',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  bottomButtonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: '#ffffff',
-  },
-})

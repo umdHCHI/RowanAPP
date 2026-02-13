@@ -145,11 +145,11 @@ export const API_ENDPOINTS = {
 
   // --- Characters (included at /api/...) ---
   CHARACTERS: "/characters/",
-  CHARACTER_MINE: "/characters/my_character/",
+  CHARACTER_MINE: "/characters/characters/my_character/",
   // Character create endpoint (matches backend router)
   CHARACTER_CREATE: "/characters/characters/",
-  CHARACTER_UPDATE_CUSTOMIZATION: "/characters/update_customization/",
-  CHARACTER_GAIN_LUMENS: "/characters/gain-xp/",
+  CHARACTER_UPDATE_CUSTOMIZATION: "/characters/characters/update_customization/",
+  CHARACTER_GAIN_LUMENS: "/characters/characters/gain-xp/",
   // CHARACTER_BY_ID: (id: string | number) => `/characters/${id}/`,
 
   // --- Users (included at /api/...) ---

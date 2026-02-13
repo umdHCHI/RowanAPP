@@ -1,8 +1,8 @@
-import React, { useCallback, useRef, useEffect } from 'react'
+import React, { useCallback, useRef, useEffect, useMemo } from 'react'
 import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useStoryAutoAdvance, useStoryEngine, useStoryHistory } from '@/hooks'
 import { useStoryMusic } from '@/utils/useStoryMusic'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
@@ -13,6 +13,8 @@ import { StoryContent } from './StoryContent'
 import { StoryChoices } from './StoryChoices'
 import { useGameStore } from '@/stores/game-store'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
+
+const CHOICES_STRIP_HEIGHT = 240
 import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, getExperienceRewardFromPassage, hasMinigameOption } from '@/utils/story-helpers'
 import { isExactContinueChoice } from '@/utils/story-constants'
 import { journalService } from '@/api/services/journal.service'
@@ -373,6 +375,8 @@ export function StoryPage({
   const isSingleContinueOnly =
     allChoices.length === 1 && isExactContinueChoice(allChoices[0]?.text ?? '')
 
+  const showChoicesStrip = hasAnyChoices && !isSingleContinueOnly
+
   useStoryAutoAdvance({
     hasChoices: hasAnyChoices,
     isLoading,
@@ -397,7 +401,8 @@ export function StoryPage({
       <StoryHeader isPaused={isPaused} onTogglePause={togglePause} />
 
       <View style={styles.mainContainer}>
-        <StoryContent
+        <View style={styles.scrollArea}>
+          <StoryContent
             storyTitle={storyTitle}
             history={history}
             currentPassage={currentPassage}
@@ -407,10 +412,13 @@ export function StoryPage({
             hasChoices={hasAnyChoices && !isSingleContinueOnly}
             storyId={storyId}
           />
+        </View>
 
-        {/* Choice buttons: show for multiple choices or single choice that is not exactly "Continue" */}
-        {hasAnyChoices && !isSingleContinueOnly && (
-          <StoryChoices choices={allChoices} onChoicePress={handleChoiceWithFeedback} />
+        {/* Choice strip in layout flow: compact bar at bottom, above nav */}
+        {showChoicesStrip && (
+          <View style={styles.choicesStrip}>
+            <StoryChoices choices={allChoices} onChoicePress={handleChoiceWithFeedback} />
+          </View>
         )}
 
         {/* Pause overlay: pause icon when paused, play icon briefly when resuming; tap to toggle */}
@@ -421,7 +429,7 @@ export function StoryPage({
             activeOpacity={0.9}
           >
             <View style={styles.pauseButtonContainer}>
-              <MaterialCommunityIcons
+              <MaterialDesignIcons
                 name={isPaused ? 'pause' : 'play'}
                 size={STORY_LAYOUT.pauseIconSize}
                 color="#ffffff"
@@ -443,6 +451,15 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     paddingTop: STORY_LAYOUT.mainContainerPaddingTop,
+  },
+  scrollArea: {
+    flex: 1,
+    minHeight: 0,
+  },
+  choicesStrip: {
+    width: '100%',
+    height: CHOICES_STRIP_HEIGHT,
+    overflow: 'hidden',
   },
   pauseOverlay: {
     ...StyleSheet.absoluteFillObject,

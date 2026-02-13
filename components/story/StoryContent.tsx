@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react'
-import { ScrollView, Text as RNText, View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { ScrollView, Text as RNText, View, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useHubStories } from '@/hooks'
@@ -7,7 +7,7 @@ import { findNextStory, getStoryImageUrl, normalizeSpeakerName } from '@/utils/s
 import { StoryHistory } from './StoryHistory'
 import { StoryPassage } from './StoryPassage'
 import { StoryRewardMoment } from './StoryRewardMoment'
-import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_FONTS, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
+import { STORY_COLORS, STORY_SPACING, STORY_FONT_SIZES, STORY_FONTS, STORY_BORDER_RADIUS } from './story-theme'
 import { PROLOGUE_STORY_ID } from '@/utils/story-constants'
 import type { StoryHistoryItem, StoryPassage as StoryPassageType } from '@/types/story'
 
@@ -36,23 +36,9 @@ export function StoryContent({
   const scrollViewRef = useRef<ScrollView>(null)
   const insets = useSafeAreaInsets()
   const { data: stories } = useHubStories()
-  const screenHeight = Dimensions.get('window').height
-  
-  // Calculate bottom padding to account for choice buttons
-  // When choices are visible, we need to add padding equal to the choices container height
-  // This will push the content up so it scrolls above the choices
-  const choicesContainerHeight = hasChoices
-    ? Math.max(
-        STORY_LAYOUT.choicesContainerMinHeight,
-        screenHeight * STORY_LAYOUT.choicesContainerMaxHeightPercent
-      )
-    : 0
-  
-  const insetPadding = Math.min(insets.bottom, STORY_SPACING.md)
-  const bottomPadding = hasChoices
-    ? choicesContainerHeight + insetPadding
-    : STORY_SPACING.xxl + insetPadding
 
+  const insetPadding = Math.min(insets.bottom, STORY_SPACING.md)
+  const bottomPadding = STORY_SPACING.xxl + insetPadding
   const horizontalPadding = Math.max(STORY_SPACING.xxxl, insets.left, insets.right)
 
   // Track if user has manually scrolled away from bottom
@@ -67,27 +53,22 @@ export function StoryContent({
     isNearBottomRef.current = distanceFromBottom < paddingToBottom
   }
   
-  // Auto-scroll to bottom only if user is already near the bottom
-  // This prevents interrupting users who are reading earlier parts of the history
+  // Auto-scroll to bottom when new content is added and user was near bottom.
+  // Short delay so layout (new passage + current passage block) has updated before scrolling.
   useEffect(() => {
-    // Only auto-scroll if:
-    // 1. History length increased (new content added)
-    // 2. User was already near the bottom
     const historyLengthIncreased = history.length > previousHistoryLengthRef.current
-    
+
     if (historyLengthIncreased && isNearBottomRef.current) {
-      // Use a small delay to ensure the layout has updated with the new padding
       const timeout = setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true })
-      }, 100)
-      
+      }, 120)
       previousHistoryLengthRef.current = history.length
       return () => clearTimeout(timeout)
-    } else if (historyLengthIncreased) {
-      // Update ref even if we don't scroll
+    }
+    if (historyLengthIncreased) {
       previousHistoryLengthRef.current = history.length
     }
-  }, [history.length, currentPassage, hasChoices])
+  }, [history.length, currentPassage?.passage_id])
 
   // Check if current passage is already in history
   const isCurrentPassageInHistory = currentPassage

@@ -1,95 +1,55 @@
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { View, TouchableOpacity} from 'react-native'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
+import { JournalModeSelectorProps } from '@/types/journal/journal'
+import { Text } from '@/components/ui'
+import { journalModeSelectorStyles } from '@/styles/journal/journal-styles'
+import { colors } from '@/theme/design-tokens'
 
-export type ReflectionMode = 'journal' | 'draw' | 'voice'
-
-interface JournalModeSelectorProps {
-  mode: ReflectionMode
-  onModeChange: (mode: ReflectionMode) => void
-}
 
 export function JournalModeSelector({ mode, onModeChange }: JournalModeSelectorProps) {
   return (
-    <View style={styles.container}>
+    <View style={journalModeSelectorStyles.container}>
       <TouchableOpacity
-        style={[styles.modeButton, mode === 'journal' && styles.modeButtonActive]}
+        style={[journalModeSelectorStyles.modeButton, mode === 'journal' && journalModeSelectorStyles.modeButtonActive]}
         onPress={() => onModeChange('journal')}
       >
-        <MaterialCommunityIcons
+        <MaterialDesignIcons
           name="pencil"
           size={20}
-          color={mode === 'journal' ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'}
+          color={mode === 'journal' ? colors.archive.white : colors.archive.borderSubtle}
         />
-        <Text style={[styles.modeButtonText, mode === 'journal' && styles.modeButtonTextActive]}>
+        <Text variant="label" size={2} align="center">
           journal
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.modeButton, mode === 'draw' && styles.modeButtonActive]}
+        style={[journalModeSelectorStyles.modeButton, mode === 'draw' && journalModeSelectorStyles.modeButtonActive]}
         onPress={() => onModeChange('draw')}
       >
-        <MaterialCommunityIcons
+        <MaterialDesignIcons
           name="brush"
           size={20}
-          color={mode === 'draw' ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'}
+          color={mode === 'draw' ? colors.archive.white : colors.archive.borderSubtle}
         />
-        <Text style={[styles.modeButtonText, mode === 'draw' && styles.modeButtonTextActive]}>
+        <Text variant="label" size={2} align="center">
           Draw
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.modeButton, mode === 'voice' && styles.modeButtonActive]}
+        style={[journalModeSelectorStyles.modeButton, mode === 'voice' && journalModeSelectorStyles.modeButtonActive]}
         onPress={() => onModeChange('voice')}
       >
-        <MaterialCommunityIcons
+        <MaterialDesignIcons
           name="microphone"
           size={20}
-          color={mode === 'voice' ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'}
+          color={mode === 'voice' ? colors.archive.white : colors.archive.borderSubtle}
         />
-        <Text style={[styles.modeButtonText, mode === 'voice' && styles.modeButtonTextActive]}>
+        <Text variant="label" size={2} align="center">
           Voice
         </Text>
       </TouchableOpacity>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  modeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 28,
-    backgroundColor: '#15111f',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  modeButtonActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-  },
-  modeButtonText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  modeButtonTextActive: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-})
-

@@ -10,8 +10,13 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@headlessui/react": "^2.2.9",
+    "@mui/icons-material": "^7.3.8",
+    "@mui/material": "^7.3.8",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-vector-icons/material-design-icons": "^12.4.0",
     "@react-navigation/native": "^7.0.14",
     "@tanstack/react-query": "^5.0.0",
     "expo": "^54.0.18",
@@ -39,7 +44,6 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
-    "react-native-vector-icons": "^10.3.0",
     "react-native-worklets": "0.5.1",
     "resend": "^6.9.1",
     "tailwindcss": "^3.4.19",

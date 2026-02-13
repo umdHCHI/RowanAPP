@@ -1,26 +1,14 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react'
-import { View, StyleSheet, Dimensions, TouchableOpacity, Text, Pressable } from 'react-native'
+import  { useState, useRef, useMemo, useCallback } from 'react'
+import { View,  TouchableOpacity, Text, Pressable } from 'react-native'
 import { GestureDetector, Gesture } from 'react-native-gesture-handler'
 import { runOnJS } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
+import { Stroke, DrawingCanvasProps } from '@/types/journal/journal'
+import { drawingCanvasStyles } from '@/styles/journal/journal-styles'
 
-export interface Stroke {
-  points: Array<{ x: number; y: number }>
-  color?: string
-  width?: number
-}
 
-interface DrawingCanvasProps {
-  value: Stroke[]
-  onChange: (strokes: Stroke[]) => void
-  onDrawingStart?: () => void
-  onDrawingEnd?: () => void
-}
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
-const CANVAS_WIDTH = SCREEN_WIDTH - 80 // Account for padding
-const CANVAS_HEIGHT = 300
 const STROKE_COLOR = '#FFD700' // Gold accent (fallback)
 const STROKE_WIDTH = 3
 
@@ -133,32 +121,32 @@ export function DrawingCanvas({ value, onChange, onDrawingStart, onDrawingEnd }:
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Draw your reflection here</Text>
+    <View style={drawingCanvasStyles.container}>
+      <Text style={drawingCanvasStyles.label}>Draw your reflection here</Text>
       
       {/* Color Palette */}
-      <View style={styles.colorRow}>
+      <View style={drawingCanvasStyles.colorRow}>
         {COLORS.map((color, index) => (
           <Pressable
             key={color}
             onPress={() => setStrokeColor(color)}
             style={[
-              styles.colorDot,
+              drawingCanvasStyles.colorDot,
               { backgroundColor: color },
-              strokeColor === color && styles.colorDotSelected,
-              index > 0 && styles.colorDotSpacing
+              strokeColor === color && drawingCanvasStyles.colorDotSelected,
+              index > 0 && drawingCanvasStyles.colorDotSpacing
             ]}
           />
         ))}
       </View>
 
-      <View style={styles.canvasWrapper}>
+      <View style={drawingCanvasStyles.canvasWrapper}>
         <GestureDetector gesture={panGesture}>
-          <View style={styles.canvasContainer} collapsable={false}>
+          <View style={drawingCanvasStyles.canvasContainer} collapsable={false}>
             <Svg 
-              width={CANVAS_WIDTH} 
-              height={CANVAS_HEIGHT} 
-              style={styles.svg}
+              width={drawingCanvasStyles.canvasWrapper.width} 
+              height={drawingCanvasStyles.canvasWrapper.height} 
+              style={drawingCanvasStyles.svg}
               pointerEvents="none"
             >
               {value.map((stroke, index) => (
@@ -188,25 +176,25 @@ export function DrawingCanvas({ value, onChange, onDrawingStart, onDrawingEnd }:
         </GestureDetector>
       </View>
       
-      <View style={styles.controls}>
+      <View style={drawingCanvasStyles.controls}>
         <TouchableOpacity
-          style={[styles.controlButton, value.length === 0 && styles.controlButtonDisabled]}
+          style={[drawingCanvasStyles.controlButton, value.length === 0 && drawingCanvasStyles.controlButtonDisabled]}
           onPress={handleUndo}
           disabled={value.length === 0}
         >
-          <MaterialCommunityIcons name="undo" size={20} color={value.length === 0 ? '#666' : '#FFD700'} />
-          <Text style={[styles.controlButtonText, value.length === 0 && styles.controlButtonTextDisabled]}>
+          <MaterialDesignIcons name="undo" size={20} color={value.length === 0 ? '#666' : '#FFD700'} />
+          <Text style={[drawingCanvasStyles.controlButtonText, value.length === 0 && drawingCanvasStyles.controlButtonTextDisabled]}>
             Undo
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.controlButton, value.length === 0 && styles.controlButtonDisabled]}
+          style={[drawingCanvasStyles.controlButton, value.length === 0 && drawingCanvasStyles.controlButtonDisabled]}
           onPress={handleClear}
           disabled={value.length === 0}
         >
-          <MaterialCommunityIcons name="delete-outline" size={20} color={value.length === 0 ? '#666' : '#FFD700'} />
-          <Text style={[styles.controlButtonText, value.length === 0 && styles.controlButtonTextDisabled]}>
+          <MaterialDesignIcons name="delete-outline" size={20} color={value.length === 0 ? '#666' : '#FFD700'} />
+          <Text style={[drawingCanvasStyles.controlButtonText, value.length === 0 && drawingCanvasStyles.controlButtonTextDisabled]}>
             Clear
           </Text>
         </TouchableOpacity>
@@ -214,90 +202,4 @@ export function DrawingCanvas({ value, onChange, onDrawingStart, onDrawingEnd }:
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 16,
-  },
-  label: {
-    fontFamily: 'System',
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  colorRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  colorDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  colorDotSpacing: {
-    marginLeft: 12,
-  },
-  colorDotSelected: {
-    borderWidth: 2,
-    borderColor: '#E6C36A',
-    transform: [{ scale: 1.1 }],
-  },
-  canvasWrapper: {
-    width: CANVAS_WIDTH,
-    height: CANVAS_HEIGHT,
-    marginBottom: 16,
-  },
-  canvasContainer: {
-    width: CANVAS_WIDTH,
-    height: CANVAS_HEIGHT,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  svg: {
-    width: CANVAS_WIDTH,
-    height: CANVAS_HEIGHT,
-  },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  controlButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    marginHorizontal: 8,
-  },
-  controlButtonDisabled: {
-    opacity: 0.5,
-  },
-  controlButtonText: {
-    fontFamily: 'System',
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FFD700',
-  },
-  controlButtonTextDisabled: {
-    color: '#666',
-  },
-})
 

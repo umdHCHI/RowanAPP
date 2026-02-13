@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { View, Text, Pressable, StyleSheet, Modal, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import type { Difficulty } from '@/utils/vantage-constants'
@@ -94,7 +94,7 @@ export function GameOverlay({
               onPress={handleClose}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="close" size={24} color="#ffffff" />
+              <MaterialDesignIcons name="close" size={24} color="#ffffff" />
             </TouchableOpacity>
           </View>
           <View style={styles.caption}>

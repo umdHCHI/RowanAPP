@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Header } from '@/components/header'
 import { Button } from '@/components/ui/Button'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { GameBackground } from '@/components/ui/GameBackground'
 import { crisisHelpStyles } from '@/styles/crisisHelp/crisis-help'
 import { Text } from '@/components/ui/Text'
@@ -65,7 +65,7 @@ export default function CrisisHelp() {
                     onPress={() => handlePhonePress(resource.phone!)}
                     activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons name="phone" size={14} color="#ffffff" />
+                    <MaterialDesignIcons name="phone" size={14} color="#ffffff" />
                     <Text variant="titleWhite" size={4} align="center">{resource.phone}</Text>
                   </TouchableOpacity>
                 )}
@@ -76,7 +76,7 @@ export default function CrisisHelp() {
                     onPress={() => handleWebsitePress(resource.website!)}
                     activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons name="web" size={14} color="#ffffff" />
+                    <MaterialDesignIcons name="web" size={14} color="#ffffff" />
                     <Text variant="titleWhite" size={4} align="center">Visit Website</Text>
                   </TouchableOpacity>
                 )}

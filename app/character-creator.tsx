@@ -9,12 +9,10 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CharacterPreview } from '@/components/character/CharacterPreview'
 import { COLORS, Color, BASE_COUNT, BG_COUNT, HAIR_COUNT, CLOTHES_COUNT, EYES_COUNT, EYEBROWS_COUNT, MOUTH_COUNT } from '@/utils/character-assets'
-import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import { useHaptics } from '@/utils/useHaptics'
 import { useMyCharacter, useCreateCharacter, useUpdateCharacterCustomization, characterKeys } from '@/api/hooks/use-character'
 import { useRequireAuth, useRequiredAuthUserId, useAuthActions, userKeys } from '@/api'
 import { convertToBackendConfig, buildAvatarConfig } from '@/utils/character-avatar-config'
@@ -392,7 +390,7 @@ export default function CharacterCreator() {
                 style={characterCreatorStyles.iconButton}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="chevron-left" size={36} color="#ffffff" />
+                <MaterialDesignIcons name="chevron-left" size={36} color="#ffffff" />
               </TouchableOpacity>
               <View style={characterCreatorStyles.indexDisplay}>
                 <Text variant="label" size={2} align="center">
@@ -404,7 +402,7 @@ export default function CharacterCreator() {
                 style={characterCreatorStyles.iconButton}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="chevron-right" size={36} color="#ffffff" />
+                <MaterialDesignIcons name="chevron-right" size={36} color="#ffffff" />
               </TouchableOpacity>
             </View>
           </Card>

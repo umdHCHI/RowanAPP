@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '../constants'
 import type {
   ApiResponse,
   UserFullProfileResponse,
+  UserListResponse,
   UserResponse,
   UserUpdateRequest,
 } from '../types'
@@ -69,10 +70,20 @@ export const userService = {
   },
 
   /**
-   * Get all users
+   * Get paginated user list (GET /api/users/)
+   * Backend returns DRF-style { count, next, previous, results }; may be raw or wrapped in ApiResponse.
    */
-  async getAll(): Promise<ApiResponse<UserResponse[]>> {
-    return apiClient.get<UserResponse[]>(API_ENDPOINTS.USER)
+  async getAll(): Promise<UserListResponse> {
+    const raw = await apiClient.get<UserListResponse | ApiResponse<UserListResponse>>(
+      API_ENDPOINTS.USER
+    )
+    if (raw && typeof raw === 'object' && 'results' in raw) {
+      return raw as UserListResponse
+    }
+    if (raw && typeof raw === 'object' && 'data' in raw && (raw as ApiResponse<UserListResponse>).data) {
+      return (raw as ApiResponse<UserListResponse>).data
+    }
+    return { count: 0, next: null, previous: null, results: [] }
   },
 
   /**
@@ -128,7 +139,7 @@ export const userService = {
   },
 
   /**
-   * Update user notification preferences
+   * Update user notification preferences (legacy field; prefer updateProfilePreferences)
    */
   async updateNotificationsEnabled(
     id: string | number,
@@ -136,6 +147,19 @@ export const userService = {
   ): Promise<ApiResponse<UserResponse>> {
     return apiClient.patch<UserResponse>(API_ENDPOINTS.USER_BY_ID(id), {
       notifications_enabled: notificationsEnabled,
+    })
+  },
+
+  /**
+   * Update profile daily-reminder preferences (enable_daily_reminders, daily_reminder_time).
+   * Writes to GET /api/users/me/ profile shape.
+   */
+  async updateProfilePreferences(
+    id: string | number,
+    payload: { enable_daily_reminders?: boolean; daily_reminder_time?: string | null }
+  ): Promise<ApiResponse<UserResponse>> {
+    return apiClient.patch<UserResponse>(API_ENDPOINTS.USER_BY_ID(id), {
+      profile: payload,
     })
   },
 }

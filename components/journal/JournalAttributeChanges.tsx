@@ -1,55 +1,23 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { View } from 'react-native'
 import { useMyCharacter } from '@/api'
 import { useGameStore } from '@/stores/game-store'
-
+import { journalAttributeStyles } from '@/styles/journal/journal-styles'
+import { Text } from '@/components/ui'
 
 
 export function JournalAttributeChanges() {
   const { data: myCharacter } = useMyCharacter()
   const storeLumens = useGameStore((state) => state.lumens.lumens)
   const displayLumens = myCharacter?.experience ?? storeLumens
-  // Show the reward amount (1 lumen) rather than total
-  // The total will update after query invalidation, but we want to show the reward immediately
+
   return (
-    <View style={styles.attributeChangesContainer}>
-      <Text style={styles.attributeChangeText}>+1 Lumens</Text>
-      <Text style={styles.attributeChangeText}>Total {displayLumens} helping you seal the Void</Text>
+    <View style={journalAttributeStyles.attributeChangesContainer}>
+      <Text variant="label" size={2} align="center">+1 Lumens</Text>
+      <Text variant="label" size={2} align="center">Total {displayLumens} helping you seal the Void</Text>
       
     </View>
   )
 }
 
-const styles = StyleSheet.create({
-  attributeChangesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    flexWrap: 'wrap',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  attributeChangeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#15111f',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  attributeChangeIcon: {
-    width: 20,
-    height: 20,
-  },
-  attributeChangeText: {
-    fontFamily: 'FontTitle-White',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1,
-    color: '#ffffff',
-  },
-})
+
 

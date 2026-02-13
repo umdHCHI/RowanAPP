@@ -1,9 +1,9 @@
 import React from 'react'
-import { View, Text as RNText, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native'
+import { View, Text as RNText, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { StoryChoice } from '@/types/story'
-import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LAYOUT } from './story-theme'
+import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS } from './story-theme'
 
 interface StoryChoicesProps {
   choices: StoryChoice[]
@@ -12,29 +12,20 @@ interface StoryChoicesProps {
 
 export function StoryChoices({ choices, onChoicePress }: StoryChoicesProps) {
   const insets = useSafeAreaInsets()
-  const screenHeight = Dimensions.get('window').height
-  
-  // Filter out empty target ids
+
   const visibleChoices = choices.filter((choice) => choice.target_id?.trim().length > 0)
 
   if (visibleChoices.length === 0) {
     return null
   }
 
-  // Calculate max height: up to 50% of screen height, with a minimum
-  const maxContainerHeight = Math.max(
-    STORY_LAYOUT.choicesContainerMinHeight,
-    screenHeight * STORY_LAYOUT.choicesContainerMaxHeightPercent
-  )
-
   const horizontalPadding = Math.max(STORY_SPACING.xxxl, insets.left, insets.right)
 
   return (
-    <View style={[styles.choicesContainer, { 
+    <View style={[styles.choicesContainer, {
       paddingBottom: insets.bottom + STORY_SPACING.sm,
       paddingLeft: horizontalPadding,
       paddingRight: horizontalPadding,
-      maxHeight: maxContainerHeight,
     }]}>
       {/* Blur background to allow video to show through */}
       <BlurView intensity={60} style={StyleSheet.absoluteFill} tint="dark" />
@@ -64,17 +55,12 @@ export function StoryChoices({ choices, onChoicePress }: StoryChoicesProps) {
 
 const styles = StyleSheet.create({
   choicesContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     paddingTop: STORY_SPACING.md,
     backgroundColor: 'transparent',
     borderTopWidth: 1,
     borderTopColor: STORY_COLORS.headerBorder,
     overflow: 'hidden',
-    // maxHeight is set dynamically based on screen size
-    // paddingBottom is set dynamically based on safe area insets
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

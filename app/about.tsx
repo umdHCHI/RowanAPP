@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Header } from '@/components/header'
 import { Button, Text, Card } from '@/components/ui'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { GameBackground } from '@/components/ui/GameBackground'
 import aboutStyles from '@/styles/about/about-styles'
 import { colors } from '@/theme/design-tokens'
@@ -49,11 +49,11 @@ export default function About() {
         <View style={aboutStyles.creditsSection}>
           <View style={aboutStyles.creditsSectionContainer}>
             <View style={aboutStyles.creditsHeader}>
-              <MaterialCommunityIcons name="account-group" size={20} color={colors.archive.white} />
+              <MaterialDesignIcons name="account-group" size={20} color={colors.archive.white} />
               <Text variant="heading" size={3} align="center">
                 Game Credits
               </Text>
-              <MaterialCommunityIcons name="account-group" size={20} color={colors.archive.white} />
+              <MaterialDesignIcons name="account-group" size={20} color={colors.archive.white} />
             </View>
             <View style={aboutStyles.creditsSubtitle}>
               <Text variant="body" size={2} align="center" opacity={0.85}>

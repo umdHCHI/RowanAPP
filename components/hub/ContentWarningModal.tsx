@@ -1,6 +1,6 @@
-import React from 'react'
-import { Modal, ScrollView, Pressable as RNPressable, View, StyleSheet } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+
+import { Modal, ScrollView, Pressable as RNPressable, View } from 'react-native'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { ContentWarningModalProps } from '@/types/hub/hub'
 import { Text, Button } from '@/components/ui'
@@ -62,10 +62,14 @@ export function ContentWarningModal({
             <View style={contentWarningModalStyles.contentContainer}>
               <View style={contentWarningModalStyles.headerRow}>
                 <View style={contentWarningModalStyles.iconCircle}>
-                  <MaterialCommunityIcons name="alert" size={24} color="#fbbf24" />
+                  <MaterialDesignIcons
+                    name="alert-decagram"
+                    size={28}
+                    color="#f59e0b"
+                  />
                 </View>
                 <View style={contentWarningModalStyles.textContainer}>
-                  <Text variant="title" size={2} color="#f8fafc">
+                  <Text variant="title" size={1} color="#f8fafc">
                     Content Warning
                   </Text>
                   <ScrollView
@@ -86,7 +90,7 @@ export function ContentWarningModal({
                 onPress={onClose}
                 fullWidth
               >
-                <Text variant="title" size={2} align="center">
+                <Text variant="label" size={2} align="center">
                   I Understand
                 </Text>
               </Button>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLogin } from '@/api/hooks/use-login'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useHaptics } from '@/utils/useHaptics'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { GameBackground } from '@/components/ui/GameBackground'
@@ -92,7 +92,7 @@ export default function LoginPage() {
                   hitSlop={10}
                   activeOpacity={0.8}
                 >
-                  <MaterialCommunityIcons
+                  <MaterialDesignIcons
                     name={isPasswordVisible ? 'book-open' : 'book'}
                     size={22}
                     color="#ffffffcc"

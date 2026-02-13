@@ -1,25 +1,31 @@
 import { useEffect, useRef } from 'react'
-import * as Notifications from 'expo-notifications'
+import Constants from 'expo-constants'
+import { useQueryClient } from '@tanstack/react-query'
 import { useGameStore } from '@/stores/game-store'
 import { useAuthUserId } from '@/api/hooks/use-auth'
 import { useCurrentUserFullProfile } from '@/api'
+import { userKeys } from '@/api/hooks/use-user'
 import { userService } from '@/api/services/user.service'
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-})
+import { parseDailyReminderTime, formatDailyReminderTime } from '@/utils/profile-mapper'
 
 import type { NotificationTime, UseNotificationsResult } from '@/types/hooks'
 
 const NOTIFICATION_IDENTIFIER = 'daily-research-reminder'
 
+/** Expo Go (SDK 53+) no longer supports Android push/local notifications; avoid loading the native module. */
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient'
+
+function getNotifications(): typeof import('expo-notifications') | null {
+  if (IS_EXPO_GO) return null
+  try {
+    return require('expo-notifications')
+  } catch {
+    return null
+  }
+}
+
 export function useNotifications(): UseNotificationsResult {
+  const queryClient = useQueryClient()
   const notificationsEnabled = useGameStore((state) => state.notificationsEnabled)
   const notificationTime = useGameStore((state) => state.notificationTime)
   const setNotificationsEnabled = useGameStore((state) => state.setNotificationsEnabled)
@@ -27,83 +33,115 @@ export function useNotifications(): UseNotificationsResult {
   const userId = useAuthUserId()
 
   const { data: profileData } = useCurrentUserFullProfile()
-  const notificationListener = useRef<Notifications.Subscription | null>(null)
-  const responseListener = useRef<Notifications.Subscription | null>(null)
+  const notificationListener = useRef<{ remove: () => void } | null>(null)
+  const responseListener = useRef<{ remove: () => void } | null>(null)
   const isSyncingRef = useRef(false)
   const userToggledRef = useRef(false)
 
-  // Load notification preference from backend profile when available
+  // Set notification handler only when not in Expo Go (SDK 53+ removed notifications from Expo Go)
   useEffect(() => {
-    // Don't sync from backend if user just toggled manually
+    const Notifications = getNotifications()
+    if (Notifications) {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }),
+      })
+    }
+  }, [])
+
+  // Load notification preferences from backend profile when profile data changes (not when local state changes)
+  const lastSyncedProfileRef = useRef<{
+    enable_daily_reminders: boolean | undefined
+    daily_reminder_time: string | null | undefined
+  } | null>(null)
+
+  useEffect(() => {
     if (!profileData?.profile || isSyncingRef.current || userToggledRef.current) {
       return
     }
 
-    const backendValue = profileData.profile.notifications_enabled
-    
-    // If backend has a value and it differs from local state, update local state
-    if (backendValue !== undefined && backendValue !== notificationsEnabled) {
-      isSyncingRef.current = true
-      setNotificationsEnabled(backendValue)
-      // Reset sync flag after state update
-      setTimeout(() => {
-        isSyncingRef.current = false
-      }, 100)
-    } 
-    // If backend doesn't have a value yet but local state is true, sync to backend
-    else if (backendValue === undefined && notificationsEnabled && userId) {
-      isSyncingRef.current = true
-      userService.updateNotificationsEnabled(userId, true).finally(() => {
-        isSyncingRef.current = false
-      })
-    }
-  }, [profileData?.profile?.notifications_enabled, notificationsEnabled, userId, setNotificationsEnabled])
+    const enabled =
+      profileData.profile.enable_daily_reminders ??
+      profileData.profile.notifications_enabled ??
+      false
+    const dailyReminderTime = profileData.profile.daily_reminder_time ?? null
+    const prev = lastSyncedProfileRef.current
 
-  // Request permissions and schedule notifications
+    if (
+      prev?.enable_daily_reminders === enabled &&
+      prev?.daily_reminder_time === dailyReminderTime
+    ) {
+      return
+    }
+
+    lastSyncedProfileRef.current = { enable_daily_reminders: enabled, daily_reminder_time: dailyReminderTime }
+    const timeFromBackend = parseDailyReminderTime(dailyReminderTime)
+
+    isSyncingRef.current = true
+    setNotificationsEnabled(enabled)
+    setNotificationTime(timeFromBackend)
+    setTimeout(() => {
+      isSyncingRef.current = false
+    }, 100)
+  }, [
+    profileData?.profile?.enable_daily_reminders,
+    profileData?.profile?.notifications_enabled,
+    profileData?.profile?.daily_reminder_time,
+    setNotificationsEnabled,
+    setNotificationTime,
+  ])
+
+  // Request permissions and schedule notifications (no-op in Expo Go)
   useEffect(() => {
+    const notifications = getNotifications()
+    if (!notifications) return
+    const N = notifications
+
     async function setupNotifications() {
       if (!notificationsEnabled) {
-        // Cancel all notifications if disabled
-        await Notifications.cancelAllScheduledNotificationsAsync()
+        await N.cancelAllScheduledNotificationsAsync()
         return
       }
 
       try {
-        // Request permissions
-        const { status: existingStatus } = await Notifications.getPermissionsAsync()
+        const { status: existingStatus } = await N.getPermissionsAsync()
         let finalStatus = existingStatus
 
         if (existingStatus !== 'granted') {
-          const { status } = await Notifications.requestPermissionsAsync()
+          const { status } = await N.requestPermissionsAsync()
           finalStatus = status
         }
 
         if (finalStatus !== 'granted') {
           console.log('Notification permissions not granted')
           setNotificationsEnabled(false)
-          // Sync to backend
           if (userId) {
-            await userService.updateNotificationsEnabled(userId, false)
+            await userService.updateProfilePreferences(userId, {
+              enable_daily_reminders: false,
+            })
           }
           return
         }
 
-        // Cancel existing notifications with our identifier to avoid duplicates
-        await Notifications.cancelScheduledNotificationAsync(NOTIFICATION_IDENTIFIER)
+        await N.cancelScheduledNotificationAsync(NOTIFICATION_IDENTIFIER)
 
-        // Schedule daily notification using stored time
-        await Notifications.scheduleNotificationAsync({
+        await N.scheduleNotificationAsync({
           content: {
             title: 'Time to Participate in Research',
             body: 'Your daily research participation is waiting for you in The Archive.',
             sound: true,
-            priority: Notifications.AndroidNotificationPriority.HIGH,
+            priority: N.AndroidNotificationPriority.HIGH,
             data: {
               type: 'daily-research-reminder',
             },
           },
           trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            type: N.SchedulableTriggerInputTypes.DAILY,
             hour: notificationTime.hour,
             minute: notificationTime.minute,
           },
@@ -114,9 +152,10 @@ export function useNotifications(): UseNotificationsResult {
       } catch (error) {
         console.error('Error setting up notifications:', error)
         setNotificationsEnabled(false)
-        // Sync to backend on error
         if (userId) {
-          await userService.updateNotificationsEnabled(userId, false).catch(console.error)
+          await userService
+            .updateProfilePreferences(userId, { enable_daily_reminders: false })
+            .catch(console.error)
         }
       }
     }
@@ -124,25 +163,23 @@ export function useNotifications(): UseNotificationsResult {
     setupNotifications()
   }, [notificationsEnabled, notificationTime.hour, notificationTime.minute, setNotificationsEnabled, userId])
 
-  // Set up notification listeners for when app is in foreground
+  // Set up notification listeners (no-op in Expo Go)
   useEffect(() => {
-    // Listener for notifications received while app is foregrounded
+    const Notifications = getNotifications()
+    if (!Notifications) return
+
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       console.log('Notification received:', notification)
-      // You can handle the notification here if needed
     })
 
-    // Listener for when user taps on notification
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       console.log('Notification response:', response)
-      // You can navigate to a specific screen here if needed
       const data = response.notification.request.content.data
       if (data?.type === 'daily-research-reminder') {
         // Handle navigation to research/journal screen if needed
       }
     })
 
-    // Cleanup listeners on unmount
     return () => {
       if (notificationListener.current) {
         notificationListener.current.remove()
@@ -153,39 +190,67 @@ export function useNotifications(): UseNotificationsResult {
     }
   }, [])
 
+  function invalidateUserProfile() {
+    if (userId != null) {
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) })
+      queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) })
+    }
+  }
+
   async function requestPermissions(): Promise<boolean> {
     try {
       userToggledRef.current = true
+      const Notifications = getNotifications()
+
+      if (!Notifications) {
+        // Expo Go: no native notifications; still persist preference to backend
+        setNotificationsEnabled(true)
+        if (userId) {
+          await userService.updateProfilePreferences(userId, {
+            enable_daily_reminders: true,
+            daily_reminder_time: formatDailyReminderTime(notificationTime),
+          })
+          invalidateUserProfile()
+        }
+        setTimeout(() => {
+          userToggledRef.current = false
+        }, 1000)
+        return true
+      }
+
       const { status: existingStatus } = await Notifications.getPermissionsAsync()
       let finalStatus = existingStatus
-      
+
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync()
         finalStatus = status
       }
 
       const granted = finalStatus === 'granted'
-      
+
       if (granted) {
-        // Enable notifications and let the useEffect handle scheduling
         setNotificationsEnabled(true)
-        // Sync to backend
         if (userId) {
-          await userService.updateNotificationsEnabled(userId, true)
+          await userService.updateProfilePreferences(userId, {
+            enable_daily_reminders: true,
+            daily_reminder_time: formatDailyReminderTime(notificationTime),
+          })
+          invalidateUserProfile()
         }
       } else {
         setNotificationsEnabled(false)
-        // Sync to backend
         if (userId) {
-          await userService.updateNotificationsEnabled(userId, false)
+          await userService.updateProfilePreferences(userId, {
+            enable_daily_reminders: false,
+          })
+          invalidateUserProfile()
         }
       }
-      
-      // Reset toggle flag after a delay to allow backend sync to complete
+
       setTimeout(() => {
         userToggledRef.current = false
       }, 1000)
-      
+
       return granted
     } catch (error) {
       console.error('Error requesting notification permissions:', error)
@@ -195,20 +260,34 @@ export function useNotifications(): UseNotificationsResult {
     }
   }
 
-  function updateNotificationTime(time: NotificationTime) {
+  async function updateNotificationTime(time: NotificationTime) {
     setNotificationTime(time)
+    if (userId) {
+      try {
+        await userService.updateProfilePreferences(userId, {
+          daily_reminder_time: formatDailyReminderTime(time),
+        })
+        invalidateUserProfile()
+      } catch (error) {
+        console.error('Error saving notification time to backend:', error)
+      }
+    }
   }
 
   async function cancelAllNotifications() {
     try {
       userToggledRef.current = true
-      await Notifications.cancelScheduledNotificationAsync(NOTIFICATION_IDENTIFIER)
-      setNotificationsEnabled(false)
-      // Sync to backend
-      if (userId) {
-        await userService.updateNotificationsEnabled(userId, false)
+      const Notifications = getNotifications()
+      if (Notifications) {
+        await Notifications.cancelScheduledNotificationAsync(NOTIFICATION_IDENTIFIER)
       }
-      // Reset toggle flag after a delay to allow backend sync to complete
+      setNotificationsEnabled(false)
+      if (userId) {
+        await userService.updateProfilePreferences(userId, {
+          enable_daily_reminders: false,
+        })
+        invalidateUserProfile()
+      }
       setTimeout(() => {
         userToggledRef.current = false
       }, 1000)

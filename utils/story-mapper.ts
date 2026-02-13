@@ -86,7 +86,7 @@ export function mapStoriesToCards(
       status === 'available' && !!progress && !completedFromBackend && completionCount === 0
 
     const hasResources = !isPrologue
-    const label = isPrologue ? 'PROLOGUE' : `STORY ${index + 2}`
+    const label = isPrologue ? 'Prologue' : `Book ${index + 2}`
 
     return {
       id: `story-${story.id}`,

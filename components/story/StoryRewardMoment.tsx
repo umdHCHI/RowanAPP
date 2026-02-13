@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { View, Text as RNText, StyleSheet, Pressable, Animated, Image, ImageSourcePropType } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LINE_HEIGHTS } from './story-theme'
@@ -77,7 +77,7 @@ export function StoryRewardMoment({
     // Default icon based on type
     if (type === 'JOURNAL_REWARD') {
       return (
-        <MaterialCommunityIcons 
+        <MaterialDesignIcons 
           name="book-open-variant" 
           size={32} 
           color={primaryColor} 
@@ -87,7 +87,7 @@ export function StoryRewardMoment({
 
     if (type === 'MINIGAME') {
       return (
-        <MaterialCommunityIcons 
+        <MaterialDesignIcons 
           name="gamepad-variant" 
           size={32} 
           color={primaryColor} 
@@ -97,7 +97,7 @@ export function StoryRewardMoment({
 
     if (type === 'POWER') {
       return (
-        <MaterialCommunityIcons 
+        <MaterialDesignIcons 
           name="lightning-bolt" 
           size={32} 
           color={primaryColor} 
@@ -107,7 +107,7 @@ export function StoryRewardMoment({
 
     if (type === 'ACTION_SCENE') {
       return (
-        <MaterialCommunityIcons 
+        <MaterialDesignIcons 
           name="image-multiple" 
           size={32} 
           color={primaryColor} 
@@ -117,7 +117,7 @@ export function StoryRewardMoment({
 
     if (type === 'LUMENS') {
       return (
-        <MaterialCommunityIcons 
+        <MaterialDesignIcons 
           name="star-four-points" 
           size={32} 
           color={primaryColor} 
@@ -126,7 +126,7 @@ export function StoryRewardMoment({
     }
 
     return (
-      <MaterialCommunityIcons 
+      <MaterialDesignIcons 
         name="gift" 
         size={32} 
         color={primaryColor} 

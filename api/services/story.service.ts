@@ -125,7 +125,15 @@ export const storyService = {
       }
     }
 
-    // Handle direct array response (if backend returns array directly - unlikely but possible)
+    // Handle DRF pagination: { count, next, previous, results }
+    if (response && typeof response === 'object' && 'results' in response) {
+      const results = (response as { results: unknown }).results
+      if (Array.isArray(results)) {
+        return results as StoryResponse[]
+      }
+    }
+
+    // Handle direct array response (if backend returns array directly)
     if (Array.isArray(response)) {
       return response
     }

@@ -2,13 +2,16 @@ import type React from 'react'
 import { useState } from 'react'
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import {
+  MaterialDesignIcons,
+  type MaterialDesignIconsIconName,
+} from '@react-native-vector-icons/material-design-icons'
 import { MenuOverlay } from '@/components/hub/menu-overlay'
 import { useGameStore } from '@/stores/game-store'
 import { useHaptics } from '@/utils/useHaptics'
 
 interface HeaderAction {
-  icon?: keyof typeof MaterialCommunityIcons.glyphMap
+  icon?: MaterialDesignIconsIconName
   onPress: () => void
   customComponent?: React.ReactNode
 }
@@ -70,7 +73,7 @@ export function Header({
             onPress={handleMenuPress}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="menu" size={24} color="#f5f2ff" />
+            <MaterialDesignIcons name="menu" size={24} color="#f5f2ff" />
           </TouchableOpacity>
         )}
 
@@ -82,7 +85,7 @@ export function Header({
             onPress={handleSpeedToggle}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons
+            <MaterialDesignIcons
               name={speedIconName}
               size={24}
               color="#ffffff"
@@ -98,7 +101,7 @@ export function Header({
             onPress={handleSoundToggle}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons
+            <MaterialDesignIcons
               name={soundMuted ? 'volume-off' : 'volume-high'}
               size={24}
               color="#ffffff"
@@ -118,7 +121,7 @@ export function Header({
             >
               {action.customComponent ||
                 (action.icon && (
-                  <MaterialCommunityIcons
+                  <MaterialDesignIcons
                     name={action.icon}
                     size={24}
                     color="#ffffff"

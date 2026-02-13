@@ -1,12 +1,12 @@
 
 import { ImageBackground, Pressable as RNPressable, View } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 
 import { Text } from '@/components/ui'
 import { resourceCardStyles } from '@/styles/hub/hub-styles'
-import type { ResourceCardProps } from '@/types/hub/hub'
+import { HubPageProps } from '@/types/hub/hub'
 
-export function ResourceCard({ card, onResourcePress }: ResourceCardProps) {
+export function ResourceCard({ card, onResourcePress }: HubPageProps) {
   return (
     <View style={resourceCardStyles.wrapper}>
       <RNPressable onPress={onResourcePress} style={resourceCardStyles.pressable}>
@@ -25,7 +25,7 @@ export function ResourceCard({ card, onResourcePress }: ResourceCardProps) {
                     {card.label}
                   </Text>
                 </View>
-                <MaterialCommunityIcons 
+                <MaterialDesignIcons 
                   name="arrow-right" 
                   size={24} 
                   color="#ffffffcc"
@@ -34,8 +34,8 @@ export function ResourceCard({ card, onResourcePress }: ResourceCardProps) {
               <Text variant="title" size={1} >
                 {`${card.label} Resources`}
               </Text>
-              <Text variant="body" size={2} >
-                Overview information on resources aquired from this story.
+              <Text variant="body" size={2} numberOfLines={2}>
+                {'Overview of resources acquired from this story.'}
               </Text>
             </View>
           </ImageBackground>
