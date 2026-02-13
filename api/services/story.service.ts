@@ -153,15 +153,15 @@ export const storyService = {
   },
 
   /**
-   * Start a story on the backend to create progress and get the starting passage
-   * POST /story/stories/{id}/start/
+   * Start a story (Django StoryViewSet start action)
+   * POST /api/story/stories/{id}/start/
    */
   async startStory(storyId: number): Promise<any> {
-    const url = `/story/stories/${storyId}/start/`
-
-    const response = await apiClient.post<any>(url, {}, {
-      skipVersion: true,
-    })
+    const response = await apiClient.post<any>(
+      API_ENDPOINTS.STORY_START(storyId),
+      {},
+      { skipVersion: true },
+    )
 
     // Handle both wrapped (ApiResponse) and direct responses
     if (response && typeof response === 'object') {
@@ -177,15 +177,15 @@ export const storyService = {
   },
 
   /**
-   * Restart a story on the backend to (re)create progress and get starting passage
-   * Mirrors restartStory logic from the thesis app (POST /story/stories/{id}/restart/)
+   * Restart a story (Django StoryViewSet restart action)
+   * POST /api/story/stories/{id}/restart/
    */
   async restartStory(storyId: number): Promise<any> {
-    const url = `/story/stories/${storyId}/restart/`
-
-    const response = await apiClient.post<any>(url, {}, {
-      skipVersion: true,
-    })
+    const response = await apiClient.post<any>(
+      API_ENDPOINTS.STORY_RESTART(storyId),
+      {},
+      { skipVersion: true },
+    )
     
     // Handle both wrapped (ApiResponse) and direct responses
     if (response && typeof response === 'object') {
@@ -202,12 +202,14 @@ export const storyService = {
   },
 
   /**
-   * Fetch a specific passage for a story
-   * Backend returns { story, passage, progress, ... }
+   * Fetch a specific passage (Django StoryViewSet passage action)
+   * GET /api/story/stories/{id}/passage/{passageId}/
    */
   async getPassage(storyId: number, passageId: string): Promise<any> {
-    const url = `/story/stories/${storyId}/passage/${passageId}/`
-    const response = await apiClient.get<any>(url, { skipVersion: true } as any)
+    const response = await apiClient.get<any>(
+      API_ENDPOINTS.STORY_GET_PASSAGE(storyId, passageId),
+      { skipVersion: true } as any,
+    )
     
     // Handle both wrapped (ApiResponse) and direct responses
     if (response && typeof response === 'object') {
@@ -224,13 +226,12 @@ export const storyService = {
   },
 
   /**
-   * Fetch all passages for a story
-   * GET /story/passages/?story_id={storyId}
+   * Fetch all passages for a story (Django PassageViewSet list)
+   * GET /api/story/passages/?story_id={storyId}
    */
   async getStoryPassages(storyId: number | string): Promise<any[]> {
     const query = storyId ? `?story_id=${encodeURIComponent(String(storyId))}` : ''
-    const url = `/story/passages/${query}`
-    let nextUrl: string | null = url
+    let nextUrl: string | null = `${API_ENDPOINTS.STORY_PASSAGES}${query}`
     const allPassages: any[] = []
 
     while (nextUrl) {
@@ -260,12 +261,14 @@ export const storyService = {
   },
 
   /**
-   * Fetch choices for a passage (passage PK)
-   * GET /story/passages/{passagePk}/choices/
+   * Fetch choices for a passage (Django ChoiceViewSet nested under passages)
+   * GET /api/story/passages/{passagePk}/choices/
    */
   async getPassageChoices(passagePk: string | number): Promise<any[]> {
-    const url = `/story/passages/${passagePk}/choices/`
-    const response = await apiClient.get<any>(url, { skipVersion: true } as any)
+    const response = await apiClient.get<any>(
+      API_ENDPOINTS.STORY_PASSAGE_CHOICES(passagePk),
+      { skipVersion: true } as any,
+    )
 
     if (Array.isArray(response)) {
       return response
@@ -284,8 +287,8 @@ export const storyService = {
   },
 
   /**
-   * Make a choice in the story and get the next passage state back
-   * Mirrors makeChoice logic from the thesis app (POST story/make_choice/)
+   * Make a choice (Django StoryViewSet make-choice action)
+   * POST /api/story/stories/{id}/make-choice/
    */
   async makeChoice(
     storyId: number | string,
@@ -298,10 +301,11 @@ export const storyService = {
       choice_text: choiceText,
       ...(additionalPayload || {}),
     }
-
-    const response = await apiClient.post<any>(`/story/stories/${storyId}/make-choice/`, payload, {
-      skipVersion: true,
-    })
+    const response = await apiClient.post<any>(
+      API_ENDPOINTS.STORY_MAKE_CHOICE(storyId),
+      payload,
+      { skipVersion: true },
+    )
     
     // Handle both wrapped (ApiResponse) and direct responses
     if (response && typeof response === 'object') {

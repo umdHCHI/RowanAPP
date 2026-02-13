@@ -49,35 +49,15 @@ export const characterService = {
     return normalized;
   },
 
+  /** POST /api/characters/characters/ (Django CharacterViewSet) */
   async create(
     data: CharacterCreateRequest,
   ): Promise<ApiResponse<CharacterResponse>> {
-    /**
-     * Some deployments expose the character ViewSet at `/characters/`,
-     * others at `/characters/characters/`. To be robust against both,
-     * we try the canonical `/characters/` first, then fall back.
-     */
-    try {
-      return await apiClient.post<CharacterResponse>(
-        API_ENDPOINTS.CHARACTERS,
-        data,
-        { skipVersion: true },
-      );
-    } catch (error: any) {
-      const status = (error as ApiError)?.status;
-
-      // If it's not a simple routing issue, rethrow
-      if (status && status !== 404 && status !== 405) {
-        throw error;
-      }
-
-      // Fallback to the legacy/alternate path
-      return apiClient.post<CharacterResponse>(
-        API_ENDPOINTS.CHARACTER_CREATE,
-        data,
-        { skipVersion: true },
-      );
-    }
+    return apiClient.post<CharacterResponse>(
+      API_ENDPOINTS.CHARACTER_CREATE,
+      data,
+      { skipVersion: true },
+    );
   },
 
   async updateCustomization(

@@ -17,6 +17,23 @@ android/
 ios/
 .easignore
 
+.cursor/
+.vscode/
+android/
+ios/
+node_modules/
+.expo/
+.expo-shared/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+.gitignore
 
 # Environment variables
 .env

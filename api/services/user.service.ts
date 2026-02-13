@@ -8,6 +8,24 @@ import type {
   UserUpdateRequest,
 } from '../types'
 
+function isUserListResponse(raw: unknown): raw is UserListResponse {
+  return (
+    !!raw &&
+    typeof raw === 'object' &&
+    Object.prototype.hasOwnProperty.call(raw, 'results') &&
+    Array.isArray((raw as { results?: unknown }).results)
+  )
+}
+
+function isApiResponseWithUserList(raw: unknown): raw is ApiResponse<UserListResponse> {
+  return (
+    !!raw &&
+    typeof raw === 'object' &&
+    Object.prototype.hasOwnProperty.call(raw, 'data') &&
+    isUserListResponse((raw as ApiResponse<UserListResponse>).data)
+  )
+}
+
 function normalizeLoginResponse(raw: unknown): ApiResponse<{ token: string; user: UserResponse }> {
   if (!raw || typeof raw !== 'object') {
     return {
@@ -77,11 +95,11 @@ export const userService = {
     const raw = await apiClient.get<UserListResponse | ApiResponse<UserListResponse>>(
       API_ENDPOINTS.USER
     )
-    if (raw && typeof raw === 'object' && 'results' in raw) {
-      return raw as UserListResponse
+    if (isUserListResponse(raw)) {
+      return raw
     }
-    if (raw && typeof raw === 'object' && 'data' in raw && (raw as ApiResponse<UserListResponse>).data) {
-      return (raw as ApiResponse<UserListResponse>).data
+    if (isApiResponseWithUserList(raw)) {
+      return raw.data
     }
     return { count: 0, next: null, previous: null, results: [] }
   },

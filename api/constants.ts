@@ -126,73 +126,74 @@ export function getBugReportUrl(): string {
 }
 
 /**
- * API Endpoints (aligned to nova/urls.py)
+ * API Endpoints (aligned to Django nova/urls.py)
  *
- * Authentication: DRF Token Authentication
- * Format: Authorization: Token <token>
- * 
- * nova/urls.py:
- *   /api/                -> users.urls + characters.urls
- *   /api/story/          -> story.urls
- *   /api/journal/        -> journal.urls
- *   /api/game/           -> game.urls
- *   /api/personality/    -> personality.urls
+ * DRF Token Auth: Authorization: Token <token>
+ *
+ * Backend structure:
+ *   api/             -> users.urls (auth + users)
+ *   api/story/        -> story.urls
+ *   api/journal/      -> journal.urls
+ *   api/game/         -> game.urls
+ *   api/characters/   -> characters.urls
+ *   api/ema/          -> ema.urls
+ *   api/research/     -> research.urls
  */
 export const API_ENDPOINTS = {
-  // --- Authentication (DRF Token Auth) ---
-  // Backend: /api/auth/login/
+  // --- Auth (users.urls) ---
   USER_LOGIN: "/auth/login/",
+  USER_REGISTER: "/auth/register/",
 
-  // --- Characters (included at /api/...) ---
-  CHARACTERS: "/characters/",
-  CHARACTER_MINE: "/characters/characters/my_character/",
-  // Character create endpoint (matches backend router)
-  CHARACTER_CREATE: "/characters/characters/",
-  CHARACTER_UPDATE_CUSTOMIZATION: "/characters/characters/update_customization/",
-  CHARACTER_GAIN_LUMENS: "/characters/characters/gain-xp/",
-  // CHARACTER_BY_ID: (id: string | number) => `/characters/${id}/`,
-
-  // --- Users (included at /api/...) ---
-  USER_FULL_PROFILE: `/users/me/`,
+  // --- Users ---
+  USER_FULL_PROFILE: "/users/me/",
   USER: "/users/",
   USER_BY_ID: (id: string | number) => `/users/${id}/`,
 
-  // --- Story (mounted at /api/story/...) ---
+  // --- Characters (api/characters/) ---
+  CHARACTERS: "/characters/characters/",
+  CHARACTER_MINE: "/characters/characters/my_character/",
+  CHARACTER_CREATE: "/characters/characters/",
+  CHARACTER_UPDATE_CUSTOMIZATION: "/characters/characters/update_customization/",
+  CHARACTER_GAIN_LUMENS: "/characters/characters/gain-lumens/",
 
-  STORY: "/story",
+  // --- Story (api/story/) ---
+  STORY: "/story/",
   STORY_STORIES: "/story/stories/",
   STORY_PROGRESS: "/story/story-progress/",
   STORY_PROGRESS_BY_ID: (id: string | number) => `/story/stories/${id}/progress/`,
+  STORY_START: (id: string | number) => `/story/stories/${id}/start/`,
+  STORY_RESTART: (id: string | number) => `/story/stories/${id}/restart/`,
+  STORY_GET_PASSAGE: (storyId: string | number, passageId: string) =>
+    `/story/stories/${storyId}/passage/${passageId}/`,
+  STORY_PASSAGES: "/story/passages/",
+  STORY_PASSAGE_CHOICES: (passagePk: string | number) => `/story/passages/${passagePk}/choices/`,
+  STORY_MAKE_CHOICE: (storyId: string | number) => `/story/stories/${storyId}/make-choice/`,
 
-  // --- Journal (mounted at /api/journal/...) ---
+  // --- Journal (api/journal/) ---
   JOURNAL_COMPLETED_ENTRIES: "/journal/completed-entries/",
   JOURNAL_ENTRY_BY_ID: (id: string | number) => `/journal/completed-entries/${id}/`,
   JOURNAL_PROMPTS: "/journal/journal-prompts/",
 
-  // --- Game (mounted at /api/game/...) ---
-  GAME_MY_DATA: "/game/game-data/my-data/", // DRF action on GameDataViewSet
-  GAME_STATS: "/game/game-data/stats/", // DRF action on GameDataViewSet
-
-  // Record progress endpoint
-  GAME_RECORD_PROGRESS: "/game/progress/record_progress/",
-
-  // Vantage endpoint
-  VANTAGE_RUN: "/game/game-data/thought-defender/run/",
-
-  // Wellness endpoint (your urls.py currently wires this oddly; leaving the URL you exposed)
+  // --- Game (api/game/, GameDataViewSet) ---
+  GAME_MY_DATA: "/game/game-data/my-data/",
+  GAME_STATS: "/game/game-data/stats/",
+  GAME_RECORD_PROGRESS: "/game/record-progress/",
+  VANTAGE_RUN: "/game/game-data/vantage/run/",
   GAME_GAIN_WELLNESS: "/game/gain-wellness/",
 
-  // --- Media (served by Caddy from /media/...) ---
-  // Not an API route; this is for images/files.
+  // --- EMA (api/ema/) ---
+  EMA_PROMPTS: "/ema/prompts/",
+  EMA_SUBMIT_RESPONSE: "/ema/responses/",
+
+  // --- Research (api/research/) ---
+  RESEARCH_MY_DATA: "/research/my_research_data/",
+
+  // --- Media (root, not under /api/) ---
   MEDIA: "/media/",
 
-  //Random other endpoints
-
-  // Equipment endpoints
-  EQUIPMENT: "/equipment",
-  EQUIPMENT_BY_ID: (id: string) => `/equipment/${id}`,
-
-  // Attributes endpoints
-  ATTRIBUTES: "/attributes",
-  ATTRIBUTES_UPDATE: "/attributes/update",
+  // --- Deprecated: no Django app (use character/profile for lumens) ---
+  EQUIPMENT: "/equipment/",
+  EQUIPMENT_BY_ID: (id: string) => `/equipment/${id}/`,
+  ATTRIBUTES: "/attributes/",
+  ATTRIBUTES_UPDATE: "/attributes/update/",
 } as const;
