@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { characterService } from "../services/character.service";
-import { useCurrentUserFullProfile } from "./use-auth";
+import { useAuthUserId, useCurrentUserFullProfile } from "./use-auth";
 import { userKeys } from "./use-user";
 import type {
   CharacterCreateRequest,
@@ -13,23 +13,27 @@ import type {
  */
 export const characterKeys = {
   all: ["character"] as const,
-  mine: () => [...characterKeys.all, "mine"] as const,
+  mine: (userId: number | null | undefined) =>
+    [...characterKeys.all, "mine", userId ?? "anon"] as const,
 };
 
 export function useMyCharacter() {
+  const userId = useAuthUserId();
   return useQuery<CharacterResponse | null>({
-    queryKey: characterKeys.mine(),
+    queryKey: characterKeys.mine(userId),
     queryFn: async () => {
       const res = await characterService.getMine();
       if (!res.success) return null;
       return res.data;
     },
+    enabled: !!userId,
     staleTime: 60 * 1000,
   });
 }
 
 export function useCreateCharacter() {
   const queryClient = useQueryClient();
+  const userId = useAuthUserId();
 
   function getErrorText(err: any): string {
     const detail = err?.errors?.detail;
@@ -80,7 +84,7 @@ export function useCreateCharacter() {
       }
     },
     onSuccess: (character) => {
-      queryClient.setQueryData(characterKeys.mine(), character);
+      queryClient.setQueryData(characterKeys.mine(userId), character);
     },
   });
 }
@@ -92,8 +96,7 @@ export function useCreateCharacter() {
 
 export function useUpdateCharacterCustomization() {
   const queryClient = useQueryClient();
-  const { data: character } = useMyCharacter();
-  const userId = (character?.id ?? 0);
+  const userId = useAuthUserId();
   return useMutation({
     mutationFn: async (data: CharacterUpdateRequest) => {
       const res = await characterService.updateCustomization(data);
@@ -118,7 +121,9 @@ export function useUpdateCharacterCustomization() {
       return mine.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) })
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) });
+      }
   }});
 }
 
@@ -127,6 +132,7 @@ export function useUpdateCharacterCustomization() {
  */
 export function useGainLumens() {
   const queryClient = useQueryClient();
+  const userId = useAuthUserId();
   const { data: fullProfile } = useCurrentUserFullProfile();
 
   return useMutation({
@@ -138,7 +144,7 @@ export function useGainLumens() {
     },
     onSuccess: (updatedCharacter) => {
       queryClient.setQueryData<CharacterResponse>(
-        characterKeys.mine(),
+        characterKeys.mine(userId),
         (existing) => {
           if (!existing) return updatedCharacter;
           return {
@@ -175,10 +181,10 @@ export function useGainLumens() {
       );
 
       // IMPORTANT: userKeys.fullProfile REQUIRES AN ID
-      const userId = fullProfile?.id;
-      if (userId) {
+      const profileUserId = fullProfile?.id;
+      if (profileUserId) {
       queryClient.invalidateQueries({
-          queryKey: userKeys.fullProfile(userId),
+          queryKey: userKeys.fullProfile(profileUserId),
         });
       }
     },

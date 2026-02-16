@@ -21,6 +21,11 @@ function getAuthHeader(): string {
       // Using DRF Token authentication
       return `Token ${authState.token}`;
     }
+
+    // If auth store is available but no token is set, do not fall back to a
+    // global config token. This prevents requests from accidentally using a
+    // different account's token (e.g. admin) during user sessions.
+    return "";
   } catch {
     // If store is not available, fall back to config token
   }

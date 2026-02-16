@@ -219,7 +219,7 @@ export default function CharacterCreator() {
       await createCharacter.mutateAsync(requestData)
     }
 
-    queryClient.invalidateQueries({ queryKey: characterKeys.mine() })
+    queryClient.invalidateQueries({ queryKey: characterKeys.mine(userId) })
     queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) })
 
     setHasCharacter(true)
