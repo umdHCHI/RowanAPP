@@ -7,7 +7,7 @@ import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { useVantageGame, useGameDirector } from '@/hooks'
 import { GAME_CONFIG, type Difficulty } from '@/utils/vantage-constants'
-import { useGainLumens, useRequireAuth } from '@/api'
+import { useGainLumens, useRequireAuth, useSubmitVantageRun } from '@/api'
 import {
   GameArea,
   GamePlayer,
@@ -29,14 +29,17 @@ export default function Vantage() {
   useRequireAuth() // Redirects to login if not authenticated
   
   const router = useRouter()
-  const params = useLocalSearchParams<{ storyId?: string; tutorial?: string }>()
+  const params = useLocalSearchParams<{ storyId?: string; tutorial?: string; from?: string; level?: string }>()
   const storyId = params.storyId
-  const isTutorial = params.tutorial === 'true'
+  const isTutorialLevelZero = params.level === '0'
+  const isTutorial = params.tutorial === 'true' || isTutorialLevelZero
+  const cameFromStory = params.from === 'story'
   const { addMemory } = useGameStore()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
   const gainLumens = useGainLumens()
+  const submitVantageRun = useSubmitVantageRun()
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [gameWon, setGameWon] = useState(false)
   const [bossDefeated, setBossDefeated] = useState(false)
@@ -85,23 +88,48 @@ export default function Vantage() {
     gameWidth,
     gameHeight,
     difficulty,
+    isTutorialLevelZero,
     ddaMetricsRef,
-    onGameOver: (score, won, bossDef) => {
+    onGameOver: (score, won, bossDef, runStats) => {
       setGameWon(won)
       setBossDefeated(bossDef)
-      
+
       const durationSec = Math.floor(
         (performance.now() - gameStartTimeRef.current) / 1000
       )
 
-      // Defer memory save and attribute updates to avoid state update during render
+      // Defer memory save, backend run submit, and lumens to avoid state update during render
       setTimeout(async () => {
+        // Send run data to backend (every run; idempotent by run_id)
+        if (runStats) {
+          try {
+            await submitVantageRun.mutateAsync({
+              run_id: runStats.runId,
+              score,
+              level_reached: runStats.levelReached,
+              won,
+              difficulty,
+              thoughts_reframed: runStats.thoughtsReframed,
+              thoughts_defeated: runStats.thoughtsDefeated,
+              lumens_gathered: won && bossDef ? 1 : 0,
+              started_at: runStats.startedAt,
+              ended_at: runStats.endedAt,
+              duration_ms: runStats.durationMs,
+              dda_final: runStats.ddaFinal,
+              dda_snapshots: runStats.ddaSnapshots,
+              meta: {},
+            })
+          } catch (error) {
+            console.error('Failed to log Vantage run:', error)
+          }
+        }
+
         // Save memory
         const memory = {
           id: `vantage-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           title: won ? 'Thought Defender Victory' : 'Thought Defender Session',
           description: won
-            ? `Defeated the big bad and sealed the breach! Score: ${score}`
+            ? `Defeated the big bad and cleared away some of the rot! Great work employee!Score: ${score}`
             : `Practiced reframing negative thoughts. Score: ${score}`,
           type: 'THOUGHT_DEFENDER',
           content: JSON.stringify({
@@ -116,13 +144,12 @@ export default function Vantage() {
           createdAt: new Date().toISOString(),
         }
         addMemory(memory)
-        
+
         const lumensAwarded = won && bossDef ? 1 : 0
         if (lumensAwarded > 0) {
           try {
             await gainLumens.mutateAsync(lumensAwarded)
           } catch (error) {
-            // Log error but don't block the game completion
             console.error('Failed to award experience:', error)
           }
         }
@@ -182,18 +209,40 @@ export default function Vantage() {
     } catch (error) {
       console.error('Error in handleShootWithHaptics:', error)
     }
-  }, [game.isPlaying, game.gameOver, game.tryShoot, haptics])
+  }, [game, haptics])
 
   function handlePlayAgain() {
     handleStartGame()
   }
 
   function handleBackToHub() {
+    if (cameFromStory) {
+      const canGoBack = (router as any)?.canGoBack?.()
+      if (canGoBack) {
+        router.back()
+        return
+      }
+      if (storyId) {
+        router.replace(`/story?storyId=${storyId}`)
+        return
+      }
+    }
     router.replace('/hub')
   }
 
   function handleBackToResources() {
     playPageFlipSound()
+    if (cameFromStory) {
+      const canGoBack = (router as any)?.canGoBack?.()
+      if (canGoBack) {
+        router.back()
+        return
+      }
+      if (storyId) {
+        router.replace(`/story?storyId=${storyId}`)
+        return
+      }
+    }
     const resourcesUrl = storyId ? `/resources?storyId=${storyId}` : '/resources'
     router.push(resourcesUrl)
   }
@@ -230,6 +279,11 @@ export default function Vantage() {
               height={gameHeight}
                 onPlayerMove={game.isPlaying && !game.gameOver ? handlePlayerMove : undefined}
                 onShoot={game.isPlaying && !game.gameOver ? handleShootWithHaptics : undefined}
+                shootCooldownMs={
+                  game.fastShootActive
+                    ? GAME_CONFIG.FAST_SHOOT_COOLDOWN
+                    : GAME_CONFIG.SHOOT_COOLDOWN
+                }
                 playerLastHitAt={game.playerLastHitAt}
                 isTutorial={isTutorial && game.isPlaying}
               >

@@ -1,9 +1,9 @@
-import React, { useRef, useEffect, useMemo } from 'react'
+import React, { useRef, useEffect, useCallback } from 'react'
 import { ScrollView, Text as RNText, View, TouchableOpacity, StyleSheet } from 'react-native'
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useHubStories } from '@/hooks'
-import { findNextStory, getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
+import { getStoryImageUrl, normalizeSpeakerName, hasMinigameTutorialFlag, buildStoryMinigameRoute } from '@/utils/story-helpers'
 import { StoryHistory } from './StoryHistory'
 import { StoryPassage } from './StoryPassage'
 import { StoryRewardMoment } from './StoryRewardMoment'
@@ -19,6 +19,7 @@ interface StoryContentProps {
   isLoading: boolean
   isEnding: boolean
   hasChoices: boolean
+  showEndingWaitIndicator?: boolean
   storyId?: string | number
 }
 
@@ -30,15 +31,16 @@ export function StoryContent({
   isLoading,
   isEnding,
   hasChoices,
+  showEndingWaitIndicator = false,
   storyId,
 }: StoryContentProps) {
   const router = useRouter()
   const scrollViewRef = useRef<ScrollView>(null)
   const insets = useSafeAreaInsets()
-  const { data: stories } = useHubStories()
+  const [showJumpToBottom, setShowJumpToBottom] = React.useState(false)
 
-  const insetPadding = Math.min(insets.bottom, STORY_SPACING.md)
-  const bottomPadding = STORY_SPACING.xxl + insetPadding
+  // Use full safe area so text stays clear of Android nav bar; add extra for comfort
+  const bottomPadding = insets.bottom + STORY_SPACING.xxl
   const horizontalPadding = Math.max(STORY_SPACING.xxxl, insets.left, insets.right)
 
   // Track if user has manually scrolled away from bottom
@@ -50,81 +52,77 @@ export function StoryContent({
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent
     const paddingToBottom = 200 // Consider "near bottom" if within 200px
     const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y
-    isNearBottomRef.current = distanceFromBottom < paddingToBottom
+    const isNearBottom = distanceFromBottom < paddingToBottom
+    if (isNearBottomRef.current !== isNearBottom) {
+      isNearBottomRef.current = isNearBottom
+      setShowJumpToBottom(!isNearBottom)
+    }
   }
   
   // Auto-scroll to bottom when new content is added and user was near bottom.
   // Short delay so layout (new passage + current passage block) has updated before scrolling.
+  const scrollToBottom = useCallback((animated = true) => {
+    scrollViewRef.current?.scrollToEnd({ animated })
+    isNearBottomRef.current = true
+    setShowJumpToBottom(false)
+  }, [])
+
   useEffect(() => {
     const historyLengthIncreased = history.length > previousHistoryLengthRef.current
 
-    if (historyLengthIncreased && isNearBottomRef.current) {
-      const timeout = setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true })
-      }, 120)
-      previousHistoryLengthRef.current = history.length
-      return () => clearTimeout(timeout)
-    }
     if (historyLengthIncreased) {
+      if (isNearBottomRef.current) {
+        const timeout = setTimeout(() => {
+          scrollToBottom(true)
+        }, 120)
+        previousHistoryLengthRef.current = history.length
+        return () => clearTimeout(timeout)
+      }
+
+      setShowJumpToBottom(true)
       previousHistoryLengthRef.current = history.length
     }
-  }, [history.length, currentPassage?.passage_id])
+  }, [history.length, currentPassage?.passage_id, scrollToBottom])
 
-  // Check if current passage is already in history
-  const isCurrentPassageInHistory = currentPassage
-    ? history.some(
-        (item) => item.id === currentPassage.passage_id && item.type === 'passage'
-      )
-    : false
-
-  // Find the next story after the current one
-  const nextStory = useMemo(() => {
-    if (!stories || !storyId) return null
-    return findNextStory(stories, storyId)
-  }, [stories, storyId])
-
-  function handleViewResources() {
-    if (storyId) {
-      router.push(`/resources?storyId=${storyId}`)
-    } else {
-      router.push('/resources')
+  const lastPassageId = React.useMemo(() => {
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+      const item = history[i]
+      if (item.type === 'passage') return item.id
     }
-  }
+    return null
+  }, [history])
 
-  function handleNextStory() {
-    if (nextStory) {
-      router.push(`/story?storyId=${nextStory.id}`)
-    } else {
-      // No next story available, go to hub
-      router.replace('/hub')
-    }
+
+  function handleGoToHub() {
+    router.replace('/hub')
   }
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      style={styles.scrollView}
-      contentContainerStyle={[
-        styles.scrollContent,
-        { paddingBottom: bottomPadding, paddingHorizontal: horizontalPadding }
-      ]}
-      scrollEnabled={true}
-      showsVerticalScrollIndicator={false}
-      bounces={true}
-      onScroll={handleScroll}
-      scrollEventThrottle={100}
-    >
+    <View style={styles.container}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: bottomPadding, paddingHorizontal: horizontalPadding }
+        ]}
+        scrollEnabled={true}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        onScroll={handleScroll}
+        scrollEventThrottle={100}
+      >
       {/* Story Title */}
       {storyTitle && (
         <RNText style={styles.storyTitle}>{storyTitle}</RNText>
       )}
 
       {/* Story History */}
-      <StoryHistory history={history} />
+      <StoryHistory history={history} storyId={storyId} />
 
-      {/* Current passage if not in history yet */}
-      {currentPassage && !isCurrentPassageInHistory && (
-        // Render action passages as rewards, other passages normally
+      {/* Current passage (show only if it isn't already the latest passage in history) */}
+      {currentPassage && lastPassageId !== currentPassage.passage_id && (
+        // Render action passages as rewards, other passages as tappable mini_game or normal display
         currentPassage.passage_type === 'action' ? (
           (() => {
             const imageUrl = getStoryImageUrl(currentPassage.speaker_image)
@@ -138,6 +136,21 @@ export function StoryContent({
               />
             )
           })()
+        ) : currentPassage.passage_type === 'mini_game' ? (
+          <StoryRewardMoment
+            type="MINIGAME"
+            title="Thought Defender"
+            subtitle={currentPassage.content || 'Practice reframing negative thoughts in this interactive challenge'}
+            theme={{
+              primary: STORY_COLORS.minigameLabel,
+              background: STORY_COLORS.minigameContainer,
+              text: STORY_COLORS.minigameSubtext,
+            }}
+            onPress={() => {
+              const isTutorial = hasMinigameTutorialFlag(currentPassage)
+              router.push(buildStoryMinigameRoute({ isTutorial, storyId }))
+            }}
+          />
         ) : (
           <StoryPassage
             content={currentPassage.content}
@@ -172,43 +185,58 @@ export function StoryContent({
         </View>
       )}
 
-      {/* Navigation buttons at ending - Prologue (id 28) has no Resources button */}
+      {/* End of story: title label and navigation; only show buttons for Prologue (id 28) */}
       {isEnding && !hasChoices && !isLoading && (
-        <View style={styles.endingButtonsContainer}>
-          {Number(storyId) !== PROLOGUE_STORY_ID && (
-            <TouchableOpacity
-              style={[styles.endingButton, styles.archiveButton]}
-              onPress={handleViewResources}
-              activeOpacity={0.8}
-            >
-              <RNText style={styles.endingButtonText}>View Resources Gathered</RNText>
-            </TouchableOpacity>
+        <View style={styles.endingSection}>
+          {storyTitle && (
+            <RNText style={styles.endingTitle}>End of {storyTitle}</RNText>
           )}
-          <TouchableOpacity
-            style={[styles.endingButton, styles.nextStoryButton]}
-            onPress={handleNextStory}
-            activeOpacity={0.8}
-          >
-            <RNText style={styles.endingButtonText}>
-              {nextStory ? 'Continue to Next Story' : 'Return to Hub'}
-            </RNText>
-          </TouchableOpacity>
-          {storyId != null && (
-            <TouchableOpacity
-              style={[styles.endingButton, styles.restartButton]}
-              onPress={() => router.replace(`/story?storyId=${storyId}&restart=true`)}
-              activeOpacity={0.8}
-            >
-              <RNText style={styles.endingButtonText}>Restart this Book</RNText>
-            </TouchableOpacity>
+          {showEndingWaitIndicator && (
+            <RNText style={styles.endingWaitText}>Please wait...</RNText>
+          )}
+          {Number(storyId) === PROLOGUE_STORY_ID && (
+            <View style={styles.endingButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.endingButton, styles.nextStoryButton]}
+                onPress={handleGoToHub}
+                activeOpacity={0.8}
+              >
+                <RNText style={styles.endingButtonText}>Go back to Hub</RNText>
+              </TouchableOpacity>
+              {storyId != null && (
+                <TouchableOpacity
+                  style={[styles.endingButton, styles.restartButton]}
+                  onPress={() => router.replace(`/story?storyId=${storyId}&restart=true`)}
+                  activeOpacity={0.8}
+                >
+                  <RNText style={styles.endingButtonText}>Restart this Book</RNText>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+
+      {showJumpToBottom && (
+        <TouchableOpacity
+          style={[styles.jumpButton, { bottom: insets.bottom + STORY_SPACING.lg }]}
+          onPress={() => scrollToBottom(true)}
+          activeOpacity={0.85}
+        >
+          <View style={styles.jumpButtonInner}>
+            <MaterialDesignIcons name="arrow-down" size={20} color={STORY_COLORS.text} />
+          </View>
+        </TouchableOpacity>
+      )}
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
@@ -244,8 +272,26 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: STORY_SPACING.xxl,
   },
-  endingButtonsContainer: {
+  endingSection: {
     marginTop: STORY_SPACING.xxxl,
+    width: '100%',
+  },
+  endingTitle: {
+    fontFamily: STORY_FONTS.beyondWonderland,
+    fontSize: STORY_FONT_SIZES.xxl,
+    color: STORY_COLORS.text,
+    textAlign: 'center',
+    marginBottom: STORY_SPACING.xxl,
+  },
+  endingWaitText: {
+    fontFamily: STORY_FONTS.system,
+    fontSize: STORY_FONT_SIZES.sm,
+    color: STORY_COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: STORY_SPACING.xl,
+    opacity: 0.85,
+  },
+  endingButtonsContainer: {
     gap: STORY_SPACING.lg,
     width: '100%',
     paddingHorizontal: STORY_SPACING.sm,
@@ -257,9 +303,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 56,
-  },
-  archiveButton: {
-    backgroundColor: STORY_COLORS.button,
   },
   nextStoryButton: {
     backgroundColor: STORY_COLORS.buttonSecondary,
@@ -289,6 +332,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  jumpButton: {
+    position: 'absolute',
+    left: '50%',
+    transform: [{ translateX: -26 }],
+    zIndex: 5,
+  },
+  jumpButtonInner: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderWidth: 1,
+    borderColor: STORY_COLORS.headerBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })
 

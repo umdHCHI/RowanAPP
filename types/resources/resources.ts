@@ -1,97 +1,106 @@
-import type React from 'react'
-import type { AttributesResponse, JournalEntryResponse, StoryResponse, UserFullProfileResponse } from '@/api/types'
-import type { StoryProgressItem } from '@/utils/resources-mapper'
-import type { MemoryItem, NotificationTime } from '@/types/hooks'
+import type React from "react";
+import type {
+  AttributesResponse,
+  JournalEntryResponse,
+  StoryResponse,
+  UserFullProfileResponse,
+} from "@/api/types";
+import type { GameDataResponse } from "@/api";
+import type { StoryProgressItem } from "@/utils/resources-mapper";
+import type { MemoryItem } from "@/types/hooks";
 
 // PowerCard
 export interface PowerCardProps {
-  id: string
-  title: string
-  description?: string
-  subtitle?: string
-  isUnlocked: boolean
-  isNew?: boolean
-  isActive?: boolean
-  icon?: string | React.ReactNode
-  onPress?: () => void
-  powerLevel?: number | null
+  id: string;
+  title: string;
+  description?: string;
+  subtitle?: string;
+  isUnlocked: boolean;
+  isNew?: boolean;
+  isActive?: boolean;
+  icon?: string | React.ReactNode;
+  onPress?: () => void;
+  powerLevel?: number | null;
 }
 
 // PowerDetailsModal
 export interface PowerDetailsModalProps {
-  visible: boolean
-  onClose: () => void
-  title: string
-  description?: string
-  subtitle?: string
-  icon?: string | React.ReactNode
-  isActive?: boolean
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  subtitle?: string;
+  icon?: string | React.ReactNode;
+  isActive?: boolean;
 }
 
 // ResourcesResourcesTab
 export interface ResourcesResourcesTabProps {
-  resources: unknown[]
-  storyId?: number
-  profileData?: UserFullProfileResponse | null
-  storiesData?: StoryResponse[] | null
-  journalEntries?: JournalEntryResponse[]
-  storyProgress?: StoryProgressItem[]
+  resources: unknown[];
+  storyId?: number;
+  profileData?: UserFullProfileResponse | null;
+  storiesData?: StoryResponse[] | null;
+  journalEntries?: JournalEntryResponse[];
+  storyProgress?: StoryProgressItem[];
+  gameData?: GameDataResponse | null;
 }
 
 // ResourceItemCard
-export type ResourceCardStatus = 'locked' | 'available' | 'completed'
+export type ResourceCardStatus = "locked" | "available" | "completed";
 
 export interface ResourceItemCardData {
-  id: string
-  title: string
-  type: string
-  status: ResourceCardStatus
-  imageUrl?: string | null
-  description?: string
+  id: string;
+  title: string;
+  type: string;
+  status: ResourceCardStatus;
+  imageUrl?: string | null;
+  description?: string;
 }
 
 export interface ResourceItemCardProps {
-  card: ResourceItemCardData
-  onResourcePress: () => void
+  card: ResourceItemCardData;
+  onResourcePress: () => void;
 }
 
 // ResourcesPage
-export type ResourcesTabType = 'settings' | 'resources' | 'memories'
+export type ResourcesTabType = "settings" | "resources" | "memories";
 
 export interface ResourcesPageProps {
-  storyId?: number
+  storyId?: number;
 }
 
 // ResourcesMemoriesTab
 export interface ResourcesMemoriesTabProps {
-  memories: MemoryItem[]
-  storyId?: number
+  memories: MemoryItem[];
+  storyId?: number;
 }
 
 export interface StoryPassageDisplayProps {
-  storyId: number
-  passageId: string
+  storyId: number;
+  passageId: string;
 }
 
 // JournalStatsCard
 export interface JournalStatsCardProps {
-  entries: JournalEntryResponse[]
+  entries: JournalEntryResponse[];
 }
 
 // ResourcesSettingsTab
 export interface ResourcesSettingsTabProps {
-  profileData?: UserFullProfileResponse | null
-  avatarConfig?: string | null
+  profileData?: UserFullProfileResponse | null;
+  avatarConfig?: string | null;
 }
 
 // StoryInformationCard
 export interface StoryInformationCardProps {
-  story: StoryResponse
-  progress?: StoryProgressItem
+  story: StoryResponse;
+  progress?: StoryProgressItem;
+  npcInteractions?: number;
+  npcName?: string;
 }
 
 // AttributesDisplay
 export interface AttributeDisplayProps {
-  showImages?: boolean
-  attributes?: AttributesResponse
+  showImages?: boolean;
+  attributes?: AttributesResponse;
 }

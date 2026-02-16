@@ -1,6 +1,6 @@
 
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   View,
   ScrollView,
@@ -14,28 +14,43 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useGameStore } from '@/stores/game-store'
+import { useJournalDraftStore } from '@/stores/journal-store'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
-import { useCreateJournalEntry, useUpdateJournalEntry, useJournalPrompts, useJournalEntryByPrompt } from '@/api/hooks/use-journal'
+import {
+  useCreateJournalEntry,
+  useCreateJournalEntryWithMedia,
+  useUpdateJournalEntry,
+  useUpdateJournalEntryWithMedia,
+  useJournalPrompts,
+  useJournalEntryByPrompt,
+  journalKeys,
+} from '@/api/hooks/use-journal'
 import { journalService } from '@/api/services/journal.service'
 import { useQueryClient } from '@tanstack/react-query'
-import { journalKeys } from '@/api/hooks/use-journal'
 import { useGainLumens } from '@/api'
 import { JournalPromptSection } from './JournalPromptSection'
 import { JournalEntryCard } from './JournalEntryCard'
 import { JournalSaveButton } from './JournalSaveButton'
 import { JournalAttributeChanges } from './JournalAttributeChanges'
-import  { ReflectionMode } from '@/types/journal/journal'
+import type { ReflectionMode, Stroke } from '@/types/journal/journal'
 import { DrawingCanvas } from './DrawingCanvas'
-import { Stroke } from '@/types/journal/journal'
 import { VoiceMemoRecorder } from './VoiceMemoRecorder'
-import type { JournalContent } from '@/types/journal/journal'
 import { useHaptics } from '@/utils/useHaptics'
 import { StoryBackground } from '@/components/story/StoryBackground'
 import { Header } from '@/components/header'
 import { journalPageStyles } from '@/styles/journal/journal-styles'
 import { Text } from '@/components/ui'
+import { captureRef } from 'react-native-view-shot'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
+const REWARD_DISPLAY_MS = 4500
+const LAST_PROMPT_REWARD_DISPLAY_MS = 5000
+
+const MODE_TO_CATEGORY: Record<ReflectionMode, string[]> = {
+  journal: ['journal', 'journal'],
+  draw: ['draw'],
+  voice: ['voice'],
+}
 
 export function JournalPage() {
   const router = useRouter()
@@ -45,25 +60,29 @@ export function JournalPage() {
   const scrollViewRef = useRef<ScrollView>(null)
   const inputContainerRef = useRef<View>(null)
   const responseAreaYRef = useRef<number>(0)
+  const drawingContainerRef = useRef<View>(null)
   
-  // Mode and content state
-  const [mode, setMode] = useState<ReflectionMode>('journal')
-  const [text, setText] = useState('')
-  const [drawing, setDrawing] = useState<Stroke[]>([])
-  const [audioUri, setAudioUri] = useState<string | null>(null)
-  const [audioDurationSeconds, setAudioDurationSeconds] = useState<number | null>(null)
-  
+  // Mode and draft state (persisted)
+  const mode = useJournalDraftStore((state) => state.mode)
+  const currentPromptIndex = useJournalDraftStore((state) => state.currentPromptIndex)
+  const drafts = useJournalDraftStore((state) => state.drafts)
+  const setMode = useJournalDraftStore((state) => state.setMode)
+  const setCurrentPromptIndex = useJournalDraftStore((state) => state.setCurrentPromptIndex)
+  const upsertDraft = useJournalDraftStore((state) => state.upsertDraft)
+  const setDraft = useJournalDraftStore((state) => state.setDraft)
+  const clearDraft = useJournalDraftStore((state) => state.clearDraft)
+
   // UI state
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [currentPromptIndex, setCurrentPromptIndex] = useState(0)
-  const [savedAttributeChanges, setSavedAttributeChanges] = useState<JournalContent['attributeChanges']>(undefined)
   const [isDrawing, setIsDrawing] = useState(false)
   
   const { journal, journalPrompts, progressJournal, setJournalPrompts, addMemory } = useGameStore()
   const queryClient = useQueryClient()
   const createJournalEntry = useCreateJournalEntry()
+  const createJournalEntryWithMedia = useCreateJournalEntryWithMedia()
   const updateJournalEntry = useUpdateJournalEntry()
+  const updateJournalEntryWithMedia = useUpdateJournalEntryWithMedia()
   const gainLumens = useGainLumens()
   const haptics = useHaptics()
    
@@ -78,49 +97,68 @@ export function JournalPage() {
     }
   }, [apiPrompts, setJournalPrompts])
   
-  // Map mode to category (API uses "journal" for writing prompts)
-  const modeToCategory: Record<ReflectionMode, string[]> = {
-    'journal': ['journal', 'journal'],
-    'draw': ['draw'],
-    'voice': ['voice'],
-  }
-  
   const forcedPrompt = searchParams.promptId
     ? journalPrompts.find((prompt) => prompt.prompt_id === searchParams.promptId)
     : null
 
-  function getActivePromptsForMode(
+  const getActivePromptsForMode = useCallback((
     modeValue: ReflectionMode,
     pinnedPrompt?: typeof journalPrompts[number] | null
-  ) {
+  ) => {
     const filteredPrompts = journalPrompts
       .filter((prompt) => 
         prompt.is_active && 
         prompt.unlocked && 
-        modeToCategory[modeValue].includes(String(prompt.category ?? '').toLowerCase())
+        MODE_TO_CATEGORY[modeValue].includes(String(prompt.category ?? '').toLowerCase())
       )
       .sort((a, b) => a.order - b.order)
 
     if (!pinnedPrompt) return filteredPrompts
 
     const pinnedCategory = String(pinnedPrompt.category ?? '').toLowerCase()
-    const isPinnedForMode = modeToCategory[modeValue].includes(pinnedCategory)
+    const isPinnedForMode = MODE_TO_CATEGORY[modeValue].includes(pinnedCategory)
     if (!isPinnedForMode) return filteredPrompts
 
     const alreadyIncluded = filteredPrompts.some((prompt) => prompt.prompt_id === pinnedPrompt.prompt_id)
     if (alreadyIncluded) return filteredPrompts
 
     return [pinnedPrompt, ...filteredPrompts]
-  }
+  }, [journalPrompts])
 
   // Get active and unlocked prompts filtered by category, sorted by order
   const activePrompts = getActivePromptsForMode(mode, forcedPrompt)
+
+  useEffect(() => {
+    if (activePrompts.length === 0) return
+    if (currentPromptIndex < 0 || currentPromptIndex >= activePrompts.length) {
+      setCurrentPromptIndex(0)
+    }
+  }, [activePrompts.length, currentPromptIndex, setCurrentPromptIndex])
   
   // Get current prompt
   const currentPrompt = activePrompts[currentPromptIndex]
+
+  const draftKey = useMemo(() => {
+    if (!currentPrompt) return null
+    const promptKey = String(currentPrompt.prompt_id || currentPrompt.id)
+    return `${promptKey}|${mode}`
+  }, [currentPrompt, mode])
+
+  const currentDraft = draftKey ? drafts[draftKey] : undefined
+  const text = currentDraft?.text ?? ''
+  const drawing = currentDraft?.drawing ?? []
+  const audioUri = currentDraft?.audioUri ?? null
+  const audioDurationSeconds = currentDraft?.audioDurationSeconds ?? null
+  const audioMimeType = currentDraft?.audioMimeType ?? null
+  const audioFileName = currentDraft?.audioFileName ?? null
+
+  const updateDraft = useCallback((partial: Partial<{ text: string; drawing: Stroke[]; audioUri: string | null; audioDurationSeconds: number | null; audioMimeType: string | null; audioFileName: string | null }>) => {
+    if (!draftKey) return
+    upsertDraft(draftKey, partial)
+  }, [draftKey, upsertDraft])
   
   // Fetch existing entry for current prompt and mode (if prompt is available)
-  const { data: existingEntry, isLoading: isLoadingEntry } = useJournalEntryByPrompt(
+  const { data: existingEntry } = useJournalEntryByPrompt(
     currentPrompt?.id || null,
     mode,
     currentPrompt?.prompt_id || null
@@ -149,7 +187,7 @@ export function JournalPage() {
         setCurrentPromptIndex(0)
       }
     }
-  }, [searchParams.promptId, journalPrompts, mode])
+  }, [searchParams.promptId, journalPrompts, mode, getActivePromptsForMode, setMode, setCurrentPromptIndex])
   
   // Reset prompt index when mode changes to show first prompt of new category
   useEffect(() => {
@@ -157,7 +195,7 @@ export function JournalPage() {
     if (!searchParams.promptId) {
       setCurrentPromptIndex(0)
     }
-  }, [mode, searchParams.promptId])
+  }, [mode, searchParams.promptId, setCurrentPromptIndex])
 
 
   // Helper to scroll to response area
@@ -170,71 +208,71 @@ export function JournalPage() {
     }
   }
 
-  // Load existing entry content when found, or reset when mode changes
+  // Load existing entry content when found, or initialize a draft when missing
   useEffect(() => {
+    if (!draftKey) return
+
     if (existingEntry && currentPrompt && existingEntry.entry_type === mode) {
-      // Load existing content for current mode
       if (mode === 'journal') {
-        setText(existingEntry.content)
-        setDrawing([])
-        setAudioUri(null)
-        setAudioDurationSeconds(null)
+        setDraft(draftKey, {
+          text: existingEntry.content || '',
+          drawing: [],
+          audioUri: null,
+          audioDurationSeconds: null,
+          audioMimeType: null,
+          audioFileName: null,
+        })
       } else if (mode === 'draw') {
+        let parsed: Stroke[] = []
         try {
-          const parsed = JSON.parse(existingEntry.content)
-          if (Array.isArray(parsed)) {
-            setDrawing(parsed)
-          } else {
-            setDrawing([])
-          }
-        } catch (e) {
-          // If parsing fails, leave drawing empty
-          setDrawing([])
-        }
-        setText('')
-        setAudioUri(null)
-        setAudioDurationSeconds(null)
-        // Scroll to response area when switching to draw mode
+          const raw = JSON.parse(existingEntry.content)
+          if (Array.isArray(raw)) parsed = raw
+        } catch {}
+        setDraft(draftKey, {
+          text: '',
+          drawing: parsed,
+          audioUri: null,
+          audioDurationSeconds: null,
+          audioMimeType: null,
+          audioFileName: null,
+        })
         setTimeout(() => {
           scrollToResponseArea()
         }, 100)
       } else if (mode === 'voice') {
-        // For voice entries, the content might be the audio URI or a reference
-        // Check if it looks like a URI, otherwise it might be stored differently
-        if (existingEntry.content.startsWith('file://') || existingEntry.content.startsWith('http')) {
-          setAudioUri(existingEntry.content)
-        } else {
-          setAudioUri(null)
-        }
-        setAudioDurationSeconds(existingEntry.duration_seconds ?? null)
-        setText('')
-        setDrawing([])
+        const shouldUseUri =
+          typeof existingEntry.content === 'string' &&
+          (existingEntry.content.startsWith('file://') || existingEntry.content.startsWith('http'))
+        setDraft(draftKey, {
+          text: '',
+          drawing: [],
+          audioUri: shouldUseUri ? existingEntry.content : null,
+          audioDurationSeconds: existingEntry.duration_seconds ?? null,
+          audioMimeType: null,
+          audioFileName: null,
+        })
       }
-    } else {
-      // Reset content when mode changes or no existing entry
-      setIsDrawing(false)
-      if (mode === 'journal') {
-        setText('')
-        setDrawing([])
-        setAudioUri(null)
-        setAudioDurationSeconds(null)
-      } else if (mode === 'draw') {
-        setText('')
-        setDrawing([])
-        setAudioUri(null)
-        setAudioDurationSeconds(null)
-        // Scroll to response area when switching to draw mode
-        setTimeout(() => {
-          scrollToResponseArea()
-        }, 100)
-      } else if (mode === 'voice') {
-        setText('')
-        setDrawing([])
-        setAudioUri(null)
-        setAudioDurationSeconds(null)
-      }
+      return
     }
-  }, [existingEntry, currentPrompt, mode])
+
+    setIsDrawing(false)
+    if (!currentDraft) {
+      setDraft(draftKey, {
+        text: '',
+        drawing: [],
+        audioUri: null,
+        audioDurationSeconds: null,
+        audioMimeType: null,
+        audioFileName: null,
+      })
+    }
+
+    if (mode === 'draw') {
+      setTimeout(() => {
+        scrollToResponseArea()
+      }, 100)
+    }
+  }, [existingEntry, currentPrompt, mode, draftKey, currentDraft, setDraft])
 
   // Handle keyboard visibility to scroll to input
   useEffect(() => {
@@ -266,12 +304,6 @@ export function JournalPage() {
 
 
 
-  function handleViewHistory() {
-    playPageFlipSound()
-    // TODO: Navigate to resources with memories tab selected when tab parameter support is added
-    router.push('/resources')
-  }
-
   function matchesCurrentPrompt(entry: { prompt?: number | string; prompt_id?: string } | null) {
     if (!entry || !currentPrompt) return false
     if (entry.prompt != null && String(entry.prompt) === String(currentPrompt.id)) return true
@@ -286,6 +318,8 @@ export function JournalPage() {
       Alert.alert('No Prompt', 'No active prompt available.')
       return
     }
+
+    const savedDraftKey = draftKey
 
     // Validate based on mode
     if (mode === 'journal' && !text.trim()) {
@@ -342,6 +376,8 @@ export function JournalPage() {
         if (entriesResponse && typeof entriesResponse === 'object') {
           if ('data' in entriesResponse && Array.isArray(entriesResponse.data)) {
             entries = entriesResponse.data
+          } else if ('results' in entriesResponse && Array.isArray(entriesResponse.results)) {
+            entries = entriesResponse.results
           } else if (Array.isArray(entriesResponse)) {
             entries = entriesResponse
           }
@@ -351,7 +387,19 @@ export function JournalPage() {
         if (existingEntryForPrompt) {
           resolvedExistingEntry = existingEntryForPrompt
         }
-      } catch (lookupError) {
+      } catch {}
+    }
+
+    // For draw mode: capture canvas as PNG so we can upload it
+    let capturedImageUri: string | null = null
+    if (mode === 'draw' && drawingContainerRef.current) {
+      try {
+        capturedImageUri = await captureRef(drawingContainerRef.current, {
+          format: 'png',
+          result: 'tmpfile',
+        })
+      } catch (captureErr) {
+        console.warn('Could not capture drawing as PNG:', captureErr)
       }
     }
 
@@ -359,26 +407,57 @@ export function JournalPage() {
       // Check if we should update existing entry or create new one
       // If we have an existing entry for this prompt, update it (even if entry_type is different)
       if (resolvedExistingEntry && resolvedExistingEntry.id) {
-        // Update existing entry
-        await updateJournalEntry.mutateAsync({
-          id: String(resolvedExistingEntry.id),
-          data: {
-            content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
-            entry_type: mode,
-            duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
-          },
-        })
+        // Update existing entry: use multipart when we have image or audio to upload
+        const hasMediaToUpload = (mode === 'draw' && capturedImageUri) || (mode === 'voice' && audioUri)
+        const updatePayload = {
+          content,
+          entry_type: mode,
+          duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
+          imageUri: mode === 'draw' ? capturedImageUri ?? undefined : undefined,
+          audioUri: mode === 'voice' ? audioUri ?? undefined : undefined,
+          audioMimeType: mode === 'voice' ? audioMimeType ?? undefined : undefined,
+          audioFileName: mode === 'voice' ? audioFileName ?? undefined : undefined,
+        }
+        if (hasMediaToUpload) {
+          await updateJournalEntryWithMedia.mutateAsync({
+            id: String(resolvedExistingEntry.id),
+            data: updatePayload,
+          })
+        } else {
+          await updateJournalEntry.mutateAsync({
+            id: String(resolvedExistingEntry.id),
+            data: {
+              content,
+              entry_type: mode,
+              duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
+            },
+          })
+        }
         // Invalidate queries to refetch the entry
         queryClient.invalidateQueries({ queryKey: journalKeys.all })
         didSave = true
       } else {
-        // Create new entry
-        await createJournalEntry.mutateAsync({
-          prompt: currentPrompt.id,
-          entry_type: mode,
-          content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
-          duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
-        })
+        // Create new entry: use multipart when we have image or audio
+        const useMedia =
+          (mode === 'draw' && capturedImageUri) || (mode === 'voice' && audioUri)
+        if (useMedia) {
+          await createJournalEntryWithMedia.mutateAsync({
+            prompt: currentPrompt.id,
+            content: '', // optional; backend accepts blank for draw/voice
+            imageUri: mode === 'draw' ? capturedImageUri : undefined,
+            audioUri: mode === 'voice' ? audioUri ?? undefined : undefined,
+            audioMimeType: mode === 'voice' ? audioMimeType ?? undefined : undefined,
+            audioFileName: mode === 'voice' ? audioFileName ?? undefined : undefined,
+            // voice: backend accepts m4a, webm, mp3; defaults (audio/m4a, voice-memo.m4a) used if omitted
+          })
+        } else {
+          await createJournalEntry.mutateAsync({
+            prompt: currentPrompt.id,
+            entry_type: mode,
+            content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
+            duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
+          })
+        }
         didSave = true
       }
     } catch (error: any) {
@@ -395,6 +474,8 @@ export function JournalPage() {
           if (entriesResponse && typeof entriesResponse === 'object') {
             if ('data' in entriesResponse && Array.isArray(entriesResponse.data)) {
               entries = entriesResponse.data
+            } else if ('results' in entriesResponse && Array.isArray(entriesResponse.results)) {
+              entries = entriesResponse.results
             } else if (Array.isArray(entriesResponse)) {
               entries = entriesResponse
             }
@@ -403,22 +484,56 @@ export function JournalPage() {
           const existingEntryForPrompt = entries.find((e) => matchesCurrentPrompt(e))
 
           if (existingEntryForPrompt?.id) {
-            // If it already exists, treat as saved to avoid blocking the user
+            // Backend says already completed: update the existing entry with content and media (PNG/audio)
+            const hasMediaToUpload = (mode === 'draw' && capturedImageUri) || (mode === 'voice' && audioUri)
+            const updatePayload = {
+              content,
+              entry_type: mode,
+              duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
+              imageUri: mode === 'draw' ? capturedImageUri ?? undefined : undefined,
+              audioUri: mode === 'voice' ? audioUri ?? undefined : undefined,
+              audioMimeType: mode === 'voice' ? audioMimeType ?? undefined : undefined,
+              audioFileName: mode === 'voice' ? audioFileName ?? undefined : undefined,
+            }
+            if (hasMediaToUpload) {
+              await updateJournalEntryWithMedia.mutateAsync({
+                id: String(existingEntryForPrompt.id),
+                data: updatePayload,
+              })
+            } else {
+              await updateJournalEntry.mutateAsync({
+                id: String(existingEntryForPrompt.id),
+                data: { content, entry_type: mode, duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined },
+              })
+            }
             queryClient.invalidateQueries({ queryKey: journalKeys.all })
             didSave = true
             return
           }
 
-          // If entry doesn't exist, try a last-chance update when we have a known entry id
+          // If entry doesn't exist in list but we have it from query, try update by id
           if (existingEntry?.id) {
-            await updateJournalEntry.mutateAsync({
-              id: String(existingEntry.id),
-              data: {
-                content: mode === 'journal' ? content : `[${mode.toUpperCase()}] ${mode === 'draw' ? 'Drawing saved' : 'Voice memo saved'}`,
-                entry_type: mode,
-                duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
-              },
-            })
+            const hasMediaToUpload = (mode === 'draw' && capturedImageUri) || (mode === 'voice' && audioUri)
+            const updatePayload = {
+              content,
+              entry_type: mode,
+              duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined,
+              imageUri: mode === 'draw' ? capturedImageUri ?? undefined : undefined,
+              audioUri: mode === 'voice' ? audioUri ?? undefined : undefined,
+              audioMimeType: mode === 'voice' ? audioMimeType ?? undefined : undefined,
+              audioFileName: mode === 'voice' ? audioFileName ?? undefined : undefined,
+            }
+            if (hasMediaToUpload) {
+              await updateJournalEntryWithMedia.mutateAsync({
+                id: String(existingEntry.id),
+                data: updatePayload,
+              })
+            } else {
+              await updateJournalEntry.mutateAsync({
+                id: String(existingEntry.id),
+                data: { content, entry_type: mode, duration_seconds: mode === 'voice' ? audioDurationSeconds ?? 1 : undefined },
+              })
+            }
             queryClient.invalidateQueries({ queryKey: journalKeys.all })
             didSave = true
             return
@@ -450,9 +565,6 @@ export function JournalPage() {
     }
 
     // Note: API prompts don't have attributeChanges, so we skip that logic
-    const combinedChanges: JournalContent['attributeChanges'] = {}
-    setSavedAttributeChanges(combinedChanges)
-
     // Update journal progression
     if (!isLastPrompt) {
       // Move to next prompt
@@ -468,21 +580,23 @@ export function JournalPage() {
     if (isLastPrompt) {
       // Last prompt: Show confirmation, then navigate based on origin
       setTimeout(() => {
+        if (savedDraftKey) {
+          clearDraft(savedDraftKey)
+        }
         if (searchParams.from === 'story' || searchParams.from === 'resources') {
           router.back()
           return
         }
         router.replace('/hub')
-      }, 2500) // Give time to see confirmation and lumens reward
+      }, LAST_PROMPT_REWARD_DISPLAY_MS) // Give time to see confirmation and lumens reward
     } else {
       // Not last prompt: Reset form for next prompt after showing confirmation
       setTimeout(() => {
         setIsSaved(false)
-        setText('')
-        setDrawing([])
-        setAudioUri(null)
-        setAudioDurationSeconds(null)
-      }, 2000) // Show confirmation before resetting
+        if (savedDraftKey) {
+          clearDraft(savedDraftKey)
+        }
+      }, REWARD_DISPLAY_MS) // Show confirmation before resetting
     }
   }
 
@@ -491,7 +605,7 @@ export function JournalPage() {
       return (
         <JournalEntryCard
           value={text}
-          onChangeText={setText}
+          onChangeText={(value) => updateDraft({ text: value })}
           disabled={isSaving || isSaved}
         />
       )
@@ -499,10 +613,14 @@ export function JournalPage() {
 
     if (mode === 'draw') {
       return (
-        <View style={[journalPageStyles.drawingContainer, { minHeight: Math.min(420, SCREEN_HEIGHT * 0.42) }]}>
-          <DrawingCanvas 
-            value={drawing} 
-            onChange={setDrawing}
+        <View
+          ref={drawingContainerRef}
+          collapsable={false}
+          style={[journalPageStyles.drawingContainer, { minHeight: Math.min(420, SCREEN_HEIGHT * 0.42) }]}
+        >
+          <DrawingCanvas
+            value={drawing}
+            onChange={(value) => updateDraft({ drawing: value })}
             onDrawingStart={() => setIsDrawing(true)}
             onDrawingEnd={() => setIsDrawing(false)}
           />
@@ -514,9 +632,22 @@ export function JournalPage() {
       return (
         <View style={journalPageStyles.voiceContainer}>
           <VoiceMemoRecorder
-            onSave={({ uri, durationSeconds }) => {
-              setAudioUri(uri || null)
-              setAudioDurationSeconds(durationSeconds)
+            value={audioUri}
+            onSave={({ uri, durationSeconds, mimeType, fileName }) => {
+              updateDraft({
+                audioUri: uri || null,
+                audioDurationSeconds: durationSeconds,
+                audioMimeType: mimeType || null,
+                audioFileName: fileName || null,
+              })
+            }}
+            onClear={() => {
+              updateDraft({
+                audioUri: null,
+                audioDurationSeconds: null,
+                audioMimeType: null,
+                audioFileName: null,
+              })
             }}
           />
         </View>

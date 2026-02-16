@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react'
-import { View, Text as RNText, StyleSheet, Pressable, Animated, Image, ImageSourcePropType } from 'react-native'
+import { View, Text as RNText, StyleSheet, Pressable, Animated, ImageSourcePropType } from 'react-native'
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LINE_HEIGHTS } from './story-theme'
+import { ActionSceneImage } from './ActionSceneImage'
 
 export type RewardType = 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE' | 'LUMENS'
 
@@ -57,9 +58,20 @@ export function StoryRewardMoment({
     ]).start()
   }, [fadeAnim, scaleAnim])
 
-  const primaryColor = theme?.primary || '#FFD700'
+  const defaultPrimaryColor =
+    type === 'JOURNAL_REWARD'
+      ? '#779ba1'
+      : type === 'MINIGAME'
+      ? STORY_COLORS.minigameLabel
+      : '#FFD700'
+  const primaryColor = theme?.primary || defaultPrimaryColor
   const textColor = theme?.text || 'rgba(255, 255, 255, 0.9)'
-  const accentColor = `rgba(255, 215, 0, 0.3)`
+  const accentColor =
+    type === 'JOURNAL_REWARD'
+      ? 'rgba(119, 155, 161, 0.3)'
+      : type === 'MINIGAME'
+      ? STORY_COLORS.minigameBorder
+      : 'rgba(255, 215, 0, 0.3)'
 
   function handlePress() {
     if (onPress) {
@@ -158,7 +170,7 @@ export function StoryRewardMoment({
       case 'JOURNAL_REWARD':
         return 'Tap to document this moment'
       case 'MINIGAME':
-        return 'Tap to seal the Void'
+        return 'Tap to play Thought Defender'
       case 'POWER':
         return 'Tap to unlock a new power'
       case 'ITEM':
@@ -189,18 +201,13 @@ export function StoryRewardMoment({
       {/* Action Scene Image */}
       {shouldShowImage && (
         <View style={styles.actionImageContainer}>
-          {resolvedImageSource ? (
-            <>
-              <Image
-                source={resolvedImageSource}
-                style={styles.actionImage}
-                resizeMode="cover"
-                onError={(error) => {
-                  console.warn('[StoryRewardMoment] Failed to load reward image', error)
-                }}
-              />
-              <View style={styles.actionImageOverlay} />
-            </>
+          {resolvedImageSource &&
+          typeof resolvedImageSource === 'object' &&
+          'uri' in resolvedImageSource ? (
+            <ActionSceneImage
+              source={resolvedImageSource as { uri: string }}
+              showOverlay
+            />
           ) : (
             <View style={styles.actionImagePlaceholder}>
               <RNText style={styles.actionImagePlaceholderText}>No Image Available</RNText>
@@ -353,20 +360,11 @@ const styles = StyleSheet.create({
   },
   actionImageContainer: {
     width: '100%',
-    height: 200,
+    minHeight: 48,
     marginBottom: STORY_SPACING.lg,
     borderRadius: STORY_BORDER_RADIUS.lg,
     overflow: 'hidden',
     position: 'relative',
-  },
-  actionImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  actionImageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   actionImagePlaceholder: {
     width: '100%',

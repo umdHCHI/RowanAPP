@@ -1,5 +1,4 @@
 import { View, Image, StyleSheet } from 'react-native'
-import { ImageSourcePropType } from 'react-native'
 import {
   getBaseAsset,
   getBackgroundAsset,

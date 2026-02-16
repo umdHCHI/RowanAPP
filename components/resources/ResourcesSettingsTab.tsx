@@ -5,7 +5,7 @@ import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useGameStore } from '@/stores/game-store'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
-import { useAuthActions, useMyCharacter } from '@/api'
+import { useAuthActions, useGameMyData, useMyCharacter } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useNotifications } from '@/hooks'
 import { useQueryClient } from '@tanstack/react-query'
@@ -35,6 +35,7 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
     updateNotificationTime,
   } = useNotifications()
   const { data: myCharacter } = useMyCharacter()
+  const { data: gameData } = useGameMyData()
   const [isNotificationTimeOpen, setIsNotificationTimeOpen] = useState(false)
   const [draftNotificationTime, setDraftNotificationTime] = useState<NotificationTime>({ hour: 9, minute: 0 })
 
@@ -46,7 +47,10 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
   }, [avatarConfigProp, profileData?.profile?.character])
 
   const experienceLumens =
-    myCharacter?.experience ?? profileData?.profile?.character?.experience ?? lumens
+    gameData?.progression_snapshot?.lumens_total ??
+    lumens ??
+    myCharacter?.experience ??
+    profileData?.profile?.character?.experience
 
   function handleChangeCharacter() {
     playPageFlipSound()

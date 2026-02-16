@@ -1,10 +1,10 @@
-import * as Haptics from 'expo-haptics'
+import * as Haptics from "expo-haptics";
 
 export function useHaptics() {
   function lightImpact() {
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    } catch (error) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
       // Haptics not supported on this platform (e.g., web)
       // Silently fail to prevent crashes
     }
@@ -12,8 +12,8 @@ export function useHaptics() {
 
   function mediumImpact() {
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-    } catch (error) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {
       // Haptics not supported on this platform (e.g., web)
       // Silently fail to prevent crashes
     }
@@ -21,8 +21,8 @@ export function useHaptics() {
 
   function heavyImpact() {
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
-    } catch (error) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } catch {
       // Haptics not supported on this platform (e.g., web)
       // Silently fail to prevent crashes
     }
@@ -30,8 +30,8 @@ export function useHaptics() {
 
   function selection() {
     try {
-      Haptics.selectionAsync()
-    } catch (error) {
+      Haptics.selectionAsync();
+    } catch {
       // Haptics not supported on this platform (e.g., web)
       // Silently fail to prevent crashes
     }
@@ -39,8 +39,8 @@ export function useHaptics() {
 
   function success() {
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
       // Haptics not supported on this platform (e.g., web)
       // Silently fail to prevent crashes
     }
@@ -48,8 +48,8 @@ export function useHaptics() {
 
   function error() {
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch {
       // Haptics not supported on this platform (e.g., web)
       // Silently fail to prevent crashes
     }
@@ -57,8 +57,8 @@ export function useHaptics() {
 
   function warning() {
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
-    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } catch {
       // Haptics not supported on this platform (e.g., web)
       // Silently fail to prevent crashes
     }
@@ -72,9 +72,5 @@ export function useHaptics() {
     success,
     error,
     warning,
-  }
+  };
 }
-
-
-
-

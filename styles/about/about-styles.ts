@@ -1,11 +1,10 @@
-import { StyleSheet, Dimensions, Platform } from 'react-native'
-import { colors } from '@/theme/design-tokens'
-
+import { StyleSheet, Dimensions, Platform } from "react-native";
+import { colors } from "@/theme/design-tokens";
 
 export const aboutStyles = StyleSheet.create({
   screen: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
   },
   scrollView: {
     flex: 1,
@@ -22,7 +21,7 @@ export const aboutStyles = StyleSheet.create({
     marginBottom: 32,
   },
   buttonContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 24,
   },
   creditsSection: {
@@ -32,8 +31,8 @@ export const aboutStyles = StyleSheet.create({
   creditsSectionContainer: {
     borderRadius: 24,
     backgroundColor: colors.void.dark,
-    minHeight: Dimensions.get('window').height * 0.55,
-    overflow: 'hidden',
+    minHeight: Dimensions.get("window").height * 0.55,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.archive.borderSubtle,
     ...Platform.select({
@@ -49,9 +48,9 @@ export const aboutStyles = StyleSheet.create({
     }),
   },
   creditsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
     marginBottom: 12,
     paddingTop: 12,
@@ -63,20 +62,20 @@ export const aboutStyles = StyleSheet.create({
     gap: 16,
   },
   creditCard: {
-    width: '100%',
+    width: "100%",
   },
   creditValueContainer: {
     marginBottom: 8,
   },
   creditNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 8,
     gap: 8,
   },
   creditIndicator: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
     width: 8,
@@ -118,8 +117,13 @@ export const aboutStyles = StyleSheet.create({
     backgroundColor: colors.archive.backgroundDark,
     borderWidth: 1,
     borderColor: colors.archive.borderSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
   },
   smallAvatar: {
     width: 32,
@@ -127,19 +131,19 @@ export const aboutStyles = StyleSheet.create({
     borderRadius: 8,
   },
   developerList: {
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
     gap: 6,
     marginTop: 8,
     marginBottom: 8,
   },
   developerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    width: '100%',
-    justifyContent: 'center',
+    width: "100%",
+    justifyContent: "center",
   },
-})
+});
 
-export default aboutStyles
+export default aboutStyles;

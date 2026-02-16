@@ -5,12 +5,46 @@ import { Card } from '@/components/ui/Card'
 import type { StoryInformationCardProps } from '@/types/resources/resources'
 import { storyInformationCardStyles as styles } from '@/styles/resources/resources-styles'
 
-export function StoryInformationCard({ story, progress }: StoryInformationCardProps) {
+function normalizeStoryThemes(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const trimmed = value.trim()
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((item) => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0)
+      }
+    } catch {
+      return trimmed
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    }
+  }
+
+  return []
+}
+
+export function StoryInformationCard({
+  story,
+  progress,
+  npcInteractions: npcInteractionsOverride,
+  npcName,
+}: StoryInformationCardProps) {
   const titleLower = String(story.title ?? '').toLowerCase()
   const isIntroduction = titleLower.includes('introduction')
   const label = isIntroduction ? 'INTRODUCTION' : `STORY ${story.id}`
 
-  const npcInteractions = useMemo(() => {
+  const npcInteractionsFromProgress = useMemo(() => {
     const choices = progress?.choices_made ?? []
     if (!choices.length) return 0
     return choices.filter((choice) => {
@@ -25,6 +59,16 @@ export function StoryInformationCard({ story, progress }: StoryInformationCardPr
       )
     }).length
   }, [progress?.choices_made])
+
+  const npcInteractions =
+    typeof npcInteractionsOverride === 'number'
+      ? npcInteractionsOverride
+      : npcInteractionsFromProgress
+  const normalizedStoryThemes = normalizeStoryThemes(story.story_themes)
+  const storyThemes =
+    normalizedStoryThemes.length > 0
+      ? normalizedStoryThemes
+      : story.revelations ?? []
 
   return (
     <Card variant="default" padding={24} fullWidth>
@@ -67,6 +111,13 @@ export function StoryInformationCard({ story, progress }: StoryInformationCardPr
             <Text variant="body" size={1} style={styles.detailValue}>
               {npcInteractions}
             </Text>
+            {npcName && (
+              <View style={styles.npcInfoRow}>
+                <Text variant="body" size={1} style={styles.npcName}>
+                  {npcName}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.detailItem}>
@@ -91,22 +142,22 @@ export function StoryInformationCard({ story, progress }: StoryInformationCardPr
         </View>
       )}
 
-      {story.revelations && story.revelations.length > 0 && (
+      {storyThemes.length > 0 && (
         <View style={styles.section}>
           <Text variant="label" style={styles.sectionLabel}>
             Content Warnings
           </Text>
           <View style={styles.revelationsContainer}>
-            {story.revelations.slice(0, 3).map((revelation, index) => (
+            {storyThemes.slice(0, 3).map((revelation, index) => (
               <View key={index} style={styles.revelationItem}>
                 <Text variant="body" size={1} style={styles.revelationText}>
                   • {revelation}
                 </Text>
               </View>
             ))}
-            {story.revelations.length > 3 && (
+            {storyThemes.length > 3 && (
               <Text variant="body" size={1} style={styles.moreText}>
-                +{story.revelations.length - 3} more
+                +{storyThemes.length - 3} more
               </Text>
             )}
           </View>

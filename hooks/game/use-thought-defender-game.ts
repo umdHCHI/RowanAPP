@@ -24,8 +24,17 @@
  *   - Fragments have TTL and fade out
  */
 
-import { useCallback, useEffect, useMemo, useRef, useReducer, type RefObject } from 'react'
-import { shallow } from 'zustand/shallow'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useReducer,
+  type RefObject,
+} from "react";
+import { Platform } from "react-native";
+import Constants from "expo-constants";
+import { shallow } from "zustand/shallow";
 import {
   createVantageGameStore,
   createVantageDirector,
@@ -35,9 +44,13 @@ import {
   createVantageCollisionEngine,
   createVantageLoopController,
   useVantageFragments,
-} from './vantage/index'
-import type { StoreApi } from 'zustand'
-import { GAME_CONFIG, DIFFICULTY_CONFIGS, type Difficulty } from '@/utils/vantage-constants'
+} from "./vantage/index";
+import type { StoreApi } from "zustand";
+import {
+  GAME_CONFIG,
+  DIFFICULTY_CONFIGS,
+  type Difficulty,
+} from "@/utils/vantage-constants";
 import type {
   Projectile,
   EnemyProjectile,
@@ -48,57 +61,80 @@ import type {
   ThoughtEcho,
   ConqueredThought,
   Fragment,
-} from '@/types/game'
-import type { UseVantageGameResult, VantageGameStore, VantageGameState } from '@/types/hooks'
+} from "@/types/game";
+import type {
+  UseVantageGameResult,
+  VantageGameStore,
+  VantageGameState,
+} from "@/types/hooks";
+import type { DdaFinal, DdaSnapshot, VantageRunStats } from "@/types/game";
+import { useDdaGameStore } from "@/stores/dda-game-store";
+
+function generateRunId(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 function useThrottledStore<S, T>(
   store: StoreApi<S>,
   selector: (state: S) => T,
   equalityFn: (a: T, b: T) => boolean,
-  throttleMs: number = GAME_CONFIG.RENDER_THROTTLE_MS
+  throttleMs: number = GAME_CONFIG.RENDER_THROTTLE_MS,
 ): T {
-  const [, forceUpdate] = useReducer((n: number) => n + 1, 0)
-  const lastRef = useRef<T>(selector(store.getState()))
-  const selectorRef = useRef(selector)
-  const equalityRef = useRef(equalityFn)
-  selectorRef.current = selector
-  equalityRef.current = equalityFn
+  const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
+  const lastRef = useRef<T>(selector(store.getState()));
+  const selectorRef = useRef(selector);
+  const equalityRef = useRef(equalityFn);
+  selectorRef.current = selector;
+  equalityRef.current = equalityFn;
 
   useEffect(() => {
-    let pending = false
-    let tid: ReturnType<typeof setTimeout> | null = null
+    let pending = false;
+    let tid: ReturnType<typeof setTimeout> | null = null;
     const unsub = store.subscribe(() => {
-      if (pending) return
-      pending = true
+      if (pending) return;
+      pending = true;
       tid = setTimeout(() => {
-        pending = false
-        const next = selectorRef.current(store.getState())
+        pending = false;
+        const next = selectorRef.current(store.getState());
         if (!equalityRef.current(lastRef.current, next)) {
-          lastRef.current = next
-          forceUpdate()
+          lastRef.current = next;
+          forceUpdate();
         }
-      }, throttleMs)
-    })
+      }, throttleMs);
+    });
     return () => {
-      unsub()
-      if (tid != null) clearTimeout(tid)
-    }
-  }, [store, throttleMs])
+      unsub();
+      if (tid != null) clearTimeout(tid);
+    };
+  }, [store, throttleMs]);
 
-  return selector(store.getState())
+  return selector(store.getState());
 }
 
 interface UseVantageGameOptions {
-  gameWidth: number
-  gameHeight: number
-  difficulty: Difficulty
-  onGameOver: (score: number, won: boolean, bossDefeated: boolean) => void
-  ddaMetricsRef?: RefObject<{
-    formationTickMultiplier: number
-    moveSpeed: number
-    powerUpChance: number
-    pressureScore: number
-  } | undefined>
+  gameWidth: number;
+  gameHeight: number;
+  difficulty: Difficulty;
+  isTutorialLevelZero?: boolean;
+  onGameOver: (
+    score: number,
+    won: boolean,
+    bossDefeated: boolean,
+    runStats?: VantageRunStats,
+  ) => void;
+  ddaMetricsRef?: RefObject<
+    | {
+        formationTickMultiplier: number;
+        moveSpeed: number;
+        powerUpChance: number;
+        pressureScore: number;
+      }
+    | undefined
+  >;
 }
 
 /**
@@ -109,25 +145,27 @@ export function useVantageGame({
   gameWidth,
   gameHeight,
   difficulty,
+  isTutorialLevelZero = false,
   onGameOver,
   ddaMetricsRef,
 }: UseVantageGameOptions): UseVantageGameResult {
-  const difficultyConfig = DIFFICULTY_CONFIGS[difficulty]
-  const getPlayerStartX = () => gameWidth / 2 - GAME_CONFIG.PLAYER_WIDTH / 2
+  const difficultyConfig = DIFFICULTY_CONFIGS[difficulty];
+  const getPlayerStartX = () => gameWidth / 2 - GAME_CONFIG.PLAYER_WIDTH / 2;
   const getPlayerY = useCallback(
-    () => gameHeight - GAME_CONFIG.PLAYER_BOTTOM_OFFSET - GAME_CONFIG.PLAYER_HEIGHT,
-    [gameHeight]
-  )
+    () =>
+      gameHeight - GAME_CONFIG.PLAYER_BOTTOM_OFFSET - GAME_CONFIG.PLAYER_HEIGHT,
+    [gameHeight],
+  );
 
-  const storeRef = useRef<VantageGameStore | null>(null)
+  const storeRef = useRef<VantageGameStore | null>(null);
   if (!storeRef.current) {
     storeRef.current = createVantageGameStore({
       playerStartX: getPlayerStartX(),
       initialLives: difficultyConfig.initialLives,
       initialFormationTickMs: difficultyConfig.formationTickMs,
-    })
+    });
   }
-  const store = storeRef.current
+  const store = storeRef.current;
 
   const {
     setPlayerX,
@@ -158,7 +196,7 @@ export function useVantageGame({
     setFormationTickMs,
     setWave,
     setWaveDefeatedPatterns,
-  } = store.getState()
+  } = store.getState();
 
   const {
     playerX,
@@ -219,65 +257,82 @@ export function useVantageGame({
       wave: state.wave,
       waveDefeatedPatterns: state.waveDefeatedPatterns,
     }),
-    shallow
-  )
+    shallow,
+  );
 
-  const playerXRef = useRef<number>(getPlayerStartX())
-  const targetPlayerXRef = useRef<number>(getPlayerStartX())
-  const velocityRef = useRef<number>(0)
+  const playerXRef = useRef<number>(getPlayerStartX());
+  const targetPlayerXRef = useRef<number>(getPlayerStartX());
+  const velocityRef = useRef<number>(0);
 
-  const projectilesSpawnedRef = useRef<number>(0)
-  const thoughtsDestroyedRef = useRef<number>(0)
-  const lastEnemyDestroyedAtRef = useRef<number>(0)
-  const bossHitsRef = useRef<number[]>([])
-  const lastBossHitAtRef = useRef<number>(0)
-  const fragmentTTLRef = useRef<Map<string, number>>(new Map())
-  const formationDirRef = useRef<1 | -1>(1)
-  const projectilesClearedForWaveRef = useRef<number>(0)
-  const animationFrameRef = useRef<number | null>(null)
-  const defeatedThoughtIdsRef = useRef<Set<string>>(new Set())
-  const lastShotAtRef = useRef<number>(0)
-  const gameStartTimeRef = useRef<number>(0)
-  const playerHpFractionRef = useRef<number>(0)
-  const formationTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const powerUpTimersRef = useRef<Map<PowerUpType, NodeJS.Timeout>>(new Map())
-  const bossFormationTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const bossVelocityXRef = useRef<number>(3)
-  const bossVelocityYRef = useRef<number>(2)
-  const bossNextFireAtRef = useRef<number>(0)
-  const bossBurstRemainingRef = useRef<number>(0)
-  const bossNextBurstShotAtRef = useRef<number>(0)
-  const bossBurstCountRef = useRef<number>(0)
-  const headerPressCountRef = useRef<number>(0)
-  const headerPressTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const lastDebugLogRef = useRef<number>(0)
-  const enemyFireTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const enemyNextFireAtRef = useRef<number>(0)
-  const thoughtEchoTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
-  const thoughtEchoCooldownRef = useRef<Map<string, number>>(new Map())
-  const bossLoopStarterRef = useRef<() => void>(() => {})
-  const fragmentGlobalCooldownRef = useRef<number>(0)
-  const fragmentPhraseCooldownRef = useRef<Map<string, number>>(new Map())
+  const projectilesSpawnedRef = useRef<number>(0);
+  const thoughtsDestroyedRef = useRef<number>(0);
+  const lastEnemyDestroyedAtRef = useRef<number>(0);
+  const bossHitsRef = useRef<number[]>([]);
+  const lastBossHitAtRef = useRef<number>(0);
+  const fragmentTTLRef = useRef<Map<string, number>>(new Map());
+  const formationDirRef = useRef<1 | -1>(1);
+  const projectilesClearedForWaveRef = useRef<number>(0);
+  const animationFrameRef = useRef<number | null>(null);
+  const defeatedThoughtIdsRef = useRef<Set<string>>(new Set());
+  const lastShotAtRef = useRef<number>(0);
+  const gameStartTimeRef = useRef<number>(0);
+  const playerHpFractionRef = useRef<number>(0);
+  const formationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const powerUpTimersRef = useRef<Map<PowerUpType, NodeJS.Timeout>>(new Map());
+  const bossFormationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bossVelocityXRef = useRef<number>(3);
+  const bossVelocityYRef = useRef<number>(2);
+  const bossNextFireAtRef = useRef<number>(0);
+  const bossBurstRemainingRef = useRef<number>(0);
+  const bossNextBurstShotAtRef = useRef<number>(0);
+  const bossBurstCountRef = useRef<number>(0);
+  const runIdRef = useRef<string>("");
+  const runStartTimestampRef = useRef<number>(0);
+  const endGameLockedRef = useRef<boolean>(false);
+  const projectileIdRef = useRef<number>(0);
+  const headerPressCountRef = useRef<number>(0);
+  const headerPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDebugLogRef = useRef<number>(0);
+  const enemyFireTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const enemyNextFireAtRef = useRef<number>(0);
+  const tutorialEnemyReleaseAtRef = useRef<number>(0);
+  const thoughtEchoTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const thoughtEchoCooldownRef = useRef<Map<string, number>>(new Map());
+  const bossLoopStarterRef = useRef<() => void>(() => {});
+  const fragmentGlobalCooldownRef = useRef<number>(0);
+  const fragmentPhraseCooldownRef = useRef<Map<string, number>>(new Map());
+  const ddaSnapshotsRef = useRef<DdaSnapshot[]>([]);
+  const ddaSnapshotIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSnapshotCountsRef = useRef<{
+    shots: number;
+    kills: number;
+    hits: number;
+  }>({
+    shots: 0,
+    kills: 0,
+    hits: 0,
+  });
+  const totalHitsTakenRef = useRef<number>(0);
 
-  const negativeThoughtsRef = useRef<NegativeThought[]>([])
-  const projectilesRef = useRef<Projectile[]>([])
-  const enemyProjectilesRef = useRef<EnemyProjectile[]>([])
-  const powerUpsRef = useRef<PowerUp[]>([])
-  const bossRef = useRef<Boss | null>(null)
-  const shieldActiveRef = useRef<boolean>(false)
-  const fragmentsRef = useRef<Fragment[]>([])
-  const thoughtEchoesRef = useRef<ThoughtEcho[]>([])
+  const negativeThoughtsRef = useRef<NegativeThought[]>([]);
+  const projectilesRef = useRef<Projectile[]>([]);
+  const enemyProjectilesRef = useRef<EnemyProjectile[]>([]);
+  const powerUpsRef = useRef<PowerUp[]>([]);
+  const bossRef = useRef<Boss | null>(null);
+  const shieldActiveRef = useRef<boolean>(false);
+  const fragmentsRef = useRef<Fragment[]>([]);
+  const thoughtEchoesRef = useRef<ThoughtEcho[]>([]);
 
   useEffect(() => {
-    playerXRef.current = playerX
-    negativeThoughtsRef.current = negativeThoughts
-    projectilesRef.current = projectiles
-    enemyProjectilesRef.current = enemyProjectiles
-    powerUpsRef.current = powerUps
-    bossRef.current = boss
-    shieldActiveRef.current = shieldActive
-    fragmentsRef.current = fragments
-    thoughtEchoesRef.current = thoughtEchoes
+    playerXRef.current = playerX;
+    negativeThoughtsRef.current = negativeThoughts;
+    projectilesRef.current = projectiles;
+    enemyProjectilesRef.current = enemyProjectiles;
+    powerUpsRef.current = powerUps;
+    bossRef.current = boss;
+    shieldActiveRef.current = shieldActive;
+    fragmentsRef.current = fragments;
+    thoughtEchoesRef.current = thoughtEchoes;
   }, [
     playerX,
     negativeThoughts,
@@ -288,133 +343,235 @@ export function useVantageGame({
     shieldActive,
     fragments,
     thoughtEchoes,
-  ])
+  ]);
 
   useEffect(() => {
     if (gameWidth > 0 && gameHeight > 0) {
-      const newX = gameWidth / 2 - GAME_CONFIG.PLAYER_WIDTH / 2
-      playerXRef.current = newX
-      targetPlayerXRef.current = newX
-      setPlayerX(newX)
+      const newX = gameWidth / 2 - GAME_CONFIG.PLAYER_WIDTH / 2;
+      playerXRef.current = newX;
+      targetPlayerXRef.current = newX;
+      setPlayerX(newX);
     }
-  }, [gameWidth, gameHeight])
+  }, [gameWidth, gameHeight]);
+
+  const captureDdaSnapshot = useCallback(() => {
+    const ddaState = useDdaGameStore.getState();
+    const metrics = ddaState.metrics;
+    if (!metrics || !runStartTimestampRef.current) return;
+
+    const now = Date.now();
+    const elapsedMs = Math.max(0, now - runStartTimestampRef.current);
+    const currentState = store.getState();
+    const shots = projectilesSpawnedRef.current;
+    const kills = thoughtsDestroyedRef.current;
+    const hits = totalHitsTakenRef.current;
+    const last = lastSnapshotCountsRef.current;
+
+    const snapshot: DdaSnapshot = {
+      elapsed_ms: elapsedMs,
+      difficulty_level: metrics.difficultyLevel,
+      pressure_score: metrics.pressureScore,
+      emotional_intensity: metrics.emotionalIntensity,
+      formation_tick_multiplier: metrics.formationTickMultiplier,
+      move_speed: metrics.moveSpeed,
+      power_up_chance: metrics.powerUpChance,
+      lives_remaining: currentState.lives,
+      score: currentState.score,
+      shots_delta: Math.max(0, shots - last.shots),
+      kills_delta: Math.max(0, kills - last.kills),
+      hits_delta: Math.max(0, hits - last.hits),
+    };
+
+    lastSnapshotCountsRef.current = { shots, kills, hits };
+    ddaSnapshotsRef.current.push(snapshot);
+  }, [store]);
 
   const endGame = useCallback(
     (won: boolean, bossDefeated: boolean) => {
-      const latestScore = store.getState().score
-      setGameOver(true)
-      setIsPlaying(false)
-      onGameOver(latestScore, won, bossDefeated)
+      if (endGameLockedRef.current) return;
+      endGameLockedRef.current = true;
+      const state = store.getState();
+      const latestScore = state.score;
+      captureDdaSnapshot();
+      if (ddaSnapshotIntervalRef.current) {
+        clearInterval(ddaSnapshotIntervalRef.current);
+        ddaSnapshotIntervalRef.current = null;
+      }
+      const ddaState = useDdaGameStore.getState();
+      const finalDifficulty =
+        ddaState.metrics?.difficultyLevel ?? ddaState.difficultyLevel;
+      const finalPressure =
+        ddaState.metrics?.pressureScore ?? ddaState.pressureScore;
+      const finalEmotionalIntensity =
+        ddaState.metrics?.emotionalIntensity ?? ddaState.emotionalIntensity;
+      const appVersion =
+        (Constants?.expoConfig as { version?: string } | undefined)?.version ??
+        (Constants as { manifest?: { version?: string } } | undefined)?.manifest
+          ?.version;
+      const ddaFinal: DdaFinal = {
+        total_shots: projectilesSpawnedRef.current,
+        total_kills: thoughtsDestroyedRef.current,
+        total_hits_taken: totalHitsTakenRef.current,
+        final_difficulty: finalDifficulty,
+        final_pressure: finalPressure,
+        final_emotional_intensity: finalEmotionalIntensity,
+        device_platform: Platform.OS,
+        app_version: appVersion,
+      };
+      setGameOver(true);
+      setIsPlaying(false);
+      const endedAt = Date.now();
+      const runStats: VantageRunStats = {
+        runId: runIdRef.current,
+        levelReached: state.wave,
+        thoughtsReframed: state.conqueredThoughts?.length ?? 0,
+        thoughtsDefeated: state.defeatedNegativeThoughts?.length ?? 0,
+        projectilesSpawned: projectilesSpawnedRef.current,
+        thoughtsDestroyed: thoughtsDestroyedRef.current,
+        totalHitsTaken: totalHitsTakenRef.current,
+        ddaFinal,
+        ddaSnapshots: ddaSnapshotsRef.current,
+        startedAt: new Date(runStartTimestampRef.current).toISOString(),
+        endedAt: new Date(endedAt).toISOString(),
+        durationMs: Math.round(endedAt - runStartTimestampRef.current),
+      };
+      onGameOver(latestScore, won, bossDefeated, runStats);
     },
-    [store, setGameOver, setIsPlaying, onGameOver]
-  )
+    [store, setGameOver, setIsPlaying, onGameOver],
+  );
 
   const handlePlayerHit = useCallback(
     (damage: number = 1.0) => {
-      const now = Date.now()
-      if (now < playerIFrameUntil) return
+      const now = Date.now();
+      if (now < playerIFrameUntil) return;
       if (shieldActiveRef.current) {
-        shieldActiveRef.current = false
-        setShieldActive(false)
-        return
+        shieldActiveRef.current = false;
+        setShieldActive(false);
+        return;
       }
-      playerHpFractionRef.current += damage
-      const uniqueHitTimestamp = now + Math.random() * 0.1
-      const fullDamage = Math.floor(playerHpFractionRef.current)
+      playerHpFractionRef.current += damage;
+      const uniqueHitTimestamp = now + Math.random() * 0.1;
+      const fullDamage = Math.floor(playerHpFractionRef.current);
       if (fullDamage >= 1) {
-        playerHpFractionRef.current -= fullDamage
+        playerHpFractionRef.current -= fullDamage;
+        totalHitsTakenRef.current += fullDamage;
         setPlayerHp((hp) => {
-          const newHp = hp - fullDamage
+          const newHp = hp - fullDamage;
           if (newHp <= 0) {
-            endGame(false, false)
-            return 0
+            endGame(false, false);
+            return 0;
           }
-          setPlayerIFrameUntil(now + GAME_CONFIG.PLAYER_IFRAME_DURATION_MS)
-          setPlayerLastHitAt(uniqueHitTimestamp)
-          return newHp
-        })
+          setPlayerIFrameUntil(now + GAME_CONFIG.PLAYER_IFRAME_DURATION_MS);
+          setPlayerLastHitAt(uniqueHitTimestamp);
+          return newHp;
+        });
         setLives((l) => {
-          const newLives = l - fullDamage
+          const newLives = l - fullDamage;
           if (newLives <= 0) {
-            endGame(false, false)
-            return 0
+            endGame(false, false);
+            return 0;
           }
-          return newLives
-        })
+          return newLives;
+        });
       } else {
-        setPlayerLastHitAt(uniqueHitTimestamp)
+        setPlayerLastHitAt(uniqueHitTimestamp);
       }
     },
-    [endGame, playerIFrameUntil, setLives, setPlayerHp, setPlayerIFrameUntil, setPlayerLastHitAt, setShieldActive]
-  )
+    [
+      endGame,
+      playerIFrameUntil,
+      setLives,
+      setPlayerHp,
+      setPlayerIFrameUntil,
+      setPlayerLastHitAt,
+      setShieldActive,
+    ],
+  );
 
   const handlePowerUp = useCallback(
     (type: PowerUpType) => {
-      const existingTimer = powerUpTimersRef.current.get(type)
-      if (existingTimer) clearTimeout(existingTimer)
+      const existingTimer = powerUpTimersRef.current.get(type);
+      if (existingTimer) clearTimeout(existingTimer);
       switch (type) {
-        case 'extraLife':
-          setLives((l) => l + 1)
-          break
-        case 'slowTime': {
-          setGameSpeed(GAME_CONFIG.SLOW_TIME_SPEED_MULTIPLIER)
+        case "extraLife":
+          setLives((l) => l + 1);
+          break;
+        case "slowTime": {
+          setGameSpeed(GAME_CONFIG.SLOW_TIME_SPEED_MULTIPLIER);
           const slowTimer = setTimeout(() => {
-            setGameSpeed(GAME_CONFIG.DEFAULT_GAME_SPEED)
-            powerUpTimersRef.current.delete('slowTime')
-          }, GAME_CONFIG.SLOW_TIME_DURATION)
-          powerUpTimersRef.current.set('slowTime', slowTimer)
-          break
+            setGameSpeed(GAME_CONFIG.DEFAULT_GAME_SPEED);
+            powerUpTimersRef.current.delete("slowTime");
+          }, GAME_CONFIG.SLOW_TIME_DURATION);
+          powerUpTimersRef.current.set("slowTime", slowTimer);
+          break;
         }
-        case 'fastShoot': {
-          setFastShootActive(true)
+        case "fastShoot": {
+          setFastShootActive(true);
           const fastTimer = setTimeout(() => {
-            setFastShootActive(false)
-            powerUpTimersRef.current.delete('fastShoot')
-          }, GAME_CONFIG.FAST_SHOOT_DURATION)
-          powerUpTimersRef.current.set('fastShoot', fastTimer)
-          break
+            setFastShootActive(false);
+            powerUpTimersRef.current.delete("fastShoot");
+          }, GAME_CONFIG.FAST_SHOOT_DURATION);
+          powerUpTimersRef.current.set("fastShoot", fastTimer);
+          break;
         }
-        case 'multishot': {
-          setMultishotActive(true)
+        case "multishot": {
+          setMultishotActive(true);
           const multiTimer = setTimeout(() => {
-            setMultishotActive(false)
-            powerUpTimersRef.current.delete('multishot')
-          }, GAME_CONFIG.MULTISHOT_DURATION)
-          powerUpTimersRef.current.set('multishot', multiTimer)
-          break
+            setMultishotActive(false);
+            powerUpTimersRef.current.delete("multishot");
+          }, GAME_CONFIG.MULTISHOT_DURATION);
+          powerUpTimersRef.current.set("multishot", multiTimer);
+          break;
         }
-        case 'multiplier':
-          setScore((s) =>
-            s + Math.floor(GAME_CONFIG.SCORE_MULTIPLIER_BONUS * difficultyConfig.scoreMultiplier)
-          )
-          break
-        case 'shield': {
-          setShieldActive(true)
+        case "multiplier":
+          setScore(
+            (s) =>
+              s +
+              Math.floor(
+                GAME_CONFIG.SCORE_MULTIPLIER_BONUS *
+                  difficultyConfig.scoreMultiplier,
+              ),
+          );
+          break;
+        case "shield": {
+          setShieldActive(true);
           const shieldTimer = setTimeout(() => {
-            setShieldActive(false)
-            powerUpTimersRef.current.delete('shield')
-          }, GAME_CONFIG.SHIELD_DURATION)
-          powerUpTimersRef.current.set('shield', shieldTimer)
-          break
+            setShieldActive(false);
+            powerUpTimersRef.current.delete("shield");
+          }, GAME_CONFIG.SHIELD_DURATION);
+          powerUpTimersRef.current.set("shield", shieldTimer);
+          break;
         }
       }
     },
-    [difficultyConfig, setFastShootActive, setGameSpeed, setLives, setMultishotActive, setScore, setShieldActive]
-  )
+    [
+      difficultyConfig,
+      setFastShootActive,
+      setGameSpeed,
+      setLives,
+      setMultishotActive,
+      setScore,
+      setShieldActive,
+    ],
+  );
 
-  const director = useMemo(() => createVantageDirector(ddaMetricsRef), [ddaMetricsRef])
+  const director = useMemo(
+    () => createVantageDirector(ddaMetricsRef),
+    [ddaMetricsRef],
+  );
 
-  const { spawnFragments, updateFragments, handleFragmentTap } = useVantageFragments({
-    store,
-    gameWidth,
-    gameHeight,
-    director,
-    playerXRef,
-    getPlayerY,
-    fragmentTTLRef,
-    fragmentGlobalCooldownRef,
-    fragmentPhraseCooldownRef,
-  })
+  const { spawnFragments, updateFragments, handleFragmentTap } =
+    useVantageFragments({
+      store,
+      gameWidth,
+      gameHeight,
+      director,
+      playerXRef,
+      getPlayerY,
+      fragmentTTLRef,
+      fragmentGlobalCooldownRef,
+      fragmentPhraseCooldownRef,
+    });
 
   const projectileController = useMemo(
     () =>
@@ -427,8 +584,8 @@ export function useVantageGame({
         velocityRef,
         director,
       }),
-    [store, gameWidth, gameHeight, director]
-  )
+    [store, gameWidth, gameHeight, director],
+  );
 
   const bossManager = useMemo(
     () =>
@@ -448,8 +605,8 @@ export function useVantageGame({
         lastBossHitAtRef,
         director,
       }),
-    [store, gameWidth, gameHeight, difficultyConfig, director]
-  )
+    [store, gameWidth, gameHeight, difficultyConfig, director],
+  );
 
   const formationController = useMemo(
     () =>
@@ -478,8 +635,8 @@ export function useVantageGame({
       projectilesClearedForWaveRef,
       bossLoopStarterRef,
       getPlayerY,
-    ]
-  )
+    ],
+  );
 
   const collisionEngine = useMemo(
     () =>
@@ -518,8 +675,8 @@ export function useVantageGame({
       lastEnemyDestroyedAtRef,
       handlePlayerHit,
       handlePowerUp,
-    ]
-  )
+    ],
+  );
 
   const loopController = useMemo(
     () =>
@@ -544,8 +701,14 @@ export function useVantageGame({
         enemyFireTimerRef,
         bossFormationTimerRef,
         lastDebugLogRef,
+        shouldHoldEnemyActions: () =>
+          isTutorialLevelZero &&
+          performance.now() < tutorialEnemyReleaseAtRef.current,
         onBossDefeated: () => {
-          setTimeout(() => endGame(true, true), GAME_CONFIG.BOSS_DEFEATED_DELAY_MS)
+          setTimeout(
+            () => endGame(true, true),
+            GAME_CONFIG.BOSS_DEFEATED_DELAY_MS,
+          );
         },
         onPlayerDefeated: () => endGame(false, false),
       }),
@@ -570,187 +733,252 @@ export function useVantageGame({
       enemyFireTimerRef,
       bossFormationTimerRef,
       lastDebugLogRef,
+      isTutorialLevelZero,
       endGame,
-    ]
-  )
+    ],
+  );
 
   useEffect(() => {
-    bossLoopStarterRef.current = () => loopController.startBossFormationLoop()
-  }, [loopController])
+    bossLoopStarterRef.current = () => loopController.startBossFormationLoop();
+  }, [loopController]);
 
   useEffect(() => {
     if (isPlaying && !gameOver) {
-      loopController.startGameLoop()
-      loopController.startFormationLoop()
-      loopController.startEnemyFireLoop()
+      loopController.startGameLoop();
+      loopController.startFormationLoop();
+      loopController.startEnemyFireLoop();
     } else {
-      loopController.stopGameLoop()
-      loopController.stopFormationLoop()
-      loopController.stopBossFormationLoop()
-      loopController.stopEnemyFireLoop()
+      loopController.stopGameLoop();
+      loopController.stopFormationLoop();
+      loopController.stopBossFormationLoop();
+      loopController.stopEnemyFireLoop();
     }
     return () => {
-      loopController.stopGameLoop()
-      loopController.stopFormationLoop()
-      loopController.stopBossFormationLoop()
-      loopController.stopEnemyFireLoop()
+      loopController.stopGameLoop();
+      loopController.stopFormationLoop();
+      loopController.stopBossFormationLoop();
+      loopController.stopEnemyFireLoop();
+    };
+  }, [isPlaying, gameOver, loopController]);
+
+  useEffect(() => {
+    if (!isPlaying || gameOver) {
+      if (ddaSnapshotIntervalRef.current) {
+        clearInterval(ddaSnapshotIntervalRef.current);
+        ddaSnapshotIntervalRef.current = null;
+      }
+      return;
     }
-  }, [isPlaying, gameOver, loopController])
+
+    lastSnapshotCountsRef.current = {
+      shots: projectilesSpawnedRef.current,
+      kills: thoughtsDestroyedRef.current,
+      hits: totalHitsTakenRef.current,
+    };
+
+    ddaSnapshotIntervalRef.current = setInterval(captureDdaSnapshot, 10000);
+    return () => {
+      if (ddaSnapshotIntervalRef.current) {
+        clearInterval(ddaSnapshotIntervalRef.current);
+        ddaSnapshotIntervalRef.current = null;
+      }
+    };
+  }, [isPlaying, gameOver, captureDdaSnapshot]);
 
   useEffect(() => {
     if (boss && isPlaying && !gameOver) {
-      loopController.startBossFormationLoop()
+      loopController.startBossFormationLoop();
     } else {
-      loopController.stopBossFormationLoop()
+      loopController.stopBossFormationLoop();
     }
-  }, [boss, isPlaying, gameOver, loopController])
+  }, [boss, isPlaying, gameOver, loopController]);
 
   useEffect(() => {
     if (isPlaying && !gameOver) {
-      loopController.stopFormationLoop()
-      loopController.startFormationLoop()
+      loopController.stopFormationLoop();
+      loopController.startFormationLoop();
     }
-  }, [formationTickMs, isPlaying, gameOver, loopController])
+  }, [formationTickMs, isPlaying, gameOver, loopController]);
 
   function shoot() {
-    if (!isPlaying || gameOver) return false
-    const now = performance.now()
-    const cooldown = fastShootActive ? GAME_CONFIG.FAST_SHOOT_COOLDOWN : GAME_CONFIG.SHOOT_COOLDOWN
-    if (now - lastShotAtRef.current < cooldown) return false
-    lastShotAtRef.current = now
-    const currentPlayerY = getPlayerY()
+    if (!isPlaying || gameOver) return false;
+    if (projectilesRef.current.length >= GAME_CONFIG.MAX_PROJECTILES) {
+      return false;
+    }
+    const now = performance.now();
+    const cooldown = fastShootActive
+      ? GAME_CONFIG.FAST_SHOOT_COOLDOWN
+      : GAME_CONFIG.SHOOT_COOLDOWN;
+    if (now - lastShotAtRef.current < cooldown) return false;
+    lastShotAtRef.current = now;
+    const currentPlayerY = getPlayerY();
     if (multishotActive) {
-      const centerX = playerXRef.current + GAME_CONFIG.PLAYER_WIDTH / 2
+      const centerX = playerXRef.current + GAME_CONFIG.PLAYER_WIDTH / 2;
+      const baseId = projectileIdRef.current;
+      projectileIdRef.current += 1;
+      const timestamp = Date.now();
       const newProjectiles: Projectile[] = [
-        { id: `proj-${Date.now()}-0`, x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2 - 15, y: currentPlayerY },
-        { id: `proj-${Date.now()}-1`, x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2, y: currentPlayerY },
-        { id: `proj-${Date.now()}-2`, x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2 + 15, y: currentPlayerY },
-      ]
-      projectilesSpawnedRef.current += newProjectiles.length
-      setProjectiles((prev) => [...prev, ...newProjectiles])
+        {
+          id: `proj-${timestamp}-${baseId}-0`,
+          x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2 - 15,
+          y: currentPlayerY,
+        },
+        {
+          id: `proj-${timestamp}-${baseId}-1`,
+          x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2,
+          y: currentPlayerY,
+        },
+        {
+          id: `proj-${timestamp}-${baseId}-2`,
+          x: centerX - GAME_CONFIG.PROJECTILE_WIDTH / 2 + 15,
+          y: currentPlayerY,
+        },
+      ];
+      projectilesSpawnedRef.current += newProjectiles.length;
+      setProjectiles((prev) => [...prev, ...newProjectiles]);
     } else {
+      const nextId = projectileIdRef.current;
+      projectileIdRef.current += 1;
+      const timestamp = Date.now();
       setProjectiles((prev) => {
-        projectilesSpawnedRef.current += 1
+        projectilesSpawnedRef.current += 1;
         return [
           ...prev,
           {
-            id: `proj-${Date.now()}`,
+            id: `proj-${timestamp}-${nextId}`,
             x:
               playerXRef.current +
               GAME_CONFIG.PLAYER_WIDTH / 2 -
               GAME_CONFIG.PROJECTILE_WIDTH / 2,
             y: currentPlayerY,
           },
-        ]
-      })
+        ];
+      });
     }
-    return true
+    return true;
   }
 
   function setPlayerXFromInput(x: number) {
-    if (!isPlaying || gameOver) return
+    if (!isPlaying || gameOver) return;
     const clampedX = Math.max(
       0,
-      Math.min(gameWidth - GAME_CONFIG.PLAYER_WIDTH, x - GAME_CONFIG.PLAYER_WIDTH / 2)
-    )
-    targetPlayerXRef.current = clampedX
-    playerXRef.current = clampedX
-    setPlayerX(clampedX)
+      Math.min(
+        gameWidth - GAME_CONFIG.PLAYER_WIDTH,
+        x - GAME_CONFIG.PLAYER_WIDTH / 2,
+      ),
+    );
+    targetPlayerXRef.current = clampedX;
+    playerXRef.current = clampedX;
+    setPlayerX(clampedX);
   }
 
   function setVelocity(velocity: number) {
-    velocityRef.current = velocity
+    velocityRef.current = velocity;
   }
 
   function toggleDebugHitboxes() {
-    setDebugHitboxes((prev) => !prev)
+    setDebugHitboxes((prev) => !prev);
   }
 
   function handleHeaderPress() {
-    headerPressCountRef.current += 1
-    if (headerPressTimerRef.current) clearTimeout(headerPressTimerRef.current)
+    headerPressCountRef.current += 1;
+    if (headerPressTimerRef.current) clearTimeout(headerPressTimerRef.current);
     headerPressTimerRef.current = setTimeout(() => {
-      if (headerPressCountRef.current >= GAME_CONFIG.DEBUG_TOGGLE_HEADER_PRESS_COUNT) {
-        toggleDebugHitboxes()
+      if (
+        headerPressCountRef.current >=
+        GAME_CONFIG.DEBUG_TOGGLE_HEADER_PRESS_COUNT
+      ) {
+        toggleDebugHitboxes();
       }
-      headerPressCountRef.current = 0
-    }, GAME_CONFIG.DEBUG_TOGGLE_HEADER_PRESS_TIMEOUT_MS)
+      headerPressCountRef.current = 0;
+    }, GAME_CONFIG.DEBUG_TOGGLE_HEADER_PRESS_TIMEOUT_MS);
   }
 
   function startGame() {
-    setIsPlaying(true)
-    setGameOver(false)
-    setScore(GAME_CONFIG.INITIAL_SCORE)
-    setLives(difficultyConfig.initialLives)
-    setPlayerHp(difficultyConfig.initialLives)
-    setPlayerIFrameUntil(0)
-    playerHpFractionRef.current = 0
-    setProjectiles([])
-    setEnemyProjectiles([])
-    setNegativeThoughts([])
-    setPowerUps([])
-    setBoss(null)
-    setBossIncoming(false)
-    setPlayerLastHitAt(0)
-    projectilesSpawnedRef.current = 0
-    thoughtsDestroyedRef.current = 0
-    lastEnemyDestroyedAtRef.current = 0
-    bossHitsRef.current = []
-    lastBossHitAtRef.current = 0
-    setBossTelegraphActive(false)
-    setBossTelegraphLabel(undefined)
-    bossNextFireAtRef.current = 0
-    bossBurstRemainingRef.current = 0
-    bossNextBurstShotAtRef.current = 0
-    bossBurstCountRef.current = 0
-    loopController.stopBossFormationLoop()
-    loopController.stopEnemyFireLoop()
-    setThoughtEchoes([])
-    setConqueredThoughts([])
-    setFragments([])
-    setDefeatedNegativeThoughts([])
-    fragmentTTLRef.current.clear()
-    fragmentGlobalCooldownRef.current = 0
-    fragmentPhraseCooldownRef.current.clear()
-    defeatedThoughtIdsRef.current.clear()
-    thoughtEchoTimersRef.current.forEach((timer) => clearTimeout(timer))
-    thoughtEchoTimersRef.current.clear()
-    thoughtEchoCooldownRef.current.clear()
-    setWaveDefeatedPatterns(new Set())
-    setWave(1)
-    projectilesClearedForWaveRef.current = 0
-    formationDirRef.current = 1
-    setFormationTickMs(difficultyConfig.formationTickMs)
-    setGameSpeed(GAME_CONFIG.DEFAULT_GAME_SPEED)
-    const startX = getPlayerStartX()
-    playerXRef.current = startX
-    targetPlayerXRef.current = startX
-    setPlayerX(startX)
-    velocityRef.current = 0
-    lastShotAtRef.current = 0
-    gameStartTimeRef.current = performance.now()
-    setMultishotActive(false)
-    setFastShootActive(false)
-    setShieldActive(false)
-    powerUpTimersRef.current.forEach((timer) => clearTimeout(timer))
-    powerUpTimersRef.current.clear()
+    endGameLockedRef.current = false;
+    setIsPlaying(true);
+    setGameOver(false);
+    setScore(GAME_CONFIG.INITIAL_SCORE);
+    setLives(difficultyConfig.initialLives);
+    setPlayerHp(difficultyConfig.initialLives);
+    setPlayerIFrameUntil(0);
+    playerHpFractionRef.current = 0;
+    setProjectiles([]);
+    setEnemyProjectiles([]);
+    setNegativeThoughts([]);
+    setPowerUps([]);
+    setBoss(null);
+    setBossIncoming(false);
+    setPlayerLastHitAt(0);
+    projectilesSpawnedRef.current = 0;
+    thoughtsDestroyedRef.current = 0;
+    lastEnemyDestroyedAtRef.current = 0;
+    totalHitsTakenRef.current = 0;
+    ddaSnapshotsRef.current = [];
+    lastSnapshotCountsRef.current = { shots: 0, kills: 0, hits: 0 };
+    bossHitsRef.current = [];
+    lastBossHitAtRef.current = 0;
+    setBossTelegraphActive(false);
+    setBossTelegraphLabel(undefined);
+    bossNextFireAtRef.current = 0;
+    bossBurstRemainingRef.current = 0;
+    bossNextBurstShotAtRef.current = 0;
+    bossBurstCountRef.current = 0;
+    loopController.stopBossFormationLoop();
+    loopController.stopEnemyFireLoop();
+    setThoughtEchoes([]);
+    setConqueredThoughts([]);
+    setFragments([]);
+    setDefeatedNegativeThoughts([]);
+    fragmentTTLRef.current.clear();
+    fragmentGlobalCooldownRef.current = 0;
+    fragmentPhraseCooldownRef.current.clear();
+    defeatedThoughtIdsRef.current.clear();
+    thoughtEchoTimersRef.current.forEach((timer) => clearTimeout(timer));
+    thoughtEchoTimersRef.current.clear();
+    thoughtEchoCooldownRef.current.clear();
+    setWaveDefeatedPatterns(new Set());
+    setWave(1);
+    projectilesClearedForWaveRef.current = 0;
+    formationDirRef.current = 1;
+    setFormationTickMs(difficultyConfig.formationTickMs);
+    setGameSpeed(GAME_CONFIG.DEFAULT_GAME_SPEED);
+    const startX = getPlayerStartX();
+    playerXRef.current = startX;
+    targetPlayerXRef.current = startX;
+    setPlayerX(startX);
+    velocityRef.current = 0;
+    lastShotAtRef.current = 0;
+    projectileIdRef.current = 0;
+    runIdRef.current = generateRunId();
+    runStartTimestampRef.current = Date.now();
+    gameStartTimeRef.current = performance.now();
+    setMultishotActive(false);
+    setFastShootActive(false);
+    setShieldActive(false);
+    powerUpTimersRef.current.forEach((timer) => clearTimeout(timer));
+    powerUpTimersRef.current.clear();
+    tutorialEnemyReleaseAtRef.current = isTutorialLevelZero
+      ? performance.now() + GAME_CONFIG.TUTORIAL_LEVEL0_ENEMY_DELAY_MS
+      : 0;
     setTimeout(() => {
-      const currentState = store.getState()
+      const currentState = store.getState();
       if (currentState.isPlaying && !currentState.gameOver) {
-        formationController.spawnInvaderWave('void_eater', 1)
+        formationController.spawnInvaderWave("void_eater", 1);
       }
-    }, 0)
+    }, 0);
   }
 
   useEffect(() => {
     return () => {
-      powerUpTimersRef.current.forEach((t) => clearTimeout(t))
-      powerUpTimersRef.current.clear()
-      thoughtEchoTimersRef.current.forEach((t) => clearTimeout(t))
-      thoughtEchoTimersRef.current.clear()
-      if (headerPressTimerRef.current) clearTimeout(headerPressTimerRef.current)
-    }
-  }, [])
+      powerUpTimersRef.current.forEach((t) => clearTimeout(t));
+      powerUpTimersRef.current.clear();
+      thoughtEchoTimersRef.current.forEach((t) => clearTimeout(t));
+      thoughtEchoTimersRef.current.clear();
+      if (headerPressTimerRef.current)
+        clearTimeout(headerPressTimerRef.current);
+    };
+  }, []);
 
   return {
     playerX,
@@ -790,5 +1018,5 @@ export function useVantageGame({
     endGame,
     handleHeaderPress,
     handleFragmentTap,
-  }
+  };
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useCallback } from 'react'
 import {
   View,
   ScrollView,
@@ -8,7 +8,7 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useFocusEffect } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
@@ -20,6 +20,7 @@ import { ResourcesResourcesTab } from './ResourcesResourcesTab'
 import { ResourcesMemoriesTab } from './ResourcesMemoriesTab'
 import type { ResourcesPageProps, ResourcesTabType } from '@/types/resources/resources'
 import { resourcesPageStyles as styles } from '@/styles/resources/resources-styles'
+import { useResourcesStore } from '@/stores/resources-store'
 
 const TABS: ResourcesTabType[] = ['settings', 'resources', 'memories']
 
@@ -28,31 +29,54 @@ const TAB_WIDTH = Dimensions.get('window').width
 export function ResourcesPage({ storyId }: ResourcesPageProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
-  const [activeTab, setActiveTab] = useState<ResourcesTabType>('resources')
+  const activeTab = useResourcesStore((state) => state.activeTab)
+  const scrollOffsetX = useResourcesStore((state) => state.scrollOffsetX)
+  const pendingRestore = useResourcesStore((state) => state.pendingRestore)
+  const setActiveTab = useResourcesStore((state) => state.setActiveTab)
+  const setScrollOffsetX = useResourcesStore((state) => state.setScrollOffsetX)
+  const setPendingRestore = useResourcesStore((state) => state.setPendingRestore)
   const horizontalScrollRef = useRef<ScrollView>(null)
 
   const {
     isLoading,
     resources,
     memories,
-    profileData,
     avatarConfig,
+    profileData,
     storiesData,
     journalEntries,
     storyProgress,
+    gameData,
   } = useResources()
 
+  useFocusEffect(
+    useCallback(() => {
+      setPendingRestore(true)
+      return () => {}
+    }, [setPendingRestore])
+  )
+
   useEffect(() => {
-    const initialIndex = TABS.indexOf(activeTab)
-    setTimeout(() => {
-      horizontalScrollRef.current?.scrollTo({ x: initialIndex * TAB_WIDTH, animated: false })
-    }, 100)
-  }, [])
+    const maxIndex = Math.max(0, TABS.length - 1)
+    const tabIndex = Math.min(Math.max(0, TABS.indexOf(activeTab)), maxIndex)
+    const fallbackOffset = tabIndex * TAB_WIDTH
+    const maxOffset = maxIndex * TAB_WIDTH
+    const clampedOffset = Math.min(Math.max(0, scrollOffsetX), maxOffset)
+    const targetOffset = clampedOffset > 0 ? clampedOffset : fallbackOffset
+
+    if (pendingRestore) {
+      requestAnimationFrame(() => {
+        horizontalScrollRef.current?.scrollTo({ x: targetOffset, animated: false })
+      })
+      setPendingRestore(false)
+    }
+  }, [activeTab, pendingRestore, scrollOffsetX, setPendingRestore])
 
   function handleTabChange(tab: ResourcesTabType) {
     playPageFlipSound()
     setActiveTab(tab)
     const index = TABS.indexOf(tab)
+    setScrollOffsetX(index * TAB_WIDTH)
     horizontalScrollRef.current?.scrollTo({ x: index * TAB_WIDTH, animated: true })
   }
 
@@ -171,6 +195,10 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={handleScroll}
+            onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+              const x = event.nativeEvent.contentOffset.x
+              setScrollOffsetX(x)
+            }}
             scrollEventThrottle={16}
             style={styles.horizontalScrollView}
           >
@@ -197,10 +225,11 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
                 <ResourcesResourcesTab
                   resources={resources}
                   storyId={storyId}
-                  profileData={profileData}
+                 
                   storiesData={storiesData}
                   journalEntries={journalEntries}
                   storyProgress={storyProgress}
+                  gameData={gameData}
                 />
               )}
             </View>

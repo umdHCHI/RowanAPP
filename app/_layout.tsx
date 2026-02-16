@@ -1,3 +1,4 @@
+/* eslint-disable import/no-duplicates */
 import 'react-native-gesture-handler'
 import { Stack } from 'expo-router'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -8,7 +9,6 @@ import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import { setAudioModeAsync } from 'expo-audio'
 import '../global.css'
-import { useNotifications } from '@/hooks'
 import { colors } from '@/theme/design-tokens'
 import { fontAssetMap } from '@/theme/fonts'
 // Configure React Query with sensible defaults
@@ -34,12 +34,10 @@ export default function RootLayout() {
   // Configure audio mode on app start - this is critical for audio playback
   useEffect(() => {
     async function configureAudio() {
-   
-        await setAudioModeAsync({
-          playsInSilentMode: true, // Allow audio to play even when device is in silent mode (iOS)
-          allowsRecording: false, // We're not recording, so set to false
-        })
- 
+      await setAudioModeAsync({
+        playsInSilentMode: true, // Allow audio to play even when device is in silent mode (iOS)
+        allowsRecording: false, // We're not recording, so set to false
+      })
     }
     configureAudio()
   }, [])
@@ -74,7 +72,6 @@ export default function RootLayout() {
             <Stack.Screen name="vantage" />
             <Stack.Screen name="about" />
             <Stack.Screen name="resources" />
-            <Stack.Screen name="story-overview" />
             <Stack.Screen name="crisis-help" />
           </Stack>
         </SafeAreaProvider>

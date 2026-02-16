@@ -1,8 +1,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { View, Text, Animated, StyleSheet } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import { useSharedValue } from 'react-native-reanimated'
-import { runOnJS } from 'react-native-reanimated'
+import { useSharedValue, runOnJS } from 'react-native-reanimated'
 import type { ReactNode } from 'react'
 
 interface GameAreaProps {
@@ -11,11 +10,21 @@ interface GameAreaProps {
   children: ReactNode
   onPlayerMove?: (x: number) => void
   onShoot?: () => void
+  shootCooldownMs?: number
   playerLastHitAt?: number
   isTutorial?: boolean
 }
 
-export function GameArea({ width, height, children, onPlayerMove, onShoot, playerLastHitAt, isTutorial = false }: GameAreaProps) {
+export function GameArea({
+  width,
+  height,
+  children,
+  onPlayerMove,
+  onShoot,
+  shootCooldownMs = 0,
+  playerLastHitAt,
+  isTutorial = false,
+}: GameAreaProps) {
   // Use shared values for gesture state (no re-renders)
   const panActive = useSharedValue(false)
   const panStartX = useSharedValue(0)
@@ -24,6 +33,8 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
   const tapStartY = useSharedValue(0)
   const lastSentX = useSharedValue(-9999)
   const callbacksEnabled = useSharedValue(false)
+  const lastShootAt = useSharedValue(0)
+  const shootCooldownMsRef = useSharedValue(shootCooldownMs)
   
   // Store callbacks in refs to prevent gesture recreation on every render
   const onPlayerMoveRef = useRef(onPlayerMove)
@@ -36,7 +47,8 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
     onPlayerMoveRef.current = onPlayerMove
     onShootRef.current = onShoot
     callbacksEnabled.value = !!(onPlayerMove || onShoot)
-  }, [onPlayerMove, onShoot, callbacksEnabled])
+    shootCooldownMsRef.value = shootCooldownMs
+  }, [onPlayerMove, onShoot, shootCooldownMs, callbacksEnabled, shootCooldownMsRef])
   
   // Create stable wrapper functions that read from refs
   // These are stable and can be used in worklets via runOnJS
@@ -59,7 +71,7 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
     'Tap anywhere on the screen to shoot the enemies',
     'Shoot the bullets to destroy obstacles',
     'Destroy enemy targets to collect powerups and explore thought patterns',
-    'Destroy the incoming waves to help clear The Archive and deal the breach.',
+    'Destroy the incoming waves to fullfill your contract and help clear The Archive from its rot.',
     'Gather Lumens to help you repair the rifts.',
   ], [])
   const [currentTutorialHintIndex, setCurrentTutorialHintIndex] = useState(0)
@@ -245,7 +257,11 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
         // Only block if moved significantly (more than tap threshold) AND pan is definitely active
         // Allow taps to fire even if pan started, as long as movement was minimal
         if (!movedTooMuch) {
-          runOnJS(handleShoot)()
+          const now = Date.now()
+          if (now - lastShootAt.value >= shootCooldownMsRef.value) {
+            lastShootAt.value = now
+            runOnJS(handleShoot)()
+          }
         }
       })
 
@@ -261,6 +277,9 @@ export function GameArea({ width, height, children, onPlayerMove, onShoot, playe
     tapStartX,
     tapStartY,
     lastSentX,
+    callbacksEnabled,
+    lastShootAt,
+    shootCooldownMsRef,
   ])
   
 

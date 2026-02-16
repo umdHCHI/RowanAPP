@@ -1,12 +1,14 @@
-import React, { useCallback, useRef, useEffect, useMemo } from 'react'
+import React, { useCallback, useRef, useEffect } from 'react'
 import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useStoryAutoAdvance, useStoryEngine, useStoryHistory } from '@/hooks'
 import { useStoryMusic } from '@/utils/useStoryMusic'
 import { usePageFlipSound } from '@/utils/usePageFlipSound'
 import { useHaptics } from '@/utils/useHaptics'
+import { useStoryStore } from '@/stores/story-store'
 import { StoryBackground } from './StoryBackground'
 import { StoryHeader } from './StoryHeader'
 import { StoryContent } from './StoryContent'
@@ -14,12 +16,15 @@ import { StoryChoices } from './StoryChoices'
 import { useGameStore } from '@/stores/game-store'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_LAYOUT } from './story-theme'
 
-const CHOICES_STRIP_HEIGHT = 240
-import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, getExperienceRewardFromPassage, hasMinigameOption } from '@/utils/story-helpers'
-import { isExactContinueChoice } from '@/utils/story-constants'
+import { getJournalEntryRewardFromPassage, getMinigameRewardFromPassage, getExperienceRewardFromPassage, hasMinigameOption, hasMinigameTutorialFlag, buildStoryMinigameRoute } from '@/utils/story-helpers'
+import { isExactContinueChoice, PROLOGUE_STORY_ID, getStudyDayFromCreatedAt } from '@/utils/story-constants'
+import { EmaSurveyModal } from './EmaSurveyModal'
+import type { EmaRequestPayload } from '@/types/ema'
 import { journalService } from '@/api/services/journal.service'
-import { useGainLumens } from '@/api'
+import { storyService } from '@/api/services/story.service'
+import { useGainLumens, useCurrentUserFullProfile, storyKeys } from '@/api'
 import type { StoryChoice } from '@/types/story'
+import { useStoryCompletionStore } from '@/stores/story-completion-store'
 
 interface StoryPageProps {
   storyId: string | number
@@ -36,10 +41,12 @@ export function StoryPage({
   shouldRestart = false,
 }: StoryPageProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const playPageFlipSound = usePageFlipSound()
   const haptics = useHaptics()
   const { textSpeed, markJournalRewardCollected, hasCollectedJournalReward, addMemory } = useGameStore()
   const gainLumens = useGainLumens()
+  const markStoryCompleted = useStoryCompletionStore((state) => state.markStoryCompleted)
 
   const {
     isLoading,
@@ -47,10 +54,9 @@ export function StoryPage({
     currentPassage,
     choices,
     isEnding,
-    hasChoices,
     storyTitle,
     makeChoice: makeEngineChoice,
-  } = useStoryEngine({ storyId, shouldRestart })
+  } = useStoryEngine({ storyId, shouldRestart, textSpeed })
 
   // Track if route is focused (to prevent music playing when navigating away)
   const [isRouteFocused, setIsRouteFocused] = React.useState(true)
@@ -59,10 +65,21 @@ export function StoryPage({
   const [storyHasLoaded, setStoryHasLoaded] = React.useState(false)
   
   // Track pause state for auto-advance
-  const [isPaused, setIsPaused] = React.useState(false)
+  const isPaused = useStoryStore((state) => state.isPaused)
+  const setIsPaused = useStoryStore((state) => state.setPaused)
   // Brief "play" feedback when resuming: show play icon then hide overlay
   const [showResumeFeedback, setShowResumeFeedback] = React.useState(false)
   const resumeFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // EMA survey after story end: triggered when ending passage is detected (not Prologue)
+  const [emaPayload, setEmaPayload] = React.useState<EmaRequestPayload | null>(null)
+  const [showEndingWaitIndicator, setShowEndingWaitIndicator] = React.useState(false)
+  const [shouldCompleteStory, setShouldCompleteStory] = React.useState(false)
+  const completionTriggeredRef = useRef(false)
+  const emaDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const emaDelayElapsedRef = useRef(false)
+  const emaPendingPayloadRef = useRef<EmaRequestPayload | null>(null)
+  const storyCompletionIdRef = useRef<number | null>(null)
+  const { data: userProfile } = useCurrentUserFullProfile()
 
   const togglePause = React.useCallback(() => {
     setIsPaused((prev) => {
@@ -72,7 +89,7 @@ export function StoryPage({
       }
       return true
     })
-  }, [])
+  }, [setIsPaused])
 
   const handleTogglePause = useCallback(() => {
     togglePause()
@@ -104,14 +121,117 @@ export function StoryPage({
     }, [])
   )
   
-  // Reset story loaded state when storyId changes (switching stories)
+  // Reset story loaded state when storyId or restart intent changes
   React.useEffect(() => {
     setStoryHasLoaded(false)
-  }, [storyId])
+    completionTriggeredRef.current = false
+    emaDelayElapsedRef.current = false
+    emaPendingPayloadRef.current = null
+    if (emaDelayTimerRef.current) {
+      clearTimeout(emaDelayTimerRef.current)
+      emaDelayTimerRef.current = null
+    }
+    setEmaPayload(null)
+    setShowEndingWaitIndicator(false)
+    setShouldCompleteStory(false)
+    setIsPaused(false)
+  }, [storyId, shouldRestart, setIsPaused])
+
+  // When ending passage is detected: complete story, then show EMA modal (study day from profile created_at)
+  React.useEffect(() => {
+    const isEndingPassage =
+      currentPassage?.passage_type === 'ending' || isEnding
+    const storyIdNum = Number(storyId)
+    const isPrologueStory = storyIdNum === PROLOGUE_STORY_ID
+    if (
+      !isEndingPassage ||
+      isLoading ||
+      isPrologueStory ||
+      completionTriggeredRef.current
+    ) {
+      return
+    }
+    completionTriggeredRef.current = true
+    emaDelayElapsedRef.current = false
+    setShowEndingWaitIndicator(true)
+    if (emaDelayTimerRef.current) {
+      clearTimeout(emaDelayTimerRef.current)
+    }
+    emaDelayTimerRef.current = setTimeout(() => {
+      emaDelayElapsedRef.current = true
+      setShowEndingWaitIndicator(false)
+      if (emaPendingPayloadRef.current) {
+        setEmaPayload(emaPendingPayloadRef.current)
+        emaPendingPayloadRef.current = null
+      }
+    }, 4000)
+
+    // Store storyId and trigger completion
+    storyCompletionIdRef.current = storyIdNum
+    setShouldCompleteStory(true)
+  }, [currentPassage?.passage_type, isEnding, isLoading, storyId, choices.length])
+
+  // Separate effect for actually calling completeStory to avoid dependency issues
+  React.useEffect(() => {
+    if (!shouldCompleteStory || storyCompletionIdRef.current === null) {
+      return
+    }
+
+    const storyIdNum = storyCompletionIdRef.current
+
+    storyService
+      .completeStory(storyIdNum)
+      .then((completeResponse) => {
+        // Invalidate story progress so hub status updates to completed
+        queryClient.invalidateQueries({ queryKey: storyKeys.progress() })
+        queryClient.invalidateQueries({ queryKey: storyKeys.progressByStory(storyIdNum) })
+        queryClient.invalidateQueries({ queryKey: storyKeys.progress(storyIdNum) })
+        const c = completeResponse?.completion ?? completeResponse
+
+        const storyCompletionId =
+          typeof c?.story_completion_id === 'number'
+            ? c.story_completion_id
+            : undefined
+        const isCompleted =
+          c?.is_completed === true ||
+          completeResponse?.story_completed === true ||
+          completeResponse?.is_completed === true ||
+          typeof storyCompletionId === 'number'
+        if (isCompleted) {
+          markStoryCompleted(storyIdNum)
+        }
+        const createdAt =
+          userProfile?.date_joined ??
+          userProfile?.created_at ??
+          (userProfile as any)?.profile?.created_at
+        const studyDay =
+          (typeof c?.study_day === 'number' ? c.study_day : undefined) ?? getStudyDayFromCreatedAt(createdAt)
+
+        // Show EMA for non-prologue stories on study days 1-5
+        if (
+          typeof storyCompletionId === 'number' &&
+          studyDay >= 1 && studyDay <= 5
+        ) {
+          const payload = { storyCompletionId, studyDay }
+          // Always show modal immediately if delay has elapsed or if not waiting
+          if (emaDelayElapsedRef.current || !showEndingWaitIndicator) {
+            setEmaPayload(payload)
+            emaPendingPayloadRef.current = null
+          } else {
+            emaPendingPayloadRef.current = payload
+          }
+        }
+        // Reset the trigger
+        setShouldCompleteStory(false)
+      })
+      .catch((err) => {
+        setShouldCompleteStory(false)
+      })
+  }, [shouldCompleteStory, queryClient, markStoryCompleted, userProfile, showEndingWaitIndicator])
   
   // Mark story as loaded once we have content (so music can start).
-  // Include isRouteFocused so when we *continue* by navigating back to this screen, we re-evaluate
-  // and set storyHasLoaded true again (deps didn't change while away, so effect wouldn't run otherwise).
+  // Keep storyHasLoaded true until we navigate away—do not reset on passage transitions (isLoading).
+  // Include isRouteFocused so when we *continue* by navigating back, we re-evaluate.
   React.useEffect(() => {
     if (!isLoading && !!currentPassage && !error) {
       setStoryHasLoaded(true)
@@ -124,6 +244,7 @@ export function StoryPage({
   // Pass storyId to determine which music to play (music will only play if configured for that story)
   const isStoryActive = isRouteFocused && isActive && storyHasLoaded
   useStoryMusic(storyId, isStoryActive)
+
 
   // Manage story history - must be defined before reward collection effect
   const { history, addChoice, addReward } = useStoryHistory({ currentPassage })
@@ -167,9 +288,7 @@ export function StoryPage({
       let prompt = null
       try {
         prompt = await journalService.getJournalPromptById(reward.journalEntryId)
-      } catch (error) {
-        console.error('[Reward Detection] Failed to fetch journal prompt:', error)
-      }
+      } catch {}
 
       // Add reward to story history (even if prompt fetch failed)
       const rewardTitle = prompt?.skill_category || 'Journal Prompt Unlocked'
@@ -242,6 +361,7 @@ export function StoryPage({
         title: rewardTitle,
         subtitle: rewardSubtitle,
         minigameLevel: reward.level,
+        minigameIsTutorial: reward.isTutorial,
       })
     }
 
@@ -261,7 +381,6 @@ export function StoryPage({
         return
       }
 
-      // Log for debugging - experience reward detected
       // Check if we've shown this reward in history this session
       const rewardKey = `${passage.passage_id}-lumens-${reward.amount}`
       const shownThisSession = rewardsShownThisSession.current.has(rewardKey)
@@ -276,10 +395,7 @@ export function StoryPage({
       // Award experience to the backend
       try {
         await gainLumens.mutateAsync(reward.amount)
-      } catch (error) {
-        // Log error but don't block the reward display
-        console.error('Failed to award experience:', error)
-      }
+      } catch {}
 
       // Add reward to story history
       addReward({
@@ -292,17 +408,18 @@ export function StoryPage({
     }
 
     collectExperienceReward()
-  }, [currentPassage, isLoading, addReward])
+  }, [currentPassage, isLoading, addReward, gainLumens])
 
   // Handle choice selection (no sound here; sound/haptics only when user taps a choice button)
   const handleChoice = useCallback(
     async (choice: StoryChoice) => {
+
       // Check if this is the minigame choice
       if (choice.target_id === 'minigame' || choice.id === 'minigame-choice') {
         // Navigate to minigame instead of making a story choice
-        // Pass tutorial=true to start at level 0 (tutorial level)
+        const isTutorial = hasMinigameTutorialFlag(currentPassage)
         addChoice(choice)
-        router.push('/vantage?tutorial=true')
+        router.push(buildStoryMinigameRoute({ isTutorial, storyId }))
         return
       }
       
@@ -314,30 +431,23 @@ export function StoryPage({
       
       // Check if this is a choice in an ending passage
       const isEndingChoice = isEnding || currentPassage?.passage_type === 'ending'
-      
-      // If this is an ending choice, complete the story immediately and navigate
-      // This handles cases where target_id is null or undefined (no next passage)
+      const isPrologueStory = Number(storyId) === PROLOGUE_STORY_ID
+
+      // Ending choice: advance narrative in background; navigate only if EMA modal is not showing
       if (isEndingChoice) {
-        // Try to process the choice in the background (for API tracking)
-        // But don't wait for it if target_id is null/undefined (story completion)
         if (choice.target_id != null) {
-          makeEngineChoice(choice).catch(() => {
-            // Ignore errors - we're navigating away anyway
-          })
+          makeEngineChoice(choice).catch(() => null)
         }
-        
-        // Small delay to ensure choice is recorded, then navigate to hub
-        // The hub will show the next available story card
-        setTimeout(() => {
-          router.replace('/hub')
-        }, 300)
+        if (isPrologueStory && !emaPayload) {
+          setTimeout(() => router.replace('/hub'), 300)
+        }
         return
       }
-      
+
       // For non-ending choices, process normally
       await makeEngineChoice(choice)
     },
-    [makeEngineChoice, addChoice, isEnding, currentPassage, router]
+    [makeEngineChoice, addChoice, isEnding, currentPassage, router, emaPayload, storyId]
   )
 
   // Only play page-flip sound and haptics when user explicitly taps a choice (not on auto-advance)
@@ -353,29 +463,35 @@ export function StoryPage({
   // Check if current passage has minigame option enabled
   const hasMinigame = currentPassage ? hasMinigameOption(currentPassage) : false
 
-  // Create minigame choice if enabled
-  const minigameChoice: StoryChoice | null = hasMinigame
-    ? {
+  // Combine regular choices with minigame choice if available.
+  // Skip adding minigame choice if:
+  // - API already returned one (avoids duplication on reward passages)
+  // - Current passage is mini_game type (already tappable like journal_entry)
+  const allChoices = React.useMemo(() => {
+    if (!hasMinigame) return choices
+    // Don't add minigame choice for mini_game passage types (they're tappable cards)
+    if (currentPassage?.passage_type === 'mini_game') return choices
+    const hasMinigameChoice = choices.some(
+      (c) => c.target_id === 'minigame' || c.id === 'minigame-choice'
+    )
+    if (hasMinigameChoice) return choices
+    return [
+      ...choices,
+      {
         id: 'minigame-choice',
         text: 'Practice Thought Reframing',
-        target_id: 'minigame', // Special target_id to identify minigame choice
-      }
-    : null
-
-  // Combine regular choices with minigame choice if available
-  const allChoices = React.useMemo(() => {
-    if (minigameChoice) {
-      return [...choices, minigameChoice]
-    }
-    return choices
-  }, [choices, minigameChoice])
+        target_id: 'minigame',
+      },
+    ]
+  }, [choices, hasMinigame, currentPassage?.passage_type])
 
   const hasAnyChoices = allChoices.length > 0
-  const hasMultipleChoices = allChoices.length > 1
   const isSingleContinueOnly =
     allChoices.length === 1 && isExactContinueChoice(allChoices[0]?.text ?? '')
+  const isMiniGamePassage = currentPassage?.passage_type === 'mini_game'
 
-  const showChoicesStrip = hasAnyChoices && !isSingleContinueOnly
+  const showChoicesStrip = hasAnyChoices && (!isSingleContinueOnly || isMiniGamePassage) && !isLoading
+
 
   useStoryAutoAdvance({
     hasChoices: hasAnyChoices,
@@ -409,7 +525,8 @@ export function StoryPage({
             error={error}
             isLoading={isLoading}
             isEnding={isEnding}
-            hasChoices={hasAnyChoices && !isSingleContinueOnly}
+            hasChoices={showChoicesStrip}
+            showEndingWaitIndicator={showEndingWaitIndicator}
             storyId={storyId}
           />
         </View>
@@ -421,23 +538,39 @@ export function StoryPage({
           </View>
         )}
 
-        {/* Pause overlay: pause icon when paused, play icon briefly when resuming; tap to toggle */}
+        {/* Pause overlay: non-blocking so history can scroll; tap button to toggle */}
         {showOverlay && (
-          <TouchableOpacity
-            style={styles.pauseOverlay}
-            onPress={handleTogglePause}
-            activeOpacity={0.9}
-          >
-            <View style={styles.pauseButtonContainer}>
-              <MaterialDesignIcons
-                name={isPaused ? 'pause' : 'play'}
-                size={STORY_LAYOUT.pauseIconSize}
-                color="#ffffff"
-                style={{ opacity: 0.9 }}
-              />
-            </View>
-          </TouchableOpacity>
+          <View style={styles.pauseOverlay} pointerEvents="box-none">
+            <TouchableOpacity
+              style={styles.pauseButtonWrapper}
+              onPress={handleTogglePause}
+              activeOpacity={0.9}
+            >
+              <View style={styles.pauseButtonContainer}>
+                <MaterialDesignIcons
+                  name={isPaused ? 'pause' : 'play'}
+                  size={STORY_LAYOUT.pauseIconSize}
+                  color="#ffffff"
+                  style={{ opacity: 0.9 }}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
         )}
+
+        {/* EMA survey after story end (study days 1–5, excluding Prologue) */}
+        <EmaSurveyModal
+          visible={emaPayload != null}
+          payload={emaPayload}
+          onClose={() => {
+            setEmaPayload(null)
+            router.replace('/hub')
+          }}
+          onSubmitted={() => {
+            setEmaPayload(null)
+            router.replace('/hub')
+          }}
+        />
       </View>
     </SafeAreaView>
   )
@@ -458,16 +591,19 @@ const styles = StyleSheet.create({
   },
   choicesStrip: {
     width: '100%',
-    height: CHOICES_STRIP_HEIGHT,
     overflow: 'hidden',
+    flexShrink: 0,
   },
   pauseOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: STORY_COLORS.pauseOverlay,
-    justifyContent: 'center',
-    alignItems: 'center',
     zIndex: STORY_LAYOUT.pauseOverlayZIndex,
     paddingTop: STORY_LAYOUT.mainContainerPaddingTop, // Account for header
+  },
+  pauseButtonWrapper: {
+    position: 'absolute',
+    top: STORY_LAYOUT.headerTop,
+    right: STORY_SPACING.xl,
   },
   pauseButtonContainer: {
     width: STORY_LAYOUT.pauseButtonSize,

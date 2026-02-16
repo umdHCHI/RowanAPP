@@ -8,7 +8,8 @@ import { JournalStatsCard } from './JournalStatsCard'
 import { Text } from '@/components/ui/Text'
 import { Button } from '@/components/ui/Button'
 import type { ResourcesResourcesTabProps } from '@/types/resources/resources'
-import type { StoryResponse, UserFullProfileResponse, JournalEntryResponse } from '@/api/types'
+import type { StoryResponse } from '@/api/types'
+import type { GameDataResponse } from '@/api'
 import type { StoryProgressItem } from '@/utils/resources-mapper'
 import { resourcesResourcesTabStyles as styles } from '@/styles/resources/resources-styles'
 
@@ -18,9 +19,36 @@ export function ResourcesResourcesTab({
   storiesData,
   journalEntries = [],
   storyProgress = [],
+  gameData,
 }: ResourcesResourcesTabProps) {
   const router = useRouter()
   const playPageFlipSound = usePageFlipSound()
+
+  const npcSummaryByStoryId = useMemo(() => {
+    const map = new Map<number, { count: number; npcName?: string }>()
+    const storyData = (gameData as GameDataResponse | undefined)?.story_data
+    const stories = Array.isArray(storyData?.stories) ? storyData?.stories : []
+
+    stories.forEach((story) => {
+      const storyIdValue = Number(story?.story_id)
+      if (!Number.isFinite(storyIdValue)) return
+      const npcs = Array.isArray(story?.npcs_talked_to) ? story.npcs_talked_to : []
+      const topNpc = npcs.reduce<{ name?: string; count: number }>((current, npc) => {
+        const count = typeof npc?.interaction_count === 'number' ? npc.interaction_count : 0
+        if (count > current.count) {
+          return { name: npc?.npc_name, count }
+        }
+        return current
+      }, { name: undefined, count: 0 })
+
+      map.set(storyIdValue, {
+        count: topNpc.count,
+        npcName: topNpc.name,
+      })
+    })
+
+    return map
+  }, [gameData])
 
   const completedStories = useMemo(() => {
     const progressList = storyProgress.length
@@ -57,9 +85,9 @@ export function ResourcesResourcesTab({
     return { story, progress }
   }, [storiesData, storyId, profileData, storyProgress])
 
-  function handleViewOverview(id: number) {
+  function handleGoToHub() {
     playPageFlipSound()
-    router.push(`/story-overview?storyId=${id}`)
+    router.push('/hub')
   }
 
   if (storyId) {
@@ -81,16 +109,18 @@ export function ResourcesResourcesTab({
           <StoryInformationCard
             story={currentStoryWithProgress.story}
             progress={currentStoryWithProgress.progress}
+            npcInteractions={npcSummaryByStoryId.get(currentStoryWithProgress.story.id)?.count ?? 0}
+            npcName={npcSummaryByStoryId.get(currentStoryWithProgress.story.id)?.npcName}
           />
 
           <Button
             fullWidth
             variant="secondary"
-            onPress={() => handleViewOverview(storyId)}
+            onPress={handleGoToHub}
           >
             <View style={styles.infoButtonContent}>
               <MaterialDesignIcons name="book-open-page-variant" size={24} color="#ffffff" />
-              <Text variant="label" style={styles.infoButtonText}>VIEW FULL STORY OVERVIEW</Text>
+              <Text variant="label" style={styles.infoButtonText}>GO BACK TO STORY HUB PAGE</Text>
               <MaterialDesignIcons name="chevron-right" size={24} color="#ffffff" />
             </View>
           </Button>
@@ -118,16 +148,21 @@ export function ResourcesResourcesTab({
       <View style={styles.resourcesListContainer}>
         {completedStories.map(({ story, progress }) => (
           <View key={story.id} style={styles.storyCardWrapper}>
-            <StoryInformationCard story={story} progress={progress} />
+            <StoryInformationCard
+              story={story}
+              progress={progress}
+              npcInteractions={npcSummaryByStoryId.get(story.id)?.count ?? 0}
+              npcName={npcSummaryByStoryId.get(story.id)?.npcName}
+            />
 
             <Button
               fullWidth
               variant="secondary"
-              onPress={() => handleViewOverview(story.id)}
+              onPress={handleGoToHub}
             >
               <View style={styles.infoButtonContent}>
                 <MaterialDesignIcons name="book-open-page-variant" size={24} color="#ffffff" />
-                <Text variant="label" style={styles.infoButtonText}>VIEW FULL STORY OVERVIEW</Text>
+                <Text variant="label" style={styles.infoButtonText}>GO BACK TO STORY HUB PAGE</Text>
                 <MaterialDesignIcons name="chevron-right" size={24} color="#ffffff" />
               </View>
             </Button>

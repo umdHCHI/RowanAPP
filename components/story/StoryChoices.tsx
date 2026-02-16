@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text as RNText, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import { View, Text as RNText, TouchableOpacity, StyleSheet } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { StoryChoice } from '@/types/story'
@@ -23,7 +23,7 @@ export function StoryChoices({ choices, onChoicePress }: StoryChoicesProps) {
 
   return (
     <View style={[styles.choicesContainer, {
-      paddingBottom: insets.bottom + STORY_SPACING.sm,
+      paddingBottom: insets.bottom,
       paddingLeft: horizontalPadding,
       paddingRight: horizontalPadding,
     }]}>
@@ -32,11 +32,8 @@ export function StoryChoices({ choices, onChoicePress }: StoryChoicesProps) {
       {/* Semi-transparent overlay for better contrast */}
       <View style={styles.overlay} />
       
-      <ScrollView
-        style={styles.choicesScrollView}
-        contentContainerStyle={styles.choicesScrollContent}
-        showsVerticalScrollIndicator={true}
-        bounces={false}
+      <View
+        style={styles.choicesList}
       >
         {visibleChoices.map((choice) => (
           <TouchableOpacity
@@ -48,15 +45,15 @@ export function StoryChoices({ choices, onChoicePress }: StoryChoicesProps) {
             <RNText style={styles.choiceText}>{choice.text}</RNText>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   choicesContainer: {
-    flex: 1,
-    paddingTop: STORY_SPACING.md,
+    flexGrow: 0,
+    paddingTop: STORY_SPACING.sm,
     backgroundColor: 'transparent',
     borderTopWidth: 1,
     borderTopColor: STORY_COLORS.headerBorder,
@@ -66,12 +63,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
-  choicesScrollView: {
-    flex: 1,
-  },
-  choicesScrollContent: {
-    paddingBottom: STORY_SPACING.xs,
+  choicesList: {
+    paddingBottom: STORY_SPACING.sm,
     paddingHorizontal: 0,
+    justifyContent: 'flex-end',
   },
   choiceButton: {
     backgroundColor: STORY_COLORS.button,

@@ -1,26 +1,26 @@
-import { GameDirectorMetrics } from "@/types/hooks"
+import { GameDirectorMetrics } from "@/types/hooks";
 
-export type Difficulty = 'easy' | 'normal' | 'hard' // If Proposal to HCII get approved this structure needs to change to themes of stress. 
+export type Difficulty = "easy" | "normal" | "hard"; // If Proposal to HCII get approved this structure needs to change to themes of stress.
 
 export interface DifficultyConfig {
   // Formation speed
-  formationTickMs: number
-  formationSpeedupPerClear: number
-  minFormationTickMs: number // Minimum speed after speedups
-  
+  formationTickMs: number;
+  formationSpeedupPerClear: number;
+  minFormationTickMs: number; // Minimum speed after speedups
+
   // Player
-  initialLives: number
-  
+  initialLives: number;
+
   // Boss
-  bossHp: number
-  bossAttackInterval: number // ms between boss attacks
-  wavesBeforeBoss: number
-  
+  bossHp: number;
+  bossAttackInterval: number; // ms between boss attacks
+  wavesBeforeBoss: number;
+
   // Power-ups
-  powerUpSpawnChance: number // 0-1
-  
+  powerUpSpawnChance: number; // 0-1
+
   // Scoring multiplier
-  scoreMultiplier: number
+  scoreMultiplier: number;
 }
 
 export const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
@@ -57,7 +57,7 @@ export const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
     powerUpSpawnChance: 0.05, // 5% chance (rare)
     scoreMultiplier: 1.5, // Higher score rewards
   },
-}
+};
 
 export const GAME_CONFIG = {
   // Player (increased size for better mobile navigation)
@@ -75,6 +75,7 @@ export const GAME_CONFIG = {
   PROJECTILE_SPEED: 400, // pixels per second
   SHOOT_COOLDOWN: 100, // ms - allow rapid tapping
   FAST_SHOOT_COOLDOWN: 50, // ms - very fast for rapid tapping
+  MAX_PROJECTILES: 60,
 
   // Negative Thoughts (Invaders)
   THOUGHT_WIDTH: 40,
@@ -147,16 +148,17 @@ export const GAME_CONFIG = {
   // Boss
   BOSS_DEFEATED_DELAY_MS: 500, // Delay before ending game after boss defeat
 
+  // Tutorial (level 0)
+  // Keep enemies idle until instruction #2 appears (~11s after start: 1s initial delay + first hint display cycle)
+  TUTORIAL_LEVEL0_ENEMY_DELAY_MS: 11000,
+
   // Debug
   DEBUG_TOGGLE_HEADER_PRESS_TIMEOUT_MS: 500, // Timeout window for header press sequence
   DEBUG_TOGGLE_HEADER_PRESS_COUNT: 3, // Number of header presses needed to toggle debug
-} as const
+} as const;
 
 // Debug flag for hitboxes
-export const DEBUG_HITBOXES = false
-
-
-
+export const DEBUG_HITBOXES = false;
 
 export const DDA_CONFIG = {
   // DDA Configuration
@@ -169,7 +171,7 @@ export const DDA_CONFIG = {
   ACCURACY_WEIGHT: 0.25,
   SURVIVAL_WINDOW_WEIGHT: 0.15,
   SHOOT_ACTIVITY_WEIGHT: 0.15, // Time since last shot (inactivity = pressure)
-  KILL_ACTIVITY_WEIGHT: 0.20, // Time since last enemy killed (no kills = pressure)
+  KILL_ACTIVITY_WEIGHT: 0.2, // Time since last enemy killed (no kills = pressure)
 
   // Pressure thresholds
   HIGH_PRESSURE_THRESHOLD: 0.7, // If pressure > 0.7, player is struggling
@@ -202,7 +204,7 @@ export const DDA_CONFIG = {
   EI_EMA_ALPHA: 0.15, // EMA smoothing factor (0-1, lower = smoother)
   EI_THERAPEUTIC_DECAY_RATE: 0.05, // When stressSignal is high, EI decays at this rate per update
   EI_RISE_RATE: 0.02, // When stressSignal is low, EI can rise at this rate per update
-} as const
+} as const;
 
 export const DEFAULT_METRICS: GameDirectorMetrics = {
   formationTickMultiplier: 1,
@@ -211,4 +213,4 @@ export const DEFAULT_METRICS: GameDirectorMetrics = {
   difficultyLevel: 5,
   pressureScore: 0.5,
   emotionalIntensity: 0.5,
-} as const
+} as const;

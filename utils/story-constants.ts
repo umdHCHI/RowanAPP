@@ -48,6 +48,28 @@ export function isExactContinueChoice(choiceText: string): boolean {
 }
 
 /**
+ * Study day for EMA: days since profile creation in local time, capped at 5.
+ * Day 1 = creation day (local), day 2 = next calendar day, etc.
+ * @param createdAt - Profile created_at (e.g. "2025-08-08T00:20:34.033107Z") or Date
+ * @returns 1–5
+ */
+export function getStudyDayFromCreatedAt(
+  createdAt: string | Date | null | undefined
+): number {
+  if (createdAt == null) return 1
+  const start =
+    typeof createdAt === 'string' ? new Date(createdAt) : createdAt
+  if (Number.isNaN(start.getTime())) return 1
+  const now = new Date()
+  const startLocal = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+  const nowLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffMs = nowLocal.getTime() - startLocal.getTime()
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000))
+  const day = Math.min(5, Math.max(1, diffDays + 1))
+  return day
+}
+
+/**
  * Calculate which stories should be unlocked based on user creation date
  * 
  * Rules:

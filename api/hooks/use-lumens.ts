@@ -1,22 +1,21 @@
 import { useEffect } from "react";
-import { useCurrentUserFullProfile } from "./use-auth";
+import { useGameMyData } from "./use-game";
 import { useGameStore } from "@/stores/game-store";
-import { mapProfileToLumen } from "@/utils/profile-mapper";
 
 /**
- * Sync experience -> lumens from the full profile
+ * Sync lumens from game data progression snapshot
  */
 export function useExperienceLumens() {
-  const { data: profile, isLoading, error } = useCurrentUserFullProfile();
+  const { data: gameData, isLoading, error } = useGameMyData();
   const setLumen = useGameStore((state) => state.setLumen);
 
   useEffect(() => {
-    if (!profile) return;
-    const mappedLumen = mapProfileToLumen(profile);
-    if (mappedLumen) {
-      setLumen(mappedLumen);
+    if (!gameData) return;
+    const lumensTotal = gameData.progression_snapshot?.lumens_total;
+    if (typeof lumensTotal === "number") {
+      setLumen({ lumens: lumensTotal });
     }
-  }, [profile, setLumen]);
+  }, [gameData, setLumen]);
 
   return {
     isLoading,

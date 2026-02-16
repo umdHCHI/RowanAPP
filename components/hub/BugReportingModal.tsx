@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { getBugReportUrl } from '@/api/constants'
+import { getBugReportStoreUrl } from '@/api/constants'
 import { colors } from '@/theme/design-tokens'
 import { Text, Button } from '@/components/ui'
 import { bugReportModalStyles } from '@/styles/hub/hub-styles'
@@ -31,13 +31,11 @@ export function BugReportModal({ visible, onClose }: MenuOverlayProps) {
     }
     setIsSubmitting(true)
 
+    const url = getBugReportStoreUrl()
     try {
-      const url = getBugReportUrl()
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: description.trim(),
           email: email.trim() || 'anonymous',
@@ -65,9 +63,7 @@ export function BugReportModal({ visible, onClose }: MenuOverlayProps) {
         let message = `Request failed (${response.status})`
         try {
           const data = await response.json()
-          if (data?.error && typeof data.error === 'string') {
-            message = data.error
-          }
+          if (data?.error && typeof data.error === 'string') message = data.error
         } catch {
           // ignore parse error
         }
@@ -146,7 +142,7 @@ export function BugReportModal({ visible, onClose }: MenuOverlayProps) {
                 color="#e2e8f0"
                 style={bugReportModalStyles.descriptionText}
               >
-                Help us improve by reporting any issues you've encountered.
+                Help us improve by reporting any issues you&apos;ve encountered.
               </Text>
 
               <TextInput

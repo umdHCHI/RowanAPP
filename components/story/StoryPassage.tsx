@@ -4,6 +4,7 @@ import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 import { parseQuoteContent } from '@/utils/format-quote'
 import { getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS, STORY_LINE_HEIGHTS, STORY_LAYOUT } from './story-theme'
+import { ActionSceneImage } from './ActionSceneImage'
 import type { PassageType } from '@/types/story'
 
 interface StoryPassageProps {
@@ -84,16 +85,27 @@ export function StoryPassage({
           )}
         </View>
       )
+    case 'mini_game':
+      return (
+        <View style={styles.decisionRow}>
+          <View style={styles.minigameContainer}>
+            <View style={styles.minigameHeader}>
+              <RNText style={styles.minigameLabel}>MINIGAME</RNText>
+            </View>
+            <RNText style={styles.minigameText}>{content}</RNText>
+            <RNText style={styles.minigameSubtext}>Tap to play Thought Defender</RNText>
+          </View>
+          {playerAvatarConfig && (
+            <CharacterAvatar avatarConfig={playerAvatarConfig} size={playerAvatarSize} />
+          )}
+        </View>
+      )
     case 'action':
       const actionImageUrl = getStoryImageUrl(speakerImage)
       return (
         <View style={styles.actionContainer}>
           {actionImageUrl && (
-            <Image
-              source={{ uri: actionImageUrl }}
-              style={styles.actionImage}
-              resizeMode="cover"
-            />
+            <ActionSceneImage source={{ uri: actionImageUrl }} />
           )}
           <View style={styles.actionContent}>
             <View style={styles.actionIndicator} />
@@ -217,6 +229,52 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     letterSpacing: 0.5,
   },
+  minigameContainer: {
+    backgroundColor: STORY_COLORS.minigameContainer,
+    borderRadius: STORY_BORDER_RADIUS.lg,
+    paddingVertical: STORY_SPACING.lg,
+    paddingHorizontal: STORY_SPACING.lg,
+    marginVertical: STORY_SPACING.lg,
+    maxWidth: '88%',
+    alignSelf: 'center',
+    borderWidth: 2,
+    borderColor: STORY_COLORS.minigameBorder,
+    borderStyle: 'solid',
+    shadowColor: '#c1b7d3',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  minigameHeader: {
+    alignItems: 'center',
+    marginBottom: STORY_SPACING.sm,
+  },
+  minigameLabel: {
+    fontFamily: STORY_FONTS.system,
+    fontSize: STORY_FONT_SIZES.sm,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: STORY_COLORS.minigameLabel,
+    textAlign: 'center',
+  },
+  minigameText: {
+    fontFamily: STORY_FONTS.system,
+    fontSize: STORY_FONT_SIZES.base,
+    color: STORY_COLORS.text,
+    lineHeight: STORY_LINE_HEIGHTS.md,
+    textAlign: 'center',
+    fontWeight: '600',
+    marginBottom: STORY_SPACING.sm,
+  },
+  minigameSubtext: {
+    fontFamily: STORY_FONTS.system,
+    fontSize: STORY_FONT_SIZES.xs,
+    color: STORY_COLORS.minigameSubtext,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    letterSpacing: 0.5,
+  },
   actionContainer: {
     backgroundColor: STORY_COLORS.actionContainer,
     borderRadius: STORY_BORDER_RADIUS.lg,
@@ -224,11 +282,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: STORY_COLORS.actionBorder,
-  },
-  actionImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   actionContent: {
     paddingVertical: STORY_SPACING.lg,

@@ -1,22 +1,39 @@
-import  { useState, useEffect } from 'react'
-import { View,  TouchableOpacity,  Alert } from 'react-native'
+import { useState, useEffect, useMemo } from 'react'
+import { View, TouchableOpacity, Alert, Platform } from 'react-native'
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import {
   useAudioRecorder,
   useAudioRecorderState,
   RecordingPresets,
+  setAudioModeAsync,
+  IOSOutputFormat,
+  AudioQuality,
+  type RecordingOptions,
   requestRecordingPermissionsAsync,
 } from 'expo-audio'
 import { Text } from '@/components/ui'
 import { journalVoiceRecorderStyles } from '@/styles/journal/journal-styles'
-import {  VoiceMemoRecorderProps } from '@/types/journal/journal'
+import { VoiceMemoRecorderProps } from '@/types/journal/journal'
 
 
 
 
 
-export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
+export function VoiceMemoRecorder({ value, onSave, onClear }: VoiceMemoRecorderProps) {
   const [recordedUri, setRecordedUri] = useState<string | null>(null)
+
+  const recordingOptions: RecordingOptions = useMemo(() => {
+    if (Platform.OS !== 'ios') return RecordingPresets.HIGH_QUALITY
+    return {
+      ...RecordingPresets.HIGH_QUALITY,
+      extension: '.mp3',
+      ios: {
+        ...RecordingPresets.HIGH_QUALITY.ios,
+        outputFormat: IOSOutputFormat.MPEGLAYER3,
+        audioQuality: AudioQuality.MAX,
+      },
+    }
+  }, [])
 
   function toDurationSeconds(durationMillis?: number) {
     if (typeof durationMillis !== 'number' || Number.isNaN(durationMillis)) return 1
@@ -24,12 +41,13 @@ export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
     return seconds > 0 ? seconds : 1
   }
 
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {
+  const recorder = useAudioRecorder(recordingOptions, (status) => {
     // Status listener - called when recording status changes
     if (status.isFinished && status.url) {
       const durationSeconds = toDurationSeconds(recorderState.durationMillis ?? 0)
       setRecordedUri(status.url)
-      onSave({ uri: status.url, durationSeconds })
+      const meta = getAudioMeta(status.url)
+      onSave({ uri: status.url, durationSeconds, mimeType: meta.mimeType, fileName: meta.fileName })
     }
   })
 
@@ -44,8 +62,18 @@ export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
         return
       }
 
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+      })
+
       setRecordedUri(null)
       await recorder.prepareToRecordAsync()
+      const status = recorder.getStatus()
+      if (!status.canRecord) {
+        Alert.alert('Recording Error', 'Microphone is not ready. Please try again.')
+        return
+      }
       recorder.record()
     } catch (error) {
       console.error('Error starting recording:', error)
@@ -56,19 +84,43 @@ export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
   async function stopRecording() {
     try {
       await recorder.stop()
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+      })
       // The uri will be available via recorder.uri after stopping
       if (recorder.uri) {
         const durationSeconds = toDurationSeconds(recorderState.durationMillis)
         setRecordedUri(recorder.uri)
-        onSave({ uri: recorder.uri, durationSeconds })
+        const meta = getAudioMeta(recorder.uri)
+        onSave({ uri: recorder.uri, durationSeconds, mimeType: meta.mimeType, fileName: meta.fileName })
       } else if (recorderState.url) {
         const durationSeconds = toDurationSeconds(recorderState.durationMillis)
         setRecordedUri(recorderState.url)
-        onSave({ uri: recorderState.url, durationSeconds })
+        const meta = getAudioMeta(recorderState.url)
+        onSave({ uri: recorderState.url, durationSeconds, mimeType: meta.mimeType, fileName: meta.fileName })
       }
     } catch (error) {
       console.error('Error stopping recording:', error)
       Alert.alert('Recording Error', 'Failed to stop recording.')
+    }
+  }
+
+  function getAudioMeta(uri: string | null) {
+    const fallbackExtension = recordingOptions.extension || '.m4a'
+    const ext = uri?.includes('.') ? `.${uri.split('.').pop()}` : fallbackExtension
+    const normalizedExt = ext.toLowerCase()
+    const mimeType =
+      normalizedExt === '.mp3'
+        ? 'audio/mpeg'
+        : normalizedExt === '.webm'
+          ? 'audio/webm'
+          : normalizedExt === '.3gp'
+            ? 'audio/3gpp'
+            : 'audio/m4a'
+    return {
+      mimeType,
+      fileName: `voice-memo${normalizedExt || fallbackExtension}`,
     }
   }
 
@@ -91,8 +143,15 @@ export function VoiceMemoRecorder({ onSave }: VoiceMemoRecorderProps) {
     }
   }, [isRecording, recorder.uri, recorderState.url])
 
+  useEffect(() => {
+    if (typeof value === 'string' || value === null) {
+      setRecordedUri(value ?? null)
+    }
+  }, [value])
+
   function handleDelete() {
     setRecordedUri(null)
+    onClear?.()
   }
 
   return (

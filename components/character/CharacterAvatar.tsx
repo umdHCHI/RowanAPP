@@ -59,7 +59,7 @@ export function CharacterAvatar({ avatarConfig, size = 150 }: CharacterAvatarPro
         />
       </View>
     )
-  } catch (error) {
+  } catch {
     return null
   }
 }

@@ -6,32 +6,19 @@ import { StoryRewardMoment } from './StoryRewardMoment'
 import { CharacterAvatar } from '@/components/character/CharacterAvatar'
 import { useMyCharacter } from '@/api'
 import { buildAvatarConfig } from '@/utils/character-avatar-config'
-import { getStoryImageUrl, normalizeSpeakerName } from '@/utils/story-helpers'
+import { getStoryImageUrl, normalizeSpeakerName, buildStoryMinigameRoute } from '@/utils/story-helpers'
 import { STORY_COLORS, STORY_SPACING, STORY_BORDER_RADIUS, STORY_FONT_SIZES, STORY_FONTS } from './story-theme'
 import type { StoryHistoryItem } from '@/types/story'
 
 interface StoryHistoryProps {
   history: StoryHistoryItem[]
+  storyId?: string | number
 }
 
-export function StoryHistory({ history }: StoryHistoryProps) {
+export function StoryHistory({ history, storyId }: StoryHistoryProps) {
   const router = useRouter()
   const { data: myCharacter } = useMyCharacter()
-  const avatarConfig = React.useMemo(() => buildAvatarConfig(myCharacter), [
-    myCharacter?.character_config,
-    myCharacter?.selected_base_model,
-    myCharacter?.selected_background_color,
-    myCharacter?.selected_background_type,
-    myCharacter?.selected_hair_color,
-    myCharacter?.selected_hair_style,
-    myCharacter?.selected_shirt_color,
-    myCharacter?.selected_shirt_type,
-    myCharacter?.selected_eye_color,
-    myCharacter?.selected_eye_type,
-    myCharacter?.selected_eyebrow_color,
-    myCharacter?.selected_eyebrow_style,
-    myCharacter?.selected_mouth_type,
-  ])
+  const avatarConfig = React.useMemo(() => buildAvatarConfig(myCharacter), [myCharacter])
   
   function handleRewardPress(journalEntryId?: string) {
     if (journalEntryId) {
@@ -41,8 +28,8 @@ export function StoryHistory({ history }: StoryHistoryProps) {
     }
   }
 
-  function handleMinigamePress() {
-    router.push('/vantage')
+  function handleMinigamePress(isTutorial?: boolean) {
+    router.push(buildStoryMinigameRoute({ isTutorial: isTutorial === true, storyId }))
   }
 
   function getRewardType(type?: string): 'JOURNAL_REWARD' | 'MINIGAME' | 'POWER' | 'ITEM' | 'ACTION_SCENE' | 'LUMENS' {
@@ -59,6 +46,7 @@ export function StoryHistory({ history }: StoryHistoryProps) {
       {history.map((item, index) => {
         // Render action passages as rewards
         const isActionPassage = item.type === 'passage' && item.passageType === 'action'
+        const isMiniGamePassage = item.type === 'passage' && item.passageType === 'mini_game'
         
         if (isActionPassage) {
           const actionImageUrl = getStoryImageUrl(item.speakerImage)
@@ -70,6 +58,24 @@ export function StoryHistory({ history }: StoryHistoryProps) {
                 title={item.content || 'Action Scene'}
                 subtitle={normalizedSpeakerName || undefined}
                 imageSource={actionImageUrl ? { uri: actionImageUrl } : undefined}
+              />
+            </View>
+          )
+        }
+
+        if (isMiniGamePassage) {
+          return (
+            <View key={`${item.type}-${item.id}-${index}`} style={styles.historyItem}>
+              <StoryRewardMoment
+                type="MINIGAME"
+                title="Thought Defender"
+                subtitle={item.content || 'Practice reframing negative thoughts in this interactive challenge'}
+                theme={{
+                  primary: STORY_COLORS.minigameLabel,
+                  background: STORY_COLORS.minigameContainer,
+                  text: STORY_COLORS.minigameSubtext,
+                }}
+                onPress={() => handleMinigamePress(item.minigameIsTutorial)}
               />
             </View>
           )
@@ -97,7 +103,7 @@ export function StoryHistory({ history }: StoryHistoryProps) {
                 item.rewardType === 'journal_entry' 
                   ? () => handleRewardPress(item.journalEntryId)
                   : item.rewardType === 'minigame'
-                  ? handleMinigamePress
+                  ? () => handleMinigamePress(item.minigameIsTutorial)
                   : undefined
               }
             />

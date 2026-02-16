@@ -25,8 +25,6 @@ export function GameBoss({ boss, telegraphActive, telegraphLabel, difficultyLeve
     [difficultyLevel]
   )
   const baseTelegraphDuration = 225
-  const inverseDifficulty = (11 - difficultyStep) * 0.2
-  const adaptiveTelegraphDuration = baseTelegraphDuration * inverseDifficulty
 
   // Telegraph opacity adjustment: Lower difficulty (high pressure) = more visible warning
   // Base range: [0.1, 0.18], adjust based on difficulty

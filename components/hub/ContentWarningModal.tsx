@@ -8,18 +8,25 @@ import { contentWarningModalStyles } from '@/styles/hub/hub-styles'
 
 function buildWarningContent({
   content,
-  revelations,
+  storyThemes,
 }: {
   content?: string
-  revelations?: string[]
-}): string {
-  if (content) return content
+  storyThemes?: string[]
+}): { baseText: string; themesText?: string; tailText: string; rawContent?: string } {
+  if (content) {
+    return {
+      baseText: '',
+      tailText: '',
+      rawContent: content,
+    }
+  }
 
   const baseText =
     'This story may contain themes that some players may find sensitive or triggering.'
+  const tailText = 'Please proceed with caution and take care of yourself while playing.'
 
-  if (revelations?.length) {
-    const valid = revelations.filter(
+  if (storyThemes?.length) {
+    const valid = storyThemes.filter(
       (r) => typeof r === 'string' && r.trim().length > 0
     )
     if (valid.length > 0) {
@@ -29,11 +36,11 @@ function buildWarningContent({
           : valid.length === 2
             ? `${valid[0]} and ${valid[1]}`
             : `${valid.slice(0, -1).join(', ')}, and ${valid[valid.length - 1]}`
-      return `${baseText} Specific themes include: ${themesText}. Please proceed with caution and take care of yourself while playing.`
+      return { baseText, themesText, tailText }
     }
   }
 
-  return `${baseText} Please proceed with caution and take care of yourself while playing.`
+  return { baseText, tailText }
 }
 
 export function ContentWarningModal({
@@ -41,9 +48,11 @@ export function ContentWarningModal({
   onClose,
   title,
   content,
-  revelations,
+  storyThemes,
 }: ContentWarningModalProps) {
-  const warningContent = buildWarningContent({ content, revelations })
+  const warningContent = buildWarningContent({ content, storyThemes })
+  const hasRawContent = typeof warningContent.rawContent === 'string'
+    && warningContent.rawContent.length > 0
   const insets = useSafeAreaInsets()
 
   return (
@@ -78,7 +87,31 @@ export function ContentWarningModal({
                     contentContainerStyle={contentWarningModalStyles.scrollContent}
                   >
                     <Text variant="body" size={2} color="#e2e8f0" align="left">
-                      {warningContent}
+                      {hasRawContent ? (
+                        warningContent.rawContent
+                      ) : (
+                        <>
+                          {warningContent.baseText}
+                          {warningContent.themesText ? (
+                            <>
+                              {'\n'}
+                              {'Specific themes include:'}
+                              {'\n'}
+                              <Text variant="body" size={2} color="#e2e8f0" style={{ fontWeight: '700' }}>
+                                {warningContent.themesText}
+                              </Text>
+                              {'.'}
+                              {'\n'}
+                              {warningContent.tailText}
+                            </>
+                          ) : (
+                            <>
+                              {'\n'}
+                              {warningContent.tailText}
+                            </>
+                          )}
+                        </>
+                      )}
                     </Text>
                   </ScrollView>
                 </View>

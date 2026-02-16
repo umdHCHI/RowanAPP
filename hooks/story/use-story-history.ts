@@ -1,75 +1,63 @@
-import { useState, useEffect, useCallback } from 'react'
-import type { StoryHistoryItem } from '@/types/story'
-import { isContinueChoice } from '@/utils/story-constants'
-import type { UseStoryHistoryResult, UseStoryHistoryProps } from '@/types/hooks'
+import { useEffect, useCallback } from "react";
+import { useStoryStore } from "@/stores/story-store";
+import type {
+  UseStoryHistoryResult,
+  UseStoryHistoryProps,
+} from "@/types/hooks";
 
-export function useStoryHistory({ currentPassage }: UseStoryHistoryProps): UseStoryHistoryResult {
-  const [history, setHistory] = useState<StoryHistoryItem[]>([])
+export function useStoryHistory({
+  currentPassage,
+}: UseStoryHistoryProps): UseStoryHistoryResult {
+  const history = useStoryStore((state) => state.history);
+  const addPassageToHistory = useStoryStore(
+    (state) => state.addPassageToHistory,
+  );
+  const addChoiceToHistory = useStoryStore((state) => state.addChoiceToHistory);
+  const addRewardToHistory = useStoryStore((state) => state.addRewardToHistory);
 
   // Add current passage to history when it changes
   useEffect(() => {
     if (currentPassage && currentPassage.content) {
-      setHistory((prev) => {
-        // Check if this passage is already in history
-        const exists = prev.some(
-          (item) => item.id === currentPassage.passage_id && item.type === 'passage'
-        )
-        if (!exists) {
-          return [
-            ...prev,
-            {
-              type: 'passage',
-              content: currentPassage.content,
-              id: currentPassage.passage_id,
-              passageType: currentPassage.passage_type,
-              speakerName: currentPassage.speaker_name,
-              speakerImage: currentPassage.speaker_image,
-            },
-          ]
-        }
-        return prev
-      })
+      addPassageToHistory(currentPassage);
     }
-  }, [currentPassage?.passage_id, currentPassage?.content, currentPassage?.passage_type, currentPassage?.speaker_name, currentPassage?.speaker_image])
+  }, [
+    currentPassage,
+    currentPassage?.passage_id,
+    currentPassage?.content,
+    currentPassage?.passage_type,
+    currentPassage?.speaker_name,
+    currentPassage?.speaker_image,
+    addPassageToHistory,
+  ]);
 
-  const addChoice = useCallback((choice: { id: number | string; text: string }) => {
-    // Add choice to history only if it's not a "Continue" choice
-    if (!isContinueChoice(choice.text)) {
-      setHistory((prev) => [
-        ...prev,
-        {
-          type: 'choice',
-          content: choice.text,
-          id: String(choice.id),
-        },
-      ])
-    }
-  }, [])
+  const addChoice = useCallback(
+    (choice: { id: number | string; text: string }) => {
+      addChoiceToHistory(choice);
+    },
+    [addChoiceToHistory],
+  );
 
-  const addReward = useCallback((reward: { 
-    id: string
-    type: 'journal_entry' | 'minigame' | 'power' | 'skill' | 'gear' | 'lumens'
-    title: string
-    subtitle?: string
-    journalEntryId?: string
-    minigameLevel?: string
-    lumensAmount?: number
-  }) => {
-    setHistory((prev) => [
-      ...prev,
-      {
-        type: 'reward',
-        content: reward.title,
-        id: reward.id,
-        rewardType: reward.type,
-        rewardTitle: reward.title,
-        rewardSubtitle: reward.subtitle,
-        journalEntryId: reward.journalEntryId,
-        minigameLevel: reward.minigameLevel,
-        lumensAmount: reward.lumensAmount,
-      },
-    ])
-  }, [])
+  const addReward = useCallback(
+    (reward: {
+      id: string;
+      type:
+        | "journal_entry"
+        | "minigame"
+        | "power"
+        | "skill"
+        | "gear"
+        | "lumens";
+      title: string;
+      subtitle?: string;
+      journalEntryId?: string;
+      minigameLevel?: string;
+      minigameIsTutorial?: boolean;
+      lumensAmount?: number;
+    }) => {
+      addRewardToHistory(reward);
+    },
+    [addRewardToHistory],
+  );
 
-  return { history, addChoice, addReward }
+  return { history, addChoice, addReward };
 }

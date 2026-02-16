@@ -2,14 +2,19 @@ name: Create Production Builds v2
 
 on:
   workflow_dispatch:
-  push:
-    branches: ['production']
+    inputs:
+      platform:
+        type: string
+        default: android
+      profile:
+        type: string
+        default: production
 
 jobs:
-  build_android:
+  build_app:
     type: build
     params:
-      platform: android
-      profile: production
+      platform: ${{ inputs.platform }}
+      profile: ${{ inputs.profile }}
 
 

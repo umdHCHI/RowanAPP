@@ -25,10 +25,12 @@ export {
   type GameStatsResponse,
   type RecordProgressRequest,
   type RecordProgressResponse,
+  type VantageData,
   type VantageRunRequest,
   type VantageRunResponse,
-  type WellnessStatsResponse,
 } from "./services/game.service";
+
+export { emaService } from "./services/ema.service";
 
 // Hooks - Character
 export {
@@ -64,6 +66,18 @@ export {
 
 // Hooks - User
 export { useUser, useUserFullProfile, userKeys } from "./hooks/use-user";
+
+// Hooks - EMA
+export {
+  useEmaPrompts,
+  useSubmitEma,
+  useEmaMyResponse,
+  useEmaResponseForStory,
+  emaKeys,
+} from "./hooks/use-ema";
+
+// Hooks - Game
+export { useSubmitVantageRun, useGameMyData, gameKeys } from "./hooks/use-game";
 
 // Hooks - Auth
 export {

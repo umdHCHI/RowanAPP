@@ -44,16 +44,14 @@ export function GameOverlay({
   const insets = useSafeAreaInsets()
   const lumensAwarded = won && bossDefeated ? 1 : 0
 
-  const conqueredKey = conqueredThoughts.map((c) => c.id).join(',')
-  const defeatedKey = defeatedNegativeThoughts.map((t) => t.id).join(',')
   const oneReframed = useMemo(() => {
     if (conqueredThoughts.length === 0) return null
     return conqueredThoughts[Math.floor(Math.random() * conqueredThoughts.length)]
-  }, [conqueredKey, conqueredThoughts])
+  }, [conqueredThoughts])
   const oneDefeated = useMemo(() => {
     if (defeatedNegativeThoughts.length === 0) return null
     return defeatedNegativeThoughts[Math.floor(Math.random() * defeatedNegativeThoughts.length)]
-  }, [defeatedKey, defeatedNegativeThoughts])
+  }, [defeatedNegativeThoughts])
 
   function handleStart() {
     playPageFlipSound()
@@ -99,7 +97,7 @@ export function GameOverlay({
           </View>
           <View style={styles.caption}>
             <Text style={styles.captionText}>
-              Help regain control of The Archive and Seal the breach to calm your mind.
+              Help regain control of The Archive and Clear the Rot to calm your mind.
             </Text>
           </View>
           
@@ -209,7 +207,7 @@ export function GameOverlay({
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} pointerEvents="box-none">
           <View style={styles.card} pointerEvents="auto">
             <Text style={styles.title}>Victory!</Text>
-            <Text style={styles.subtitle}>You've sealed the breach.</Text>
+            <Text style={styles.subtitle}>You&apos;ve cleared away some of the rot.</Text>
             {lumensAwarded > 0 ? (
               <Text style={styles.lumensText}>Lumens Gathered: {lumensAwarded}</Text>
             ) : (
@@ -223,7 +221,7 @@ export function GameOverlay({
                   <>
                     <Text style={styles.thoughtCategoryTitle}>Reframed Thoughts</Text>
                     <View style={styles.thoughtRecord}>
-                      <Text style={styles.thoughtPhrase}>"{oneReframed.phrase}"</Text>
+                      <Text style={styles.thoughtPhrase}>&quot;{oneReframed.phrase}&quot;</Text>
                       <Text style={styles.counterRecord}>{oneReframed.counterRecord}</Text>
                     </View>
                   </>
@@ -234,7 +232,7 @@ export function GameOverlay({
                     {oneReframed && oneDefeated && <View style={styles.thoughtDivider} />}
                     <Text style={styles.thoughtCategoryTitle}>Defeated Thoughts</Text>
                     <View style={styles.thoughtRecord}>
-                      <Text style={styles.thoughtPhrase}>"{oneDefeated.phrase}"</Text>
+                      <Text style={styles.thoughtPhrase}>&quot;{oneDefeated.phrase}&quot;</Text>
                       <Text style={styles.counterRecord}>{oneDefeated.counterRecord}</Text>
                     </View>
                   </>

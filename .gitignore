@@ -92,3 +92,7 @@ yarn-error.*
 
 # @end expo-cli
 env
+
+.eas
+android/
+ios/

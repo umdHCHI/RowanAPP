@@ -43,7 +43,7 @@ export default function CrisisHelp() {
         <Text variant="heading" size={1} align="center">Crisis Help</Text>
 
         <Text variant="title" size={1} align="center" marginTop={16}>
-          If you're experiencing a mental health crisis, help is available. Reach out to these
+          If you&apos;re experiencing a mental health crisis, help is available. Reach out to these
           resources:
         </Text>
 

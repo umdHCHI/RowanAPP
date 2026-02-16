@@ -1,24 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { journalService } from '../services/journal.service'
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { journalService } from "../services/journal.service";
 import type {
   JournalEntryResponse,
   JournalEntryCreateRequest,
+  JournalEntryCreateWithMediaRequest,
   JournalEntryUpdateRequest,
-  JournalPromptResponse,
-} from '../types'
+  JournalEntryUpdateWithMediaRequest,
+} from "../types";
 
 /**
  * Query Keys
  */
 export const journalKeys = {
-  all: ['journal'] as const,
-  lists: () => [...journalKeys.all, 'list'] as const,
+  all: ["journal"] as const,
+  lists: () => [...journalKeys.all, "list"] as const,
   list: (page: number, limit: number) =>
     [...journalKeys.lists(), page, limit] as const,
-  details: () => [...journalKeys.all, 'detail'] as const,
+  details: () => [...journalKeys.all, "detail"] as const,
   detail: (id: string) => [...journalKeys.details(), id] as const,
-  prompts: () => [...journalKeys.all, 'prompts'] as const,
-}
+  prompts: () => [...journalKeys.all, "prompts"] as const,
+};
 
 /**
  * Get all journal entries (paginated)
@@ -27,26 +28,28 @@ export function useJournalEntries(page = 1, limit = 20) {
   return useQuery({
     queryKey: journalKeys.list(page, limit),
     queryFn: async () => {
-      const response = await journalService.getAll(page, limit)
-      
+      const response = await journalService.getAll(page, limit);
+
       // Handle case where API returns array directly
       if (Array.isArray(response)) {
-        return response
+        return response;
       }
-      
+
       // Handle wrapped response (ApiResponse/PaginatedResponse)
-      if (response && typeof response === 'object' && 'success' in response) {
+      if (response && typeof response === "object" && "success" in response) {
         if (!response.success) {
-          throw new Error(response.message || 'Failed to fetch journal entries')
+          throw new Error(
+            response.message || "Failed to fetch journal entries",
+          );
         }
-        return response
+        return response;
       }
-      
+
       // Return as-is if structure is unexpected
-      return response
+      return response;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
-  })
+  });
 }
 
 /**
@@ -56,89 +59,162 @@ export function useJournalEntry(id: string | null) {
   return useQuery({
     queryKey: journalKeys.detail(id!),
     queryFn: async () => {
-      if (!id) throw new Error('Journal entry ID is required')
-      const response = await journalService.getById(id)
+      if (!id) throw new Error("Journal entry ID is required");
+      const response = await journalService.getById(id);
       if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch journal entry')
+        throw new Error(response.message || "Failed to fetch journal entry");
       }
-      return response.data
+      return response.data;
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
-  })
+  });
 }
 
 /**
  * Create a new journal entry
  */
 export function useCreateJournalEntry() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: JournalEntryCreateRequest) => {
-      const response = await journalService.create(data)
-      if (response && typeof response === 'object' && 'success' in response) {
+      const response = await journalService.create(data);
+      if (response && typeof response === "object" && "success" in response) {
         if (!response.success) {
-          throw new Error(response.message || 'Failed to create journal entry')
+          throw new Error(response.message || "Failed to create journal entry");
         }
-        return response.data
+        return response.data;
       }
       // Handle direct object response (no ApiResponse wrapper)
-      return response as JournalEntryResponse
+      return response as JournalEntryResponse;
     },
     onSuccess: () => {
       // Invalidate journal entries list and all byPrompt queries
-      queryClient.invalidateQueries({ queryKey: journalKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: [...journalKeys.all, 'byPrompt'] })
+      queryClient.invalidateQueries({ queryKey: journalKeys.lists() });
+      queryClient.invalidateQueries({
+        queryKey: [...journalKeys.all, "byPrompt"],
+      });
     },
-  })
+  });
+}
+
+/**
+ * Create a journal entry with optional media (PNG image and/or audio file) via multipart.
+ */
+export function useCreateJournalEntryWithMedia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: JournalEntryCreateWithMediaRequest) => {
+      const response = await journalService.createWithMedia(data);
+      if (response && typeof response === "object" && "success" in response) {
+        if (!response.success) {
+          throw new Error(response.message || "Failed to create journal entry");
+        }
+        return response.data;
+      }
+      return response as JournalEntryResponse;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: journalKeys.lists() });
+      queryClient.invalidateQueries({
+        queryKey: [...journalKeys.all, "byPrompt"],
+      });
+    },
+  });
 }
 
 /**
  * Update a journal entry
  */
 export function useUpdateJournalEntry() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: JournalEntryUpdateRequest }) => {
-      const response = await journalService.update(id, data)
-      if (response && typeof response === 'object' && 'success' in response) {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: JournalEntryUpdateRequest;
+    }) => {
+      const response = await journalService.update(id, data);
+      if (response && typeof response === "object" && "success" in response) {
         if (!response.success) {
-          throw new Error(response.message || 'Failed to update journal entry')
+          throw new Error(response.message || "Failed to update journal entry");
         }
-        return response.data
+        return response.data;
       }
       // Handle direct object response (no ApiResponse wrapper)
-      return response as JournalEntryResponse
+      return response as JournalEntryResponse;
     },
     onSuccess: (data) => {
       // Invalidate both list, specific entry, and all byPrompt queries
-      queryClient.invalidateQueries({ queryKey: journalKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: journalKeys.detail(String(data.id)) })
-      queryClient.invalidateQueries({ queryKey: [...journalKeys.all, 'byPrompt'] })
+      queryClient.invalidateQueries({ queryKey: journalKeys.lists() });
+      queryClient.invalidateQueries({
+        queryKey: journalKeys.detail(String(data.id)),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...journalKeys.all, "byPrompt"],
+      });
     },
-  })
+  });
+}
+
+/**
+ * Update a journal entry with media (PNG image or audio file) via multipart PATCH.
+ */
+export function useUpdateJournalEntryWithMedia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: JournalEntryUpdateWithMediaRequest;
+    }) => {
+      const response = await journalService.updateWithMedia(id, data);
+      if (response && typeof response === "object" && "success" in response) {
+        if (!response.success) {
+          throw new Error(response.message || "Failed to update journal entry");
+        }
+        return response.data;
+      }
+      return response as JournalEntryResponse;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: journalKeys.lists() });
+      queryClient.invalidateQueries({
+        queryKey: journalKeys.detail(String(data.id)),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...journalKeys.all, "byPrompt"],
+      });
+    },
+  });
 }
 
 /**
  * Delete a journal entry
  */
 export function useDeleteJournalEntry() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await journalService.delete(id)
+      const response = await journalService.delete(id);
       if (!response.success) {
-        throw new Error(response.message || 'Failed to delete journal entry')
+        throw new Error(response.message || "Failed to delete journal entry");
       }
     },
     onSuccess: () => {
       // Invalidate journal entries list
-      queryClient.invalidateQueries({ queryKey: journalKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: journalKeys.lists() });
     },
-  })
+  });
 }
 
 /**
@@ -148,10 +224,10 @@ export function useJournalPrompts() {
   return useQuery({
     queryKey: journalKeys.prompts(),
     queryFn: async () => {
-      return journalService.getPrompts()
+      return journalService.getPrompts();
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-  })
+  });
 }
 
 /**
@@ -161,54 +237,65 @@ export function useJournalPrompts() {
 export function useJournalEntryByPrompt(
   promptId: number | null,
   entryType: string | null = null,
-  promptKey: string | null = null
+  promptKey: string | null = null,
 ) {
   return useQuery({
-    queryKey: [...journalKeys.all, 'byPrompt', promptId, entryType, promptKey],
+    queryKey: [...journalKeys.all, "byPrompt", promptId, entryType, promptKey],
     queryFn: async () => {
-      if (!promptId && !promptKey) throw new Error('Prompt ID is required')
-      
+      if (!promptId && !promptKey) throw new Error("Prompt ID is required");
+
       try {
         // Fetch all entries and find the one matching the prompt ID
         // Using a high limit to get all entries (you may want to adjust this based on your needs)
-        const response = await journalService.getAll(1, 100)
-        
-        // Handle both wrapped and direct array responses
-        let entries: JournalEntryResponse[] = []
-        if (response && typeof response === 'object') {
-          if ('data' in response && Array.isArray(response.data)) {
-            entries = response.data
-          } else if ('success' in response && response.success && 'data' in response && Array.isArray(response.data)) {
-            entries = response.data
+        const response = await journalService.getAll(1, 100);
+
+        // Handle both wrapped and direct array responses; support DRF-style { results: [...] }
+        let entries: JournalEntryResponse[] = [];
+        if (response && typeof response === "object") {
+          if ("data" in response && Array.isArray(response.data)) {
+            entries = response.data;
+          } else if (
+            "success" in response &&
+            response.success &&
+            "data" in response &&
+            Array.isArray((response as { data: unknown }).data)
+          ) {
+            entries = (response as { data: JournalEntryResponse[] }).data;
+          } else if (
+            "results" in response &&
+            Array.isArray((response as { results: unknown }).results)
+          ) {
+            entries = (response as { results: JournalEntryResponse[] }).results;
           } else if (Array.isArray(response)) {
-            entries = response
+            entries = response;
           }
         }
-        
+
         const matchesPrompt = (e: JournalEntryResponse) => {
-          if (promptId != null && String(e.prompt) === String(promptId)) return true
-          if (promptKey && e.prompt_id === promptKey) return true
-          return false
-        }
+          if (promptId != null && String(e.prompt) === String(promptId))
+            return true;
+          if (promptKey && e.prompt_id === promptKey) return true;
+          return false;
+        };
 
         // Find entry with matching prompt and optionally entry type
         // If entryType is provided, prefer exact match, otherwise return any entry for this prompt
         if (entryType) {
           const exactMatch = entries.find(
-            (e) => matchesPrompt(e) && e.entry_type === entryType
-          )
-          if (exactMatch) return exactMatch
+            (e) => matchesPrompt(e) && e.entry_type === entryType,
+          );
+          if (exactMatch) return exactMatch;
         }
 
         // Fallback: find any entry with matching prompt
-        const anyMatch = entries.find((e) => matchesPrompt(e))
-        return anyMatch || null
+        const anyMatch = entries.find((e) => matchesPrompt(e));
+        return anyMatch || null;
       } catch (error) {
-        console.error('Error fetching journal entry by prompt:', error)
-        return null
+        console.error("Error fetching journal entry by prompt:", error);
+        return null;
       }
     },
     enabled: !!promptId || !!promptKey,
     staleTime: 2 * 60 * 1000, // 2 minutes
-  })
+  });
 }

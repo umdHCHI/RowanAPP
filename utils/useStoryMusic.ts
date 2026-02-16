@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { createAudioPlayer } from 'expo-audio'
 import { useGameStore } from '@/stores/game-store'
 
@@ -38,7 +38,7 @@ function stopIfPlayingOurStory(storyId: number | string | null | undefined) {
       sharedPlayer?.pause()
       sharedPlayer?.seekTo(0)
       currentPlayingStoryId = null
-    } catch (_) {
+    } catch {
       currentPlayingStoryId = null
     }
   }
@@ -55,8 +55,13 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
   const soundMuted = useGameStore((state) => state.soundMuted)
   const playAttemptedRef = useRef(false)
   const currentStoryIdRef = useRef<number | string | null | undefined>(storyId)
+  const isActiveRef = useRef(isActive)
+  const soundMutedRef = useRef(soundMuted)
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const retryCountRef = useRef(0)
+
+  isActiveRef.current = isActive
+  soundMutedRef.current = soundMuted
 
   const id = normalizedStoryId(storyId)
   const hasMusic = id != null && id in STORY_MUSIC_MAP
@@ -70,26 +75,26 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
     currentStoryIdRef.current = storyId
   }, [storyId])
 
-  const isPlayerPlaying = (): boolean => {
+  const isPlayerPlaying = useCallback((): boolean => {
     if (!player) return false
     try {
       return player.playing
     } catch {
       return false
     }
-  }
+  }, [player])
 
-  const stopSharedPlayer = () => {
+  const stopSharedPlayer = useCallback(() => {
     try {
       if (player?.playing) {
         player.pause()
         player.seekTo(0)
       }
       currentPlayingStoryId = null
-    } catch (_) {
+    } catch {
       currentPlayingStoryId = null
     }
-  }
+  }, [player])
 
   // When audioSource changes (different story), replace the player's source.
   useEffect(() => {
@@ -100,22 +105,23 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
       playAttemptedRef.current = false
       previousAudioSourceRef.current = audioSource
       player.replace(audioSource)
-    } catch (_) {
+    } catch {
       // Ignore
     }
-  }, [audioSource, hasMusic, player])
+  }, [audioSource, hasMusic, player, stopSharedPlayer])
 
   useEffect(() => {
     if (!player) return
     try {
       player.volume = 0.3
       player.loop = true
-    } catch (_) {
+    } catch {
       // Ignore
     }
   }, [player])
 
   // expo-audio does not reliably loop; when playback ends we must seekTo(0) and play() again.
+  // Use refs for isActive/soundMuted so the callback always reads current values (avoids stale closure).
   useEffect(() => {
     if (!player || !hasMusic) return
     const subscription = player.addListener(
@@ -128,23 +134,23 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
             (status.currentTime ?? 0) >= Math.max(0, (status.duration ?? 0) - 0.5))
         const shouldLoop =
           atEnd &&
-          !soundMuted &&
-          isActive &&
-          currentStoryIdRef.current === storyId &&
-          currentPlayingStoryId === storyId // Only loop if we're the one playing
+          !soundMutedRef.current &&
+          isActiveRef.current &&
+          String(currentStoryIdRef.current) === String(storyId) &&
+          String(currentPlayingStoryId) === String(storyId)
         if (shouldLoop) {
           try {
             player.seekTo(0)
             player.play()
-            currentPlayingStoryId = storyId
-          } catch (_) {
+            currentPlayingStoryId = storyId ?? null
+          } catch {
             // Ignore
           }
         }
       }
     )
     return () => subscription.remove()
-  }, [player, hasMusic, soundMuted, isActive, storyId])
+  }, [player, hasMusic, storyId])
 
   // Handle play/stop based on isActive, soundMuted, and storyId
   useEffect(() => {
@@ -208,9 +214,9 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
             stopSharedPlayer() // Ensure no other track is playing before we start
             player.seekTo(0)
             player.play()
-            currentPlayingStoryId = storyId
+            currentPlayingStoryId = storyId ?? null
             playAttemptedRef.current = true
-          } catch (_) {
+          } catch {
             retryCountRef.current += 1
             if (retryCountRef.current < MAX_RETRIES) {
               retryTimeoutRef.current = setTimeout(attemptPlay, RETRY_MS)
@@ -241,11 +247,11 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
               if (isReady) {
                 player.seekTo(0)
                 player.play()
-                currentPlayingStoryId = storyId
+                currentPlayingStoryId = storyId ?? null
               } else if (!retryTimeoutRef.current) {
                 retryTimeoutRef.current = setTimeout(retryPlay, RETRY_MS)
               }
-            } catch (_) {
+            } catch {
               if (!retryTimeoutRef.current) retryTimeoutRef.current = setTimeout(retryPlay, RETRY_MS)
             }
           }
@@ -257,7 +263,7 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
       stopIfPlayingOurStory(storyId)
       playAttemptedRef.current = false
     }
-  }, [isActive, soundMuted, player, storyId, hasMusic, audioSource])
+  }, [isActive, soundMuted, player, storyId, hasMusic, audioSource, isPlayerPlaying, stopSharedPlayer])
 
   // Cleanup on unmount - stop only if we were the one playing
   useEffect(() => {
@@ -278,4 +284,28 @@ export function useStoryMusic(storyId: number | string | null | undefined, isAct
       retryCountRef.current = 0
     }
   }, [isActive, storyId])
+
+  // Keep-alive: while on StoryPage, if music stopped unexpectedly (platform quirk), restart.
+  // Ensures looping continues as long as the user is on the page.
+  useEffect(() => {
+    if (!hasMusic || !isActive || storyId == null || soundMuted || !audioSource) return
+    const KEEP_ALIVE_INTERVAL_MS = 5000
+    const interval = setInterval(() => {
+      if (!isActiveRef.current || soundMutedRef.current) return
+      if (String(currentPlayingStoryId) !== String(storyId)) return
+      if (isPlayerPlaying()) return
+      try {
+        const isReady =
+          (player?.isLoaded ?? false) || (player?.duration != null && (player?.duration ?? 0) > 0)
+        if (isReady) {
+          player?.seekTo(0)
+          player?.play()
+          currentPlayingStoryId = storyId ?? null
+        }
+      } catch {
+        // Ignore
+      }
+    }, KEEP_ALIVE_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [hasMusic, isActive, storyId, soundMuted, audioSource, player, isPlayerPlaying])
 }

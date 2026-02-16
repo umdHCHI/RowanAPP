@@ -1,11 +1,11 @@
-import { View, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { View, ScrollView, TouchableOpacity, Alert, Image } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Header } from '@/components/header'
 import { Button, Text, Card } from '@/components/ui'
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons'
 import { GameBackground } from '@/components/ui/GameBackground'
-import aboutStyles from '@/styles/about/about-styles'
+import { aboutStyles } from '@/styles/about/about-styles'
 import { colors } from '@/theme/design-tokens'
 
 export default function About() {
@@ -31,17 +31,17 @@ export default function About() {
 
         <View style={aboutStyles.content}>
           <Text variant="body" size={1} opacity={0.9}>
-            The Archive is a transformative journey through stories that explore the depths of human
-            experience. Through interactive narratives, you'll navigate themes of connection,
-            courage, exploration, and understanding fear.
+            The Archive is a research project blending games and digital mental health applications. Within our Human Computer Interaction lab, we use participatory design methods to co-design these solutions with college students here at UMN Duluth. This investigation attempts to move those who use the software into the design chair. Our initial investigation in this space with surveys called for narrative exploration as an adaptive coping mechanism to explore within this space. 
           </Text>
           <Text variant="body" size={1} opacity={0.9}>
-            Each story in The Archive is designed to help you reflect on your own journey, build
-            resilience, and discover new perspectives on life's challenges.
+            We further analyzed what this meant for students by involving a sampling in co-design sessions observed by board game scenarios. Our short playful sessions allowed us to view how this group navigated through stressful themes, directly informing the solution you are playing today. This journey is made to be one that is transformative through storytelling that encourages and reminds users of simple and necessary techniques for managing stress. The narrative places the player in a strange and possibly uncomfortable situation and then asks the player to reflect upon how they felt while immersed within. 
           </Text>
           <Text variant="body" size={1} opacity={0.9}>
-            Your progress is tracked through attributes that grow as you engage with the stories,
-            creating a personalized experience that evolves with you.
+            This solution leverages the critiques of gamification solutions and the shortcomings of some applications made to support our wellness. By rooting itself as a serious game and taking the insights of students, experts, and professionals within the industry, The Archive aims to reinforce inward sensitivity as well as the techniques commonly taught—and easily forgotten—as students adjust to the expectations of college life. 
+          </Text>
+          <Text variant="body" size={1} opacity={0.85} align="center">
+            “In meditation, you can watch thoughts emerge from emptiness and return back to that emptiness. This leads first to the realization that you are separate from those thoughts, which we normally identify with self.”{''}
+            ― David Hinton, I Ching: The Book of Change
           </Text>
         </View>
 
@@ -68,7 +68,8 @@ export default function About() {
                 onPress={() => {
                   Alert.alert(
                     '🖋️ Master of Tales',
-                    'Our talented story writer crafted the immersive narratives and compelling characters that guide your journey through The Archive. Every choice, every revelation, and every moment of discovery was carefully woven to support your wellness adventure.',
+                    'Crafted the characters, plot, and narrative themes of The Archive  \n\nAdditional Role: Visual Artist, Quality Assurance, Backend Data Keying and Management, Emotional Support. \n\nQuote: “Is 1800 passages too many?”',
+                    
                     [{ text: 'Continue Exploring', style: 'default' }]
                   )
                 }}
@@ -81,7 +82,11 @@ export default function About() {
                   <Text variant="label" align="center">Story Writer:</Text>
                   <View style={aboutStyles.creditNameContainer}>
                     <View style={aboutStyles.avatarPlaceholder}>
-                      <Text variant="title" size={4}>MW</Text>
+                      <Image
+                        source={require('../assets/ourAvatars/matt.png')}
+                        style={aboutStyles.avatarImage}
+                        resizeMode="cover"
+                      />
                     </View>
                     <Text variant="title" size={2}>Matthew Wilson</Text>
                   </View>
@@ -93,41 +98,85 @@ export default function About() {
               </TouchableOpacity>
 
               {/* Development Team Card */}
-              <TouchableOpacity
-                style={aboutStyles.creditCard}
-                onPress={() => {
-                  Alert.alert(
-                    '⚔️ Code Guardians',
-                    'Three skilled developers who transformed ideas into reality. They built the magical systems, crafted the user experience, and ensured every interaction feels smooth and engaging. Their dedication brought The Archive\'s mystical atmosphere to life.',
-                    [{ text: 'Continue Exploring', style: 'default' }]
-                  )
-                }}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={aboutStyles.creditCard} activeOpacity={0.8}>
                 <Card padding={16} fullWidth>
                   <View style={aboutStyles.creditValueContainer}>
                     <Text variant="title" size={2} align="center">⚔️ Code Guardians</Text>
                   </View>
                   <Text variant="label" align="center">Development Team:</Text>
                   <View style={aboutStyles.developerList}>
-                    <View style={aboutStyles.developerItem}>
+                    <TouchableOpacity
+                      style={aboutStyles.developerItem}
+                      onPress={() => {
+                        Alert.alert(
+                          'Regan Gross',
+                          'Role: Quality Assurance\nContributions: Quality Assurance, Backend Data Keying.\nQuote: “Later.”',
+                          [{ text: 'Continue Exploring', style: 'default' }]
+                        )
+                      }}
+                      activeOpacity={0.8}
+                    >
                       <View style={[aboutStyles.avatarPlaceholder, aboutStyles.smallAvatar]}>
-                        <Text variant="title" size={4}>RG</Text>
+                        <Image
+                          source={require('../assets/ourAvatars/regan.png')}
+                          style={aboutStyles.avatarImage}
+                          resizeMode="cover"
+                        />
                       </View>
                       <Text variant="title" size={4}>Regan Gross</Text>
-                    </View>
-                    <View style={aboutStyles.developerItem}>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={aboutStyles.developerItem}
+                      onPress={() => {
+                        Alert.alert(
+                          'Trevor Schmidt',
+                          'Role: Quality Assurance\nContributions: Bug Testing, Mini game exploration, assets for mini-game (some).\n\nQuote: “I like fishing. What is bait?”',
+                          [{ text: 'Continue Exploring', style: 'default' }]
+                        )
+                      }}
+                      activeOpacity={0.8}
+                    >
                       <View style={[aboutStyles.avatarPlaceholder, aboutStyles.smallAvatar]}>
-                        <Text variant="title" size={4}>TS</Text>
+                        <Image
+                          source={require('../assets/ourAvatars/trevor.png')}
+                          style={aboutStyles.avatarImage}
+                          resizeMode="cover"
+                        />
                       </View>
                       <Text variant="title" size={4}>Trevor Schmidt</Text>
-                    </View>
-                    <View style={aboutStyles.developerItem}>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={aboutStyles.developerItem}
+                      onPress={() => {
+                        Alert.alert(
+                          'Varshini Bhavanam',
+                          'Role: Research Assistant\nContributions: Initial Data Gathering, Survey Implementation, Focus Group Coordination.\n\nQuote: “May all your dreams come true”',
+                          [{ text: 'Continue Exploring', style: 'default' }]
+                        )
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[aboutStyles.avatarPlaceholder, aboutStyles.smallAvatar]}>
+                        <Text variant="title" size={4}>VB</Text>
+                      </View>
+                      <Text variant="title" size={4}>Varshini Bhavanam</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={aboutStyles.developerItem}
+                      onPress={() => {
+                        Alert.alert(
+                          'Rowan Stratton',
+                          'Role: Developer\nContributions: Lead Developer, Researcher, Mastermind. Additional Roles: Mad Scientist, Visual Artist, Quality Assurance, Backend Data Keying and Management, Frontend Development, Backend Development, Integration.\n\nQuote: “Your boo\'s mean nothing, I’ve seen what makes you cheer.”',
+                          [{ text: 'Continue Exploring', style: 'default' }]
+                        )
+                      }}
+                      activeOpacity={0.8}
+                    >
                       <View style={[aboutStyles.avatarPlaceholder, aboutStyles.smallAvatar]}>
                         <Text variant="title" size={4}>RS</Text>
                       </View>
                       <Text variant="title" size={4}>Rowan Stratton</Text>
-                    </View>
+                    </TouchableOpacity>
                   </View>
                   <Text variant="body" size={2} align="center" opacity={0.8}>
                     Built the magical systems that power The Archive
@@ -141,8 +190,8 @@ export default function About() {
                 style={aboutStyles.creditCard}
                 onPress={() => {
                   Alert.alert(
-                    '🧙 Wise Mentor',
-                    'Our faculty advisor provided invaluable guidance, ensuring this project meets the highest academic standards while remaining true to its mission of supporting mental wellness. Their wisdom shaped both the research foundation and practical implementation.',
+                    'Advisor - Dr. Jomara Sandbuite',
+                    'Provided invaluable guidance, ensuring this project meets the highest academic standards.\n\nQuote: “Nah, just change it.....why is it different.”',
                     [{ text: 'Continue Exploring', style: 'default' }]
                   )
                 }}
@@ -168,7 +217,7 @@ export default function About() {
                 onPress={() => {
                   Alert.alert(
                     '🏛️ The Archive Origins',
-                    'Born in the Human Computer Interaction Laboratory, this project represents cutting-edge research in digital wellness tools. Visual assets and creative elements were sourced from talented artists on Itch.io, bringing depth and beauty to your adventure.',
+                    'Computer Interaction Laboratory, this project represents cutting-edge research in digital wellness tools.',
                     [{ text: 'Continue Exploring', style: 'default' }]
                   )
                 }}
@@ -182,7 +231,7 @@ export default function About() {
                     HCI Lab{'\n'}Itch.io
                   </Text>
                   <Text variant="body" size={2} align="center" opacity={0.8}>
-                    Research foundation and artistic contributions
+                    Visual assets and creative elements were sourced from talented artists on Itch.io, bringing depth and beauty to your adventure. Contact us if you would like more information on the assets in the game.
                   </Text>
                   <View style={[aboutStyles.creditIndicator, aboutStyles.cyanIndicator]} />
                 </Card>

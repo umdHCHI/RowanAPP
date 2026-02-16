@@ -1,6 +1,5 @@
-import { useAuthStore } from '@/stores/auth-store'
-import { useUser, useUserFullProfile } from './use-user'
-import type { UserResponse, UserFullProfileResponse } from '../types'
+import { useAuthStore } from "@/stores/auth-store";
+import { useUser, useUserFullProfile } from "./use-user";
 
 /**
  * Authentication Hooks
@@ -12,16 +11,16 @@ import type { UserResponse, UserFullProfileResponse } from '../types'
  * Returns null if not authenticated
  */
 export function useAuthUserId(): number | null {
-  const userId = useAuthStore((state) => state.userId)
-  return userId
+  const userId = useAuthStore((state) => state.userId);
+  return userId;
 }
 
 /**
  * Check if user is authenticated
  */
 export function useIsAuthenticated(): boolean {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated())
-  return isAuthenticated
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+  return isAuthenticated;
 }
 
 /**
@@ -29,8 +28,8 @@ export function useIsAuthenticated(): boolean {
  * Automatically fetches user data based on authenticated user ID
  */
 export function useCurrentUser() {
-  const userId = useAuthUserId()
-  return useUser(userId)
+  const userId = useAuthUserId();
+  return useUser(userId);
 }
 
 /**
@@ -38,8 +37,8 @@ export function useCurrentUser() {
  * Automatically fetches full profile based on authenticated user ID
  */
 export function useCurrentUserFullProfile() {
-  const userId = useAuthUserId()
-  return useUserFullProfile(userId)
+  const userId = useAuthUserId();
+  return useUserFullProfile(userId);
 }
 
 /**
@@ -47,17 +46,17 @@ export function useCurrentUserFullProfile() {
  * Provides access to authentication actions (setUser, setHasCharacter, clearAuth)
  */
 export function useAuthActions() {
-  const setUser = useAuthStore((state) => state.setUser)
-  const setHasCharacter = useAuthStore((state) => state.setHasCharacter)
-  const clearAuth = useAuthStore((state) => state.clearAuth)
-  const clearAuthStorage = useAuthStore((state) => state.clearAuthStorage)
-  
+  const setUser = useAuthStore((state) => state.setUser);
+  const setHasCharacter = useAuthStore((state) => state.setHasCharacter);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const clearAuthStorage = useAuthStore((state) => state.clearAuthStorage);
+
   return {
     setUser,
     setHasCharacter,
     clearAuth,
     clearAuthStorage,
-  }
+  };
 }
 
 /**
@@ -65,12 +64,11 @@ export function useAuthActions() {
  * Useful for places where user ID is required
  */
 export function useRequiredAuthUserId(): number {
-  const userId = useAuthUserId()
-  
-  if (!userId) {
-    throw new Error('User is not authenticated. Please log in.')
-  }
-  
-  return userId
-}
+  const userId = useAuthUserId();
 
+  if (!userId) {
+    throw new Error("User is not authenticated. Please log in.");
+  }
+
+  return userId;
+}

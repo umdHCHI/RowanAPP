@@ -1,4 +1,4 @@
-import { View, Image, Animated } from 'react-native'
+import { View, Animated } from 'react-native'
 import { GAME_CONFIG } from '@/utils/vantage-constants'
 import { useFadeIn } from '@/utils/useFadeIn'
 import type { EnemyProjectile } from '@/types/game'

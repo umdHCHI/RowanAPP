@@ -5,46 +5,50 @@
 
 export const STORY_COLORS = {
   // Background colors
-  background: '#B8C5D1',
-  endingBackground: '#2D1B4E',
-  introductionBackground: '#3d5a80',
-  
+  background: "#B8C5D1",
+  endingBackground: "#2D1B4E",
+  introductionBackground: "#3d5a80",
+
   // Text colors
-  text: '#ffffff',
-  textSecondary: 'rgba(255, 255, 255, 0.8)',
-  textTertiary: 'rgba(255, 255, 255, 0.7)',
-  
+  text: "#ffffff",
+  textSecondary: "rgba(255, 255, 255, 0.8)",
+  textTertiary: "rgba(255, 255, 255, 0.7)",
+
   // UI element colors
-  button: '#6B7A8A',
-  buttonSecondary: '#4A5D6B',
-  buttonBorder: 'rgba(255, 255, 255, 0.3)',
-  
+  button: "#6B7A8A",
+  buttonSecondary: "#4A5D6B",
+  buttonBorder: "rgba(255, 255, 255, 0.3)",
+
   // Container colors
-  dialogueBubble: 'rgba(255, 255, 255, 0.2)',
-  playerChoiceBubble: 'rgba(107, 122, 138, 0.4)',
-  decisionContainer: 'rgba(107, 122, 138, 0.3)',
-  decisionBorder: 'rgba(255, 255, 255, 0.5)',
-  decisionLabel: 'rgba(255, 255, 255, 0.9)',
-  decisionSubtext: 'rgba(255, 255, 255, 0.7)',
-  actionContainer: 'rgba(255, 255, 255, 0.08)',
-  actionBorder: 'rgba(255, 200, 87, 0.8)',
-  actionIndicator: 'rgba(255, 200, 87, 1)',
-  endingContainer: 'rgba(0, 0, 0, 0.3)',
-  endingBorder: 'rgba(255, 255, 255, 0.3)',
-  quoteContainer: 'rgba(0, 0, 0, 0.2)',
-  quoteBorder: 'rgba(255, 255, 255, 0.5)',
-  errorContainer: 'rgba(244, 67, 54, 0.2)',
-  
+  dialogueBubble: "rgba(255, 255, 255, 0.2)",
+  playerChoiceBubble: "rgba(107, 122, 138, 0.4)",
+  decisionContainer: "rgba(107, 122, 138, 0.3)",
+  decisionBorder: "rgba(255, 255, 255, 0.5)",
+  decisionLabel: "rgba(255, 255, 255, 0.9)",
+  decisionSubtext: "rgba(255, 255, 255, 0.7)",
+  minigameContainer: "rgba(193, 183, 211, 0.3)",
+  minigameBorder: "rgba(193, 183, 211, 0.8)",
+  minigameLabel: "rgba(193, 183, 211, 1)",
+  minigameSubtext: "rgba(193, 183, 211, 0.9)",
+  actionContainer: "rgba(255, 255, 255, 0.08)",
+  actionBorder: "rgba(255, 200, 87, 0.8)",
+  actionIndicator: "rgba(255, 200, 87, 1)",
+  endingContainer: "rgba(0, 0, 0, 0.3)",
+  endingBorder: "rgba(255, 255, 255, 0.3)",
+  quoteContainer: "rgba(0, 0, 0, 0.2)",
+  quoteBorder: "rgba(255, 255, 255, 0.5)",
+  errorContainer: "rgba(244, 67, 54, 0.2)",
+
   // Overlay colors
-  pauseOverlay: 'rgba(0, 0, 0, 0.2)',
-  pauseButton: 'rgba(255, 255, 255, 0.2)',
-  pauseBorder: 'rgba(255, 255, 255, 0.5)',
-  headerBorder: 'rgba(255, 255, 255, 0.1)',
-  
+  pauseOverlay: "rgba(0, 0, 0, 0.2)",
+  pauseButton: "rgba(255, 255, 255, 0.2)",
+  pauseBorder: "rgba(255, 255, 255, 0.5)",
+  headerBorder: "rgba(255, 255, 255, 0.1)",
+
   // Avatar/border colors
-  avatarBorder: 'rgba(255, 255, 255, 0.3)',
-  speck: '#ffffff',
-} as const
+  avatarBorder: "rgba(255, 255, 255, 0.3)",
+  speck: "#ffffff",
+} as const;
 
 export const STORY_SPACING = {
   xs: 4,
@@ -54,7 +58,7 @@ export const STORY_SPACING = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
-} as const
+} as const;
 
 export const STORY_BORDER_RADIUS = {
   sm: 4,
@@ -62,7 +66,7 @@ export const STORY_BORDER_RADIUS = {
   lg: 16,
   xl: 18,
   full: 60,
-} as const
+} as const;
 
 export const STORY_FONT_SIZES = {
   xs: 10,
@@ -73,7 +77,7 @@ export const STORY_FONT_SIZES = {
   xl: 20,
   xxl: 24,
   xxxl: 42,
-} as const
+} as const;
 
 export const STORY_LINE_HEIGHTS = {
   sm: 22,
@@ -81,15 +85,19 @@ export const STORY_LINE_HEIGHTS = {
   lg: 28,
   xl: 32,
   xxl: 48,
-} as const
+} as const;
 
 export const STORY_FONTS = {
-  system: 'System',
-  vt323: 'VT323-Regular',
-  crimsonItalic: 'CrimsonPro-Medium-Italic',
-  beyondWonderland: 'BeyondWonderland',
-  fontTitleWhite: 'FontTitle-White',
-} as const
+  system: "System",
+  vt323: "VT323-Regular",
+  crimsonItalic: "CrimsonPro-Medium-Italic",
+  beyondWonderland: "BeyondWonderland",
+  fontTitleWhite: "FontTitle-White",
+} as const;
+
+/** Max scale factor for action scene images; prevents small images (e.g. 20x20) from upscaling into a blurry mess */
+export const STORY_ACTION_IMAGE_MAX_UPSCALE = 3;
+export const STORY_ACTION_IMAGE_MAX_HEIGHT = 200;
 
 export const STORY_LAYOUT = {
   headerTop: 50,
@@ -100,9 +108,9 @@ export const STORY_LAYOUT = {
   pauseIconSize: 80,
   speakerAvatarSize: 48,
   /** Compact strip at bottom so choices sit low and don't block nav; scrolls if many choices */
-  choicesStripHeight: 240,
+  choicesStripHeight: 270,
   mainContainerPaddingTop: 50,
-} as const
+} as const;
 
 export const STORY_OPACITY = {
   speck: {
@@ -112,7 +120,7 @@ export const STORY_OPACITY = {
   buttonActive: 0.7,
   buttonTouch: 0.8,
   pauseOverlay: 0.9,
-} as const
+} as const;
 
 export const STORY_SPECKS = {
   count: 30,
@@ -121,5 +129,4 @@ export const STORY_SPECKS = {
   distributionRatio: 0.618,
   topRatio: 0.382,
   opacityRatio: 0.123,
-} as const
-
+} as const;

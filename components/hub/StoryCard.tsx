@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Image,
   View
@@ -8,21 +8,70 @@ import { ContentWarningModal } from './ContentWarningModal'
 import { Text, Button } from '@/components/ui'
 import { storyCardStyles } from '@/styles/hub/hub-styles'
 import type { StoryCardProps } from '@/types/hub/hub'
+import { storyService } from '@/api/services/story.service'
 
 
 
 export function StoryCard({ card, height }: StoryCardProps) {
 
   const [isContentWarningVisible, setIsContentWarningVisible] = useState(false)
+  const [storyThemes, setStoryThemes] = useState<string[] | undefined>(card.storyThemes)
 
-  const isCompleted = card.status === 'completed'
+
   const imageSource = card.imageUrl
+
+  useEffect(() => {
+    setStoryThemes(card.storyThemes)
+  }, [card.storyThemes])
+
+  function normalizeThemes(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value
+        .filter((item) => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const trimmed = value.trim()
+      try {
+        const parsed = JSON.parse(trimmed)
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter((item) => typeof item === 'string')
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0)
+        }
+      } catch {
+        return trimmed
+          .split(',')
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0)
+      }
+    }
+
+    return []
+  }
+
+  async function loadStoryThemes() {
+    if (storyThemes?.length) return
+    try {
+      const story = await storyService.getStoryDetail(card.storyId)
+      const normalized = normalizeThemes(story?.story_themes)
+      if (normalized.length > 0) setStoryThemes(normalized)
+    } catch (error) {
+      console.warn('Failed to load story themes for content warning:', error)
+    }
+  }
  
 
 
 
 function handleContentWarningPress() {
-       setIsContentWarningVisible(true)
+  setIsContentWarningVisible(true)
+  if (!storyThemes?.length) {
+    void loadStoryThemes()
+  }
   }
 
   return (
@@ -49,11 +98,7 @@ function handleContentWarningPress() {
               </Text>
             </View>
 
-            {isCompleted && (
-              <View style={storyCardStyles.bookIcon}>
-               
-              </View>
-            )}
+            
           </View>
 
           <View style={storyCardStyles.titleSection}>
@@ -88,7 +133,7 @@ function handleContentWarningPress() {
         visible={isContentWarningVisible}
         onClose={() => setIsContentWarningVisible(false)}
         title={card.title}
-        revelations={card.revelations}
+        storyThemes={storyThemes}
       />
     </View>
   )

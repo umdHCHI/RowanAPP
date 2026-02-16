@@ -1,6 +1,5 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { Text, StyleSheet, Pressable, Animated } from 'react-native'
 import { useEffect, useRef } from 'react'
-import { Animated } from 'react-native'
 import type { Fragment } from '@/types/game'
 
 interface GameFragmentProps {

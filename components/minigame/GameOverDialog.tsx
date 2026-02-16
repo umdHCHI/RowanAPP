@@ -33,18 +33,16 @@ export function GameOverDialog({
   const playPageFlipSound = usePageFlipSound()
   const insets = useSafeAreaInsets()
 
-  const conqueredKey = conqueredThoughts.map((c) => c.id).join(',')
-  const defeatedKey = defeatedNegativeThoughts.map((t) => t.id).join(',')
   const oneReframed = useMemo(() => {
     if (conqueredThoughts.length === 0) return null
     const i = Math.floor(Math.random() * conqueredThoughts.length)
     return conqueredThoughts[i]
-  }, [conqueredKey, conqueredThoughts])
+  }, [conqueredThoughts])
   const oneDefeated = useMemo(() => {
     if (defeatedNegativeThoughts.length === 0) return null
     const i = Math.floor(Math.random() * defeatedNegativeThoughts.length)
     return defeatedNegativeThoughts[i]
-  }, [defeatedKey, defeatedNegativeThoughts])
+  }, [defeatedNegativeThoughts])
 
   function handlePlayAgain() {
     playPageFlipSound()
@@ -73,11 +71,11 @@ export function GameOverDialog({
         <View style={styles.card}>
         <Text style={styles.title}>{won ? 'Victory!' : 'Game Over'}</Text>
         {won && bossDefeated && (
-          <Text style={styles.subtitle}>You've sealed the breach.</Text>
+          <Text style={styles.subtitle}>You&apos;ve cleared away some of the rot.</Text>
         )}
         {!won && (
           <Text style={styles.subtitle}>
-            You've practiced reframing negative thoughts!
+            You&apos;ve practiced reframing negative thoughts!
           </Text>
         )}
         {lumensAwarded > 0 ? (
@@ -96,7 +94,7 @@ export function GameOverDialog({
               <>
                 <Text style={styles.thoughtCategoryTitle}>Reframed Thoughts</Text>
                 <View style={styles.thoughtRecord}>
-                  <Text style={styles.thoughtPhrase}>"{oneReframed.phrase}"</Text>
+                  <Text style={styles.thoughtPhrase}>&quot;{oneReframed.phrase}&quot;</Text>
                   <Text style={styles.counterRecord}>{oneReframed.counterRecord}</Text>
                 </View>
               </>
@@ -107,7 +105,7 @@ export function GameOverDialog({
                 {oneReframed && oneDefeated && <View style={styles.thoughtDivider} />}
                 <Text style={styles.thoughtCategoryTitle}>Defeated Thoughts</Text>
                 <View style={styles.thoughtRecord}>
-                  <Text style={styles.thoughtPhrase}>"{oneDefeated.phrase}"</Text>
+                  <Text style={styles.thoughtPhrase}>&quot;{oneDefeated.phrase}&quot;</Text>
                   <Text style={styles.counterRecord}>{oneDefeated.counterRecord}</Text>
                 </View>
               </>

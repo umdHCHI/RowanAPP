@@ -9,7 +9,7 @@ export function BossIncomingMoment() {
           <Text style={styles.label}>A BIG BAD EMERGES</Text>
           <View style={styles.dividerLine} />
         </View>
-        <Text style={styles.message}>Defeat it to seal the breach.</Text>
+        <Text style={styles.message}>Defeat it to clean the rot.</Text>
       </View>
     </View>
   )

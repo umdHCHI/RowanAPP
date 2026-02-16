@@ -19,7 +19,11 @@ export function JournalStatsCard({ entries }: JournalStatsCardProps) {
 
     const typeCounts: Record<string, number> = {}
     entries.forEach((entry) => {
-      const entryType = entry.entry_type || 'unknown'
+      const entryType =
+        (entry as { category?: string }).category ||
+        entry.entry_type ||
+        entry.skill_category ||
+        'unknown'
       typeCounts[entryType] = (typeCounts[entryType] || 0) + 1
     })
 
@@ -43,8 +47,10 @@ export function JournalStatsCard({ entries }: JournalStatsCardProps) {
       case 'journal':
         return 'Journal'
       case 'draw':
+      case 'drawing':
         return 'Drawing'
       case 'voicememo':
+      case 'voice_memo':
       case 'voice':
         return 'Voice Memo'
       default:
@@ -81,16 +87,16 @@ export function JournalStatsCard({ entries }: JournalStatsCardProps) {
           </Text>
         </View>
       </View>
-      <View style={{ marginBottom: 32 }}>
-      <Button fullWidth variant="secondary" onPress={handleViewJournalEntries}>
-        <View style={styles.infoButtonContent}>
-          <MaterialDesignIcons name="book-open-variant" size={24} color="#ffffff" />
-          <Text variant="label" style={styles.infoButtonText}>
-            VIEW JOURNAL ENTRIES
-          </Text>
-          <MaterialDesignIcons name="chevron-right" size={24} color="#ffffff" />
-        </View>
-      </Button>
+      <View style={styles.buttonContainer}>
+        <Button fullWidth variant="secondary" onPress={handleViewJournalEntries}>
+          <View style={styles.infoButtonContent}>
+            <MaterialDesignIcons name="book-open-variant" size={14} color="#ffffff" />
+            <Text variant="titleWhite" size={3} style={styles.infoButtonText}>
+              NAVIGATE TO JOURNAL
+            </Text>
+            <MaterialDesignIcons name="chevron-right" size={14} color="#ffffff" />
+          </View>
+        </Button>
       </View>
     </Card>
   )

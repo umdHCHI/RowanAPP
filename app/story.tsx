@@ -46,6 +46,8 @@ export default function Story() {
     }, [])
   )
 
+  const shouldRestart = params.restart === 'true'
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -61,8 +63,6 @@ export default function Story() {
       </View>
     )
   }
-
-  const shouldRestart = params.restart === 'true'
 
   return (
     <View style={styles.container}>
