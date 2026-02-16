@@ -32,31 +32,54 @@ export const characterService = {
     if (hasCosmetics) return response
 
     const mine = await characterService.getMine()
-    return mine.success ? mine : response
+    if (mine.success && mine.data) {
+      return mine as ApiResponse<CharacterResponse>
+    }
+    return response
   },
-  async getMine(): Promise<ApiResponse<CharacterResponse>> {
-    const response = await apiClient.get<CharacterResponse>(API_ENDPOINTS.CHARACTER_MINE, {
-      skipVersion: true,
-    });
-    const isWrapped =
-      !!response &&
-      typeof response === 'object' &&
-      Object.prototype.hasOwnProperty.call(response as object, 'success') &&
-      Object.prototype.hasOwnProperty.call(response as object, 'data');
-    const normalized = isWrapped
-      ? (response as ApiResponse<CharacterResponse>)
-      : ({ success: true, data: response as unknown as CharacterResponse } as ApiResponse<CharacterResponse>);
-    return normalized;
+  async getMine(): Promise<ApiResponse<CharacterResponse | null>> {
+    try {
+      const response = await apiClient.get<CharacterResponse>(
+        API_ENDPOINTS.CHARACTER_MINE,
+        {
+          skipVersion: true,
+          suppressErrorLog: true,
+        },
+      );
+      const isWrapped =
+        !!response &&
+        typeof response === 'object' &&
+        Object.prototype.hasOwnProperty.call(response as object, 'success') &&
+        Object.prototype.hasOwnProperty.call(response as object, 'data');
+      const normalized = isWrapped
+        ? (response as ApiResponse<CharacterResponse>)
+        : ({
+            success: true,
+            data: response as unknown as CharacterResponse,
+          } as ApiResponse<CharacterResponse>);
+      return normalized;
+    } catch (error: any) {
+      const status = (error as ApiError)?.status;
+      if (status === 404) {
+        return {
+          success: false,
+          data: null,
+          message: 'Character not found',
+        } as ApiResponse<CharacterResponse | null>;
+      }
+      throw error;
+    }
   },
 
   /** POST /api/characters/characters/ (Django CharacterViewSet) */
   async create(
     data: CharacterCreateRequest,
+    options: { suppressErrorLog?: boolean } = {},
   ): Promise<ApiResponse<CharacterResponse>> {
     return apiClient.post<CharacterResponse>(
       API_ENDPOINTS.CHARACTER_CREATE,
       data,
-      { skipVersion: true },
+      { skipVersion: true, suppressErrorLog: options.suppressErrorLog },
     );
   },
 
@@ -99,7 +122,9 @@ export const characterService = {
 
       if (xpWasAdded || status === 200) {
         const mine = await characterService.getMine();
-        if (mine.success) return mine;
+        if (mine.success && mine.data) {
+          return mine as ApiResponse<CharacterResponse>;
+        }
       }
 
       throw error;

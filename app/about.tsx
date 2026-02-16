@@ -68,8 +68,8 @@ export default function About() {
                 onPress={() => {
                   Alert.alert(
                     '🖋️ Master of Tales',
-                    'Crafted the characters, plot, and narrative themes of The Archive  \n\nAdditional Role: Visual Artist, Quality Assurance, Backend Data Keying and Management, Emotional Support. \n\nQuote: “Is 1800 passages too many?”',
-                    
+                    'Crafted the characters, plot, and narrative themes of The Archive  \n\nAdditional Role: Visual Artist, Quality Assurance, Backend Data Keying and Management, Emotional Support.”',
+                    //{\n\nQuote: “Is 1800 passages too many?}
                     [{ text: 'Continue Exploring', style: 'default' }]
                   )
                 }}
@@ -110,7 +110,8 @@ export default function About() {
                       onPress={() => {
                         Alert.alert(
                           'Regan Gross',
-                          'Role: Quality Assurance\nContributions: Quality Assurance, Backend Data Keying.\nQuote: “Later.”',
+                          'Role: Quality Assurance\nContributions: Quality Assurance, Backend Data Keying.',
+                          //\nQuote: “Later.”
                           [{ text: 'Continue Exploring', style: 'default' }]
                         )
                       }}
@@ -130,7 +131,8 @@ export default function About() {
                       onPress={() => {
                         Alert.alert(
                           'Trevor Schmidt',
-                          'Role: Quality Assurance\nContributions: Bug Testing, Mini game exploration, assets for mini-game (some).\n\nQuote: “I like fishing. What is bait?”',
+                          'Role: Quality Assurance\nContributions: Bug Testing, Mini game exploration, some of the assets for mini-game.',
+                          //\n\nQuote: “I like fishing. What is bait?”
                           [{ text: 'Continue Exploring', style: 'default' }]
                         )
                       }}
@@ -150,7 +152,7 @@ export default function About() {
                       onPress={() => {
                         Alert.alert(
                           'Varshini Bhavanam',
-                          'Role: Research Assistant\nContributions: Initial Data Gathering, Survey Implementation, Focus Group Coordination.\n\nQuote: “May all your dreams come true”',
+                          'Role: Research Assistant\nContributions: Initial Data Gathering, Survey Implementation, Focus Group Coordination.',
                           [{ text: 'Continue Exploring', style: 'default' }]
                         )
                       }}
@@ -166,15 +168,19 @@ export default function About() {
                       onPress={() => {
                         Alert.alert(
                           'Rowan Stratton',
-                          'Role: Developer\nContributions: Lead Developer, Researcher, Mastermind. Additional Roles: Mad Scientist, Visual Artist, Quality Assurance, Backend Data Keying and Management, Frontend Development, Backend Development, Integration.\n\nQuote: “Your boo\'s mean nothing, I’ve seen what makes you cheer.”',
+                          'Role: Developer\nContributions: Lead Developer, Researcher, Mastermind. Additional Roles: Mad Scientist, Visual Artist, Quality Assurance, Backend Data Keying and Management, Frontend Development, Backend Development, Integration.',
                           [{ text: 'Continue Exploring', style: 'default' }]
                         )
                       }}
                       activeOpacity={0.8}
                     >
-                      <View style={[aboutStyles.avatarPlaceholder, aboutStyles.smallAvatar]}>
-                        <Text variant="title" size={4}>RS</Text>
-                      </View>
+                    <View style={aboutStyles.avatarPlaceholder}>
+                      <Image
+                        source={require('../assets/ourAvatars/rowanAvatarCuzMattWouldntLetitGo.png')}
+                        style={aboutStyles.avatarImage}
+                        resizeMode="cover"
+                      />
+                    </View>
                       <Text variant="title" size={4}>Rowan Stratton</Text>
                     </TouchableOpacity>
                   </View>
@@ -190,8 +196,8 @@ export default function About() {
                 style={aboutStyles.creditCard}
                 onPress={() => {
                   Alert.alert(
-                    'Advisor - Dr. Jomara Sandbuite',
-                    'Provided invaluable guidance, ensuring this project meets the highest academic standards.\n\nQuote: “Nah, just change it.....why is it different.”',
+                    'Advisor - Dr. Jomara Sandbulte',
+                    'Provided invaluable guidance, ensuring this project meets the highest academic standards.',
                     [{ text: 'Continue Exploring', style: 'default' }]
                   )
                 }}

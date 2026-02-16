@@ -48,13 +48,9 @@ export function CharacterPreview({
   const eyes = getEyesAsset(eyesColor, eyesIndex)
   const eyebrows = getEyebrowsAsset(eyebrowsColor, eyebrowsIndex)
   const mouth = getMouthAsset(mouthIndex)
-
-  // Bases 13–21 (base_one … base_nine) are drawn higher in their assets; offset down so they align with 1–12
-  const isHighBase = baseIndex >= 12
   const baseLayerStyle = [
     styles.layer,
     { width: size, height: size },
-    isHighBase && { top: size * 0.12 },
   ]
 
   return (

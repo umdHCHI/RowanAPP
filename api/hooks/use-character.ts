@@ -17,12 +17,11 @@ export const characterKeys = {
 };
 
 export function useMyCharacter() {
-  return useQuery<CharacterResponse>({
+  return useQuery<CharacterResponse | null>({
     queryKey: characterKeys.mine(),
     queryFn: async () => {
       const res = await characterService.getMine();
-      if (!res.success)
-        throw new Error(res.message || "Failed to fetch character");
+      if (!res.success) return null;
       return res.data;
     },
     staleTime: 60 * 1000,
@@ -32,26 +31,48 @@ export function useMyCharacter() {
 export function useCreateCharacter() {
   const queryClient = useQueryClient();
 
+  function getErrorText(err: any): string {
+    const detail = err?.errors?.detail;
+    if (Array.isArray(detail)) return detail.join(" ");
+    if (typeof detail === "string") return detail;
+
+    const nonField = err?.errors?.non_field_errors;
+    if (Array.isArray(nonField)) return nonField.join(" ");
+    if (typeof nonField === "string") return nonField;
+
+    const message = err?.message;
+    if (typeof message === "string") return message;
+
+    return "";
+  }
+
+  function isCharacterAlreadyExistsError(err: any): boolean {
+    const status = err?.status;
+    if (status !== 400) return false;
+    const text = getErrorText(err).toLowerCase();
+    return (
+      text.includes("character already exists") ||
+      text.includes("already exists for this profile")
+    );
+  }
+
   return useMutation({
     mutationFn: async (data: CharacterCreateRequest) => {
       try {
-        const res = await characterService.create(data);
+        const res = await characterService.create(data, {
+          suppressErrorLog: true,
+        });
         if (!res.success)
           throw new Error(res.message || "Failed to create character");
         return res.data;
       } catch (err: any) {
-        const msg = err?.errors?.detail || err?.message || "";
-        const status = err?.status;
-
-        if (
-          status === 400 &&
-          String(msg).includes("Character already exists")
-        ) {
+        if (isCharacterAlreadyExistsError(err)) {
           const mine = await characterService.getMine();
-          if (!mine.success)
+          if (!mine.success || !mine.data) {
             throw new Error(
               mine.message || "Character exists but failed to fetch",
             );
+          }
           return mine.data;
         }
 

@@ -7,6 +7,8 @@
     "android": "expo run:android",
     "android:device": "expo run:android --device",
     "ios": "expo run:ios",
+    "build:android": "eas build --platform android --profile production --local",
+    "deploy:prod": "npm run build:android",
     "postinstall": "patch-package",
     "lint": "expo lint"
   },
