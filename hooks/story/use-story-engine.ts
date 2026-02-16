@@ -16,6 +16,8 @@ import {
 } from "@/utils/story-helpers";
 import type { TextSpeed } from "@/stores/game-store";
 
+const storyDebug = (..._args: unknown[]) => {};
+
 function extractErrorMessage(err: any): string {
   if (err?.message) return err.message;
   if (err?.response) {
@@ -90,6 +92,16 @@ export function useStoryEngine({
   const passageIdMapRef = useRef<Map<string, string>>(new Map());
   const [currentPassagePk, setCurrentPassagePk] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const sessionRunIdRef = useRef(0);
+
+  const isStorySessionActive = useCallback(
+    (runId: number, expectedStoryId: string | number | null | undefined) => {
+      if (runId !== sessionRunIdRef.current) return false;
+      const activeStoryId = useStoryStore.getState().storyId;
+      return String(activeStoryId ?? "") === String(expectedStoryId ?? "");
+    },
+    [],
+  );
 
   function fillPassageMapsFromList(passages: any[]) {
     const map = new Map<string, string>();
@@ -129,19 +141,43 @@ export function useStoryEngine({
   const queryClient = useQueryClient();
   const { data: passageChoices } = usePassageChoices(currentPassagePk);
 
+  // On story switch/restart intent change, clear volatile engine state first,
+  // then set active storyId to avoid stale passage history being stamped with new storyId.
   useEffect(() => {
-    setStoryId(storyId ?? null);
-  }, [storyId, setStoryId]);
-
-  // Reset so startStoryFlow re-runs when storyId or restart intent changes (e.g. user taps "Restart this Book")
-  useEffect(() => {
+    storyDebug("session-reset", {
+      storyId: String(storyId ?? ""),
+      shouldRestart,
+      previousStoreStoryId: String(useStoryStore.getState().storyId ?? ""),
+      previousPassageId:
+        useStoryStore.getState().currentPassage?.passage_id ?? null,
+    });
     startedRef.current = false;
     passagePkMapRef.current = new Map();
     passageIdMapRef.current = new Map();
-  }, [storyId, shouldRestart]);
+    setCurrentPassagePk(null);
+    clearHistory();
+    setEngineState(null);
+    setError(null);
+    setLoading(false);
+    setStoryId(storyId ?? null);
+  }, [
+    storyId,
+    shouldRestart,
+    clearHistory,
+    setEngineState,
+    setError,
+    setLoading,
+    setStoryId,
+  ]);
 
   useEffect(() => {
+    const runId = ++sessionRunIdRef.current;
+    storyDebug("run-created", { runId, storyId: String(storyId ?? "") });
+
     if (!storyId) {
+      clearHistory();
+      setEngineState(null);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -149,6 +185,17 @@ export function useStoryEngine({
     async function startStoryFlow() {
       if (startedRef.current) return;
       startedRef.current = true;
+      if (!isStorySessionActive(runId, storyId)) {
+        storyDebug("run-dropped-before-start", {
+          runId,
+          storyId: String(storyId ?? ""),
+          storeStoryId: String(useStoryStore.getState().storyId ?? ""),
+        });
+        return;
+      }
+      storyDebug("run-start", { runId, storyId: String(storyId ?? "") });
+      // New story session: always clear prior story transcript to avoid cross-story mixing
+      clearHistory();
       setLoading(true);
       setError(null);
       setEngineState(null);
@@ -170,6 +217,14 @@ export function useStoryEngine({
               getRetryDelay(),
             ),
           ]);
+          if (!isStorySessionActive(runId, storyId)) {
+            storyDebug("fetch-passage-maps-dropped", {
+              runId,
+              storyId: String(storyId ?? ""),
+              passageId,
+            });
+            return null;
+          }
           fillPassageMapsFromList(passages);
           return passageState;
         }
@@ -186,6 +241,14 @@ export function useStoryEngine({
             getRetryDelay(),
           );
 
+          if (!isStorySessionActive(runId, storyId)) {
+            storyDebug("restart-response-dropped", {
+              runId,
+              storyId: String(storyId ?? ""),
+            });
+            return;
+          }
+
           startingPassageId =
             restartResponse?.starting_passage_id ||
             restartResponse?.starting_passage ||
@@ -199,12 +262,25 @@ export function useStoryEngine({
             startingPassageId = fromRestart;
           }
 
+          storyDebug("restart-resolved", {
+            runId,
+            storyId: String(storyId ?? ""),
+            startingPassageId,
+          });
+
           if (restartResponse?.passage) {
             const passages = await retryApiCall(
               () => storyService.getStoryPassages(Number(storyId)),
               DEFAULT_MAX_RETRIES,
               getRetryDelay(),
             );
+            if (!isStorySessionActive(runId, storyId)) {
+              storyDebug("restart-passages-dropped", {
+                runId,
+                storyId: String(storyId ?? ""),
+              });
+              return;
+            }
             fillPassageMapsFromList(passages);
             initialState = restartResponse;
           } else if (startingPassageId) {
@@ -220,6 +296,14 @@ export function useStoryEngine({
           const progress =
             await storyService.getStoryProgressByStoryId(storyId);
 
+          if (!isStorySessionActive(runId, storyId)) {
+            storyDebug("progress-dropped", {
+              runId,
+              storyId: String(storyId ?? ""),
+            });
+            return;
+          }
+
           const progressStatus = String(progress?.status ?? "").toLowerCase();
           const progressCompleted =
             progress?.is_completed === true || progressStatus === "completed";
@@ -230,6 +314,14 @@ export function useStoryEngine({
               DEFAULT_MAX_RETRIES,
               getRetryDelay(),
             );
+
+            if (!isStorySessionActive(runId, storyId)) {
+              storyDebug("start-response-dropped", {
+                runId,
+                storyId: String(storyId ?? ""),
+              });
+              return;
+            }
 
             startingPassageId =
               startResponse?.starting_passage_id ||
@@ -244,6 +336,13 @@ export function useStoryEngine({
                 DEFAULT_MAX_RETRIES,
                 getRetryDelay(),
               );
+              if (!isStorySessionActive(runId, storyId)) {
+                storyDebug("start-passages-dropped", {
+                  runId,
+                  storyId: String(storyId ?? ""),
+                });
+                return;
+              }
               fillPassageMapsFromList(passages);
               initialState = startResponse;
             } else if (startingPassageId) {
@@ -275,6 +374,13 @@ export function useStoryEngine({
                 DEFAULT_MAX_RETRIES,
                 getRetryDelay(),
               );
+              if (!isStorySessionActive(runId, storyId)) {
+                storyDebug("resume-restart-dropped", {
+                  runId,
+                  storyId: String(storyId ?? ""),
+                });
+                return;
+              }
               startingPassageId =
                 restartResponse?.starting_passage_id ||
                 restartResponse?.starting_passage ||
@@ -287,6 +393,13 @@ export function useStoryEngine({
                   DEFAULT_MAX_RETRIES,
                   getRetryDelay(),
                 );
+                if (!isStorySessionActive(runId, storyId)) {
+                  storyDebug("resume-passages-dropped", {
+                    runId,
+                    storyId: String(storyId ?? ""),
+                  });
+                  return;
+                }
                 fillPassageMapsFromList(passages);
                 initialState = restartResponse;
               } else if (startingPassageId) {
@@ -298,17 +411,50 @@ export function useStoryEngine({
           }
         }
 
+        if (!isStorySessionActive(runId, storyId)) {
+          storyDebug("initial-state-dropped", {
+            runId,
+            storyId: String(storyId ?? ""),
+          });
+          return;
+        }
+
         if (!initialState || !initialState.passage) {
           throw new Error("Failed to fetch the initial passage.");
         }
 
         const normalizedState = normalizePassageState(initialState);
+        storyDebug("set-engine-initial", {
+          runId,
+          storyId: String(storyId ?? ""),
+          engineStoryId: String(normalizedState?.story?.id ?? ""),
+          passageId: normalizedState?.passage?.passage_id ?? null,
+        });
         setEngineState(normalizedState);
       } catch (err: any) {
+        if (!isStorySessionActive(runId, storyId)) {
+          storyDebug("run-error-dropped", {
+            runId,
+            storyId: String(storyId ?? ""),
+          });
+          return;
+        }
         const message = extractErrorMessage(err);
+        storyDebug("run-error", {
+          runId,
+          storyId: String(storyId ?? ""),
+          message,
+          status: err?.status ?? err?.response?.status ?? null,
+        });
         setError(message);
       } finally {
-        setLoading(false);
+        if (isStorySessionActive(runId, storyId)) {
+          setLoading(false);
+          storyDebug("run-finished", {
+            runId,
+            storyId: String(storyId ?? ""),
+          });
+        }
       }
     }
 
@@ -318,6 +464,7 @@ export function useStoryEngine({
     shouldRestart,
     clearHistory,
     clearStoryCompleted,
+    isStorySessionActive,
     setEngineState,
     setError,
     setLoading,
@@ -368,11 +515,33 @@ export function useStoryEngine({
     async (choice: StoryChoice) => {
       if (isLoading || !storyId || !choice?.target_id) return null;
 
+      const runId = sessionRunIdRef.current;
+      const isActiveChoiceSession = () => isStorySessionActive(runId, storyId);
+
+      if (!isActiveChoiceSession()) {
+        storyDebug("choice-dropped-before-start", {
+          runId,
+          storyId: String(storyId ?? ""),
+          targetId: String(choice.target_id ?? ""),
+          choiceId: String(choice.id ?? ""),
+        });
+        return null;
+      }
+
+      storyDebug("choice-start", {
+        runId,
+        storyId: String(storyId ?? ""),
+        targetId: String(choice.target_id ?? ""),
+        choiceId: String(choice.id ?? ""),
+      });
+
       setLoading(true);
       setError(null);
 
       try {
+        if (!isActiveChoiceSession()) return null;
         await hydratePassageMaps();
+        if (!isActiveChoiceSession()) return null;
         const rawTargetId = String(choice.target_id).trim();
         const mappedFromPassageId = passagePkMapRef.current.get(rawTargetId);
         const mappedFromPk = passageIdMapRef.current.get(rawTargetId);
@@ -388,6 +557,12 @@ export function useStoryEngine({
         // This records the choice on the backend but doesn't block UI progression
         const isFastMode = textSpeed === "fast";
         const performMakeChoice = async (targetId: string) => {
+          if (!isActiveChoiceSession()) return;
+          storyDebug("choice-makeChoice-request", {
+            runId,
+            storyId: String(storyId ?? ""),
+            targetId,
+          });
           await retryApiCall(
             () =>
               storyService.makeChoice(storyId, String(targetId), choice.text, {
@@ -418,6 +593,8 @@ export function useStoryEngine({
           await makeChoicePromise;
         }
 
+        if (!isActiveChoiceSession()) return null;
+
         let nextPassageState: any = null;
         try {
           nextPassageState = await retryApiCall(
@@ -426,6 +603,7 @@ export function useStoryEngine({
             delayMs,
           );
         } catch (firstErr) {
+          if (!isActiveChoiceSession()) return null;
           // Some backends expect passage by PK; try PK if targetPassageId looks like UUID and we have a mapping
           const pk = passagePkMapRef.current.get(String(rawTargetId));
           const passageId = passageIdMapRef.current.get(String(rawTargetId));
@@ -445,8 +623,17 @@ export function useStoryEngine({
           throw new Error("Failed to load the next passage.");
         }
 
+        if (!isActiveChoiceSession()) return null;
+
         // Normalize choices
         const normalizedState = normalizePassageState(nextPassageState);
+
+        storyDebug("choice-set-engine", {
+          runId,
+          storyId: String(storyId ?? ""),
+          engineStoryId: String(normalizedState?.story?.id ?? ""),
+          passageId: normalizedState?.passage?.passage_id ?? null,
+        });
 
         setEngineState(normalizedState);
         // Invalidate passage-choices so revisiting the same passage refetches (avoids stale filtered list)
@@ -455,11 +642,26 @@ export function useStoryEngine({
         });
         return normalizedState;
       } catch (err: any) {
+        if (!isActiveChoiceSession()) return null;
         const message = extractErrorMessage(err);
+        storyDebug("choice-error", {
+          runId,
+          storyId: String(storyId ?? ""),
+          targetId: String(choice.target_id ?? ""),
+          message,
+          status: err?.status ?? err?.response?.status ?? null,
+        });
         setError(message);
         return null;
       } finally {
-        setLoading(false);
+        if (isActiveChoiceSession()) {
+          setLoading(false);
+          storyDebug("choice-finished", {
+            runId,
+            storyId: String(storyId ?? ""),
+            targetId: String(choice.target_id ?? ""),
+          });
+        }
       }
     },
     [
@@ -467,6 +669,7 @@ export function useStoryEngine({
       isLoading,
       textSpeed,
       hydratePassageMaps,
+      isStorySessionActive,
       queryClient,
       setEngineState,
       setError,

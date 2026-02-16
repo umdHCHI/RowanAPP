@@ -401,6 +401,14 @@ export async function retryApiCall<T>(
     } catch (error) {
       lastError = error;
 
+      const status = (error as any)?.status ?? (error as any)?.response?.status;
+      const isClientError =
+        typeof status === "number" && status >= 400 && status < 500;
+      const isRetriableClientError = status === 408 || status === 429;
+      if (isClientError && !isRetriableClientError) {
+        throw error;
+      }
+
       if (attempt < maxRetries) {
         const delay = baseDelay * Math.pow(2, attempt);
         await new Promise((resolve) => setTimeout(resolve, delay));

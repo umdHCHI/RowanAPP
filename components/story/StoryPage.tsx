@@ -26,6 +26,8 @@ import { useGainLumens, useCurrentUserFullProfile, storyKeys } from '@/api'
 import type { StoryChoice } from '@/types/story'
 import { useStoryCompletionStore } from '@/stores/story-completion-store'
 
+const storyDebug = (..._args: unknown[]) => {}
+
 interface StoryPageProps {
   storyId: string | number
   isIntroduction?: boolean
@@ -79,7 +81,23 @@ export function StoryPage({
   const emaDelayElapsedRef = useRef(false)
   const emaPendingPayloadRef = useRef<EmaRequestPayload | null>(null)
   const storyCompletionIdRef = useRef<number | null>(null)
+  // Track rewards shown in this session to avoid duplicates in history
+  const rewardsShownThisSession = React.useRef<Set<string>>(new Set())
   const { data: userProfile } = useCurrentUserFullProfile()
+  const activeStoreStoryId = useStoryStore((state) => state.storyId)
+  const engineStoryId = useStoryStore((state) => (state.engineState as any)?.story?.id ?? null)
+  const isPageBoundToActiveStory =
+    String(activeStoreStoryId ?? '') === String(storyId ?? '')
+
+  const scopedIsLoading = isPageBoundToActiveStory ? isLoading : true
+  const scopedError = isPageBoundToActiveStory ? error : null
+  const scopedCurrentPassage = isPageBoundToActiveStory ? currentPassage : null
+  const scopedChoices = React.useMemo(
+    () => (isPageBoundToActiveStory ? choices : []),
+    [isPageBoundToActiveStory, choices]
+  )
+  const scopedIsEnding = isPageBoundToActiveStory ? isEnding : false
+  const scopedStoryTitle = isPageBoundToActiveStory ? storyTitle : null
 
   const togglePause = React.useCallback(() => {
     setIsPaused((prev) => {
@@ -123,7 +141,14 @@ export function StoryPage({
   
   // Reset story loaded state when storyId or restart intent changes
   React.useEffect(() => {
+    storyDebug('page-session-reset', {
+      pageStoryId: String(storyId ?? ''),
+      activeStoreStoryId: String(activeStoreStoryId ?? ''),
+      engineStoryId: String(engineStoryId ?? ''),
+      shouldRestart,
+    })
     setStoryHasLoaded(false)
+    rewardsShownThisSession.current.clear()
     completionTriggeredRef.current = false
     emaDelayElapsedRef.current = false
     emaPendingPayloadRef.current = null
@@ -134,8 +159,30 @@ export function StoryPage({
     setEmaPayload(null)
     setShowEndingWaitIndicator(false)
     setShouldCompleteStory(false)
-    setIsPaused(false)
-  }, [storyId, shouldRestart, setIsPaused])
+    if (isPageBoundToActiveStory) {
+      setIsPaused(false)
+    }
+  }, [storyId, shouldRestart, setIsPaused, activeStoreStoryId, engineStoryId, isPageBoundToActiveStory])
+
+  React.useEffect(() => {
+    storyDebug('passage-visible', {
+      pageStoryId: String(storyId ?? ''),
+      activeStoreStoryId: String(activeStoreStoryId ?? ''),
+      engineStoryId: String(engineStoryId ?? ''),
+      passageId: scopedCurrentPassage?.passage_id ?? null,
+      passageType: scopedCurrentPassage?.passage_type ?? null,
+      isLoading: scopedIsLoading,
+      isPageBoundToActiveStory,
+    })
+  }, [
+    storyId,
+    activeStoreStoryId,
+    engineStoryId,
+    scopedCurrentPassage?.passage_id,
+    scopedCurrentPassage?.passage_type,
+    scopedIsLoading,
+    isPageBoundToActiveStory,
+  ])
 
   // When ending passage is detected: complete story, then show EMA modal (study day from profile created_at)
   React.useEffect(() => {
@@ -233,10 +280,10 @@ export function StoryPage({
   // Keep storyHasLoaded true until we navigate away—do not reset on passage transitions (isLoading).
   // Include isRouteFocused so when we *continue* by navigating back, we re-evaluate.
   React.useEffect(() => {
-    if (!isLoading && !!currentPassage && !error) {
+    if (!scopedIsLoading && !!scopedCurrentPassage && !scopedError) {
       setStoryHasLoaded(true)
     }
-  }, [isLoading, currentPassage, error, isRouteFocused])
+  }, [scopedIsLoading, scopedCurrentPassage, scopedError, isRouteFocused])
 
   // Play background music for story (looping, 50% volume)
   // Only play when route is focused, story is active (visible), and has loaded
@@ -247,17 +294,14 @@ export function StoryPage({
 
 
   // Manage story history - must be defined before reward collection effect
-  const { history, addChoice, addReward } = useStoryHistory({ currentPassage })
-
-  // Track rewards shown in this session to avoid duplicates in history
-  const rewardsShownThisSession = React.useRef<Set<string>>(new Set())
+  const { history, addChoice, addReward } = useStoryHistory({ currentPassage: scopedCurrentPassage })
 
   // Collect journal rewards when passage changes
   React.useEffect(() => {
-    if (!currentPassage || isLoading) return
+    if (!scopedCurrentPassage || scopedIsLoading) return
 
     // Store passage in const so TypeScript knows it's not null inside async function
-    const passage = currentPassage
+    const passage = scopedCurrentPassage
 
     async function collectJournalReward() {
       const reward = getJournalEntryRewardFromPassage(passage)
@@ -319,14 +363,14 @@ export function StoryPage({
     }
 
     collectJournalReward()
-  }, [currentPassage, isLoading, hasCollectedJournalReward, markJournalRewardCollected, addMemory, addReward])
+  }, [scopedCurrentPassage, scopedIsLoading, hasCollectedJournalReward, markJournalRewardCollected, addMemory, addReward])
 
   // Collect minigame rewards when passage changes
   React.useEffect(() => {
-    if (!currentPassage || isLoading) return
+    if (!scopedCurrentPassage || scopedIsLoading) return
 
     // Store passage in const so TypeScript knows it's not null inside async function
-    const passage = currentPassage
+    const passage = scopedCurrentPassage
 
     function collectMinigameReward() {
       const reward = getMinigameRewardFromPassage(passage)
@@ -366,14 +410,14 @@ export function StoryPage({
     }
 
     collectMinigameReward()
-  }, [currentPassage, isLoading, addReward])
+  }, [scopedCurrentPassage, scopedIsLoading, addReward])
 
   // Collect experience/lumens rewards when passage changes
   React.useEffect(() => {
-    if (!currentPassage || isLoading) return
+    if (!scopedCurrentPassage || scopedIsLoading) return
 
     // Store passage in const so TypeScript knows it's not null inside async function
-    const passage = currentPassage
+    const passage = scopedCurrentPassage
 
     async function collectExperienceReward() {
       const reward = getExperienceRewardFromPassage(passage)
@@ -408,16 +452,34 @@ export function StoryPage({
     }
 
     collectExperienceReward()
-  }, [currentPassage, isLoading, addReward, gainLumens])
+  }, [scopedCurrentPassage, scopedIsLoading, addReward, gainLumens])
 
   // Handle choice selection (no sound here; sound/haptics only when user taps a choice button)
   const handleChoice = useCallback(
     async (choice: StoryChoice) => {
+      const activeStoryId = useStoryStore.getState().storyId
+      if (String(activeStoryId ?? '') !== String(storyId ?? '')) {
+        storyDebug('choice-dropped-stale-page', {
+          pageStoryId: String(storyId ?? ''),
+          activeStoreStoryId: String(activeStoryId ?? ''),
+          targetId: String(choice.target_id ?? ''),
+          choiceId: String(choice.id ?? ''),
+        })
+        return
+      }
+
+      storyDebug('choice-accepted', {
+        pageStoryId: String(storyId ?? ''),
+        activeStoreStoryId: String(activeStoryId ?? ''),
+        targetId: String(choice.target_id ?? ''),
+        choiceId: String(choice.id ?? ''),
+        currentPassageId: scopedCurrentPassage?.passage_id ?? null,
+      })
 
       // Check if this is the minigame choice
       if (choice.target_id === 'minigame' || choice.id === 'minigame-choice') {
         // Navigate to minigame instead of making a story choice
-        const isTutorial = hasMinigameTutorialFlag(currentPassage)
+        const isTutorial = hasMinigameTutorialFlag(scopedCurrentPassage)
         addChoice(choice)
         router.push(buildStoryMinigameRoute({ isTutorial, storyId }))
         return
@@ -430,7 +492,7 @@ export function StoryPage({
       addChoice(choice)
       
       // Check if this is a choice in an ending passage
-      const isEndingChoice = isEnding || currentPassage?.passage_type === 'ending'
+      const isEndingChoice = scopedIsEnding || scopedCurrentPassage?.passage_type === 'ending'
       const isPrologueStory = Number(storyId) === PROLOGUE_STORY_ID
 
       // Ending choice: advance narrative in background; navigate only if EMA modal is not showing
@@ -447,7 +509,7 @@ export function StoryPage({
       // For non-ending choices, process normally
       await makeEngineChoice(choice)
     },
-    [makeEngineChoice, addChoice, isEnding, currentPassage, router, emaPayload, storyId]
+    [makeEngineChoice, addChoice, scopedIsEnding, scopedCurrentPassage, router, emaPayload, storyId]
   )
 
   // Only play page-flip sound and haptics when user explicitly taps a choice (not on auto-advance)
@@ -461,42 +523,42 @@ export function StoryPage({
   )
 
   // Check if current passage has minigame option enabled
-  const hasMinigame = currentPassage ? hasMinigameOption(currentPassage) : false
+  const hasMinigame = scopedCurrentPassage ? hasMinigameOption(scopedCurrentPassage) : false
 
   // Combine regular choices with minigame choice if available.
   // Skip adding minigame choice if:
   // - API already returned one (avoids duplication on reward passages)
   // - Current passage is mini_game type (already tappable like journal_entry)
   const allChoices = React.useMemo(() => {
-    if (!hasMinigame) return choices
+    if (!hasMinigame) return scopedChoices
     // Don't add minigame choice for mini_game passage types (they're tappable cards)
-    if (currentPassage?.passage_type === 'mini_game') return choices
-    const hasMinigameChoice = choices.some(
+    if (scopedCurrentPassage?.passage_type === 'mini_game') return scopedChoices
+    const hasMinigameChoice = scopedChoices.some(
       (c) => c.target_id === 'minigame' || c.id === 'minigame-choice'
     )
-    if (hasMinigameChoice) return choices
+    if (hasMinigameChoice) return scopedChoices
     return [
-      ...choices,
+      ...scopedChoices,
       {
         id: 'minigame-choice',
         text: 'Practice Thought Reframing',
         target_id: 'minigame',
       },
     ]
-  }, [choices, hasMinigame, currentPassage?.passage_type])
+  }, [scopedChoices, hasMinigame, scopedCurrentPassage?.passage_type])
 
   const hasAnyChoices = allChoices.length > 0
   const isSingleContinueOnly =
     allChoices.length === 1 && isExactContinueChoice(allChoices[0]?.text ?? '')
-  const isMiniGamePassage = currentPassage?.passage_type === 'mini_game'
+  const isMiniGamePassage = scopedCurrentPassage?.passage_type === 'mini_game'
 
-  const showChoicesStrip = hasAnyChoices && (!isSingleContinueOnly || isMiniGamePassage) && !isLoading
+  const showChoicesStrip = hasAnyChoices && (!isSingleContinueOnly || isMiniGamePassage) && !scopedIsLoading
 
 
   useStoryAutoAdvance({
     hasChoices: hasAnyChoices,
-    isLoading,
-    currentPassage,
+    isLoading: scopedIsLoading,
+    currentPassage: scopedCurrentPassage,
     choices: allChoices,
     textSpeed,
     isPaused,
@@ -505,8 +567,8 @@ export function StoryPage({
 
   // Check if current passage is ending type
   const hasEndingPassage =
-    currentPassage?.passage_type === 'ending' ||
-    isEnding ||
+    scopedCurrentPassage?.passage_type === 'ending' ||
+    scopedIsEnding ||
     history.some((item) => item.passageType === 'ending')
 
   const showOverlay = isPaused || showResumeFeedback
@@ -519,12 +581,12 @@ export function StoryPage({
       <View style={styles.mainContainer}>
         <View style={styles.scrollArea}>
           <StoryContent
-            storyTitle={storyTitle}
+            storyTitle={scopedStoryTitle}
             history={history}
-            currentPassage={currentPassage}
-            error={error}
-            isLoading={isLoading}
-            isEnding={isEnding}
+            currentPassage={scopedCurrentPassage}
+            error={scopedError}
+            isLoading={scopedIsLoading}
+            isEnding={scopedIsEnding}
             hasChoices={showChoicesStrip}
             showEndingWaitIndicator={showEndingWaitIndicator}
             storyId={storyId}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import Constants from "expo-constants";
+import { Platform } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGameStore } from "@/stores/game-store";
 import { useAuthUserId } from "@/api/hooks/use-auth";
@@ -13,7 +14,8 @@ import {
 
 import type { NotificationTime, UseNotificationsResult } from "@/types/hooks";
 
-const NOTIFICATION_IDENTIFIER = "daily-research-reminder";
+const DAILY_REMINDER_TYPE = "daily-research-reminder";
+const NOTIFICATION_CHANNEL_ID = "daily-research-reminders";
 
 /** Expo Go (SDK 53+) no longer supports Android push/local notifications; avoid loading the native module. */
 const IS_EXPO_GO = Constants.executionEnvironment === "storeClient";
@@ -32,6 +34,38 @@ async function getNotifications(): Promise<
     notificationsModule = null;
     return null;
   }
+}
+
+async function ensureAndroidNotificationChannel(
+  Notifications: typeof import("expo-notifications"),
+) {
+  if (Platform.OS !== "android") return;
+  await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ID, {
+    name: "Daily Reminders",
+    description: "Daily reminders to participate in research",
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    bypassDnd: false,
+    sound: "default",
+  });
+}
+
+async function cancelDailyReminderNotifications(
+  Notifications: typeof import("expo-notifications"),
+) {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const reminderNotifications = scheduled.filter(
+    (item) => item.content?.data?.type === DAILY_REMINDER_TYPE,
+  );
+
+  await Promise.all(
+    reminderNotifications.map((item) =>
+      Notifications.cancelScheduledNotificationAsync(item.identifier).catch(
+        () => undefined,
+      ),
+    ),
+  );
 }
 
 export function useNotifications(): UseNotificationsResult {
@@ -60,6 +94,7 @@ export function useNotifications(): UseNotificationsResult {
     (async () => {
       const Notifications = await getNotifications();
       if (!Notifications || !isMounted) return;
+      await ensureAndroidNotificationChannel(Notifications);
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
           shouldShowBanner: true,
@@ -131,8 +166,9 @@ export function useNotifications(): UseNotificationsResult {
     async function setupNotifications() {
       const N = await getNotifications();
       if (!N || !isMounted) return;
+      await ensureAndroidNotificationChannel(N);
       if (!notificationsEnabled) {
-        await N.cancelAllScheduledNotificationsAsync();
+        await cancelDailyReminderNotifications(N);
         return;
       }
 
@@ -155,7 +191,7 @@ export function useNotifications(): UseNotificationsResult {
           return;
         }
 
-        await N.cancelScheduledNotificationAsync(NOTIFICATION_IDENTIFIER);
+        await cancelDailyReminderNotifications(N);
 
         await N.scheduleNotificationAsync({
           content: {
@@ -164,15 +200,15 @@ export function useNotifications(): UseNotificationsResult {
             sound: true,
             priority: N.AndroidNotificationPriority.HIGH,
             data: {
-              type: "daily-research-reminder",
+              type: DAILY_REMINDER_TYPE,
             },
           },
           trigger: {
             type: N.SchedulableTriggerInputTypes.DAILY,
             hour: notificationTime.hour,
             minute: notificationTime.minute,
+            channelId: NOTIFICATION_CHANNEL_ID,
           },
-          identifier: NOTIFICATION_IDENTIFIER,
         });
       } catch (error) {
         console.error("Error setting up notifications:", error);
@@ -214,7 +250,7 @@ export function useNotifications(): UseNotificationsResult {
       localResponseListener =
         Notifications.addNotificationResponseReceivedListener((response) => {
           const data = response.notification.request.content.data;
-          if (data?.type === "daily-research-reminder") {
+          if (data?.type === DAILY_REMINDER_TYPE) {
             // Handle navigation to research/journal screen if needed
           }
         });
@@ -280,6 +316,7 @@ export function useNotifications(): UseNotificationsResult {
       const granted = finalStatus === "granted";
 
       if (granted) {
+        await ensureAndroidNotificationChannel(Notifications);
         setNotificationsEnabled(true);
         if (userId) {
           await userService.updateProfilePreferences(userId, {
@@ -330,9 +367,7 @@ export function useNotifications(): UseNotificationsResult {
       userToggledRef.current = true;
       const Notifications = await getNotifications();
       if (Notifications) {
-        await Notifications.cancelScheduledNotificationAsync(
-          NOTIFICATION_IDENTIFIER,
-        );
+        await cancelDailyReminderNotifications(Notifications);
       }
       setNotificationsEnabled(false);
       if (userId) {

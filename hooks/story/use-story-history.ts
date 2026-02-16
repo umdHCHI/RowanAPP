@@ -1,13 +1,17 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useStoryStore } from "@/stores/story-store";
 import type {
   UseStoryHistoryResult,
   UseStoryHistoryProps,
 } from "@/types/hooks";
 
+const storyDebug = (..._args: unknown[]) => {};
+
 export function useStoryHistory({
   currentPassage,
 }: UseStoryHistoryProps): UseStoryHistoryResult {
+  const activeStoryId = useStoryStore((state) => state.storyId);
+  const engineState = useStoryStore((state) => state.engineState);
   const history = useStoryStore((state) => state.history);
   const addPassageToHistory = useStoryStore(
     (state) => state.addPassageToHistory,
@@ -15,12 +19,39 @@ export function useStoryHistory({
   const addChoiceToHistory = useStoryStore((state) => state.addChoiceToHistory);
   const addRewardToHistory = useStoryStore((state) => state.addRewardToHistory);
 
+  const scopedHistory = useMemo(() => {
+    if (activeStoryId == null) return [];
+    const activeId = String(activeStoryId);
+    return history.filter(
+      (item) => item.storyId != null && String(item.storyId) === activeId,
+    );
+  }, [history, activeStoryId]);
+
   // Add current passage to history when it changes
   useEffect(() => {
+    const engineStoryId = (engineState as any)?.story?.id;
+    const activeId = activeStoryId != null ? String(activeStoryId) : null;
+    const engineId = engineStoryId != null ? String(engineStoryId) : null;
+    if (activeId != null && engineId != null && activeId !== engineId) {
+      storyDebug("skip-add-passage-mismatched-story", {
+        activeStoryId: activeId,
+        engineStoryId: engineId,
+        passageId: currentPassage?.passage_id ?? null,
+      });
+      return;
+    }
+
     if (currentPassage && currentPassage.content) {
+      storyDebug("add-passage", {
+        activeStoryId: activeId,
+        engineStoryId: engineId,
+        passageId: currentPassage.passage_id,
+      });
       addPassageToHistory(currentPassage);
     }
   }, [
+    activeStoryId,
+    engineState,
     currentPassage,
     currentPassage?.passage_id,
     currentPassage?.content,
@@ -59,5 +90,5 @@ export function useStoryHistory({
     [addRewardToHistory],
   );
 
-  return { history, addChoice, addReward };
+  return { history: scopedHistory, addChoice, addReward };
 }

@@ -108,14 +108,21 @@ export const useStoryStore = create<StorySessionState>()((set, get) => ({
   addPassageToHistory: (passage) => {
     if (!passage?.content) return;
     set((state) => {
+      const activeStoryId = state.storyId;
+      if (activeStoryId == null) return state;
       const exists = state.history.some(
-        (item) => item.id === passage.passage_id && item.type === "passage",
+        (item) =>
+          item.storyId != null &&
+          String(item.storyId) === String(activeStoryId) &&
+          item.id === passage.passage_id &&
+          item.type === "passage",
       );
       if (exists) return state;
       return {
         history: [
           ...state.history,
           {
+            storyId: activeStoryId,
             type: "passage",
             content: passage.content,
             id: passage.passage_id,
@@ -144,33 +151,41 @@ export const useStoryStore = create<StorySessionState>()((set, get) => ({
   addChoiceToHistory: (choice) => {
     if (isContinueChoice(choice.text)) return;
     set((state) => ({
-      history: [
-        ...state.history,
-        {
-          type: "choice",
-          content: choice.text,
-          id: String(choice.id),
-        },
-      ],
+      history:
+        state.storyId == null
+          ? state.history
+          : [
+              ...state.history,
+              {
+                storyId: state.storyId,
+                type: "choice",
+                content: choice.text,
+                id: String(choice.id),
+              },
+            ],
     }));
   },
   addRewardToHistory: (reward) => {
     set((state) => ({
-      history: [
-        ...state.history,
-        {
-          type: "reward",
-          content: reward.title,
-          id: reward.id,
-          rewardType: reward.type,
-          rewardTitle: reward.title,
-          rewardSubtitle: reward.subtitle,
-          journalEntryId: reward.journalEntryId,
-          minigameLevel: reward.minigameLevel,
-          minigameIsTutorial: reward.minigameIsTutorial,
-          lumensAmount: reward.lumensAmount,
-        },
-      ],
+      history:
+        state.storyId == null
+          ? state.history
+          : [
+              ...state.history,
+              {
+                storyId: state.storyId,
+                type: "reward",
+                content: reward.title,
+                id: reward.id,
+                rewardType: reward.type,
+                rewardTitle: reward.title,
+                rewardSubtitle: reward.subtitle,
+                journalEntryId: reward.journalEntryId,
+                minigameLevel: reward.minigameLevel,
+                minigameIsTutorial: reward.minigameIsTutorial,
+                lumensAmount: reward.lumensAmount,
+              },
+            ],
     }));
   },
   clearHistory: () => set({ history: [] }),

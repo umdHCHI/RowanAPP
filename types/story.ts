@@ -14,6 +14,7 @@ export type PassageType =
  * Story History Item - represents a passage, choice, or reward in the story history
  */
 export interface StoryHistoryItem {
+  storyId?: string | number;
   type: "passage" | "choice" | "reward";
   content: string;
   id: string;
