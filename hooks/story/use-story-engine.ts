@@ -26,6 +26,11 @@ function extractErrorMessage(err: any): string {
   return "An unexpected error occurred.";
 }
 
+function isNotFoundError(err: any): boolean {
+  const status = err?.status ?? err?.response?.status;
+  return status === 404;
+}
+
 function areChoicesEqual(
   a: StoryChoice[] | undefined,
   b: StoryChoice[],
@@ -255,7 +260,15 @@ export function useStoryEngine({
               : null;
 
             if (resumePassageId) {
-              initialState = await fetchPassageWithMaps(resumePassageId);
+              try {
+                initialState = await fetchPassageWithMaps(resumePassageId);
+              } catch (err) {
+                if (isNotFoundError(err)) {
+                  await restartFromBeginning(false);
+                } else {
+                  throw err;
+                }
+              }
             } else {
               const restartResponse = await retryApiCall(
                 () => storyService.restartStory(Number(storyId)),
@@ -361,29 +374,42 @@ export function useStoryEngine({
       try {
         await hydratePassageMaps();
         const rawTargetId = String(choice.target_id).trim();
-        const isNumericTarget = /^\d+$/.test(rawTargetId);
-        const targetPassageId = isNumericTarget
-          ? passageIdMapRef.current.get(rawTargetId) || rawTargetId
-          : rawTargetId;
+        const mappedFromPassageId = passagePkMapRef.current.get(rawTargetId);
+        const mappedFromPk = passageIdMapRef.current.get(rawTargetId);
+        const fallbackTargetId =
+          mappedFromPassageId && mappedFromPassageId !== rawTargetId
+            ? mappedFromPassageId
+            : mappedFromPk && mappedFromPk !== rawTargetId
+              ? mappedFromPk
+              : null;
         const delayMs = getRetryDelayForSpeed(textSpeed);
 
         // Fire-and-forget makeChoice logging call (for FAST mode, don't wait for it)
         // This records the choice on the backend but doesn't block UI progression
         const isFastMode = textSpeed === "fast";
-        const makeChoicePromise = retryApiCall(
-          () =>
-            storyService.makeChoice(
-              storyId,
-              String(targetPassageId),
-              choice.text,
-              {
+        const performMakeChoice = async (targetId: string) => {
+          await retryApiCall(
+            () =>
+              storyService.makeChoice(storyId, String(targetId), choice.text, {
                 story_id: storyId,
                 choice_id: choice.id,
-              },
-            ),
-          DEFAULT_MAX_RETRIES,
-          delayMs,
-        ).catch(() => {
+              }),
+            DEFAULT_MAX_RETRIES,
+            delayMs,
+          );
+        };
+
+        const makeChoicePromise = (async () => {
+          try {
+            await performMakeChoice(rawTargetId);
+          } catch (err) {
+            if (isNotFoundError(err) && fallbackTargetId) {
+              await performMakeChoice(fallbackTargetId);
+            } else {
+              throw err;
+            }
+          }
+        })().catch(() => {
           // Logging shouldn't block traversal
         });
 
@@ -395,17 +421,19 @@ export function useStoryEngine({
         let nextPassageState: any = null;
         try {
           nextPassageState = await retryApiCall(
-            () =>
-              storyService.getPassage(Number(storyId), String(targetPassageId)),
+            () => storyService.getPassage(Number(storyId), String(rawTargetId)),
             DEFAULT_MAX_RETRIES,
             delayMs,
           );
         } catch (firstErr) {
           // Some backends expect passage by PK; try PK if targetPassageId looks like UUID and we have a mapping
-          const pk = passagePkMapRef.current.get(String(targetPassageId));
-          if (pk) {
+          const pk = passagePkMapRef.current.get(String(rawTargetId));
+          const passageId = passageIdMapRef.current.get(String(rawTargetId));
+          if (pk || passageId) {
+            const fallbackId = pk || passageId;
             nextPassageState = await retryApiCall(
-              () => storyService.getPassage(Number(storyId), String(pk)),
+              () =>
+                storyService.getPassage(Number(storyId), String(fallbackId)),
               DEFAULT_MAX_RETRIES,
               delayMs,
             );
