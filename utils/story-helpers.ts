@@ -3,10 +3,7 @@ import { API_CONFIG } from "@/api/constants";
 import { storyService } from "@/api/services/story.service";
 import type { StoryChoice } from "@/types/story";
 import type { StoryData } from "@/stores/game-store";
-import {
-  INTRODUCTION_STORY_ID,
-  PROLOGUE_STORY_ID,
-} from "@/utils/story-constants";
+import { PROLOGUE_STORY_ID } from "@/utils/story-constants";
 
 /**
  * Get full image URL from a relative or absolute image path
@@ -427,11 +424,11 @@ export function getRetryDelay(): number {
 }
 
 /**
- * Check if a story is the introduction/prologue story (ID 28 or legacy 12)
+ * Check if a story is the prologue story (ID 28)
  */
 export function isIntroductionStory(storyId: string | number): boolean {
   const id = Number(storyId);
-  return id === PROLOGUE_STORY_ID || id === INTRODUCTION_STORY_ID;
+  return id === PROLOGUE_STORY_ID;
 }
 
 /**

@@ -184,6 +184,17 @@ export function StoryPage({
     isPageBoundToActiveStory,
   ])
 
+  const prologueCompletePayload = {
+    title: '',
+    description: '',
+    image: null,
+    story_themes: null,
+    starting_passage_id: '',
+    estimated_time_minutes: null,
+    is_hidden: false,
+    is_repeatable: false,
+  }
+
   // When ending passage is detected: complete story, then show EMA modal (study day from profile created_at)
   React.useEffect(() => {
     const isEndingPassage =
@@ -193,25 +204,26 @@ export function StoryPage({
     if (
       !isEndingPassage ||
       isLoading ||
-      isPrologueStory ||
       completionTriggeredRef.current
     ) {
       return
     }
     completionTriggeredRef.current = true
-    emaDelayElapsedRef.current = false
-    setShowEndingWaitIndicator(true)
-    if (emaDelayTimerRef.current) {
-      clearTimeout(emaDelayTimerRef.current)
-    }
-    emaDelayTimerRef.current = setTimeout(() => {
-      emaDelayElapsedRef.current = true
-      setShowEndingWaitIndicator(false)
-      if (emaPendingPayloadRef.current) {
-        setEmaPayload(emaPendingPayloadRef.current)
-        emaPendingPayloadRef.current = null
+    if (!isPrologueStory) {
+      emaDelayElapsedRef.current = false
+      setShowEndingWaitIndicator(true)
+      if (emaDelayTimerRef.current) {
+        clearTimeout(emaDelayTimerRef.current)
       }
-    }, 4000)
+      emaDelayTimerRef.current = setTimeout(() => {
+        emaDelayElapsedRef.current = true
+        setShowEndingWaitIndicator(false)
+        if (emaPendingPayloadRef.current) {
+          setEmaPayload(emaPendingPayloadRef.current)
+          emaPendingPayloadRef.current = null
+        }
+      }, 4000)
+    }
 
     // Store storyId and trigger completion
     storyCompletionIdRef.current = storyIdNum
@@ -226,8 +238,10 @@ export function StoryPage({
 
     const storyIdNum = storyCompletionIdRef.current
 
+    const isPrologueStory = storyIdNum === PROLOGUE_STORY_ID
+
     storyService
-      .completeStory(storyIdNum)
+      .completeStory(storyIdNum, isPrologueStory ? prologueCompletePayload : undefined)
       .then((completeResponse) => {
         // Invalidate story progress so hub status updates to completed
         queryClient.invalidateQueries({ queryKey: storyKeys.progress() })
@@ -256,6 +270,7 @@ export function StoryPage({
 
         // Show EMA for non-prologue stories on study days 1-5
         if (
+          !isPrologueStory &&
           typeof storyCompletionId === 'number' &&
           studyDay >= 1 && studyDay <= 5
         ) {

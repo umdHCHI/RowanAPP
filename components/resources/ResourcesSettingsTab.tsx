@@ -340,7 +340,7 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
               <View style={styles.timeColumn}>
                 <TouchableOpacity
                   style={styles.timeButton}
-                  onPress={() => shiftNotificationTime(5)}
+                  onPress={() => shiftNotificationTime(1)}
                   activeOpacity={0.7}
                 >
                   <MaterialDesignIcons name="chevron-up" size={26} color="#ffffff" />
@@ -350,7 +350,7 @@ export function ResourcesSettingsTab({ profileData, avatarConfig: avatarConfigPr
                 </Text>
                 <TouchableOpacity
                   style={styles.timeButton}
-                  onPress={() => shiftNotificationTime(-5)}
+                  onPress={() => shiftNotificationTime(-1)}
                   activeOpacity={0.7}
                 >
                   <MaterialDesignIcons name="chevron-down" size={26} color="#ffffff" />

@@ -110,14 +110,51 @@ export const useStoryStore = create<StorySessionState>()((set, get) => ({
     set((state) => {
       const activeStoryId = state.storyId;
       if (activeStoryId == null) return state;
-      const exists = state.history.some(
+
+      // Check if this passage already exists in history for this story
+      const alreadyInHistory = state.history.some(
         (item) =>
           item.storyId != null &&
           String(item.storyId) === String(activeStoryId) &&
           item.id === passage.passage_id &&
           item.type === "passage",
       );
-      if (exists) return state;
+
+      // If passage is already in history, check if we need to clean up forward history.
+      // This handles the case where user navigates backward in the story (e.g., to a
+      // decision point they've visited before) and then replays a different path.
+      if (alreadyInHistory) {
+        // Find where this passage appears in history
+        const passageIndex = state.history.findIndex(
+          (item) =>
+            item.storyId != null &&
+            String(item.storyId) === String(activeStoryId) &&
+            item.id === passage.passage_id &&
+            item.type === "passage",
+        );
+
+        // Look for recently added choices after this passage
+        // (choices added in this call chain before the passage was re-encountered)
+        let hasRecentChoices = false;
+        for (let i = passageIndex + 1; i < state.history.length; i++) {
+          if (state.history[i].type === "choice") {
+            hasRecentChoices = true;
+            break;
+          }
+        }
+
+        // If there are choices after this passage in history, preserve them
+        // (they represent the user's new navigation path from this passage).
+        // Otherwise, trim history at this passage to prevent showing old forward paths.
+        if (!hasRecentChoices) {
+          // No new choices after passage - clear forward history to reset narrative
+          return { history: state.history.slice(0, passageIndex + 1) };
+        }
+        // Has recent choices - preserve them, don't add passage again
+        return state;
+      }
+
+      // Passage doesn't exist in history - add it normally
       return {
         history: [
           ...state.history,
