@@ -283,7 +283,7 @@ export function ResourcesMemoriesTab({ memories, storyId }: ResourcesMemoriesTab
           <Button
             variant="secondary"
             size="small"
-            onPress={() => router.push('/journal?from=resources')}
+            onPress={() => router.push('/journal?from=resources&promptId=default_drawing_prompt')}
           >
             <MaterialDesignIcons name="brush" size={16} color="#FFD700" style={styles.buttonIconLeft} />
             <Text variant="label" style={styles.memoryButtonText}>
@@ -303,7 +303,7 @@ export function ResourcesMemoriesTab({ memories, storyId }: ResourcesMemoriesTab
           <Button
             variant="secondary"
             size="small"
-            onPress={() => router.push('/journal?from=resources')}
+            onPress={() => router.push('/journal?from=resources&promptId=default_voice_prompt')}
           >
             <MaterialDesignIcons name="microphone" size={16} color="#FFD700" style={styles.buttonIconLeft} />
             <Text variant="label" style={styles.memoryButtonText}>

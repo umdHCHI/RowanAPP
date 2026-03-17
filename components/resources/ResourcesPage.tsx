@@ -134,7 +134,7 @@ export function ResourcesPage({ storyId }: ResourcesPageProps) {
                 size="small"
                 onPress={() => {
                   playPageFlipSound()
-                  router.push('/journal?from=resources')
+                  router.push('/journal?from=resources&promptId=default_text_prompt')
                 }}
               >
                 <MaterialDesignIcons name="feather" size={24} color="#ffffff" />

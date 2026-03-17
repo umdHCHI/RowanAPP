@@ -4,7 +4,7 @@ export const COLORS = [
   "Blonde",
   "Blue",
   "Blue-Green",
-  "Brown",
+  "Medium Brown",
   "Dark Blue",
   "Dark Brown",
   "Dark",
@@ -72,6 +72,7 @@ export function getBackgroundAsset(
 ): ImageSourcePropType {
   const bgIndex = index + 1;
   const colorKey = color.replace(/[\s-]+/g, "");
+  const normalizedColorKey = colorKey === "Brown" ? "MediumBrown" : colorKey;
 
   const bgMap: Record<string, Record<number, () => ImageSourcePropType>> = {
     Blonde: {
@@ -116,7 +117,7 @@ export function getBackgroundAsset(
       11: () => require("../assets/character-creator/BGs/Blue-Green_11.png"),
       12: () => require("../assets/character-creator/BGs/Blue-Green_12.png"),
     },
-    Brown: {
+    MediumBrown: {
       1: () => require("../assets/character-creator/BGs/Brown_1.png"),
       2: () => require("../assets/character-creator/BGs/Brown_2.png"),
       3: () => require("../assets/character-creator/BGs/Brown_3.png"),
@@ -300,7 +301,7 @@ export function getBackgroundAsset(
     },
   };
 
-  const colorMap = bgMap[colorKey] || bgMap["Brown"];
+  const colorMap = bgMap[normalizedColorKey] || bgMap["Blonde"];
   return colorMap[bgIndex]?.() || colorMap[1]();
 }
 
@@ -312,10 +313,12 @@ export function getHairAsset(
   if (index < 0) return null;
   const hairIndex = index + 1;
   const colorKey = color.replace(/[\s-]+/g, "");
+  const normalizedColorKey = colorKey === "Brown" ? "MediumBrown" : colorKey;
 
-  // Map all available hair colors with all 32 styles
-  // Note: Brown uses "Brown 1", Dark Brown uses "Brown 2", Light Brown uses "Brown 3"
-  // Dark maps to Black
+  // Map all available hair colors with all 32 styles.
+  // The brown hair asset set names map to the UI labels as follows:
+  // Brown 1 = Light Brown, Brown 2 = Medium Brown, Brown 3 = Dark Brown.
+  // Dark maps to Black.
   const hairMap: Record<string, Record<number, () => ImageSourcePropType>> = {
     Blonde: {
       1: () => require("../assets/character-creator/Hairs/Hair Blonde_1.png"),
@@ -451,7 +454,7 @@ export function getHairAsset(
       32: () =>
         require("../assets/character-creator/Hairs/Hair Blue-Green_32.png"),
     },
-    Brown: {
+    LightBrown: {
       1: () => require("../assets/character-creator/Hairs/Hair Brown 1_1.png"),
       2: () => require("../assets/character-creator/Hairs/Hair Brown 1_2.png"),
       3: () => require("../assets/character-creator/Hairs/Hair Brown 1_3.png"),
@@ -574,7 +577,7 @@ export function getHairAsset(
       32: () =>
         require("../assets/character-creator/Hairs/Hair Dark Blue_32.png"),
     },
-    DarkBrown: {
+    MediumBrown: {
       1: () => require("../assets/character-creator/Hairs/Hair Brown 2_1.png"),
       2: () => require("../assets/character-creator/Hairs/Hair Brown 2_2.png"),
       3: () => require("../assets/character-creator/Hairs/Hair Brown 2_3.png"),
@@ -630,6 +633,63 @@ export function getHairAsset(
         require("../assets/character-creator/Hairs/Hair Brown 2_31.png"),
       32: () =>
         require("../assets/character-creator/Hairs/Hair Brown 2_32.png"),
+    },
+    DarkBrown: {
+      1: () => require("../assets/character-creator/Hairs/Hair Brown 3_1.png"),
+      2: () => require("../assets/character-creator/Hairs/Hair Brown 3_2.png"),
+      3: () => require("../assets/character-creator/Hairs/Hair Brown 3_3.png"),
+      4: () => require("../assets/character-creator/Hairs/Hair Brown 3_4.png"),
+      5: () => require("../assets/character-creator/Hairs/Hair Brown 3_5.png"),
+      6: () => require("../assets/character-creator/Hairs/Hair Brown 3_6.png"),
+      7: () => require("../assets/character-creator/Hairs/Hair Brown 3_7.png"),
+      8: () => require("../assets/character-creator/Hairs/Hair Brown 3_8.png"),
+      9: () => require("../assets/character-creator/Hairs/Hair Brown 3_9.png"),
+      10: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_10.png"),
+      11: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_11.png"),
+      12: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_12.png"),
+      13: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_13.png"),
+      14: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_14.png"),
+      15: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_15.png"),
+      16: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_16.png"),
+      17: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_17.png"),
+      18: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_18.png"),
+      19: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_19.png"),
+      20: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_20.png"),
+      21: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_21.png"),
+      22: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_22.png"),
+      23: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_23.png"),
+      24: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_24.png"),
+      25: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_25.png"),
+      26: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_26.png"),
+      27: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_27.png"),
+      28: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_28.png"),
+      29: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_29.png"),
+      30: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_30.png"),
+      31: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_31.png"),
+      32: () =>
+        require("../assets/character-creator/Hairs/Hair Brown 3_32.png"),
     },
     Dark: {
       1: () => require("../assets/character-creator/Hairs/Hair Black_1.png"),
@@ -698,63 +758,6 @@ export function getHairAsset(
       30: () => require("../assets/character-creator/Hairs/Hair Green_30.png"),
       31: () => require("../assets/character-creator/Hairs/Hair Green_31.png"),
       32: () => require("../assets/character-creator/Hairs/Hair Green_32.png"),
-    },
-    LightBrown: {
-      1: () => require("../assets/character-creator/Hairs/Hair Brown 3_1.png"),
-      2: () => require("../assets/character-creator/Hairs/Hair Brown 3_2.png"),
-      3: () => require("../assets/character-creator/Hairs/Hair Brown 3_3.png"),
-      4: () => require("../assets/character-creator/Hairs/Hair Brown 3_4.png"),
-      5: () => require("../assets/character-creator/Hairs/Hair Brown 3_5.png"),
-      6: () => require("../assets/character-creator/Hairs/Hair Brown 3_6.png"),
-      7: () => require("../assets/character-creator/Hairs/Hair Brown 3_7.png"),
-      8: () => require("../assets/character-creator/Hairs/Hair Brown 3_8.png"),
-      9: () => require("../assets/character-creator/Hairs/Hair Brown 3_9.png"),
-      10: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_10.png"),
-      11: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_11.png"),
-      12: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_12.png"),
-      13: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_13.png"),
-      14: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_14.png"),
-      15: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_15.png"),
-      16: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_16.png"),
-      17: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_17.png"),
-      18: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_18.png"),
-      19: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_19.png"),
-      20: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_20.png"),
-      21: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_21.png"),
-      22: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_22.png"),
-      23: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_23.png"),
-      24: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_24.png"),
-      25: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_25.png"),
-      26: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_26.png"),
-      27: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_27.png"),
-      28: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_28.png"),
-      29: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_29.png"),
-      30: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_30.png"),
-      31: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_31.png"),
-      32: () =>
-        require("../assets/character-creator/Hairs/Hair Brown 3_32.png"),
     },
     LightGreen: {
       1: () =>
@@ -1028,8 +1031,8 @@ export function getHairAsset(
     },
   };
 
-  // Default to Brown if color not found
-  const colorMap = hairMap[colorKey] || hairMap["Brown"];
+  // Default to Blonde if color not found
+  const colorMap = hairMap[normalizedColorKey] || hairMap["Blonde"];
 
   // Return the hair asset, cycling if index > 32
   if (hairIndex > 32) {
@@ -1046,6 +1049,7 @@ export function getClothesAsset(
   if (index < 0) return null;
   const clothesIndex = index + 1;
   const colorKey = color.replace(/[\s-]+/g, "");
+  const normalizedColorKey = colorKey === "Brown" ? "MediumBrown" : colorKey;
 
   const clothesMap: Record<
     string,
@@ -1077,7 +1081,7 @@ export function getClothesAsset(
       12: () =>
         require("../assets/character-creator/Clothes/Clothes Blonde_12.png"),
     },
-    Brown: {
+    MediumBrown: {
       1: () =>
         require("../assets/character-creator/Clothes/Clothes Brown_1.png"),
       2: () =>
@@ -1434,7 +1438,7 @@ export function getClothesAsset(
     },
   };
 
-  const colorMap = clothesMap[colorKey] || clothesMap["Brown"];
+  const colorMap = clothesMap[normalizedColorKey] || clothesMap["MediumBrown"];
   return colorMap[clothesIndex]?.() || colorMap[1]();
 }
 
@@ -1442,6 +1446,7 @@ export function getClothesAsset(
 export function getEyesAsset(color: Color, index: number): ImageSourcePropType {
   const eyesIndex = index + 1;
   const colorKey = color.replace(/[\s-]+/g, "");
+  const normalizedColorKey = colorKey === "Brown" ? "MediumBrown" : colorKey;
 
   const eyesMap: Record<string, Record<number, () => ImageSourcePropType>> = {
     Blonde: {
@@ -1458,7 +1463,7 @@ export function getEyesAsset(color: Color, index: number): ImageSourcePropType {
       11: () => require("../assets/character-creator/Eyes/Eyes Blonde_11.png"),
       12: () => require("../assets/character-creator/Eyes/Eyes Blonde_12.png"),
     },
-    Brown: {
+    MediumBrown: {
       1: () => require("../assets/character-creator/Eyes/Eyes Brown_1.png"),
       2: () => require("../assets/character-creator/Eyes/Eyes Brown_2.png"),
       3: () => require("../assets/character-creator/Eyes/Eyes Brown_3.png"),
@@ -1722,7 +1727,7 @@ export function getEyesAsset(color: Color, index: number): ImageSourcePropType {
     },
   };
 
-  const colorMap = eyesMap[colorKey] || eyesMap["Brown"];
+  const colorMap = eyesMap[normalizedColorKey] || eyesMap["MediumBrown"];
   return colorMap[eyesIndex]?.() || colorMap[1]();
 }
 
@@ -1733,6 +1738,7 @@ export function getEyebrowsAsset(
 ): ImageSourcePropType {
   const eyebrowsIndex = index + 1;
   const colorKey = color.replace(/[\s-]+/g, "");
+  const normalizedColorKey = colorKey === "Brown" ? "MediumBrown" : colorKey;
 
   const eyebrowsMap: Record<
     string,
@@ -1764,7 +1770,7 @@ export function getEyebrowsAsset(
       12: () =>
         require("../assets/character-creator/Eyebrows/Eyebrows Blonde_12.png"),
     },
-    Brown: {
+    MediumBrown: {
       1: () =>
         require("../assets/character-creator/Eyebrows/Eyebrows Brown_1.png"),
       2: () =>
@@ -2157,7 +2163,7 @@ export function getEyebrowsAsset(
     },
   };
 
-  const colorMap = eyebrowsMap[colorKey] || eyebrowsMap["Brown"];
+  const colorMap = eyebrowsMap[normalizedColorKey] || eyebrowsMap["MediumBrown"];
   return colorMap[eyebrowsIndex]?.() || colorMap[1]();
 }
 

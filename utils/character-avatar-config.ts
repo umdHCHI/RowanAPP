@@ -39,9 +39,9 @@ export interface FrontendCharacterConfig {
  * Expects 0-based index (array index)
  */
 export function getColorByIndex(index: number | undefined): Color {
-  if (index === undefined || index === null) return 'Brown'
+  if (index === undefined || index === null) return 'Medium Brown'
   const colorIndex = Math.max(0, Math.min(index, COLORS.length - 1))
-  return COLORS[colorIndex] || 'Brown'
+  return COLORS[colorIndex] || 'Medium Brown'
 }
 
 /**
@@ -49,7 +49,7 @@ export function getColorByIndex(index: number | undefined): Color {
  */
 export function getColorIndex(color: Color): number {
   const index = COLORS.indexOf(color)
-  return index >= 0 ? index : COLORS.indexOf('Brown')
+  return index >= 0 ? index : COLORS.indexOf('Medium Brown')
 }
 
 /**
@@ -189,7 +189,7 @@ export function getDefaultSplashAvatarConfig(): string {
     clothesIndex: pickRandomInt(CLOTHES_COUNT),
     eyesColor: pickRandomColor(),
     eyesIndex: pickRandomInt(EYES_COUNT),
-    eyebrowsColor: 'Brown',
+    eyebrowsColor: 'Medium Brown',
     eyebrowsIndex: 0,
     mouthIndex: pickRandomInt(MOUTH_COUNT),
   }

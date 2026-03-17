@@ -315,6 +315,7 @@ export const UserCreateSchema = z.object({
 });
 
 export const UserUpdateSchema = z.object({
+  username: z.string().optional(),
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
   notifications_enabled: z.boolean().optional(),

@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../services/user.service";
+import { useAuthStore } from "@/stores/auth-store";
 import type { UserFullProfileResponse, UserListResponse } from "../types";
 
 /**
@@ -47,6 +48,33 @@ export function useUserFullProfile(id: string | number | null) {
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Update the current user's username
+ * PATCH /api/users/:id/
+ */
+export function useUpdateUsername() {
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.userId);
+
+  return useMutation({
+    mutationFn: async (username: string) => {
+      if (!userId) throw new Error("User ID is required");
+      const res = await userService.update(userId, { username });
+      // Backend may return raw user object or wrapped {success, data}
+      if (res && typeof res === 'object' && 'success' in res && !res.success) {
+        throw new Error(res.message || "Failed to update username");
+      }
+      return 'data' in res ? res.data : res;
+    },
+    onSuccess: () => {
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
+        queryClient.invalidateQueries({ queryKey: userKeys.fullProfile(userId) });
+      }
+    },
   });
 }
 

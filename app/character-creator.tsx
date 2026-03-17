@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CharacterPreview } from '@/components/character/CharacterPreview'
 import { COLORS, Color, BASE_COUNT, BG_COUNT, HAIR_COUNT, CLOTHES_COUNT, EYES_COUNT, EYEBROWS_COUNT, MOUTH_COUNT } from '@/utils/character-assets'
 import { useMyCharacter, useCreateCharacter, useUpdateCharacterCustomization, characterKeys } from '@/api/hooks/use-character'
-import { useRequireAuth, useRequiredAuthUserId, useAuthActions, userKeys } from '@/api'
+import { useRequireAuth, useRequiredAuthUserId, useAuthActions, useCurrentUserFullProfile, useUpdateUsername, userKeys } from '@/api'
 import { convertToBackendConfig, buildAvatarConfig } from '@/utils/character-avatar-config'
 import { useQueryClient } from '@tanstack/react-query'
 import { CharacterConfig, Category } from '@/types/characterCreator/character-creator'
@@ -38,25 +38,35 @@ export default function CharacterCreator() {
   const queryClient = useQueryClient()
   const userId = useRequiredAuthUserId()
   const { data: existingCharacter } = useMyCharacter()
+  const { data: userProfile } = useCurrentUserFullProfile()
   const createCharacter = useCreateCharacter()
   const updateCharacter = useUpdateCharacterCustomization()
+  const updateUsername = useUpdateUsername()
  
 
   
   const [config, setConfig] = useState<CharacterConfig>({
     baseIndex: 0,
-    backgroundColor: 'Brown',
+    backgroundColor: 'Light Brown',
     backgroundIndex: 0,
-    hairColor: 'Brown',
+    hairColor: 'Light Brown',
     hairIndex: 0,
-    clothesColor: 'Brown',
+    clothesColor: 'Light Brown',
     clothesIndex: 0,
-    eyesColor: 'Brown',
+    eyesColor: 'Light Brown',
     eyesIndex: 0,
-    eyebrowsColor: 'Brown',
+    eyebrowsColor: 'Light Brown',
     eyebrowsIndex: 0,
     mouthIndex: 0,
   })
+
+  // Load username from user profile
+  useEffect(() => {
+    if (userProfile?.username && !characterName) {
+      setCharacterName(userProfile.username)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile?.username])
 
   // Load existing character data when available
   useEffect(() => {
@@ -66,7 +76,6 @@ export default function CharacterCreator() {
         try {
           const loadedConfig = JSON.parse(avatarConfigStr) as CharacterConfig
           setConfig(loadedConfig)
-          setCharacterName(existingCharacter.username || '')
         } catch (error) {
           console.error('Failed to parse existing character config:', error)
         }
@@ -217,6 +226,12 @@ export default function CharacterCreator() {
       await updateCharacter.mutateAsync({ ...requestData })
     } else {
       await createCharacter.mutateAsync(requestData)
+    }
+
+    // Update username if changed
+    const trimmedName = characterName.trim()
+    if (trimmedName && trimmedName !== userProfile?.username) {
+      await updateUsername.mutateAsync(trimmedName)
     }
 
     queryClient.invalidateQueries({ queryKey: characterKeys.mine(userId) })

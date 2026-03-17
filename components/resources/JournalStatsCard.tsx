@@ -11,7 +11,7 @@ import { journalStatsCardStyles as styles } from '@/styles/resources/resources-s
 export function JournalStatsCard({ entries }: JournalStatsCardProps) {
   const router = useRouter()
   function handleViewJournalEntries() {
-    router.push('/journal?from=resources')
+    router.push('/journal?from=resources&promptId=default_text_prompt')
   }
 
   const mostCommonEntryType = useMemo(() => {

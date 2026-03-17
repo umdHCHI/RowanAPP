@@ -163,9 +163,13 @@ export function EmaSurveyModal({
           { paddingTop: insets.top, paddingBottom: insets.bottom },
         ]}
       >
-        <View style={styles.backdropPressable}>
+        <RNPressable
+          style={styles.backdropPressable}
+          onPress={handleClose}
+          accessible={false}
+        >
           <View style={styles.backdrop} />
-        </View>
+        </RNPressable>
         <View style={styles.modalInner}>
           <View style={styles.panel}>
             <View style={styles.contentContainer}>
@@ -341,6 +345,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 0,
+    elevation: 0,
   },
   backdrop: {
     position: 'absolute',
@@ -356,6 +362,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: STORY_SPACING.lg,
     width: '100%',
+    zIndex: 1,
+    elevation: 1,
   },
   panel: {
     width: '100%',

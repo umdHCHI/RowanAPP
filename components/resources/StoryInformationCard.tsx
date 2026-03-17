@@ -106,7 +106,7 @@ export function StoryInformationCard({
 
           <View style={styles.detailItem}>
             <Text variant="label" style={styles.detailLabel}>
-              NPC Interactions
+              Memories
             </Text>
             <Text variant="body" size={1} style={styles.detailValue}>
               {npcInteractions}

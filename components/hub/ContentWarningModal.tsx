@@ -63,7 +63,11 @@ export function ContentWarningModal({
       onRequestClose={onClose}
     >
       <View style={[contentWarningModalStyles.modalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <RNPressable style={contentWarningModalStyles.backdropPressable} onPress={onClose}>
+        <RNPressable
+          style={contentWarningModalStyles.backdropPressable}
+          onPress={onClose}
+          accessible={false}
+        >
           <View style={contentWarningModalStyles.backdrop} />
         </RNPressable>
         <View style={contentWarningModalStyles.modalInner}>

@@ -184,17 +184,6 @@ export function StoryPage({
     isPageBoundToActiveStory,
   ])
 
-  const prologueCompletePayload = {
-    title: '',
-    description: '',
-    image: null,
-    story_themes: null,
-    starting_passage_id: '',
-    estimated_time_minutes: null,
-    is_hidden: false,
-    is_repeatable: false,
-  }
-
   // When ending passage is detected: complete story, then show EMA modal (study day from profile created_at)
   React.useEffect(() => {
     const isEndingPassage =
@@ -240,8 +229,10 @@ export function StoryPage({
 
     const isPrologueStory = storyIdNum === PROLOGUE_STORY_ID
 
+    const completionPayload = isPrologueStory ? {} : undefined
+
     storyService
-      .completeStory(storyIdNum, isPrologueStory ? prologueCompletePayload : undefined)
+      .completeStory(storyIdNum, completionPayload)
       .then((completeResponse) => {
         // Invalidate story progress so hub status updates to completed
         queryClient.invalidateQueries({ queryKey: storyKeys.progress() })
@@ -324,6 +315,16 @@ export function StoryPage({
         return
       }
 
+      const alreadyInHistory = history.some(
+        (item) =>
+          item.type === 'reward' &&
+          item.rewardType === 'journal_entry' &&
+          String(item.journalEntryId ?? '') === String(reward.journalEntryId)
+      )
+      if (alreadyInHistory) {
+        return
+      }
+
       // Check if already collected globally
       const wasAlreadyCollected = hasCollectedJournalReward(reward.journalEntryId)
       
@@ -331,7 +332,7 @@ export function StoryPage({
       const rewardKey = `${passage.passage_id}-${reward.journalEntryId}`
       const shownThisSession = rewardsShownThisSession.current.has(rewardKey)
 
-      if (wasAlreadyCollected && shownThisSession) {
+      if (wasAlreadyCollected || shownThisSession) {
         return
       }
 
@@ -378,7 +379,7 @@ export function StoryPage({
     }
 
     collectJournalReward()
-  }, [scopedCurrentPassage, scopedIsLoading, hasCollectedJournalReward, markJournalRewardCollected, addMemory, addReward])
+  }, [scopedCurrentPassage, scopedIsLoading, hasCollectedJournalReward, markJournalRewardCollected, addMemory, addReward, history])
 
   // Collect minigame rewards when passage changes
   React.useEffect(() => {
@@ -390,6 +391,16 @@ export function StoryPage({
     function collectMinigameReward() {
       const reward = getMinigameRewardFromPassage(passage)
       if (!reward) {
+        return
+      }
+
+      const alreadyInHistory = history.some(
+        (item) =>
+          item.type === 'reward' &&
+          item.rewardType === 'minigame' &&
+          String(item.minigameLevel ?? '') === String(reward.level)
+      )
+      if (alreadyInHistory) {
         return
       }
 
@@ -425,7 +436,7 @@ export function StoryPage({
     }
 
     collectMinigameReward()
-  }, [scopedCurrentPassage, scopedIsLoading, addReward])
+  }, [scopedCurrentPassage, scopedIsLoading, addReward, history])
 
   // Collect experience/lumens rewards when passage changes
   React.useEffect(() => {
@@ -437,6 +448,16 @@ export function StoryPage({
     async function collectExperienceReward() {
       const reward = getExperienceRewardFromPassage(passage)
       if (!reward) {
+        return
+      }
+
+      const alreadyInHistory = history.some(
+        (item) =>
+          item.type === 'reward' &&
+          item.rewardType === 'lumens' &&
+          Number(item.lumensAmount ?? -1) === reward.amount
+      )
+      if (alreadyInHistory) {
         return
       }
 
@@ -467,7 +488,7 @@ export function StoryPage({
     }
 
     collectExperienceReward()
-  }, [scopedCurrentPassage, scopedIsLoading, addReward, gainLumens])
+  }, [scopedCurrentPassage, scopedIsLoading, addReward, gainLumens, history])
 
   // Handle choice selection (no sound here; sound/haptics only when user taps a choice button)
   const handleChoice = useCallback(

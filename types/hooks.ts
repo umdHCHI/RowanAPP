@@ -190,6 +190,14 @@ export interface UseNotificationsResult {
 // Game Hooks
 // ============================================================================
 
+export interface PressureComponents {
+  hit: number;
+  accuracy: number;
+  survival: number;
+  shoot: number;
+  kill: number;
+}
+
 export interface GameDirectorMetrics {
   formationTickMultiplier: number; // Multiplier for formation tick intervals (lower = faster movement)
   moveSpeed: number; // Velocity multiplier for thoughts and enemy projectiles
@@ -197,6 +205,7 @@ export interface GameDirectorMetrics {
   difficultyLevel: number; // 1-10, for debugging/display
   pressureScore: number; // 0-1, current pressure assessment (stressSignal)
   emotionalIntensity: number; // 0-1, EMA-smoothed emotional intensity (EI)
+  pressureComponents: PressureComponents;
 }
 
 export interface UseVantageGameResult {
@@ -237,6 +246,7 @@ export interface UseVantageGameResult {
   endGame: (won: boolean, bossDefeated: boolean) => void;
   handleHeaderPress: () => void;
   handleFragmentTap: (fragmentId: string) => void;
+  toggleDebugHitboxes: () => void;
 }
 
 export interface UseVantageFragmentsResult {

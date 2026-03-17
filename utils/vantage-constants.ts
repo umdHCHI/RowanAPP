@@ -213,4 +213,11 @@ export const DEFAULT_METRICS: GameDirectorMetrics = {
   difficultyLevel: 5,
   pressureScore: 0.5,
   emotionalIntensity: 0.5,
+  pressureComponents: {
+    hit: 0,
+    accuracy: 0,
+    survival: 0,
+    shoot: 0,
+    kill: 0,
+  },
 } as const;

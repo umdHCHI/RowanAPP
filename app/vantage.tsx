@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { View, Text, useWindowDimensions, StyleSheet } from 'react-native'
+import { View, Text, useWindowDimensions, StyleSheet, Pressable } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useGameStore } from '@/stores/game-store'
@@ -258,14 +258,27 @@ export default function Vantage() {
     >
       {/* Compact HUD overlay at top - Only show when playing */}
       {(game.isPlaying || game.gameOver) && (
-        <View style={[styles.hud, { top: insets.top + 8 }]} pointerEvents="none">
+        <Pressable
+          style={[styles.hud, { top: insets.top + 8 }]}
+          onPress={game.toggleDebugHitboxes}
+        >
           <Text style={styles.hudText}>Score: {game.score}</Text>
           <Text style={styles.hudText}>Lives: {game.lives}</Text>
           {game.wave > 0 && (
             <Text style={[styles.hudText, styles.hudWave]}>Wave: {game.wave}</Text>
           )}
-        </View>
+        </Pressable>
       )}
+      {/* Debug Toggle Button */}
+      {game.isPlaying && (
+        <Pressable
+          style={[styles.debugButton, { top: insets.top + 12, right: 12 }]}
+          onPress={game.toggleDebugHitboxes}
+        >
+          <Text style={styles.debugButtonText}>DBG</Text>
+        </Pressable>
+      )}
+
 
       {/* Game Area - Full screen */}
       {game.isPlaying || game.gameOver ? (
@@ -299,6 +312,7 @@ export default function Vantage() {
                   <DebugHUD
                     stressSignal={ddaMetrics.pressureScore}
                     emotionalIntensity={ddaMetrics.emotionalIntensity}
+                    pressureComponents={ddaMetrics.pressureComponents}
                     wave={game.wave}
                     visible={game.debugHitboxes}
                   />
@@ -412,5 +426,20 @@ const styles = StyleSheet.create({
   },
   hudWave: {
     color: 'rgba(212, 175, 55, 0.9)',
+  },
+  debugButton: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(212, 175, 55, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 101,
+  },
+  debugButtonText: {
+    fontSize: 12,
+    color: '#000',
+    fontWeight: 'bold',
   },
 })

@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet } from 'react-native'
+import type { PressureComponents } from '@/types/hooks'
 
 interface DebugHUDProps {
   stressSignal: number
   emotionalIntensity: number
   wave: number
+  pressureComponents: PressureComponents
   visible?: boolean
 }
 
@@ -11,6 +13,7 @@ export function DebugHUD({
   stressSignal,
   emotionalIntensity,
   wave,
+  pressureComponents,
   visible = false,
 }: DebugHUDProps) {
   if (!visible) return null
@@ -21,6 +24,12 @@ export function DebugHUD({
       <Text style={styles.text}>Stress: {stressSignal.toFixed(2)}</Text>
       <Text style={styles.text}>EI: {emotionalIntensity.toFixed(2)}</Text>
       <Text style={styles.text}>Wave: {wave}</Text>
+      <Text style={styles.sectionLabel}>Pressure Components</Text>
+      <Text style={styles.text}>Hit: {pressureComponents.hit.toFixed(2)}</Text>
+      <Text style={styles.text}>Accuracy: {pressureComponents.accuracy.toFixed(2)}</Text>
+      <Text style={styles.text}>Survival: {pressureComponents.survival.toFixed(2)}</Text>
+      <Text style={styles.text}>Shoot: {pressureComponents.shoot.toFixed(2)}</Text>
+      <Text style={styles.text}>Kill: {pressureComponents.kill.toFixed(2)}</Text>
     </View>
   )
 }
@@ -50,5 +59,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#ffffffaa',
     marginBottom: 4,
+  },
+  sectionLabel: {
+    fontFamily: 'System',
+    fontSize: 11,
+    color: '#ffffffdd',
+    marginTop: 6,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 })

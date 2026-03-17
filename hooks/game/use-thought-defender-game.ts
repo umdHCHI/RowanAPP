@@ -442,7 +442,7 @@ export function useVantageGame({
 
   const handlePlayerHit = useCallback(
     (damage: number = 1.0) => {
-      const now = Date.now();
+      const now = performance.now();
       if (now < playerIFrameUntil) return;
       if (shieldActiveRef.current) {
         shieldActiveRef.current = false;
@@ -1018,5 +1018,6 @@ export function useVantageGame({
     endGame,
     handleHeaderPress,
     handleFragmentTap,
+    toggleDebugHitboxes,
   };
 }

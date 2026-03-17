@@ -111,50 +111,21 @@ export const useStoryStore = create<StorySessionState>()((set, get) => ({
       const activeStoryId = state.storyId;
       if (activeStoryId == null) return state;
 
-      // Check if this passage already exists in history for this story
-      const alreadyInHistory = state.history.some(
-        (item) =>
-          item.storyId != null &&
-          String(item.storyId) === String(activeStoryId) &&
-          item.id === passage.passage_id &&
-          item.type === "passage",
-      );
+      // Check if this passage was just added (duplicate in succession)
+      const lastItem = state.history[state.history.length - 1];
+      const isConsecutiveDuplicate =
+        lastItem &&
+        lastItem.storyId != null &&
+        String(lastItem.storyId) === String(activeStoryId) &&
+        lastItem.id === passage.passage_id &&
+        lastItem.type === "passage";
 
-      // If passage is already in history, check if we need to clean up forward history.
-      // This handles the case where user navigates backward in the story (e.g., to a
-      // decision point they've visited before) and then replays a different path.
-      if (alreadyInHistory) {
-        // Find where this passage appears in history
-        const passageIndex = state.history.findIndex(
-          (item) =>
-            item.storyId != null &&
-            String(item.storyId) === String(activeStoryId) &&
-            item.id === passage.passage_id &&
-            item.type === "passage",
-        );
-
-        // Look for recently added choices after this passage
-        // (choices added in this call chain before the passage was re-encountered)
-        let hasRecentChoices = false;
-        for (let i = passageIndex + 1; i < state.history.length; i++) {
-          if (state.history[i].type === "choice") {
-            hasRecentChoices = true;
-            break;
-          }
-        }
-
-        // If there are choices after this passage in history, preserve them
-        // (they represent the user's new navigation path from this passage).
-        // Otherwise, trim history at this passage to prevent showing old forward paths.
-        if (!hasRecentChoices) {
-          // No new choices after passage - clear forward history to reset narrative
-          return { history: state.history.slice(0, passageIndex + 1) };
-        }
-        // Has recent choices - preserve them, don't add passage again
+      // Skip adding if it's the same passage twice in a row
+      if (isConsecutiveDuplicate) {
         return state;
       }
 
-      // Passage doesn't exist in history - add it normally
+      // Add passage to history (even if it appeared earlier - this preserves loop behavior)
       return {
         history: [
           ...state.history,
@@ -203,27 +174,78 @@ export const useStoryStore = create<StorySessionState>()((set, get) => ({
     }));
   },
   addRewardToHistory: (reward) => {
-    set((state) => ({
-      history:
-        state.storyId == null
-          ? state.history
-          : [
-              ...state.history,
-              {
-                storyId: state.storyId,
-                type: "reward",
-                content: reward.title,
-                id: reward.id,
-                rewardType: reward.type,
-                rewardTitle: reward.title,
-                rewardSubtitle: reward.subtitle,
-                journalEntryId: reward.journalEntryId,
-                minigameLevel: reward.minigameLevel,
-                minigameIsTutorial: reward.minigameIsTutorial,
-                lumensAmount: reward.lumensAmount,
-              },
-            ],
-    }));
+    set((state) => {
+      if (state.storyId == null) return { history: state.history };
+
+      const activeStoryId = String(state.storyId);
+      const isJournalReward = reward.type === "journal_entry";
+      const isMinigameReward = reward.type === "minigame";
+      const isLumensReward = reward.type === "lumens";
+      const journalEntryId = reward.journalEntryId
+        ? String(reward.journalEntryId)
+        : null;
+      const minigameLevel = reward.minigameLevel
+        ? String(reward.minigameLevel)
+        : null;
+      const lumensAmount =
+        typeof reward.lumensAmount === "number" ? reward.lumensAmount : null;
+
+      const alreadyInHistory = state.history.some((item) => {
+        if (
+          item.type !== "reward" ||
+          item.storyId == null ||
+          String(item.storyId) !== activeStoryId
+        ) {
+          return false;
+        }
+
+        if (isJournalReward && journalEntryId) {
+          return (
+            item.rewardType === "journal_entry" &&
+            String(item.journalEntryId ?? "") === journalEntryId
+          );
+        }
+
+        if (isMinigameReward && minigameLevel) {
+          return (
+            item.rewardType === "minigame" &&
+            String(item.minigameLevel ?? "") === minigameLevel
+          );
+        }
+
+        if (isLumensReward && lumensAmount != null) {
+          return (
+            item.rewardType === "lumens" &&
+            Number(item.lumensAmount ?? -1) === lumensAmount
+          );
+        }
+
+        return item.rewardType === reward.type;
+      });
+
+      if (alreadyInHistory) {
+        return { history: state.history };
+      }
+
+      return {
+        history: [
+          ...state.history,
+          {
+            storyId: state.storyId,
+            type: "reward",
+            content: reward.title,
+            id: reward.id,
+            rewardType: reward.type,
+            rewardTitle: reward.title,
+            rewardSubtitle: reward.subtitle,
+            journalEntryId: reward.journalEntryId,
+            minigameLevel: reward.minigameLevel,
+            minigameIsTutorial: reward.minigameIsTutorial,
+            lumensAmount: reward.lumensAmount,
+          },
+        ],
+      };
+    });
   },
   clearHistory: () => set({ history: [] }),
 }));

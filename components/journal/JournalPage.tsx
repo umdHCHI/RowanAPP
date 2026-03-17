@@ -177,17 +177,18 @@ export function JournalPage() {
 
       if (mode !== nextMode) {
         setMode(nextMode)
+        return // Exit early to let the next render handle the prompt index update
       }
 
       const targetPrompts = getActivePromptsForMode(nextMode, targetPrompt)
       const targetPromptIndex = targetPrompts.findIndex((p) => p.prompt_id === searchParams.promptId)
-      if (targetPromptIndex !== -1) {
+      if (targetPromptIndex !== -1 && targetPromptIndex !== currentPromptIndex) {
         setCurrentPromptIndex(targetPromptIndex)
-      } else {
+      } else if (targetPromptIndex === -1 && currentPromptIndex !== 0) {
         setCurrentPromptIndex(0)
       }
     }
-  }, [searchParams.promptId, journalPrompts, mode, getActivePromptsForMode, setMode, setCurrentPromptIndex])
+  }, [searchParams.promptId, journalPrompts, mode, currentPromptIndex, getActivePromptsForMode, setMode, setCurrentPromptIndex])
   
   // Reset prompt index when mode changes to show first prompt of new category
   useEffect(() => {
@@ -699,7 +700,11 @@ export function JournalPage() {
               onPress={() => {
                 if (mode !== 'journal') {
                   playPageFlipSound()
-                  setMode('journal')
+                  if (searchParams.from === 'resources') {
+                    router.replace('/journal?from=resources&promptId=default_text_prompt')
+                  } else {
+                    setMode('journal')
+                  }
                 }
               }}
             >
@@ -714,7 +719,11 @@ export function JournalPage() {
               onPress={() => {
                 if (mode !== 'voice') {
                   playPageFlipSound()
-                  setMode('voice')
+                  if (searchParams.from === 'resources') {
+                    router.replace('/journal?from=resources&promptId=default_voice_prompt')
+                  } else {
+                    setMode('voice')
+                  }
                 }
               }}
             >
@@ -729,7 +738,11 @@ export function JournalPage() {
               onPress={() => {
                 if (mode !== 'draw') {
                   playPageFlipSound()
-                  setMode('draw')
+                  if (searchParams.from === 'resources') {
+                    router.replace('/journal?from=resources&promptId=default_drawing_prompt')
+                  } else {
+                    setMode('draw')
+                  }
                 }
               }}
             >

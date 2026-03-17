@@ -65,7 +65,7 @@ export {
 } from "./hooks/use-journal";
 
 // Hooks - User
-export { useUser, useUserFullProfile, userKeys } from "./hooks/use-user";
+export { useUser, useUserFullProfile, useUpdateUsername, userKeys } from "./hooks/use-user";
 
 // Hooks - EMA
 export {

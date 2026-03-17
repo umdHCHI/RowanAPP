@@ -5,6 +5,24 @@ import { userService } from '../services/user.service'
 import { characterService } from '../services/character.service'
 import type { ApiError } from '../types'
 
+type ProfileFlags = {
+  hasCharacter: boolean
+  hasCompletedOnboarding: boolean
+}
+
+function readProfileFlags(source: any): ProfileFlags {
+  const profile = source?.profile ?? source
+
+  const hasCharacter =
+    profile?.has_character === true ||
+    profile?.has_completed_character_creation === true ||
+    !!profile?.character
+
+  const hasCompletedOnboarding = profile?.has_completed_onboarding === true
+
+  return { hasCharacter, hasCompletedOnboarding }
+}
+
 function getLoginErrorMessage(err: unknown): string {
   if (!(err instanceof Error)) return 'An error occurred during login'
   const ae = err as Error & Partial<ApiError>
@@ -52,12 +70,16 @@ export function useLogin() {
       // First store the user + token so subsequent API calls are authenticated
       setUser(userId, token, false)
 
+      const loginProfileFlags = readProfileFlags(user)
+
       // Then check if the user already has a character by hitting the
       // dedicated "my character" endpoint.
-      let hasCharacter = false
+      let hasCharacter = loginProfileFlags.hasCharacter
+      let hasCompletedOnboarding = loginProfileFlags.hasCompletedOnboarding
+
       try {
         const mine = await characterService.getMine()
-        hasCharacter = !!(mine?.success && mine.data)
+        hasCharacter = hasCharacter || !!(mine?.success && mine.data)
       } catch (profileError: any) {
         const status = (profileError as ApiError)?.status
         // 404 just means "no character yet" – that's fine for first-time users.
@@ -66,9 +88,19 @@ export function useLogin() {
         }
       }
 
+      // Fallback: full profile often has onboarding/character flags even when getMine is unavailable.
+      try {
+        const fullProfile = await userService.getFullProfile(userId)
+        const profileFlags = readProfileFlags(fullProfile)
+        hasCharacter = hasCharacter || profileFlags.hasCharacter
+        hasCompletedOnboarding = hasCompletedOnboarding || profileFlags.hasCompletedOnboarding
+      } catch (profileError) {
+        console.warn('Failed to fetch full profile after login:', profileError)
+      }
+
       setHasCharacter(hasCharacter)
 
-      if (hasCharacter) {
+      if (hasCharacter || hasCompletedOnboarding) {
         router.replace('/hub')
       } else {
         router.replace('/character-creator')
