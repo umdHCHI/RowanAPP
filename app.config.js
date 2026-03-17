@@ -15,6 +15,7 @@ module.exports = {
     name: "The Archive",
     slug: "thearchive",
     icon: "./assets/splashscreen/Loading_Book.png",
+    userInterfaceStyle: "automatic",
     version: appVersion,
     splash: {
       image: "./assets/splashscreen/Loading_Book.png",
